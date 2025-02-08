@@ -1,0 +1,15 @@
+tensorflow-gpu==2.10.1
+nvidia-cudnn-cu11==8.9.5.29
+numpy
+pandas
+h5py
+scipy
+build
+pytestpip install graph
+pdoc3
+keras-multi-head
+pydot
+graphviz
+backtrader
+deap
+pmdarima
