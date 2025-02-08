@@ -11,17 +11,16 @@ from app.data_handler import load_csv
 #
 # This module processes three CSV datasets:
 #
-# 1. Hourly predictions: Contains the next n_hourly predictions (columns for t+1 to t+n_hourly).
-# 2. Daily predictions: For each tick (hourly timestamp), contains predictions for the next n_daily days 
-#    (i.e. predictions for t+24, t+48, …, t+24*n_daily).
-# 3. Base dataset: Contains the actual rates per tick.
+#   1. Hourly predictions: Next n_hourly predictions (columns for t+1 to t+n_hourly).
+#   2. Daily predictions: For each tick (hourly timestamp), predictions for the next n_daily days
+#                        (e.g. t+24, t+48, …, t+24*n_daily).
+#   3. Base dataset: Actual rates per tick.
 #
-# If a date column is provided in the configuration (using key "date_column"), it is converted to a 
-# datetime index and the datasets are aligned based on the common date range.
+# If a date column is specified via config (key "date_column"), it is converted to a datetime index
+# and the datasets are aligned to the common date range.
 #
-# After processing, the pipeline calls the optimizer from the current strategy plugin via the 
-# "optimize_strategy" method. The plugin is expected to run the trading simulation (e.g., with backtrader)
-# and return a dictionary with trading performance details.
+# After processing, the pipeline calls an optimizer module (optimizer.py) which uses the strategy plugin’s
+# optimization interface (get_optimizable_params and evaluate_candidate) to search for the best parameters.
 # =============================================================================
 
 def process_data(config):
@@ -35,15 +34,15 @@ def process_data(config):
     datetime index and the datasets are aligned to the common date range.
     
     Args:
-        config (dict): Configuration dictionary with keys:
+        config (dict): Configuration with keys:
             - "hourly_predictions_file": Path to the hourly predictions CSV.
             - "daily_predictions_file": Path to the daily predictions CSV.
             - "base_dataset_file": Path to the base dataset CSV.
             - "headers" (optional): Boolean indicating if CSV files have headers.
-            - "date_column" (optional): Name of the column containing date/time information.
+            - "date_column" (optional): Name of the date/time column.
     
     Returns:
-        dict: Dictionary with keys "hourly", "daily", "base" whose values are processed pandas DataFrames.
+        dict: Dictionary with keys "hourly", "daily", "base" holding processed DataFrames.
     """
     headers = config.get("headers", True)
     print("Loading datasets...")
@@ -67,7 +66,7 @@ def process_data(config):
             else:
                 print(f"Warning: '{date_column}' not found in {label} dataset.")
     
-    # Align datasets by their common date range if all indices are datetime
+    # Align datasets by their common date range if indices are datetime
     if (hasattr(hourly_df.index, 'min') and hasattr(daily_df.index, 'min') and hasattr(base_df.index, 'min')):
         try:
             common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
@@ -79,7 +78,7 @@ def process_data(config):
         except Exception as e:
             print("Error aligning datasets by date:", e)
     
-    # Convert all non-index columns to numeric and fill missing values with zero
+    # Convert all non-index columns to numeric (fill missing values with zero)
     for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
         df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
         print(f"{label} dataset: Converted columns to numeric (final shape: {df.shape}).")
@@ -96,13 +95,15 @@ def run_prediction_pipeline(config, plugin):
     Executes the trading strategy optimization pipeline.
     
     This function processes the three datasets (hourly predictions, daily predictions, and base rates)
-    and then passes the processed data along with the configuration to the strategy plugin’s
-    optimizer via its 'optimize_strategy' method. The plugin is expected to run a trading simulation
-    (e.g., with backtrader using a DEAP-based optimizer) and return a dictionary with the trading results.
+    and then—if the provided plugin supports the optimization interface—calls the optimizer module.
+    
+    The plugin must implement:
+       - get_optimizable_params()
+       - evaluate_candidate(individual, base_data, hourly_predictions, daily_predictions, config)
     
     Args:
-        config (dict): Configuration dictionary containing file paths and parameters.
-        plugin (object): Strategy plugin that implements the optimize_strategy() method.
+        config (dict): Configuration dictionary.
+        plugin (object): Strategy plugin instance.
     
     Returns:
         None
@@ -110,7 +111,7 @@ def run_prediction_pipeline(config, plugin):
     start_time = time.time()
     print("\n=== Starting Trading Strategy Optimization Pipeline ===")
     
-    # Process and align datasets
+    # Process and align datasets.
     datasets = process_data(config)
     hourly_preds = datasets["hourly"]
     daily_preds  = datasets["daily"]
@@ -121,20 +122,16 @@ def run_prediction_pipeline(config, plugin):
     print(f"  Daily predictions:  {daily_preds.shape}")
     print(f"  Base rates:         {base_data.shape}")
     
-    # Call the plugin optimizer with the processed data
-    print("\nInvoking strategy plugin optimizer...")
-    try:
-        trading_info = plugin.optimize_strategy(
-            base_data=base_data,
-            hourly_predictions=hourly_preds,
-            daily_predictions=daily_preds,
-            config=config
-        )
-    except Exception as e:
-        print("Error during strategy optimization:", e)
-        sys.exit(1)
+    # Check if plugin supports optimization (i.e. has the required methods)
+    if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
+        print("\nPlugin supports optimization interface. Running optimizer...")
+        from optimizer import run_optimizer
+        trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
+    else:
+        print("\nPlugin does not support optimization. Exiting.")
+        trading_info = {}
     
-    # Display the trading simulation results
+    # Display the optimization results.
     print("\n=== Trading Strategy Optimization Results ===")
     if isinstance(trading_info, dict):
         for key, value in trading_info.items():
@@ -147,18 +144,20 @@ def run_prediction_pipeline(config, plugin):
 
 
 if __name__ == "__main__":
-    # When running this module directly, ensure a valid configuration dict and plugin instance are provided.
-    # Example usage:
+    # Example usage (update the file paths as needed):
     #
-    # from app.strategy_plugin import StrategyPlugin
+    # from strategy_plugin import StrategyPlugin
     # config = {
     #     "hourly_predictions_file": "data/hourly_predictions.csv",
     #     "daily_predictions_file": "data/daily_predictions.csv",
     #     "base_dataset_file": "data/base_dataset.csv",
     #     "headers": True,
-    #     "date_column": "DATE_TIME"
+    #     "date_column": "DATE_TIME",
+    #     "population_size": 20,
+    #     "num_generations": 50,
+    #     "crossover_probability": 0.5,
+    #     "mutation_probability": 0.2
     # }
-    # plugin = StrategyPlugin()  # This plugin must implement optimize_strategy()
+    # plugin = StrategyPlugin()
     # run_prediction_pipeline(config, plugin)
-    #
     pass
