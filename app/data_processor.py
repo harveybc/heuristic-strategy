@@ -19,14 +19,65 @@ from app.data_handler import load_csv
 # If a date column is specified via config (key "date_column"), it is converted to a datetime index
 # and the datasets are aligned to the common date range.
 #
-# After processing, the pipeline calls an optimizer module (optimizer.py) which uses the strategy plugin’s
-# optimization interface (get_optimizable_params and evaluate_candidate) to search for the best parameters.
+# If either the hourly_predictions_file or daily_predictions_file is None, the corresponding
+# predictions are auto-generated from the base dataset using the value in config["time_horizon"]:
+#   - Hourly predictions: the next time_horizon ticks (t+1 ... t+time_horizon)
+#   - Daily predictions: the values at t+24, t+48, ... , t+24*time_horizon
 #
-# Additionally, the pipeline saves a CSV file containing the optimization results (summary) and another CSV
-# file containing simulated trades (if available). The trades file includes open and exit prices, profit,
-# maximum drawdown, and the date of each trade. If the 'print_trades' flag is set in the configuration,
+# After processing, the pipeline calls an optimizer module (optimizer.py) which uses the strategy
+# plugin’s optimization interface (get_optimizable_params and evaluate_candidate) to search for the
+# best parameters.
+#
+# Additionally, the pipeline saves a CSV file containing the optimization results (summary) and another
+# CSV file containing simulated trades (if available). The trades file includes open and exit prices,
+# profit, maximum drawdown, and the date of each trade. If the 'print_trades' flag is set in the configuration,
 # the simulated trades are also printed to the console.
 # =============================================================================
+
+def create_hourly_predictions(df, horizon):
+    """
+    Auto-compute hourly predictions from the base dataset.
+    
+    For each row i in the base dataset, the prediction is a block of the next 'horizon' values.
+    
+    Args:
+        df (pd.DataFrame): Base dataset.
+        horizon (int): Number of future ticks to predict.
+    
+    Returns:
+        pd.DataFrame: DataFrame of hourly predictions.
+    """
+    blocks = []
+    for i in range(len(df) - horizon):
+        # Get the next 'horizon' ticks starting at i+1
+        block = df.iloc[i+1 : i+1+horizon].values.flatten()
+        blocks.append(block)
+    # Use the index of df (up to the last horizon rows) as the new index.
+    return pd.DataFrame(blocks, index=df.index[:-horizon])
+
+
+def create_daily_predictions(df, horizon):
+    """
+    Auto-compute daily predictions from the base dataset.
+    
+    For each row i in the base dataset, the prediction is a block of values at offsets 24, 48, ..., 24*horizon.
+    
+    Args:
+        df (pd.DataFrame): Base dataset.
+        horizon (int): Number of future days (in hours: each day = 24 ticks) to predict.
+    
+    Returns:
+        pd.DataFrame: DataFrame of daily predictions.
+    """
+    blocks = []
+    for i in range(len(df) - horizon * 24):
+        block = []
+        for d in range(1, horizon+1):
+            # Append the row at i + d*24; if df has multiple columns, all values are flattened.
+            block.extend(df.iloc[i + d*24].values.flatten())
+        blocks.append(block)
+    return pd.DataFrame(blocks, index=df.index[:-horizon*24])
+
 
 def process_data(config):
     """
@@ -38,24 +89,60 @@ def process_data(config):
     If a date column is specified (via config["date_column"]), that column is converted to a 
     datetime index and the datasets are aligned to the common date range.
     
+    If either the hourly or daily predictions file is None, predictions are auto-generated from the base dataset
+    using the config["time_horizon"] parameter.
+    
     Args:
         config (dict): Configuration with keys:
-            - "hourly_predictions_file": Path to the hourly predictions CSV.
-            - "daily_predictions_file": Path to the daily predictions CSV.
+            - "hourly_predictions_file": Path to the hourly predictions CSV (or None for auto-calc).
+            - "daily_predictions_file": Path to the daily predictions CSV (or None for auto-calc).
             - "base_dataset_file": Path to the base dataset CSV.
             - "headers" (optional): Boolean indicating if CSV files have headers.
             - "date_column" (optional): Name of the date/time column.
+            - "time_horizon": Number of future ticks/days (for hourly and daily auto-predictions).
     
     Returns:
         dict: Dictionary with keys "hourly", "daily", "base" holding processed DataFrames.
     """
     headers = config.get("headers", True)
     print("Loading datasets...")
-    hourly_df = load_csv(config["hourly_predictions_file"], headers=headers)
-    daily_df  = load_csv(config["daily_predictions_file"], headers=headers)
-    base_df   = load_csv(config["base_dataset_file"], headers=headers)
     
-    print("Datasets loaded:")
+    # Load hourly predictions if a file is provided; otherwise, set to None.
+    if config.get("hourly_predictions_file"):
+        hourly_df = load_csv(config["hourly_predictions_file"], headers=headers)
+        print(f"Loaded hourly predictions from file: {config['hourly_predictions_file']}")
+    else:
+        hourly_df = None
+        print("No hourly predictions file provided. Will auto-calculate hourly predictions.")
+
+    # Load daily predictions if a file is provided; otherwise, set to None.
+    if config.get("daily_predictions_file"):
+        daily_df = load_csv(config["daily_predictions_file"], headers=headers)
+        print(f"Loaded daily predictions from file: {config['daily_predictions_file']}")
+    else:
+        daily_df = None
+        print("No daily predictions file provided. Will auto-calculate daily predictions.")
+
+    # Load the base dataset (this is required).
+    base_df = load_csv(config["base_dataset_file"], headers=headers)
+    print(f"Base dataset loaded: {base_df.shape}")
+    
+    # If predictions are not provided, compute them automatically using base_df.
+    if hourly_df is None:
+        if "time_horizon" not in config or not config["time_horizon"]:
+            raise ValueError("time_horizon must be provided in config when auto-calculating predictions.")
+        print("Auto-calculating hourly predictions using base dataset...")
+        hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
+        print(f"Auto-generated hourly predictions: {hourly_df.shape}")
+        
+    if daily_df is None:
+        if "time_horizon" not in config or not config["time_horizon"]:
+            raise ValueError("time_horizon must be provided in config when auto-calculating predictions.")
+        print("Auto-calculating daily predictions using base dataset...")
+        daily_df = create_daily_predictions(base_df, config["time_horizon"])
+        print(f"Auto-generated daily predictions: {daily_df.shape}")
+    
+    print("\nDatasets loaded:")
     print(f"  Hourly predictions: {hourly_df.shape}")
     print(f"  Daily predictions:  {daily_df.shape}")
     print(f"  Base dataset:       {base_df.shape}")
@@ -181,11 +268,12 @@ if __name__ == "__main__":
     #
     # from strategy_plugin import StrategyPlugin
     # config = {
-    #     "hourly_predictions_file": "data/hourly_predictions.csv",
-    #     "daily_predictions_file": "data/daily_predictions.csv",
+    #     "hourly_predictions_file": None,         # Set to None to auto-calculate hourly predictions
+    #     "daily_predictions_file": None,          # Set to None to auto-calculate daily predictions
     #     "base_dataset_file": "data/base_dataset.csv",
     #     "headers": True,
     #     "date_column": "DATE_TIME",
+    #     "time_horizon": 6,
     #     "population_size": 20,
     #     "num_generations": 50,
     #     "crossover_probability": 0.5,

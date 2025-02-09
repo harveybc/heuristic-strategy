@@ -1,11 +1,12 @@
 # config.py
 
 DEFAULT_VALUES = {
-    "hourly_predictions_file": "data/hourly_predictions.csv",
-    "daily_predictions_file": "data/daily_predictions.csv",
+    "hourly_predictions_file": None,
+    "daily_predictions_file": None,
     "base_dataset_file": "data/base_dataset.csv",
     "date_column": "DATE_TIME",
     "plugin": "default",
+    "time_horizon": 6,
     "population_size": 20,
     "num_generations": 100,
     "crossover_probability": 0.5,
