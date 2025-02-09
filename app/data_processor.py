@@ -21,6 +21,11 @@ from app.data_handler import load_csv
 #
 # After processing, the pipeline calls an optimizer module (optimizer.py) which uses the strategy plugin’s
 # optimization interface (get_optimizable_params and evaluate_candidate) to search for the best parameters.
+#
+# Additionally, the pipeline saves a CSV file containing the optimization results (summary) and another CSV
+# file containing simulated trades (if available). The trades file includes open and exit prices, profit,
+# maximum drawdown, and the date of each trade. If the 'print_trades' flag is set in the configuration,
+# the simulated trades are also printed to the console.
 # =============================================================================
 
 def process_data(config):
@@ -55,7 +60,7 @@ def process_data(config):
     print(f"  Daily predictions:  {daily_df.shape}")
     print(f"  Base dataset:       {base_df.shape}")
     
-    # Convert date column to datetime index if provided
+    # Convert date column to datetime index if provided.
     date_column = config.get("date_column")
     if date_column:
         for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
@@ -66,7 +71,7 @@ def process_data(config):
             else:
                 print(f"Warning: '{date_column}' not found in {label} dataset.")
     
-    # Align datasets by their common date range if indices are datetime
+    # Align datasets by their common date range if indices are datetime.
     if (hasattr(hourly_df.index, 'min') and hasattr(daily_df.index, 'min') and hasattr(base_df.index, 'min')):
         try:
             common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
@@ -78,7 +83,7 @@ def process_data(config):
         except Exception as e:
             print("Error aligning datasets by date:", e)
     
-    # Convert all non-index columns to numeric (fill missing values with zero)
+    # Convert all non-index columns to numeric (filling missing values with zero).
     for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
         df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
         print(f"{label} dataset: Converted columns to numeric (final shape: {df.shape}).")
@@ -101,12 +106,17 @@ def run_prediction_pipeline(config, plugin):
        - get_optimizable_params()
        - evaluate_candidate(individual, base_data, hourly_predictions, daily_predictions, config)
     
+    Additionally, after optimization, the pipeline saves a CSV file containing the optimization results (summary)
+    and, if available, a CSV file with simulated trades. If the configuration flag 'print_trades' is set,
+    the simulated trades are printed to the console.
+    
     Args:
         config (dict): Configuration dictionary.
         plugin (object): Strategy plugin instance.
     
     Returns:
-        None
+        tuple: (trading_info, trades) where trading_info is a dict with the optimization summary,
+               and trades is a list of trade dictionaries (or None if not available).
     """
     start_time = time.time()
     print("\n=== Starting Trading Strategy Optimization Pipeline ===")
@@ -122,7 +132,7 @@ def run_prediction_pipeline(config, plugin):
     print(f"  Daily predictions:  {daily_preds.shape}")
     print(f"  Base rates:         {base_data.shape}")
     
-    # Check if plugin supports optimization (i.e. has the required methods)
+    # Run the optimizer if the plugin supports the optimization interface.
     if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
         print("\nPlugin supports optimization interface. Running optimizer...")
         from optimizer import run_optimizer
@@ -131,7 +141,6 @@ def run_prediction_pipeline(config, plugin):
         print("\nPlugin does not support optimization. Exiting.")
         trading_info = {}
     
-    # Display the optimization results.
     print("\n=== Trading Strategy Optimization Results ===")
     if isinstance(trading_info, dict):
         for key, value in trading_info.items():
@@ -139,12 +148,36 @@ def run_prediction_pipeline(config, plugin):
     else:
         print("Optimizer did not return the expected trading information dictionary.")
     
+    # Save optimization results to CSV if 'results_file' is specified.
+    if config.get("results_file"):
+        try:
+            results_df = pd.DataFrame([trading_info])
+            results_df.to_csv(config["results_file"], index=False)
+            print(f"Optimization results saved to {config['results_file']}.")
+        except Exception as e:
+            print(f"Failed to save optimization results: {e}")
+    
+    # Save simulated trades to CSV if available and if 'trades_file' is specified.
+    trades = getattr(plugin, "trades", None)
+    if trades is not None and config.get("trades_file"):
+        try:
+            trades_df = pd.DataFrame(trades)
+            trades_df.to_csv(config["trades_file"], index=False)
+            print(f"Simulated trades saved to {config['trades_file']}.")
+            if config.get("print_trades"):
+                print("\nSimulated Trades:")
+                print(trades_df)
+        except Exception as e:
+            print(f"Failed to save simulated trades: {e}")
+    
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
+    
+    return trading_info, trades
 
 
 if __name__ == "__main__":
-    # Example usage (update the file paths as needed):
+    # Example usage (update file paths and parameters as needed):
     #
     # from strategy_plugin import StrategyPlugin
     # config = {
@@ -156,7 +189,10 @@ if __name__ == "__main__":
     #     "population_size": 20,
     #     "num_generations": 50,
     #     "crossover_probability": 0.5,
-    #     "mutation_probability": 0.2
+    #     "mutation_probability": 0.2,
+    #     "results_file": "optimization_results.csv",
+    #     "trades_file": "simulated_trades.csv",
+    #     "print_trades": True
     # }
     # plugin = StrategyPlugin()
     # run_prediction_pipeline(config, plugin)
