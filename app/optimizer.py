@@ -19,7 +19,7 @@ def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, con
     """
     Initializes the optimizer with the provided plugin and datasets.
     """
-    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
+    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _num_generations
     _plugin = plugin
     _base_data = base_data
     _hourly_predictions = hourly_predictions
@@ -45,7 +45,7 @@ def evaluate_individual(individual):
      if not _config['load_parameters']:
           num_epochs = _num_generations
      else:
-         num_epochs = 1
+          num_epochs = 1
 
 
      # Print the candidate and current epoch
