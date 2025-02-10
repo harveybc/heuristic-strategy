@@ -28,32 +28,37 @@ def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, con
     print("[INIT] Optimizer initialized with strategy plugin.")
 
 def evaluate_individual(individual):
-    """
-    Evaluates a candidate strategy parameter set.
-    Prints the current epoch number along with the candidate.
-    Expects the plugin's evaluate_candidate() method to return either:
-      - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
-      - Or a single-value tuple (profit,)
-    """
-    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch
-    if _plugin is None:
-        print("[EVALUATE] ERROR: _plugin is None!")
-        return (-1e6,)
-    # Print the candidate and current epoch
-    print(f"[EVALUATE][Epoch {_current_epoch}] Evaluating candidate (genome): {individual}")
-    result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
-    if isinstance(result, tuple) and len(result) == 2:
-        profit, stats = result
-        print(f"[EVALUATE][Epoch {_current_epoch}] Candidate result => Profit: {profit:.2f}, "
-              f"Trades: {stats.get('num_trades', 0)}, "
-              f"Win%: {stats.get('win_pct', 0):.1f}, "
-              f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-              f"Sharpe: {stats.get('sharpe', 0):.2f}")
-    elif isinstance(result, tuple) and len(result) == 1:
-        print(f"[EVALUATE][Epoch {_current_epoch}] Candidate result => Profit: {result[0]:.2f} (no stats)")
-    else:
-        print(f"[EVALUATE][Epoch {_current_epoch}] Candidate result => Profit: {result:.2f} (no stats)")
-    return result
+     """
+     Evaluates a candidate strategy parameter set.
+     Prints the current epoch number along with the candidate.
+     Expects the plugin's evaluate_candidate() method to return either:
+          - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
+          - Or a single-value tuple (profit,)
+     """
+     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _config
+     if _plugin is None:
+          print("[EVALUATE] ERROR: _plugin is None!")
+          return (-1e6,)
+     
+     # if the _config['load_parameters'] is false,then set the number of epochs to be printed
+     if not _config['load_parameters']:
+          num_epochs = _config.get("num_epochs", 10)     
+
+     # Print the candidate and current epoch
+     print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Evaluating candidate (genome): {individual}")
+     result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
+     if isinstance(result, tuple) and len(result) == 2:
+          profit, stats = result
+          print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Candidate result => Profit: {profit:.2f}, "
+               f"Trades: {stats.get('num_trades', 0)}, "
+               f"Win%: {stats.get('win_pct', 0):.1f}, "
+               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
+               f"Sharpe: {stats.get('sharpe', 0):.2f}")
+     elif isinstance(result, tuple) and len(result) == 1:
+          print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Candidate result => Profit: {result[0]:.2f} (no stats)")
+     else:
+          print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Candidate result => Profit: {result:.2f} (no stats)")
+     return result
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
