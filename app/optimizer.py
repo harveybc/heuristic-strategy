@@ -9,18 +9,26 @@ import matplotlib.pyplot as plt
 from deap import base, creator, tools
 
 # Import your strategy.
-# (Ensure that HeuristicStrategy is defined exactly as in your example.)
 from heuristic_strategy import HeuristicStrategy
 
-# --------------------------------------------------------------------------
 # Global variables to hold the evaluation context.
-# These will be set in run_optimizer and used in evaluate_individual.
-# --------------------------------------------------------------------------
 _plugin = None
 _base_data = None
 _hourly_predictions = None
 _daily_predictions = None
 _config = None
+
+def init_worker(plugin, base_data, hourly_predictions, daily_predictions, config):
+    """
+    Initializer for worker processes.
+    Sets the global variables so that evaluate_individual can access them.
+    """
+    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
+    _plugin = plugin
+    _base_data = base_data
+    _hourly_predictions = hourly_predictions
+    _daily_predictions = daily_predictions
+    _config = config
 
 def evaluate_individual(individual):
     """
@@ -39,7 +47,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     """
     Runs the DEAP-based optimizer using the strategy plugin's evaluation function.
     
-    The plugin must implement two methods:
+    The plugin must implement:
       - get_optimizable_params(): returns a list of tuples (name, lower_bound, upper_bound).
       - evaluate_candidate(individual, base_data, hourly_predictions, daily_predictions, config):
             runs a backtest with the candidate parameters and returns its profit as a tuple.
@@ -54,13 +62,6 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     Returns:
         dict: A dictionary containing "best_parameters" (the best candidate's parameters) and "profit" (the best profit achieved).
     """
-    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
-    _plugin = plugin
-    _base_data = base_data
-    _hourly_predictions = hourly_predictions
-    _daily_predictions = daily_predictions
-    _config = config
-
     # Retrieve optimizable parameters from the plugin.
     optimizable_params = plugin.get_optimizable_params()
     num_params = len(optimizable_params)
@@ -95,13 +96,14 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     cxpb = config.get("crossover_probability", 0.5)
     mutpb = config.get("mutation_probability", 0.2)
     
+    # Use a multiprocessing pool with an initializer to set globals in worker processes.
+    pool = multiprocessing.Pool(initializer=init_worker,
+                                initargs=(plugin, base_data, hourly_predictions, daily_predictions, config))
+    toolbox.register("map", pool.map)
+    
     population = toolbox.population(n=population_size)
     print("Starting Genetic Algorithm Optimization...")
     print(f"Population Size: {population_size}, Generations: {num_generations}")
-    
-    # Use multiprocessing to speed up evaluation.
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
     
     # Evaluate the initial population.
     fitnesses = list(toolbox.map(toolbox.evaluate, population))
@@ -146,47 +148,9 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     
     return {"best_parameters": best_params, "profit": best_ind.fitness.values[0]}
 
-# Standalone testing of the optimizer is possible by calling main() here.
+# Standalone testing is not supported for this module.
 def main():
-    random.seed(42)
-    population = toolbox.population(n=20)
-    CXPB, MUTPB, NGEN = 0.5, 0.2, 100  # For standalone testing.
-    print("Starting Genetic Algorithm Optimization")
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
-    fitnesses = list(map(toolbox.evaluate, population))
-    for ind, fit in zip(population, fitnesses):
-         ind.fitness.values = fit
-    print("  Evaluated %i individuals" % len(population))
-    for gen in range(1, NGEN + 1):
-         offspring = toolbox.select(population, len(population))
-         offspring = list(map(toolbox.clone, offspring))
-         for child1, child2 in zip(offspring[::2], offspring[1::2]):
-              if random.random() < CXPB:
-                   toolbox.mate(child1, child2)
-                   del child1.fitness.values
-                   del child2.fitness.values
-         for mutant in offspring:
-              if random.random() < MUTPB:
-                   toolbox.mutate(mutant)
-                   del mutant.fitness.values
-         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-         for ind, fit in zip(invalid_ind, fitnesses):
-              ind.fitness.values = fit
-         population[:] = offspring
-         fits = [ind.fitness.values[0] for ind in population]
-         print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits)/len(fits):.2f}")
-    best_ind = tools.selBest(population, 1)[0]
-    print("Best parameter set found:")
-    print(f"  profit_threshold = {best_ind[0]:.2f}")
-    print(f"  tp_multiplier    = {best_ind[1]:.2f}")
-    print(f"  sl_multiplier    = {best_ind[2]:.2f}")
-    print(f"  rel_volume       = {best_ind[3]:.3f}")
-    print(f"  lower_rr_thresh  = {best_ind[4]:.2f}")
-    print(f"  upper_rr_thresh  = {best_ind[5]:.2f}")
-    print("With profit: {:.2f}".format(best_ind.fitness.values[0]))
-    pool.close()
+    print("Standalone testing of the optimizer module is not supported. Please run via the main pipeline.")
 
 if __name__ == '__main__':
     main()
