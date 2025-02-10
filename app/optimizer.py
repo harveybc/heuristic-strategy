@@ -25,28 +25,59 @@ def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, con
 
 def evaluate_individual(individual):
     """
-    Evaluates a candidate strategy parameter set.
+    Evaluates a candidate strategy parameter set, printing
+    final balance, # of trades, trades won %, max dd, sharpe ratio, etc.
+    as returned by the plugin.
     """
     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
     if _plugin is None:
         print("[EVALUATE] ERROR: _plugin is None!")
         return (-1e6,)
 
-    print(f"[EVALUATE] Evaluating candidate: {individual}")
+    # Print the candidate
+    print(f"[EVALUATE] Evaluating candidate (genome): {individual}")
+
+    # We assume evaluate_candidate returns something like:
+    # (profit_value, {"num_trades": ..., "win_pct": ..., "max_dd": ..., "sharpe": ...})
     result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
-    print(f"[EVALUATE] Candidate result: {result}")
-    return result
+
+    if isinstance(result, tuple) and len(result) == 2:
+        # We expect first item => profit, second => stats
+        profit = result[0]
+        stats = result[1]
+        # Print the stats we want:
+        print(f"[EVALUATE] Candidate result => Profit: {profit:.2f}, "
+              f"Trades: {stats.get('num_trades', 0)}, "
+              f"Win%: {stats.get('win_pct', 0):.1f}, "
+              f"MaxDD: {stats.get('max_dd', 0):.2f}, "
+              f"Sharpe: {stats.get('sharpe', 0):.2f}")
+        # Return the profit alone as the fitness for DEAP
+        return (profit,)
+
+    # If the plugin just returns a single float, handle gracefully
+    elif isinstance(result, tuple) and len(result) == 1:
+        print(f"[EVALUATE] Candidate result => Profit: {result[0]:.2f} (no stats)")
+        return result
+    else:
+        # fallback if plugin returns just a float
+        print(f"[EVALUATE] Candidate result => Profit: {result:.2f} (no stats)")
+        return (result,)
+
+
+from tqdm import tqdm
+
+from tqdm import tqdm
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
-    Runs the optimizer using DEAP to optimize the strategy parameters.
-    Respects 'disable_multiprocessing' to decide whether to spawn processes or not.
-    Prints the same messages as the stand-alone code.
+    Runs the optimizer using DEAP to optimize the strategy parameters,
+    displaying a TQDM progress bar for the evaluation of individuals
+    in each generation (including the initial population).
+    Prints the same final lines as the stand-alone code.
     """
-    from deap import base, creator, tools
     import random
-    import time
     import multiprocessing
+    from deap import base, creator, tools
 
     # Initialize
     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
@@ -69,7 +100,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         name, low, high = param
         return random.uniform(low, high)
 
-    toolbox.register("individual", lambda: creator.Individual([random_attr(param) for param in optimizable_params]))
+    toolbox.register("individual", lambda: creator.Individual([random_attr(p) for p in optimizable_params]))
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
     toolbox.register("evaluate", evaluate_individual)
@@ -85,25 +116,37 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     print("Starting Genetic Algorithm Optimization")
 
-    # Decide whether to spawn a Pool
     disable_mp = config.get("disable_multiprocessing", False)
     if not disable_mp:
         pool = multiprocessing.Pool()
         toolbox.register("map", pool.map)
-    # else we rely on built-in python map => single process
 
-    # Build population & evaluate
+    # 1) Build the initial population
     population = toolbox.population(n=population_size)
+
+    # 2) Evaluate the initial population with a TQDM progress bar
     if disable_mp:
-        fitnesses = list(map(toolbox.evaluate, population))
+        fitnesses = []
+        with tqdm(total=len(population), desc="Evaluating initial population", unit="cand") as pbar:
+            for ind in population:
+                fit = toolbox.evaluate(ind)
+                ind.fitness.values = fit
+                pbar.update(1)
     else:
-        fitnesses = list(toolbox.map(toolbox.evaluate, population))
+        # In parallel, we'll create a list out of the map but still track progress
+        # Easiest is to do a small helper in a loop:
+        fitnesses = []
+        with tqdm(total=len(population), desc="Evaluating initial population", unit="cand") as pbar:
+            for fit in toolbox.map(toolbox.evaluate, population):
+                fitnesses.append(fit)
+                pbar.update(1)
+        # Assign results
+        for ind, f in zip(population, fitnesses):
+            ind.fitness.values = f
 
-    for ind, fit in zip(population, fitnesses):
-        ind.fitness.values = fit
-    print("  Evaluated %i individuals" % len(population))
+    print(f"  Evaluated {len(population)} individuals")
 
-    # Evolve
+    # 3) The evolution loop
     for gen in range(1, num_generations + 1):
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
@@ -119,20 +162,30 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
+        # Evaluate new individuals (invalid_ind)
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        if disable_mp:
-            fitnesses = list(map(toolbox.evaluate, invalid_ind))
-        else:
-            fitnesses = list(toolbox.map(toolbox.evaluate, invalid_ind))
 
-        for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fitness.values = fit
+        if disable_mp:
+            with tqdm(total=len(invalid_ind), desc=f"Gen {gen} evaluating", unit="cand") as pbar:
+                for ind in invalid_ind:
+                    fit = toolbox.evaluate(ind)
+                    ind.fitness.values = fit
+                    pbar.update(1)
+        else:
+            # In parallel
+            fitnesses = []
+            with tqdm(total=len(invalid_ind), desc=f"Gen {gen} evaluating", unit="cand") as pbar:
+                for fit in toolbox.map(toolbox.evaluate, invalid_ind):
+                    fitnesses.append(fit)
+                    pbar.update(1)
+            for ind, f in zip(invalid_ind, fitnesses):
+                ind.fitness.values = f
 
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
         print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits)/len(fits):.2f}")
 
-    # Best
+    # 4) Retrieve best
     from deap import tools
     best_ind = tools.selBest(population, 1)[0]
     print("Best parameter set found:")
@@ -158,5 +211,6 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         },
         "profit": best_ind.fitness.values[0],
     }
+
 
 
