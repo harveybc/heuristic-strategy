@@ -25,6 +25,7 @@ def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, con
     _hourly_predictions = hourly_predictions
     _daily_predictions = daily_predictions
     _config = config
+    _num_generations = config.get("num_generations", 10)
     print("[INIT] Optimizer initialized with strategy plugin.")
 
 def evaluate_individual(individual):
@@ -35,14 +36,17 @@ def evaluate_individual(individual):
           - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
           - Or a single-value tuple (profit,)
      """
-     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _config
+     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _config, _num_generations
      if _plugin is None:
           print("[EVALUATE] ERROR: _plugin is None!")
           return (-1e6,)
      
      # if the _config['load_parameters'] is false,then set the number of epochs to be printed
      if not _config['load_parameters']:
-          num_epochs = _config.get("num_generations", 10)     
+          num_epochs = _num_generations
+     else:
+         num_epochs = 1
+
 
      # Print the candidate and current epoch
      print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Evaluating candidate (genome): {individual}")
