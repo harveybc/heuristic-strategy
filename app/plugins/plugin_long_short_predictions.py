@@ -60,64 +60,47 @@ class Plugin:
             ("upper_rr_threshold", 1.5, 3.0),
         ]
 
+
+
     def evaluate_candidate(self, individual, base_data, hourly_predictions, daily_predictions, config):
         """
-        Run the strategy with candidate parameters and return performance metrics,
-        merging hourly & daily predictions into a single CSV with columns named
-        'Prediction_h_i' and 'Prediction_d_i' so the strategy can find them.
+        Evaluates a candidate strategy parameter set by merging the provided predictions (hourly and daily)
+        into one DataFrame (saved as CSV for the strategy to read) and running a backtest.
+        If config["show_trades"] is True, prints the individual trades with all details.
+        Returns a tuple (profit, stats) where stats include trade count, win percentage, maximum drawdown, and sharpe ratio.
+        Also updates self.trades with the trades from the candidate evaluation.
         """
+        import os
+        import pandas as pd
+        import backtrader as bt
+
+        # Unpack candidate parameters.
         profit_threshold, tp_multiplier, sl_multiplier, rel_volume, lower_rr, upper_rr = individual
 
-        # 1) Merge the hourly_predictions and daily_predictions into ONE DataFrame
-        #    Each row must share the same index (DATE_TIME).
-        #    We'll rename columns so they match your strategy's expected naming convention:
-        #    'Prediction_h_1', 'Prediction_h_2', ... and 'Prediction_d_1', 'Prediction_d_2', ...
+        # 1) Merge predictions from hourly and daily data.
         merged_df = pd.DataFrame()
-
         if hourly_predictions is not None and not hourly_predictions.empty:
-            # Suppose hourly_predictions has shape (N, h_cols).
-            # We'll rename columns to 'Prediction_h_1, Prediction_h_2, etc.'
-            renamed_h_cols = {
-                col: f"Prediction_h_{i+1}"
-                for i, col in enumerate(hourly_predictions.columns)
-            }
-            hourly_renamed = hourly_predictions.rename(columns=renamed_h_cols)
-
-            if merged_df.empty:
-                merged_df = hourly_renamed.copy()
-            else:
-                merged_df = merged_df.join(hourly_renamed, how="outer")
-
+            renamed_h = {col: f"Prediction_h_{i+1}" for i, col in enumerate(hourly_predictions.columns)}
+            hr = hourly_predictions.rename(columns=renamed_h)
+            merged_df = hr.copy() if merged_df.empty else merged_df.join(hr, how="outer")
         if daily_predictions is not None and not daily_predictions.empty:
-            # Suppose daily_predictions has shape (N, d_cols).
-            # We'll rename columns to 'Prediction_d_1, Prediction_d_2, etc.'
-            renamed_d_cols = {
-                col: f"Prediction_d_{i+1}"
-                for i, col in enumerate(daily_predictions.columns)
-            }
-            daily_renamed = daily_predictions.rename(columns=renamed_d_cols)
+            renamed_d = {col: f"Prediction_d_{i+1}" for i, col in enumerate(daily_predictions.columns)}
+            dr = daily_predictions.rename(columns=renamed_d)
+            merged_df = dr.copy() if merged_df.empty else merged_df.join(dr, how="outer")
 
-            if merged_df.empty:
-                merged_df = daily_renamed.copy()
-            else:
-                merged_df = merged_df.join(daily_renamed, how="outer")
-
-        # If merged_df is still empty, no predictions => no trades. Return (0) or large negative.
         if merged_df.empty:
-            print("Warning: Merged predictions are empty. Returning profit=0.0 for this candidate.")
-            return (0.0,)
+            print(f"[evaluate_candidate] => Merged predictions are empty for candidate {individual}. Returning profit=0.0.")
+            return (0.0, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
-        # 2) Ensure merged_df has 'DATE_TIME' as an index, if not we set it
-        #    or if there's no index name, define it. We'll do a safe check:
         if merged_df.index.name is None or merged_df.index.name != "DATE_TIME":
             merged_df = merged_df.copy()
             merged_df.index.name = "DATE_TIME"
 
-        # 3) Save merged_df to CSV so the strategy can read 'Prediction_h_' / 'Prediction_d_' columns
+        # 2) Save merged predictions to a temporary CSV file.
         temp_pred_file = "temp_predictions.csv"
         merged_df.reset_index().to_csv(temp_pred_file, index=False)
 
-        # 4) Decide date_start, date_end from base_data or fallback to plugin params
+        # 3) Determine date range.
         if hasattr(base_data.index, 'min') and hasattr(base_data.index, 'max'):
             date_start = base_data.index.min().to_pydatetime()
             date_end   = base_data.index.max().to_pydatetime()
@@ -125,8 +108,7 @@ class Plugin:
             date_start = self.params['date_start']
             date_end   = self.params['date_end']
 
-        # 5) Build the Cerebro backtest
-        import backtrader as bt
+        # 4) Build the Cerebro backtest.
         cerebro = bt.Cerebro()
         cerebro.addstrategy(
             self.HeuristicStrategy,
@@ -146,31 +128,78 @@ class Plugin:
             upper_rr_threshold=upper_rr,
             max_trades_per_5days=self.params['max_trades_per_5days']
         )
-
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
 
-        # 6) Run the backtest
+        # 5) Run the backtest.
         try:
-            cerebro.run()
+            runresult = cerebro.run()
         except Exception as e:
             print("Error during backtest:", e)
             if os.path.exists(temp_pred_file):
                 os.remove(temp_pred_file)
-            return (-1e6,)
+            return (-1e6, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
         final_value = cerebro.broker.getvalue()
         profit = final_value - 10000.0
         print(f"Evaluated candidate {individual} -> Profit: {profit:.2f}")
 
-        # Clean up
+        # 6) Retrieve trades from the strategy instance.
+        strat_instance = runresult[0]
+        trades_list = getattr(strat_instance, "trades", [])
+        if config.get("show_trades", True):
+            if trades_list:
+                print(f"Trades for candidate {individual}:")
+                for i, tr in enumerate(trades_list, 1):
+                    open_dt = tr.get('open_dt', 'N/A')
+                    close_dt = tr.get('close_dt', 'N/A')
+                    volume = tr.get('volume', 0)
+                    pnl = tr.get('pnl', 0)
+                    pips = tr.get('pips', 0)
+                    max_dd = tr.get('max_dd', 0)
+                    print(f"  Trade #{i}: OpenDT={open_dt}, ExitDT={close_dt}, Volume={volume}, "
+                          f"PnL={pnl:.2f}, Pips={pips:.2f}, MaxDD={max_dd:.2f}")
+            else:
+                print("  No trades were made for this candidate.")
+
         if os.path.exists(temp_pred_file):
             os.remove(temp_pred_file)
 
-        return (profit,)
+        # 7) Update plugin trades with those from this evaluation.
+        self.trades = trades_list
 
+        # 8) Compute summary statistics.
+        num_trades = len(trades_list)
+        stats = {
+            "num_trades": num_trades,
+            "win_pct": 0,
+            "max_dd": 0,
+            "sharpe": 0
+        }
+        if num_trades > 0:
+            wins = [1 for tr in trades_list if tr['pnl'] > 0]
+            win_pct = (sum(wins) / num_trades) * 100
+            max_dd = max(tr['max_dd'] for tr in trades_list)
+            profits = [tr['pnl'] for tr in trades_list]
+            avg_profit = sum(profits) / num_trades
+            std_profit = (sum((p - avg_profit)**2 for p in profits)/num_trades)**0.5 if num_trades > 1 else 0
+            sharpe = (profit / std_profit) if std_profit > 0 else 0
+            stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
+        print(f"[EVALUATE] Candidate result => Profit: {profit:.2f}, "
+              f"Trades: {stats.get('num_trades', 0)}, "
+              f"Win%: {stats.get('win_pct', 0):.1f}, "
+              f"MaxDD: {stats.get('max_dd', 0):.2f}, "
+              f"Sharpe: {stats.get('sharpe', 0):.2f}")
+
+        return (profit, stats)
+
+    
+    
+    
+    
+    
     # -----------------------------------------------------------------------------
     # Embedded Heuristic Strategy
     # -----------------------------------------------------------------------------
@@ -246,10 +275,8 @@ class Plugin:
             # --- If in position, handle exit logic ---
             if self.position:
                 if self.current_direction == 'long':
-                    # Update intra‐trade low
                     if self.trade_low is None or current_price < self.trade_low:
                         self.trade_low = current_price
-                    # If we have predictions for dt_hour, check them
                     if dt_hour in self.pred_df.index:
                         preds_hourly = [
                             self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
@@ -262,16 +289,12 @@ class Plugin:
                         predicted_min = min(preds_hourly + preds_daily)
                     else:
                         predicted_min = current_price
-                    # Exit conditions: if current_price >= TP or predicted_min < SL
                     if current_price >= self.current_tp or predicted_min < self.current_sl:
                         self.close()
                         return
-
                 elif self.current_direction == 'short':
-                    # Update intra‐trade high
                     if self.trade_high is None or current_price > self.trade_high:
                         self.trade_high = current_price
-                    # If we have predictions for dt_hour, check them
                     if dt_hour in self.pred_df.index:
                         preds_hourly = [
                             self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
@@ -284,37 +307,28 @@ class Plugin:
                         predicted_max = max(preds_hourly + preds_daily)
                     else:
                         predicted_max = current_price
-                    # Exit conditions: if current_price <= TP or predicted_max > SL
                     if current_price <= self.current_tp or predicted_max > self.current_sl:
                         self.close()
                         return
+                return  # Do not attempt new entries if a position is open.
+            else:
+                # Reset intra‐trade extremes when no position is open.
+                self.trade_low = current_price
+                self.trade_high = current_price
 
-                # If we handled exit logic, do not attempt new entries
-                return
-
-            # --- If not in position, handle entry logic ---
-
-            # Reset intra‐trade extremes
-            self.trade_low = current_price
-            self.trade_high = current_price
-
-            # Enforce trade frequency: no more than max_trades_per_5days in last 5 days
+            # Enforce trade frequency: no more than max_trades_per_5days in the last 5 days.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
             if len(recent_trades) >= self.p.max_trades_per_5days:
                 return
 
-            # Check if we have predictions for dt_hour
+            # Check if prediction data exists for the current bar.
             if dt_hour not in self.pred_df.index:
                 return
             row = self.pred_df.loc[dt_hour]
-
-            # Attempt to load daily predictions
             try:
                 daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
             except KeyError:
                 return
-
-            # If daily_preds is empty or all NaN => skip
             if not daily_preds or all(pd.isna(daily_preds)):
                 return
 
@@ -338,11 +352,10 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            # Determine signals
+            # Determine signals.
             long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
             short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
 
-            # Choose the signal with higher RR
             if long_signal and (rr_buy >= rr_sell):
                 signal = 'long'
                 chosen_tp = tp_buy
@@ -359,16 +372,17 @@ class Plugin:
             if signal is None:
                 return
 
-            # Compute order size
+            # Compute order size.
             order_size = self.compute_size(chosen_rr)
             if order_size <= 0:
                 return
 
-            # Record trade entry
+            # Record trade entry details.
             self.trade_entry_dates.append(dt)
             self.trade_entry_bar = len(self)
+            self.current_volume = order_size  # Store the order volume
 
-            # Place order
+            # Place order.
             if signal == 'long':
                 self.buy(size=order_size)
                 self.current_direction = 'long'
@@ -376,9 +390,11 @@ class Plugin:
                 self.sell(size=order_size)
                 self.current_direction = 'short'
 
-            # Store chosen TP and SL
+            # Store chosen TP and SL.
             self.current_tp = chosen_tp
             self.current_sl = chosen_sl
+
+
 
         def compute_size(self, rr):
             """Compute order size by linear interpolation between min and max volumes based on RR."""
@@ -408,10 +424,6 @@ class Plugin:
 
 
         def notify_trade(self, trade):
-            """
-            Suppress per‐trade printouts for faster runs.
-            The trade details are still appended to self.trades.
-            """
             if trade.isclosed:
                 duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
                 dt = self.data0.datetime.datetime(0)
@@ -431,50 +443,49 @@ class Plugin:
                     intra_dd = 0
 
                 current_balance = self.broker.getvalue()
-                self.trades.append({
-                    'entry': entry_price,
-                    'exit': exit_price,
+                trade_record = {
+                    'open_dt': self.date_history[0] if self.date_history else "",
+                    'close_dt': dt,
+                    'volume': self.current_volume if hasattr(self, "current_volume") and self.current_volume is not None else 0,
                     'pnl': profit_usd,
                     'pips': profit_pips,
                     'duration': duration,
                     'max_dd': intra_dd
-                })
-
-                # Commented out the detailed print to avoid console spam:
-                # print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
-                #       f"Profit (pips)={profit_pips:.2f}, Profit (USD)={profit_usd:.2f}, "
-                #       f"Duration={duration} bars, Max DD (pips)={intra_dd:.2f}, Balance={current_balance:.2f}")
+                }
+                self.trades.append(trade_record)
+                print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+                    f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
+                    f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
 
                 self.order_entry_price = None
                 self.current_tp = None
                 self.current_sl = None
                 self.current_direction = None
+                self.current_volume = None
 
 
 
         def stop(self):
             """
-            At the end of the simulation, print the summary statistics and final messages
-            exactly like the original strategy.
+            At the end of the simulation, force-close any open position so that all trades are recorded.
+            Then compute and print summary statistics (including number of trades, average profit in USD and pips,
+            maximum drawdown, and average trade duration), and finally save the balance plot.
             """
-            if hasattr(self, 'analyzers') and 'tradeanalyzer' in self.analyzers:
-                trade_analyzer = self.analyzers.tradeanalyzer.get_analysis()
-                print("\n==== Trade Analyzer Results ====")
-                for key, value in trade_analyzer.items():
-                    print(f"{key}: {value}")
-
-            # Compute the minimum balance encountered during the simulation
+            # Force-close any open position.
+            if self.position:
+                self.close()
+            # (After a forced close, notify_trade() should be called and record the final trade.)
+            
+            # Compute summary statistics.
             min_balance = min(self.balance_history) if self.balance_history else 0
-
             n_trades = len(self.trades)
             if n_trades > 0:
                 avg_profit_usd = sum(t['pnl'] for t in self.trades) / n_trades
                 avg_profit_pips = sum(t['pips'] for t in self.trades) / n_trades
-                avg_profit_pips_abs = sum(abs(t['pips']) for t in self.trades) / n_trades
                 avg_duration = sum(t['duration'] for t in self.trades) / n_trades
                 avg_max_dd = sum(t['max_dd'] for t in self.trades) / n_trades
             else:
-                avg_profit_usd = avg_profit_pips = avg_profit_pips_abs = avg_duration = avg_max_dd = 0
+                avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
             final_balance = self.broker.getvalue()
 
             print("\n==== Summary ====")
@@ -487,6 +498,7 @@ class Plugin:
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
             print(f"Average Trade Duration (bars): {avg_duration:.2f}")
 
+            # Save the balance plot.
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 5))
             plt.plot(self.date_history, self.balance_history, label="Balance")
@@ -496,6 +508,7 @@ class Plugin:
             plt.legend()
             plt.savefig("balance_plot.png")
             plt.close()
+
 
 
     # -------------------------------------------------------------------------

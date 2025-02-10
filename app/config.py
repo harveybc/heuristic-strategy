@@ -1,8 +1,11 @@
 # config.py
 
 DEFAULT_VALUES = {
+    #"hourly_predictions_file": "..\\predictor\\examples\\results\\phase_1\\phase_1_lstm_12600_1h_prediction.csv",
+    #"daily_predictions_file": "..\\predictor\\examples\\results\\phase_1_daily\\phase_1_cnn_6300_1d_prediction.csv",
     "hourly_predictions_file": None,
-    "daily_predictions_file": None,
+    "daily_predictions_file":  None,
+    
     "base_dataset_file": "..\\predictor\\examples\\data\\phase_1\\phase_1_base_d3.csv",
     "date_column": "DATE_TIME",
     "plugin": "default",
@@ -11,7 +14,7 @@ DEFAULT_VALUES = {
     "num_generations": 2,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
-    "load_config": "config.json",
+    "load_config": None,
     "save_config": "config_out.json",
     "remote_log": None,
     "remote_load_config": None,

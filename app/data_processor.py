@@ -78,8 +78,12 @@ def process_data(config):
     - Loads the hourly predictions, daily predictions (if provided), and the base dataset.
     - If 'max_steps' is provided in config, each dataset is truncated to the first max_steps rows.
     - If a predictions file is not provided, predictions are auto-generated using config["time_horizon"].
-    - If a date_column is provided, it is converted to a datetime index (named "DATE_TIME").
-    - Finally, the datasets are aligned by their common date range and numeric conversion is applied.
+    - If a date_column is provided:
+        * For the Base dataset: converts that column to datetime and sets it as the index (named "DATE_TIME").
+        * For the predictions datasets: if the date_column is present, they are processed normally;
+          otherwise, it is assumed that the predictions are aligned with the base dataset, and the base's
+          index (truncated to the number of rows in the predictions) is assigned.
+    - Finally, the datasets are aligned by their common date range and all columns are converted to numeric.
     
     Args:
         config (dict): Configuration with keys including:
@@ -94,6 +98,10 @@ def process_data(config):
     Returns:
         dict: Dictionary with keys "hourly", "daily", "base" holding the processed DataFrames.
     """
+    import pandas as pd
+    import numpy as np
+    from app.data_handler import load_csv
+
     headers = config.get("headers", True)
     print("Loading datasets...")
 
@@ -103,7 +111,7 @@ def process_data(config):
 
     print(f"Base dataset loaded: {base_df.shape}")
 
-    # Apply max_steps truncation if specified
+    # Truncate datasets to max_steps if provided.
     max_steps = config.get("max_steps")
     if max_steps is not None:
         if hourly_df is not None:
@@ -130,18 +138,41 @@ def process_data(config):
     print(f"  Daily predictions:  {daily_df.shape}")
     print(f"  Base dataset:       {base_df.shape}")
 
-    # Convert date_column to datetime index if provided
     date_column = config.get("date_column")
     if date_column:
-        for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
-            if date_column in df.columns:
-                df[date_column] = pd.to_datetime(df[date_column])
-                df.set_index(date_column, inplace=True)
-                df.index.name = "DATE_TIME"
+        # Process Base dataset.
+        if date_column in base_df.columns:
+            base_df[date_column] = pd.to_datetime(base_df[date_column])
+            base_df.set_index(date_column, inplace=True)
+            base_df.index.name = "DATE_TIME"
+        else:
+            # If not found, assume base_df's index is already datetime.
+            if not pd.api.types.is_datetime64_any_dtype(base_df.index):
+                print(f"Warning: '{date_column}' not found in Base dataset. Using default index.")
             else:
-                print(f"Warning: '{date_column}' not found in {label} dataset.")
+                base_df.index.name = "DATE_TIME"
 
-    # Align datasets by common date range
+        # Process predictions datasets.
+        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
+            if df is not None:
+                if date_column in df.columns:
+                    df[date_column] = pd.to_datetime(df[date_column])
+                    df.set_index(date_column, inplace=True)
+                    df.index.name = "DATE_TIME"
+                else:
+                    print(f"Warning: '{date_column}' not found in {label} dataset. Assuming predictions are aligned with Base.")
+                    # Replace index with Base's index (truncate to the length of the predictions).
+                    df.index = base_df.index[:len(df)]
+                    df.index.name = "DATE_TIME"
+    else:
+        # No date_column provided; ensure predictions have a datetime index.
+        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
+            if df is not None and not pd.api.types.is_datetime64_any_dtype(df.index):
+                print(f"Warning: {label} predictions have no datetime index. Assigning Base index.")
+                df.index = base_df.index[:len(df)]
+                df.index.name = "DATE_TIME"
+
+    # Align datasets by common date range.
     try:
         common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
         common_end = min(hourly_df.index.max(), daily_df.index.max(), base_df.index.max())
@@ -152,7 +183,7 @@ def process_data(config):
     except Exception as e:
         print("Error aligning datasets by date:", e)
 
-    # Convert all columns to numeric and fill missing values
+    # Convert all columns to numeric and fill missing values.
     for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
         df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
         print(f"{label} dataset: Converted columns to numeric (final shape: {df.shape}).")
@@ -164,27 +195,29 @@ def run_processing_pipeline(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
     
-    - Loads and processes the datasets.
-    - If config["load_parameters"] is not None, loads a JSON file containing candidate parameters and evaluates the strategy once.
-      In this mode, it prints and saves the trades, summary, and balance plot.
-    - Otherwise, it runs the full GA optimization (via run_optimizer).
-    - At the end, if config["save_parameters"] is provided (and load_parameters is None), it saves the best parameters as JSON.
-    - Finally, it renames the balance plot and saves the trades and summary CSV files.
+    - Loads and processes datasets.
+    - If config["load_parameters"] is provided (not None), loads candidate parameters from the specified JSON file
+      and evaluates the strategy once using those parameters (printing all trades, summary, and saving outputs).
+    - Otherwise, runs the full optimization via run_optimizer().
+    - At the end, renames the balance plot and saves the trades and summary CSV files.
+    - If in optimization mode and if config["save_parameters"] is provided, saves the best parameters as JSON.
     """
     import json, os, pandas as pd
+    from app.optimizer import init_optimizer, evaluate_individual, run_optimizer
+
     start_time = time.time()
     strat_name = config.get("strategy_name", "Heuristic Strategy")
     print(f"\n=== Starting Trading Strategy Optimization Pipeline for '{strat_name}' ===")
-    
+
     datasets = process_data(config)
     hourly_preds, daily_preds, base_data = datasets["hourly"], datasets["daily"], datasets["base"]
-    
+
     print("\nProcessed Dataset Shapes:")
     print(f"  Hourly predictions: {hourly_preds.shape}")
     print(f"  Daily predictions:  {daily_preds.shape}")
-    print(f"  Base rates:         {base_data.shape}")
-    
-    # Check if load_parameters is provided: if so, skip full optimization and simply evaluate
+    print(f"  Base dataset:       {base_data.shape}")
+
+    # If load_parameters is provided, load candidate parameters and evaluate the strategy once.
     if config.get("load_parameters") is not None:
         try:
             with open(config["load_parameters"], "r") as f:
@@ -194,7 +227,7 @@ def run_processing_pipeline(config, plugin):
             print(f"Failed to load parameters from {config['load_parameters']}: {e}")
             loaded_params = None
         if loaded_params is not None:
-            # Construct candidate in the same order as get_optimizable_params:
+            # Construct candidate in the same order as get_optimizable_params():
             candidate = [
                 loaded_params.get("profit_threshold", plugin.params["profit_threshold"]),
                 loaded_params.get("tp_multiplier", plugin.params["tp_multiplier"]),
@@ -204,8 +237,8 @@ def run_processing_pipeline(config, plugin):
                 loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"])
             ]
             print(f"Evaluating strategy with loaded parameters: {candidate}")
-            # Evaluate candidate using the plugin's evaluation method
-            from app.optimizer import evaluate_individual
+            # Initialize optimizer globals so that evaluate_individual() can use them
+            init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
             result = evaluate_individual(candidate)
             trading_info = {"best_parameters": {
                 "profit_threshold": candidate[0],
@@ -218,10 +251,9 @@ def run_processing_pipeline(config, plugin):
         else:
             trading_info = {}
     else:
-        # Normal optimization path
+        # Otherwise, run full optimization.
         if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
             print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
-            from app.optimizer import run_optimizer
             trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
         else:
             print("\nPlugin does not support optimization. Exiting.")
@@ -231,7 +263,7 @@ def run_processing_pipeline(config, plugin):
     for key, value in trading_info.items():
         print(f"{key}: {value}")
 
-    # Rename the balance plot if it exists
+    # Rename the final balance plot if 'balance_plot_file' is provided.
     if config.get("balance_plot_file"):
         old_plot = "balance_plot.png"
         new_plot = config["balance_plot_file"]
@@ -244,7 +276,7 @@ def run_processing_pipeline(config, plugin):
         else:
             print(f"Warning: {old_plot} not found; no balance plot to rename.")
 
-    # Save trades to CSV if specified
+    # Save trades to CSV if 'trades_csv_file' is specified.
     trades_csv = config.get("trades_csv_file")
     if trades_csv:
         try:
@@ -256,7 +288,7 @@ def run_processing_pipeline(config, plugin):
         except Exception as e:
             print(f"Failed to save trades to {trades_csv}: {e}")
 
-    # Save summary CSV if specified
+    # Save summary CSV if 'summary_csv_file' is specified.
     summary_csv = config.get("summary_csv_file")
     if summary_csv:
         try:
@@ -266,7 +298,7 @@ def run_processing_pipeline(config, plugin):
         except Exception as e:
             print(f"Failed to save summary CSV to {summary_csv}: {e}")
 
-    # If we performed optimization (i.e. load_parameters is None) and save_parameters is provided, save best parameters as JSON.
+    # Save best parameters as JSON if in optimization mode and load_parameters is not provided.
     if config.get("load_parameters") is None and config.get("save_parameters"):
         try:
             with open(config["save_parameters"], "w") as f:
