@@ -27,7 +27,7 @@ def main():
       4. Loading the specified plugin from the 'heuristic_strategy.plugins' namespace.
       5. Merging plugin parameters.
       6. Running the processing pipeline (optimization and trade simulation).
-      7. Saving configurations locally and remotely.
+      7. Saving configurations remotely (if specified).
     """
     print("Parsing initial arguments...")
     args, unknown_args = parse_args()
@@ -57,14 +57,17 @@ def main():
     unknown_args_dict = process_unknown_args(unknown_args)
     config = merge_config(config, {}, {}, file_config, cli_args, unknown_args_dict)
 
+    # If no plugin is provided on CLI, use the one defined in configuration.
     if not cli_args.get('plugin'):
         cli_args['plugin'] = config.get('plugin', 'default')
 
     plugin_name = cli_args['plugin']
     print(f"Loading plugin: {plugin_name}")
     try:
+        # Load the plugin from the 'heuristic_strategy.plugins' namespace.
         plugin_class, _ = load_plugin('heuristic_strategy.plugins', plugin_name)
         plugin = plugin_class()
+        # Set plugin parameters based on merged configuration.
         plugin.set_params(**config)
     except Exception as e:
         print(f"Failed to load or initialize plugin '{plugin_name}': {e}")
@@ -78,13 +81,6 @@ def main():
 
     print("Processing and running optimization pipeline...")
     trading_info, trades = run_processing_pipelins(config, plugin)
-
-    #if config.get('save_config'):
-    #    try:
-    #        save_config(config, config['save_config'])
-    #        print(f"Configuration saved to {config['save_config']}.")
-    #    except Exception as e:
-    #        print(f"Failed to save configuration locally: {e}")
 
     if config.get('remote_save_config'):
         print(f"Remote saving configuration to {config['remote_save_config']}")
