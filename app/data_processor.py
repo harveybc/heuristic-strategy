@@ -20,25 +20,20 @@ from app.data_handler import load_csv
 # and the datasets are aligned to the common date range.
 #
 # If either the hourly_predictions_file or daily_predictions_file is None, the corresponding
-# predictions are auto-generated from the base dataset using the value in config["time_horizon"]:
-#   - Hourly predictions: the next time_horizon ticks (t+1 ... t+time_horizon)
-#   - Daily predictions: the values at t+24, t+48, ... , t+24*time_horizon
+# predictions are auto-generated from the base dataset using config["time_horizon"]:
+#   - Hourly predictions: the next time_horizon ticks (t+1, t+2, …, t+time_horizon)
+#   - Daily predictions: the values at t+24, t+48, …, t+24*time_horizon
 #
-# After processing, the pipeline calls an optimizer module (app.optimizer) which uses the strategy
-# plugin’s optimization interface (get_optimizable_params and evaluate_candidate) to search for the
-# best parameters.
+# After processing, the pipeline calls the optimizer (from app.optimizer) via the function
+# run_processing_pipelins.
 #
-# Additionally, the pipeline saves a CSV file containing the optimization results (summary) and another
-# CSV file containing simulated trades (if available). The trades file includes open and exit prices,
-# profit, maximum drawdown, and the date of each trade. If the 'print_trades' flag is set in the configuration,
-# the simulated trades are also printed to the console.
+# Additionally, the pipeline saves a CSV file containing the optimization results (summary)
+# and, if available, a CSV file containing simulated trades.
 # =============================================================================
 
 def create_hourly_predictions(df, horizon):
     """
     Auto-compute hourly predictions from the base dataset.
-    
-    For each row in the base dataset, the prediction is a block of the next 'horizon' values.
     
     Args:
         df (pd.DataFrame): Base dataset.
@@ -57,8 +52,6 @@ def create_daily_predictions(df, horizon):
     """
     Auto-compute daily predictions from the base dataset.
     
-    For each row in the base dataset, the prediction is a block of values at offsets 24, 48, ..., 24*horizon.
-    
     Args:
         df (pd.DataFrame): Base dataset.
         horizon (int): Number of future days (each day = 24 ticks) to predict.
@@ -76,16 +69,10 @@ def create_daily_predictions(df, horizon):
 
 def process_data(config):
     """
-    Process three datasets required for trading strategy optimization:
-      - Hourly predictions (columns: predictions from t+1 to t+n_hourly)
-      - Daily predictions (each row holds predictions for t+24, t+48, ..., t+24*n_daily)
-      - Base dataset (actual rates per tick)
+    Process the required datasets for trading strategy optimization.
     
-    If a date column is specified via config["date_column"], it is converted to a datetime index
-    and the datasets are aligned.
-    
-    If either predictions file is None, predictions are auto-generated from the base dataset
-    using config["time_horizon"].
+    If hourly or daily predictions files are not provided, auto-generate predictions
+    from the base dataset using config["time_horizon"].
     
     Args:
         config (dict): Configuration with keys including:
@@ -159,26 +146,14 @@ def process_data(config):
         df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
         print(f"{label} dataset: Converted columns to numeric (final shape: {df.shape}).")
 
-    return {
-        "hourly": hourly_df,
-        "daily": daily_df,
-        "base": base_df
-    }
+    return {"hourly": hourly_df, "daily": daily_df, "base": base_df}
 
-def run_prediction_pipeline(config, plugin):
+def run_processing_pipelins(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
     
-    This function processes the three datasets and then—if the plugin supports the optimization interface—
-    calls the optimizer module.
-    
-    The plugin must implement:
-       - get_optimizable_params()
-       - evaluate_candidate(individual, base_data, hourly_predictions, daily_predictions, config)
-    
-    After optimization, the pipeline saves a CSV file with optimization results (config["results_file"])
-    and, if available, a CSV file with simulated trades (config["trades_file"]). If config["print_trades"] is True,
-    simulated trades are printed.
+    This function processes the datasets (hourly, daily, base) and calls the optimizer from app.optimizer.
+    It then saves optimization results and simulated trades (if available).
     
     Args:
         config (dict): Configuration dictionary.
@@ -214,7 +189,7 @@ def run_prediction_pipeline(config, plugin):
             print(f"{key}: {value}")
     else:
         print("Optimizer did not return the expected trading information dictionary.")
-    
+
     if config.get("results_file"):
         try:
             results_df = pd.DataFrame([trading_info])
@@ -222,7 +197,7 @@ def run_prediction_pipeline(config, plugin):
             print(f"Optimization results saved to {config['results_file']}.")
         except Exception as e:
             print(f"Failed to save optimization results: {e}")
-    
+
     trades = getattr(plugin, "trades", None)
     if trades is not None and config.get("trades_file"):
         try:
@@ -234,14 +209,13 @@ def run_prediction_pipeline(config, plugin):
                 print(trades_df)
         except Exception as e:
             print(f"Failed to save simulated trades: {e}")
-    
+
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
-    
     return trading_info, trades
 
 if __name__ == "__main__":
-    # Example usage:
+    # Example usage (update file paths and parameters as needed):
     # from app.plugins.plugin_long_short_predictions import Plugin as StrategyPlugin
     # config = {
     #     "hourly_predictions_file": None,
@@ -259,5 +233,5 @@ if __name__ == "__main__":
     #     "print_trades": True
     # }
     # plugin = StrategyPlugin()
-    # run_prediction_pipeline(config, plugin)
+    # run_processing_pipelins(config, plugin)
     pass

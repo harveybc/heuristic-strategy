@@ -6,139 +6,165 @@ import time
 import multiprocessing
 import matplotlib.pyplot as plt
 
-from deap import base, creator, tools, algorithms
+from deap import base, creator, tools
 
-# Import your strategy. Ensure that HeuristicStrategy is modified to accept the extra parameters.
-from heuristic_strategy import HeuristicStrategy
+# Global variables to hold the evaluation context.
+_plugin = None
+_base_data = None
+_hourly_predictions = None
+_daily_predictions = None
+_config = None
 
-# Evaluation function: run a backtest with a given set of parameters and return the profit.
-def evaluate_strategy(individual):
-    # Unpack the individual
-    profit_threshold, tp_multiplier, sl_multiplier, rel_volume, lower_rr, upper_rr = individual
+def init_worker(plugin, base_data, hourly_predictions, daily_predictions, config):
+    """
+    Initializer for worker processes.
+    Sets the global variables so that evaluate_individual can access them.
+    """
+    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
+    _plugin = plugin
+    _base_data = base_data
+    _hourly_predictions = hourly_predictions
+    _daily_predictions = daily_predictions
+    _config = config
+    print("[INIT_WORKER] Worker process initialized.")
+    print(f"[INIT_WORKER] Plugin set to: {_plugin}")
+    print(f"[INIT_WORKER] Base data shape: {_base_data.shape}")
 
-    cerebro = bt.Cerebro()
-    cerebro.addstrategy(HeuristicStrategy,
-                        profit_threshold=profit_threshold,
-                        tp_multiplier=tp_multiplier,
-                        sl_multiplier=sl_multiplier,
-                        rel_volume=rel_volume,
-                        lower_rr_threshold=lower_rr,
-                        upper_rr_threshold=upper_rr,
-                        date_start=datetime.datetime(2014, 1, 1),
-                        date_end=datetime.datetime(2015, 1, 1),
-                        min_drawdown_pips=10)
+def evaluate_individual(individual):
+    """
+    Global evaluation function that calls the plugin's evaluate_candidate method.
+    
+    Args:
+        individual (list): A candidate parameter set.
+    
+    Returns:
+        tuple: A one-tuple containing the profit (fitness value).
+    """
+    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
+    if _plugin is None:
+        print("[EVALUATE] ERROR: _plugin is None!")
+        return (-1e6,)
+    print(f"[EVALUATE] Evaluating candidate: {individual}")
+    result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
+    print(f"[EVALUATE] Candidate result: {result}")
+    return result
 
-    data = bt.feeds.GenericCSVData(
-        dataname='../trading-signal/output.csv',
-        dtformat=('%Y-%m-%d %H:%M:%S'),
-        datetime=0,
-        time=-1,
-        open=1,
-        high=2,
-        low=3,
-        close=4,
-        volume=-1,
-        openinterest=-1,
-        timeframe=bt.TimeFrame.Minutes,
-        compression=60,
-        fromdate=datetime.datetime(2014, 1, 1),
-        todate=datetime.datetime(2015, 1, 1)
-    )
-
-    cerebro.adddata(data)
-    cerebro.broker.setcash(10000.0)
-    cerebro.addsizer(bt.sizers.FixedSize, stake=1)
-
-    start_time = time.time()
-    cerebro.run()
-    end_time = time.time()
-    final_value = cerebro.broker.getvalue()
-    profit = final_value - 10000.0
-    # Uncomment the following line if you wish to see the evaluation runtime.
-    # print(f"Evaluated individual {individual} in {end_time - start_time:.2f} sec, Profit: {profit:.2f}")
-    return (profit,)
-
-# Setup DEAP classes.
-creator.create("FitnessMax", base.Fitness, weights=(1.0,))  # maximize profit
-creator.create("Individual", list, fitness=creator.FitnessMax)
-
-toolbox = base.Toolbox()
-# Define attribute generators for each hyperparameter.
-toolbox.register("attr_profit_threshold", random.uniform, 1, 20)
-toolbox.register("attr_tp_multiplier", random.uniform, 0.8, 1.2)
-toolbox.register("attr_sl_multiplier", random.uniform, 1.5, 3.0)
-toolbox.register("attr_rel_volume", random.uniform, 0.01, 0.1)
-toolbox.register("attr_lower_rr", random.uniform, 0.3, 1.0)
-toolbox.register("attr_upper_rr", random.uniform, 1.5, 3.0)
-
-# Create an individual from these attributes.
-toolbox.register("individual", tools.initCycle, creator.Individual,
-                 (toolbox.attr_profit_threshold,
-                  toolbox.attr_tp_multiplier,
-                  toolbox.attr_sl_multiplier,
-                  toolbox.attr_rel_volume,
-                  toolbox.attr_lower_rr,
-                  toolbox.attr_upper_rr), n=1)
-
-toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-# Register genetic operators.
-toolbox.register("evaluate", evaluate_strategy)
-toolbox.register("mate", tools.cxBlend, alpha=0.5)
-toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1.0, indpb=0.2)
-toolbox.register("select", tools.selTournament, tournsize=3)
-
-def main():
+def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
+    """
+    Runs the DEAP-based optimizer using the strategy plugin's evaluation function.
+    
+    The plugin must implement:
+      - get_optimizable_params(): returns a list of tuples (name, lower_bound, upper_bound).
+      - evaluate_candidate(individual, base_data, hourly_predictions, daily_predictions, config):
+            runs a backtest with the candidate parameters and returns its profit as a tuple.
+    
+    Args:
+        plugin: The strategy plugin instance.
+        base_data (pd.DataFrame): The base dataset with actual rates.
+        hourly_predictions (pd.DataFrame): Hourly predictions.
+        daily_predictions (pd.DataFrame): Daily predictions.
+        config (dict): The configuration dictionary.
+    
+    Returns:
+        dict: A dictionary containing "best_parameters" (the best candidate's parameters)
+              and "profit" (the best profit achieved).
+    """
+    # Retrieve optimizable parameters from the plugin.
+    optimizable_params = plugin.get_optimizable_params()
+    num_params = len(optimizable_params)
+    print(f"Optimizable Parameters ({num_params}):")
+    for name, low, high in optimizable_params:
+         print(f"  {name}: [{low}, {high}]")
+    
+    # Create DEAP classes if not already defined.
+    if not hasattr(creator, "FitnessMax"):
+         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    if not hasattr(creator, "Individual"):
+         creator.create("Individual", list, fitness=creator.FitnessMax)
+    
+    toolbox = base.Toolbox()
+    
+    # Register an individual generator that creates a list of random values within the specified ranges.
+    def random_attr(param):
+         name, low, high = param
+         return random.uniform(low, high)
+    toolbox.register("individual", lambda: creator.Individual([random_attr(param) for param in optimizable_params]))
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    
+    # Register genetic operators.
+    toolbox.register("evaluate", evaluate_individual)
+    toolbox.register("mate", tools.cxBlend, alpha=0.5)
+    toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1.0, indpb=0.2)
+    toolbox.register("select", tools.selTournament, tournsize=3)
+    
     random.seed(42)
-    population = toolbox.population(n=20)
-    CXPB, MUTPB, NGEN = 0.5, 0.2, 100  # Crossover prob, mutation prob, number of generations
-    print("Starting Genetic Algorithm Optimization")
-
-    # Optionally use multiprocessing.
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
-
-    # Evaluate the entire population.
-    fitnesses = list(map(toolbox.evaluate, population))
+    population_size = config.get("population_size", 20)
+    num_generations = config.get("num_generations", 100)
+    cxpb = config.get("crossover_probability", 0.5)
+    mutpb = config.get("mutation_probability", 0.2)
+    
+    # Determine whether to use multiprocessing.
+    disable_mp = config.get("disable_multiprocessing", False)
+    if disable_mp:
+        print("[OPTIMIZER] Multiprocessing disabled; using sequential evaluation.")
+        map_function = map
+    else:
+        print("[OPTIMIZER] Using multiprocessing for evaluation.")
+        pool = multiprocessing.Pool(initializer=init_worker,
+                                    initargs=(plugin, base_data, hourly_predictions, daily_predictions, config))
+        map_function = pool.map
+        toolbox.register("map", map_function)
+    
+    population = toolbox.population(n=population_size)
+    print("Starting Genetic Algorithm Optimization...")
+    print(f"Population Size: {population_size}, Generations: {num_generations}")
+    
+    # Evaluate the initial population.
+    fitnesses = list(map_function(toolbox.evaluate, population))
     for ind, fit in zip(population, fitnesses):
-        ind.fitness.values = fit
-    print("  Evaluated %i individuals" % len(population))
-
-    for gen in range(1, NGEN + 1):
-        offspring = toolbox.select(population, len(population))
-        offspring = list(map(toolbox.clone, offspring))
-
-        for child1, child2 in zip(offspring[::2], offspring[1::2]):
-            if random.random() < CXPB:
-                toolbox.mate(child1, child2)
-                del child1.fitness.values
-                del child2.fitness.values
-
-        for mutant in offspring:
-            if random.random() < MUTPB:
-                toolbox.mutate(mutant)
-                del mutant.fitness.values
-
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fitness.values = fit
-
-        population[:] = offspring
-        fits = [ind.fitness.values[0] for ind in population]
-        print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits)/len(fits):.2f}")
-
+         ind.fitness.values = fit
+    print(f"  Evaluated {len(population)} individuals initially.")
+    
+    # Evolution loop.
+    for gen in range(1, num_generations + 1):
+         offspring = toolbox.select(population, len(population))
+         offspring = list(map(toolbox.clone, offspring))
+         
+         for child1, child2 in zip(offspring[::2], offspring[1::2]):
+              if random.random() < cxpb:
+                  toolbox.mate(child1, child2)
+                  del child1.fitness.values
+                  del child2.fitness.values
+         
+         for mutant in offspring:
+              if random.random() < mutpb:
+                  toolbox.mutate(mutant)
+                  del mutant.fitness.values
+         
+         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+         fitnesses = list(map_function(toolbox.evaluate, invalid_ind))
+         for ind, fit in zip(invalid_ind, fitnesses):
+              ind.fitness.values = fit
+         
+         population[:] = offspring
+         fits = [ind.fitness.values[0] for ind in population]
+         print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits)/len(fits):.2f}")
+    
     best_ind = tools.selBest(population, 1)[0]
     print("Best parameter set found:")
-    print(f"  profit_threshold = {best_ind[0]:.2f}")
-    print(f"  tp_multiplier    = {best_ind[1]:.2f}")
-    print(f"  sl_multiplier    = {best_ind[2]:.2f}")
-    print(f"  rel_volume       = {best_ind[3]:.3f}")
-    print(f"  lower_rr_thresh  = {best_ind[4]:.2f}")
-    print(f"  upper_rr_thresh  = {best_ind[5]:.2f}")
-    print("With profit: {:.2f}".format(best_ind.fitness.values[0]))
+    best_params = {}
+    for i, (name, low, high) in enumerate(optimizable_params):
+         best_params[name] = best_ind[i]
+         print(f"  {name} = {best_ind[i]:.4f}")
+    print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
+    
+    if not disable_mp:
+        pool.close()
+    
+    return {"best_parameters": best_params, "profit": best_ind.fitness.values[0]}
 
-    pool.close()
+def main():
+    print("Standalone testing of the optimizer module is not supported. Please run via the main pipeline.")
 
 if __name__ == '__main__':
     main()
