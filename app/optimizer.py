@@ -29,6 +29,9 @@ def init_worker(plugin, base_data, hourly_predictions, daily_predictions, config
     _hourly_predictions = hourly_predictions
     _daily_predictions = daily_predictions
     _config = config
+    print("[INIT_WORKER] Worker process initialized.")
+    print(f"[INIT_WORKER] Plugin set to: {_plugin}")
+    print(f"[INIT_WORKER] Base data shape: {_base_data.shape}")
 
 def evaluate_individual(individual):
     """
@@ -41,7 +44,14 @@ def evaluate_individual(individual):
         tuple: A one-tuple containing the profit (fitness value).
     """
     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
-    return _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
+    if _plugin is None:
+        print("[EVALUATE] ERROR: _plugin is None!")
+        return (-1e6,)
+    # Verbose output of the candidate being evaluated.
+    print(f"[EVALUATE] Evaluating candidate: {individual}")
+    result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
+    print(f"[EVALUATE] Candidate result: {result}")
+    return result
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
@@ -60,7 +70,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         config (dict): The configuration dictionary.
     
     Returns:
-        dict: A dictionary containing "best_parameters" (the best candidate's parameters) and "profit" (the best profit achieved).
+        dict: A dictionary containing "best_parameters" (the best candidate's parameters)
+              and "profit" (the best profit achieved).
     """
     # Retrieve optimizable parameters from the plugin.
     optimizable_params = plugin.get_optimizable_params()
@@ -96,17 +107,24 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     cxpb = config.get("crossover_probability", 0.5)
     mutpb = config.get("mutation_probability", 0.2)
     
-    # Use a multiprocessing pool with an initializer to set globals in worker processes.
-    pool = multiprocessing.Pool(initializer=init_worker,
-                                initargs=(plugin, base_data, hourly_predictions, daily_predictions, config))
-    toolbox.register("map", pool.map)
+    # Determine whether to use multiprocessing.
+    disable_mp = config.get("disable_multiprocessing", False)
+    if disable_mp:
+        print("[OPTIMIZER] Multiprocessing disabled; using sequential evaluation.")
+        map_function = map
+    else:
+        print("[OPTIMIZER] Using multiprocessing for evaluation.")
+        pool = multiprocessing.Pool(initializer=init_worker,
+                                    initargs=(plugin, base_data, hourly_predictions, daily_predictions, config))
+        map_function = pool.map
+        toolbox.register("map", map_function)
     
     population = toolbox.population(n=population_size)
     print("Starting Genetic Algorithm Optimization...")
     print(f"Population Size: {population_size}, Generations: {num_generations}")
     
     # Evaluate the initial population.
-    fitnesses = list(toolbox.map(toolbox.evaluate, population))
+    fitnesses = list(map_function(toolbox.evaluate, population))
     for ind, fit in zip(population, fitnesses):
          ind.fitness.values = fit
     print(f"  Evaluated {len(population)} individuals initially.")
@@ -128,7 +146,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                    del mutant.fitness.values
          
          invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+         fitnesses = list(map_function(toolbox.evaluate, invalid_ind))
          for ind, fit in zip(invalid_ind, fitnesses):
               ind.fitness.values = fit
          
@@ -144,7 +162,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
          print(f"  {name} = {best_ind[i]:.4f}")
     print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
     
-    pool.close()
+    if not disable_mp:
+        pool.close()
     
     return {"best_parameters": best_params, "profit": best_ind.fitness.values[0]}
 
