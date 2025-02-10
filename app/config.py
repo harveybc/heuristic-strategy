@@ -27,6 +27,7 @@ DEFAULT_VALUES = {
     "balance_plot_file": "balance_plot.png",
     "trades_csv_file": "trades.csv",
     "summary_csv_file": "summary.csv",
-    "strategy_name": "Heuristic Strategy"
+    "strategy_name": "Heuristic Strategy",
+    "max_steps": 6300
      
 }
