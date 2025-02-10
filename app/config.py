@@ -7,8 +7,8 @@ DEFAULT_VALUES = {
     "date_column": "DATE_TIME",
     "plugin": "default",
     "time_horizon": 6,
-    "population_size": 20,
-    "num_generations": 100,
+    "population_size": 10,
+    "num_generations": 2,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
     "load_config": "config.json",
@@ -27,6 +27,9 @@ DEFAULT_VALUES = {
     "balance_plot_file": "balance_plot.png",
     "trades_csv_file": "trades.csv",
     "summary_csv_file": "summary.csv",
-    "strategy_name": "Heuristic Strategy"
+    "strategy_name": "Heuristic Strategy",
+    "max_steps": 6300,
+    "save_parameters": "parameters.json",
+    "load_parameters": None
      
 }

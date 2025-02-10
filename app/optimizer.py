@@ -3,6 +3,9 @@ import random
 import datetime
 from deap import base, creator, tools
 import time
+from tqdm import tqdm
+import multiprocessing
+import json
 
 # Global variables for optimization
 _plugin = None
@@ -10,6 +13,7 @@ _base_data = None
 _hourly_predictions = None
 _daily_predictions = None
 _config = None
+_current_epoch = 0  # Global variable to hold current epoch number
 
 def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
@@ -25,69 +29,48 @@ def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, con
 
 def evaluate_individual(individual):
     """
-    Evaluates a candidate strategy parameter set, printing
-    final balance, # of trades, trades won %, max dd, sharpe ratio, etc.
-    as returned by the plugin.
+    Evaluates a candidate strategy parameter set.
+    Prints the current epoch number along with the candidate.
+    Expects the plugin's evaluate_candidate() method to return either:
+      - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
+      - Or a single-value tuple (profit,)
     """
-    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
+    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch
     if _plugin is None:
         print("[EVALUATE] ERROR: _plugin is None!")
         return (-1e6,)
-
-    # Print the candidate
-    print(f"[EVALUATE] Evaluating candidate (genome): {individual}")
-
-    # We assume evaluate_candidate returns something like:
-    # (profit_value, {"num_trades": ..., "win_pct": ..., "max_dd": ..., "sharpe": ...})
+    # Print the candidate and current epoch
+    print(f"[EVALUATE][Epoch {_current_epoch}] Evaluating candidate (genome): {individual}")
     result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
-
     if isinstance(result, tuple) and len(result) == 2:
-        # We expect first item => profit, second => stats
-        profit = result[0]
-        stats = result[1]
-        # Print the stats we want:
-        print(f"[EVALUATE] Candidate result => Profit: {profit:.2f}, "
+        profit, stats = result
+        print(f"[EVALUATE][Epoch {_current_epoch}] Candidate result => Profit: {profit:.2f}, "
               f"Trades: {stats.get('num_trades', 0)}, "
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
               f"Sharpe: {stats.get('sharpe', 0):.2f}")
-        # Return the profit alone as the fitness for DEAP
-        return (profit,)
-
-    # If the plugin just returns a single float, handle gracefully
     elif isinstance(result, tuple) and len(result) == 1:
-        print(f"[EVALUATE] Candidate result => Profit: {result[0]:.2f} (no stats)")
-        return result
+        print(f"[EVALUATE][Epoch {_current_epoch}] Candidate result => Profit: {result[0]:.2f} (no stats)")
     else:
-        # fallback if plugin returns just a float
-        print(f"[EVALUATE] Candidate result => Profit: {result:.2f} (no stats)")
-        return (result,)
-
-
-from tqdm import tqdm
-
-from tqdm import tqdm
+        print(f"[EVALUATE][Epoch {_current_epoch}] Candidate result => Profit: {result:.2f} (no stats)")
+    return result
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
-    Runs the optimizer using DEAP to optimize the strategy parameters,
-    displaying a TQDM progress bar for the evaluation of individuals
-    in each generation (including the initial population).
-    Prints the same final lines as the stand-alone code.
+    Runs the optimizer using DEAP to optimize the strategy parameters.
+    Displays a TQDM progress bar for the evaluation of individuals in each generation.
+    Prints detailed candidate evaluation information including the current epoch.
+    Saves the best found parameters as JSON if config['save_config'] is provided.
     """
-    import random
-    import multiprocessing
-    from deap import base, creator, tools
-
-    # Initialize
-    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
-    _plugin = plugin
-    _base_data = base_data
-    _hourly_predictions = hourly_predictions
-    _daily_predictions = daily_predictions
-    _config = config
+    global _current_epoch
+    # Initialize global variables
+    init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config)
 
     optimizable_params = plugin.get_optimizable_params()
+    num_params = len(optimizable_params)
+    print(f"Optimizable Parameters ({num_params}):")
+    for name, low, high in optimizable_params:
+        print(f"  {name}: [{low}, {high}]")
 
     if not hasattr(creator, "FitnessMax"):
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -115,39 +98,36 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     mutpb = config.get("mutation_probability", 0.2)
 
     print("Starting Genetic Algorithm Optimization")
-
     disable_mp = config.get("disable_multiprocessing", False)
     if not disable_mp:
         pool = multiprocessing.Pool()
         toolbox.register("map", pool.map)
 
-    # 1) Build the initial population
+    # Build initial population
     population = toolbox.population(n=population_size)
-
-    # 2) Evaluate the initial population with a TQDM progress bar
+    print("[OPTIMIZATION] Evaluating initial population...")
     if disable_mp:
         fitnesses = []
-        with tqdm(total=len(population), desc="Evaluating initial population", unit="cand") as pbar:
+        with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
             for ind in population:
                 fit = toolbox.evaluate(ind)
                 ind.fitness.values = fit
+                fitnesses.append(fit)
                 pbar.update(1)
     else:
-        # In parallel, we'll create a list out of the map but still track progress
-        # Easiest is to do a small helper in a loop:
         fitnesses = []
-        with tqdm(total=len(population), desc="Evaluating initial population", unit="cand") as pbar:
+        with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
             for fit in toolbox.map(toolbox.evaluate, population):
                 fitnesses.append(fit)
                 pbar.update(1)
-        # Assign results
         for ind, f in zip(population, fitnesses):
             ind.fitness.values = f
 
-    print(f"  Evaluated {len(population)} individuals")
+    print(f"  Evaluated {len(population)} individuals initially.")
 
-    # 3) The evolution loop
+    # Evolution loop
     for gen in range(1, num_generations + 1):
+        _current_epoch = gen  # Update current epoch for candidate evaluation prints
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
 
@@ -162,19 +142,16 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
-        # Evaluate new individuals (invalid_ind)
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-
         if disable_mp:
-            with tqdm(total=len(invalid_ind), desc=f"Gen {gen} evaluating", unit="cand") as pbar:
+            with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
                 for ind in invalid_ind:
                     fit = toolbox.evaluate(ind)
                     ind.fitness.values = fit
                     pbar.update(1)
         else:
-            # In parallel
             fitnesses = []
-            with tqdm(total=len(invalid_ind), desc=f"Gen {gen} evaluating", unit="cand") as pbar:
+            with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
                 for fit in toolbox.map(toolbox.evaluate, invalid_ind):
                     fitnesses.append(fit)
                     pbar.update(1)
@@ -185,32 +162,29 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         fits = [ind.fitness.values[0] for ind in population]
         print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits)/len(fits):.2f}")
 
-    # 4) Retrieve best
-    from deap import tools
     best_ind = tools.selBest(population, 1)[0]
-    print("Best parameter set found:")
-    print(f"  profit_threshold = {best_ind[0]:.2f}")
-    print(f"  tp_multiplier    = {best_ind[1]:.2f}")
-    print(f"  sl_multiplier    = {best_ind[2]:.2f}")
-    print(f"  rel_volume       = {best_ind[3]:.3f}")
-    print(f"  lower_rr_thresh  = {best_ind[4]:.2f}")
-    print(f"  upper_rr_thresh  = {best_ind[5]:.2f}")
-    print("With profit: {:.2f}".format(best_ind.fitness.values[0]))
+    print("[OPTIMIZATION] Best parameter set found:")
+    best_params = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
+    for name, value in best_params.items():
+        print(f"  {name} = {value:.4f}")
+    print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
 
     if not disable_mp:
         pool.close()
 
+    # Save the best parameters as JSON if configured
+    if config.get("save_config"):
+        try:
+            with open(config["save_config"], "w") as f:
+                json.dump(best_params, f, indent=4, default=str)
+            print(f"Best parameters saved to {config['save_config']}.")
+        except Exception as e:
+            print(f"Failed to save best parameters to {config['save_config']}: {e}")
+
     return {
-        "best_parameters": {
-            "profit_threshold": best_ind[0],
-            "tp_multiplier": best_ind[1],
-            "sl_multiplier": best_ind[2],
-            "rel_volume": best_ind[3],
-            "lower_rr_threshold": best_ind[4],
-            "upper_rr_threshold": best_ind[5],
-        },
+        "best_parameters": best_params,
         "profit": best_ind.fitness.values[0],
     }
 
-
-
+if __name__ == '__main__':
+    print("Standalone testing of optimizer not supported; run via main pipeline.")

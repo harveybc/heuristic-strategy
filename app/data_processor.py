@@ -74,6 +74,25 @@ def create_daily_predictions(df, horizon):
 def process_data(config):
     """
     Loads and processes datasets.
+    
+    - Loads the hourly predictions, daily predictions (if provided), and the base dataset.
+    - If 'max_steps' is provided in config, each dataset is truncated to the first max_steps rows.
+    - If a predictions file is not provided, predictions are auto-generated using config["time_horizon"].
+    - If a date_column is provided, it is converted to a datetime index (named "DATE_TIME").
+    - Finally, the datasets are aligned by their common date range and numeric conversion is applied.
+    
+    Args:
+        config (dict): Configuration with keys including:
+            - "hourly_predictions_file"
+            - "daily_predictions_file"
+            - "base_dataset_file"
+            - "headers"
+            - "date_column"
+            - "time_horizon"
+            - "max_steps"
+    
+    Returns:
+        dict: Dictionary with keys "hourly", "daily", "base" holding the processed DataFrames.
     """
     headers = config.get("headers", True)
     print("Loading datasets...")
@@ -83,6 +102,16 @@ def process_data(config):
     base_df = load_csv(config["base_dataset_file"], headers=headers)
 
     print(f"Base dataset loaded: {base_df.shape}")
+
+    # Apply max_steps truncation if specified
+    max_steps = config.get("max_steps")
+    if max_steps is not None:
+        if hourly_df is not None:
+            hourly_df = hourly_df.iloc[:max_steps]
+        if daily_df is not None:
+            daily_df = daily_df.iloc[:max_steps]
+        base_df = base_df.iloc[:max_steps]
+        print(f"Datasets truncated to the first {max_steps} rows.")
 
     if hourly_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
@@ -101,66 +130,109 @@ def process_data(config):
     print(f"  Daily predictions:  {daily_df.shape}")
     print(f"  Base dataset:       {base_df.shape}")
 
+    # Convert date_column to datetime index if provided
     date_column = config.get("date_column")
     if date_column:
         for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
             if date_column in df.columns:
                 df[date_column] = pd.to_datetime(df[date_column])
                 df.set_index(date_column, inplace=True)
+                df.index.name = "DATE_TIME"
             else:
                 print(f"Warning: '{date_column}' not found in {label} dataset.")
 
+    # Align datasets by common date range
     try:
         common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
         common_end = min(hourly_df.index.max(), daily_df.index.max(), base_df.index.max())
-        hourly_df, daily_df, base_df = hourly_df.loc[common_start:common_end], daily_df.loc[common_start:common_end], base_df.loc[common_start:common_end]
+        hourly_df = hourly_df.loc[common_start:common_end]
+        daily_df = daily_df.loc[common_start:common_end]
+        base_df = base_df.loc[common_start:common_end]
         print(f"Datasets aligned to common date range: {common_start} to {common_end}")
     except Exception as e:
         print("Error aligning datasets by date:", e)
 
+    # Convert all columns to numeric and fill missing values
     for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
         df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
         print(f"{label} dataset: Converted columns to numeric (final shape: {df.shape}).")
 
     return {"hourly": hourly_df, "daily": daily_df, "base": base_df}
 
+
 def run_processing_pipeline(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
-    Now writes out the final balance plot (renamed), the trades CSV, and a summary CSV.
-    Optionally logs the config['strategy_name'] if present.
+    
+    - Loads and processes the datasets.
+    - If config["load_parameters"] is not None, loads a JSON file containing candidate parameters and evaluates the strategy once.
+      In this mode, it prints and saves the trades, summary, and balance plot.
+    - Otherwise, it runs the full GA optimization (via run_optimizer).
+    - At the end, if config["save_parameters"] is provided (and load_parameters is None), it saves the best parameters as JSON.
+    - Finally, it renames the balance plot and saves the trades and summary CSV files.
     """
-
+    import json, os, pandas as pd
     start_time = time.time()
     strat_name = config.get("strategy_name", "Heuristic Strategy")
     print(f"\n=== Starting Trading Strategy Optimization Pipeline for '{strat_name}' ===")
-
+    
     datasets = process_data(config)
     hourly_preds, daily_preds, base_data = datasets["hourly"], datasets["daily"], datasets["base"]
-
+    
     print("\nProcessed Dataset Shapes:")
     print(f"  Hourly predictions: {hourly_preds.shape}")
     print(f"  Daily predictions:  {daily_preds.shape}")
     print(f"  Base rates:         {base_data.shape}")
-
-    if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
-        print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
-        trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
+    
+    # Check if load_parameters is provided: if so, skip full optimization and simply evaluate
+    if config.get("load_parameters") is not None:
+        try:
+            with open(config["load_parameters"], "r") as f:
+                loaded_params = json.load(f)
+            print(f"Loaded evaluation parameters from {config['load_parameters']}: {loaded_params}")
+        except Exception as e:
+            print(f"Failed to load parameters from {config['load_parameters']}: {e}")
+            loaded_params = None
+        if loaded_params is not None:
+            # Construct candidate in the same order as get_optimizable_params:
+            candidate = [
+                loaded_params.get("profit_threshold", plugin.params["profit_threshold"]),
+                loaded_params.get("tp_multiplier", plugin.params["tp_multiplier"]),
+                loaded_params.get("sl_multiplier", plugin.params["sl_multiplier"]),
+                loaded_params.get("rel_volume", plugin.params["rel_volume"]),
+                loaded_params.get("lower_rr_threshold", plugin.params["lower_rr_threshold"]),
+                loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"])
+            ]
+            print(f"Evaluating strategy with loaded parameters: {candidate}")
+            # Evaluate candidate using the plugin's evaluation method
+            from app.optimizer import evaluate_individual
+            result = evaluate_individual(candidate)
+            trading_info = {"best_parameters": {
+                "profit_threshold": candidate[0],
+                "tp_multiplier": candidate[1],
+                "sl_multiplier": candidate[2],
+                "rel_volume": candidate[3],
+                "lower_rr_threshold": candidate[4],
+                "upper_rr_threshold": candidate[5],
+            }, "profit": result[0]}
+        else:
+            trading_info = {}
     else:
-        print("\nPlugin does not support optimization. Exiting.")
-        trading_info = {}
+        # Normal optimization path
+        if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
+            print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
+            from app.optimizer import run_optimizer
+            trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
+        else:
+            print("\nPlugin does not support optimization. Exiting.")
+            trading_info = {}
 
     print("\n=== Optimization Results ===")
     for key, value in trading_info.items():
         print(f"{key}: {value}")
 
-    # --------------------------------------------------
-    # (1) Rename the final balance plot if it was created
-    # The plugin's strategy "stop()" typically saves 'balance_plot.png'.
-    # We rename it if 'balance_plot_file' is given.
-    # --------------------------------------------------
+    # Rename the balance plot if it exists
     if config.get("balance_plot_file"):
-        import os
         old_plot = "balance_plot.png"
         new_plot = config["balance_plot_file"]
         if os.path.exists(old_plot):
@@ -172,17 +244,10 @@ def run_processing_pipeline(config, plugin):
         else:
             print(f"Warning: {old_plot} not found; no balance plot to rename.")
 
-    # --------------------------------------------------
-    # (2) Save trades to CSV if 'trades_csv_file' is specified
-    # We assume plugin's strategy stores trades in plugin.trades or plugin.model.trades
-    # but usually it's in plugin trades if the plugin duplicates them.
-    # If not, you can store them from the strategy instance in evaluate_candidate.
-    # --------------------------------------------------
+    # Save trades to CSV if specified
     trades_csv = config.get("trades_csv_file")
     if trades_csv:
         try:
-            import pandas as pd
-            # If your plugin or strategy saves trades in plugin.trades, do that:
             if hasattr(plugin, "trades") and plugin.trades:
                 pd.DataFrame(plugin.trades).to_csv(trades_csv, index=False)
                 print(f"Trades saved to {trades_csv}.")
@@ -191,23 +256,29 @@ def run_processing_pipeline(config, plugin):
         except Exception as e:
             print(f"Failed to save trades to {trades_csv}: {e}")
 
-    # --------------------------------------------------
-    # (3) Save summary CSV if 'summary_csv_file' is specified
-    # We'll store final trading_info plus optionally any plugin variables
-    # --------------------------------------------------
+    # Save summary CSV if specified
     summary_csv = config.get("summary_csv_file")
     if summary_csv:
         try:
-            import pandas as pd
             df = pd.DataFrame([trading_info])
             df.to_csv(summary_csv, index=False)
             print(f"Summary saved to {summary_csv}.")
         except Exception as e:
             print(f"Failed to save summary CSV to {summary_csv}: {e}")
 
+    # If we performed optimization (i.e. load_parameters is None) and save_parameters is provided, save best parameters as JSON.
+    if config.get("load_parameters") is None and config.get("save_parameters"):
+        try:
+            with open(config["save_parameters"], "w") as f:
+                json.dump(trading_info.get("best_parameters", {}), f, indent=4, default=str)
+            print(f"Best parameters saved to {config['save_parameters']}.")
+        except Exception as e:
+            print(f"Failed to save best parameters to {config['save_parameters']}: {e}")
+
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
     return trading_info, getattr(plugin, "trades", None)
+
 
 
 if __name__ == "__main__":
