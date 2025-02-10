@@ -21,5 +21,6 @@ DEFAULT_VALUES = {
     "save_log": "debug_log.json",
     "quiet_mode": False,
     "force_date": False,
-    "headers": True
+    "headers": True,
+    "disable_multiprocessing": True 
 }
