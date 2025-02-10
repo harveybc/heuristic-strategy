@@ -13,7 +13,7 @@ _base_data = None
 _hourly_predictions = None
 _daily_predictions = None
 _config = None
-_current_epoch = 0  # Global variable to hold current epoch number
+_current_epoch = 1  # Global variable to hold current epoch number
 
 def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
@@ -144,7 +144,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     print(f"  Evaluated {len(population)} individuals initially.")
 
     for gen in range(1, num_generations + 1):
-        _current_epoch = gen
+        _current_epoch = gen+1
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
 
