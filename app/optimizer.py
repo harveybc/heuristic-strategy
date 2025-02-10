@@ -34,16 +34,22 @@ def evaluate_individual(individual):
     Evaluates a candidate strategy parameter set.
     Prints the current epoch number along with the candidate.
     Expects the plugin's evaluate_candidate() method to return either:
-      - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
-      - Or a single-value tuple (profit,)
+         - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
+         - Or a single-value tuple (profit,)
+    This function returns a tuple containing only the profit (of length 1), 
+    so that it matches the fitness weight configuration.
     """
     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _num_generations
     if _plugin is None:
         print("[EVALUATE] ERROR: _plugin is None!")
         return (-1e6,)
-
+    
+    # Print the candidate and current epoch information.
     print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
+    
     result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
+    
+    # If the result returns both profit and stats, extract and print them.
     if isinstance(result, tuple) and len(result) == 2:
         profit, stats = result
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {profit:.2f}, "
@@ -51,11 +57,15 @@ def evaluate_individual(individual):
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
               f"Sharpe: {stats.get('sharpe', 0):.2f}")
+        return (profit,)
+    # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
+        return result
     else:
+        # Fallback: assume result is a single numeric value.
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
-    return result
+        return (result,)
 
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
