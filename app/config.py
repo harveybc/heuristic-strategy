@@ -28,6 +28,8 @@ DEFAULT_VALUES = {
     "trades_csv_file": "trades.csv",
     "summary_csv_file": "summary.csv",
     "strategy_name": "Heuristic Strategy",
-    "max_steps": 6300
+    "max_steps": 6300,
+    "save_parameters": "parameters.json",
+    "load_parameters": None
      
 }
