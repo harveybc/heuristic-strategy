@@ -25,19 +25,50 @@ def create_hourly_predictions(df, horizon):
 def create_daily_predictions(df, horizon):
     """
     Auto-compute daily predictions from the base dataset.
+
+    Each row i in 'df' yields a block of predicted values at offsets t+24, t+48, ... t+24*horizon.
+    If there are not enough rows (or any row indexing is invalid), we return an empty DataFrame.
     """
-    # If there's not enough rows to generate daily predictions, return an empty DataFrame
-    if len(df) < horizon * 24:
-        print("Warning: Not enough rows to create daily predictions.")
-        return pd.DataFrame()  # safe fallback
+    nrows = len(df)
+    required_rows = horizon * 24
+
+    # If the dataset is too short for daily predictions, return empty.
+    if nrows < required_rows:
+        print("Warning: Not enough rows to create daily predictions. Returning an empty DataFrame.")
+        return pd.DataFrame()
 
     blocks = []
-    for i in range(len(df) - horizon * 24):
-        block = []
-        for d in range(1, horizon+1):
-            block.extend(df.iloc[i + d*24].values.flatten())
-        blocks.append(np.concatenate(block))
-    return pd.DataFrame(blocks, index=df.index[:-horizon*24])
+    # For each row i, gather the next horizon days (24*horizon ticks).
+    for i in range(nrows - required_rows):
+        block_values = []
+        # Attempt to fetch each day offset at i + d*24
+        for d in range(1, horizon + 1):
+            idx = i + d * 24
+            # If idx is out of range for some reason (edge cases), skip safely
+            if idx >= nrows:
+                break
+            row_vals = df.iloc[idx].values  # shape: (features,)
+            if row_vals.ndim == 0:
+                # means we have an empty row or zero-dimensional array
+                continue
+            block_values.extend(row_vals.flatten())
+        # If we got some values, append them to blocks
+        if block_values:
+            blocks.append(block_values)
+        else:
+            # If we ended up with no valid data for that block, skip
+            continue
+
+    if not blocks:
+        # No valid blocks were created
+        print("Warning: daily predictions are empty after alignment. Returning an empty DataFrame.")
+        return pd.DataFrame()
+
+    # The resulting blocks length = nrows - required_rows
+    # Align the index accordingly
+    daily_idx = df.index[:(nrows - required_rows)]
+    return pd.DataFrame(blocks, index=daily_idx)
+
 
 
 def process_data(config):
