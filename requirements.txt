@@ -9,3 +9,4 @@ pydot
 graphviz
 backtrader
 deap
+tqdm
