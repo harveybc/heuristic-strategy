@@ -454,29 +454,39 @@ class Plugin:
 
         def stop(self):
             """
-            At the end of the simulation, print the summary statistics and final messages
-            exactly like the original strategy.
+            At the end of the simulation, force close any open position,
+            then compute and print summary statistics and save the balance plot.
+            This updated method ensures that any open trade is closed so that
+            trade details (such as number of trades, win percentage, max drawdown, etc.)
+            are recorded and printed.
             """
+            # Force close any open position so that notify_trade() is triggered.
+            if self.position:
+                self.close()
+
+            # Allow a small pause so that the closure can be processed.
+            # (This may be optional depending on the backtrader run loop.)
+            # time.sleep(0.1)
+
+            # If a TradeAnalyzer was added, print its output.
             if hasattr(self, 'analyzers') and 'tradeanalyzer' in self.analyzers:
                 trade_analyzer = self.analyzers.tradeanalyzer.get_analysis()
                 print("\n==== Trade Analyzer Results ====")
                 for key, value in trade_analyzer.items():
                     print(f"{key}: {value}")
 
-            # Compute the minimum balance encountered during the simulation
+            # Compute summary statistics based on recorded balances and trades.
             min_balance = min(self.balance_history) if self.balance_history else 0
-
             n_trades = len(self.trades)
             if n_trades > 0:
                 avg_profit_usd = sum(t['pnl'] for t in self.trades) / n_trades
                 avg_profit_pips = sum(t['pips'] for t in self.trades) / n_trades
-                avg_profit_pips_abs = sum(abs(t['pips']) for t in self.trades) / n_trades
                 avg_duration = sum(t['duration'] for t in self.trades) / n_trades
                 avg_max_dd = sum(t['max_dd'] for t in self.trades) / n_trades
             else:
-                avg_profit_usd = avg_profit_pips = avg_profit_pips_abs = avg_duration = avg_max_dd = 0
-            final_balance = self.broker.getvalue()
+                avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
 
+            final_balance = self.broker.getvalue()
             print("\n==== Summary ====")
             print(f"Initial Balance (USD): {self.initial_balance:.2f}")
             print(f"Final Balance (USD):   {final_balance:.2f}")
@@ -487,6 +497,7 @@ class Plugin:
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
             print(f"Average Trade Duration (bars): {avg_duration:.2f}")
 
+            # Plot balance vs. date.
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 5))
             plt.plot(self.date_history, self.balance_history, label="Balance")
