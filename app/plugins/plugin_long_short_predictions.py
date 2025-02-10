@@ -193,113 +193,43 @@ class Plugin:
             dt_hour = dt.replace(minute=0, second=0, microsecond=0)
             current_price = self.data0.close[0]
 
-            self.balance_history.append(self.broker.getvalue())
-            self.date_history.append(dt)
-
-            # If we have an open position, check if we should close
-            if self.position:
-                if self.current_direction == 'long':
-                    if self.trade_low is None or current_price < self.trade_low:
-                        self.trade_low = current_price
-                    if dt_hour in self.pred_df.index:
-                        preds_h = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                   for i in range(1, self.num_hourly_preds+1)]
-                        preds_d = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                   for i in range(1, self.num_daily_preds+1)]
-                        predicted_min = min(preds_h + preds_d)
-                    else:
-                        predicted_min = current_price
-                    if current_price >= self.current_tp or predicted_min < self.current_sl:
-                        self.close()
-                        return
-                elif self.current_direction == 'short':
-                    if self.trade_high is None or current_price > self.trade_high:
-                        self.trade_high = current_price
-                    if dt_hour in self.pred_df.index:
-                        preds_h = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                   for i in range(1, self.num_hourly_preds+1)]
-                        preds_d = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                   for i in range(1, self.num_daily_preds+1)]
-                        predicted_max = max(preds_h + preds_d)
-                    else:
-                        predicted_max = current_price
-                    if current_price <= self.current_tp or predicted_max > self.current_sl:
-                        self.close()
-                        return
-                return
-            else:
-                # No open position, reset trade extremes
-                self.trade_low = current_price
-                self.trade_high = current_price
-
-            # Enforce trade frequency
-            recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
-            if len(recent_trades) >= self.params.max_trades_per_5days:
-                return
-
+            # If there's no row for dt_hour in the predictions DataFrame, skip.
             if dt_hour not in self.pred_df.index:
                 return
+
             row = self.pred_df.loc[dt_hour]
+
+            # Attempt to load daily predictions for the current bar
             try:
                 daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds+1)]
             except KeyError:
                 return
 
-            # Compute ideal profit pips for a long
-            ideal_profit_pips_buy = (max(daily_preds) - current_price) / self.params.pip_cost
-            if current_price > min(daily_preds):
-                ideal_drawdown_pips_buy = (current_price - min(daily_preds)) / self.params.pip_cost
-            else:
-                ideal_drawdown_pips_buy = self.params.min_drawdown_pips
+            # --- NEW CHECK: if daily_preds is empty or all NaN, skip ---
+            # If the alignment created empty sequences or no columns, this avoids max() errors
+            if not daily_preds or all(pd.isna(daily_preds)):
+                return
+
+            ideal_profit_pips_buy = (max(daily_preds) - current_price) / self.p.pip_cost
+            ideal_drawdown_pips_buy = max((current_price - min(daily_preds)) / self.p.pip_cost, self.p.min_drawdown_pips)
             rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
-            tp_buy = current_price + self.params.tp_multiplier * ideal_profit_pips_buy * self.params.pip_cost
-            sl_buy = current_price - self.params.sl_multiplier * ideal_drawdown_pips_buy * self.params.pip_cost
+            tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
+            sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
 
-            # Compute ideal profit pips for a short
-            ideal_profit_pips_sell = (current_price - min(daily_preds)) / self.params.pip_cost
-            if current_price < max(daily_preds):
-                ideal_drawdown_pips_sell = (max(daily_preds) - current_price) / self.params.pip_cost
-            else:
-                ideal_drawdown_pips_sell = self.params.min_drawdown_pips
+            ideal_profit_pips_sell = (current_price - min(daily_preds)) / self.p.pip_cost
+            ideal_drawdown_pips_sell = max((max(daily_preds) - current_price) / self.p.pip_cost, self.p.min_drawdown_pips)
             rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
-            tp_sell = current_price - self.params.tp_multiplier * ideal_profit_pips_sell * self.params.pip_cost
-            sl_sell = current_price + self.params.sl_multiplier * ideal_drawdown_pips_sell * self.params.pip_cost
+            tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
+            sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            long_signal = (ideal_profit_pips_buy >= self.params.profit_threshold)
-            short_signal = (ideal_profit_pips_sell >= self.params.profit_threshold)
+            long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
+            short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
 
-            # Compare RR
-            if long_signal and (rr_buy >= rr_sell):
-                signal = 'long'
-                chosen_tp = tp_buy
-                chosen_sl = sl_buy
-                chosen_rr = rr_buy
-            elif short_signal and (rr_sell > rr_buy):
-                signal = 'short'
-                chosen_tp = tp_sell
-                chosen_sl = sl_sell
-                chosen_rr = rr_sell
-            else:
-                signal = None
+            if long_signal and rr_buy >= rr_sell:
+                self.buy(size=self.compute_size(rr_buy))
+            elif short_signal and rr_sell > rr_buy:
+                self.sell(size=self.compute_size(rr_sell))
 
-            if signal is None:
-                return
-
-            order_size = self.compute_size(chosen_rr)
-            if order_size <= 0:
-                return
-
-            self.trade_entry_dates.append(dt)
-            self.trade_entry_bar = len(self)
-
-            if signal == 'long':
-                self.buy(size=order_size)
-                self.current_direction = 'long'
-            elif signal == 'short':
-                self.sell(size=order_size)
-                self.current_direction = 'short'
-            self.current_tp = chosen_tp
-            self.current_sl = chosen_sl
 
         def compute_size(self, rr):
             """Compute order size by linear interpolation between min and max volumes based on RR."""
