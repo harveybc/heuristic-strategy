@@ -11,7 +11,7 @@ DEFAULT_VALUES = {
     "num_generations": 2,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
-    "load_config": "config.json",
+    "load_config": None,
     "save_config": "config_out.json",
     "remote_log": None,
     "remote_load_config": None,
