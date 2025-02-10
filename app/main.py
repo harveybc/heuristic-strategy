@@ -79,12 +79,12 @@ def main():
     print("Processing and running optimization pipeline...")
     trading_info, trades = run_processing_pipelins(config, plugin)
 
-    if config.get('save_config'):
-        try:
-            save_config(config, config['save_config'])
-            print(f"Configuration saved to {config['save_config']}.")
-        except Exception as e:
-            print(f"Failed to save configuration locally: {e}")
+    #if config.get('save_config'):
+    #    try:
+    #        save_config(config, config['save_config'])
+    #        print(f"Configuration saved to {config['save_config']}.")
+    #    except Exception as e:
+    #        print(f"Failed to save configuration locally: {e}")
 
     if config.get('remote_save_config'):
         print(f"Remote saving configuration to {config['remote_save_config']}")
