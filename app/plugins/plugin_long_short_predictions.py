@@ -60,12 +60,15 @@ class Plugin:
             ("upper_rr_threshold", 1.5, 3.0),
         ]
 
+
+
     def evaluate_candidate(self, individual, base_data, hourly_predictions, daily_predictions, config):
         """
         Evaluates a candidate strategy parameter set by merging the provided predictions (hourly and daily)
         into one DataFrame (saved as CSV for the strategy to read) and running a backtest.
         If config["show_trades"] is True, prints the individual trades with all details.
-        Returns a tuple (profit, stats) where stats include trade count, etc.
+        Returns a tuple (profit, stats) where stats include trade count, win percentage, maximum drawdown, and sharpe ratio.
+        Also updates self.trades with the trades from the candidate evaluation.
         """
         import os
         import pandas as pd
@@ -74,7 +77,7 @@ class Plugin:
         # Unpack candidate parameters.
         profit_threshold, tp_multiplier, sl_multiplier, rel_volume, lower_rr, upper_rr = individual
 
-        # Merge predictions from hourly and daily data (if provided).
+        # 1) Merge predictions from hourly and daily data.
         merged_df = pd.DataFrame()
         if hourly_predictions is not None and not hourly_predictions.empty:
             renamed_h = {col: f"Prediction_h_{i+1}" for i, col in enumerate(hourly_predictions.columns)}
@@ -93,10 +96,11 @@ class Plugin:
             merged_df = merged_df.copy()
             merged_df.index.name = "DATE_TIME"
 
+        # 2) Save merged predictions to a temporary CSV file.
         temp_pred_file = "temp_predictions.csv"
         merged_df.reset_index().to_csv(temp_pred_file, index=False)
 
-        # Determine date range.
+        # 3) Determine date range.
         if hasattr(base_data.index, 'min') and hasattr(base_data.index, 'max'):
             date_start = base_data.index.min().to_pydatetime()
             date_end   = base_data.index.max().to_pydatetime()
@@ -104,6 +108,7 @@ class Plugin:
             date_start = self.params['date_start']
             date_end   = self.params['date_end']
 
+        # 4) Build the Cerebro backtest.
         cerebro = bt.Cerebro()
         cerebro.addstrategy(
             self.HeuristicStrategy,
@@ -127,6 +132,7 @@ class Plugin:
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
 
+        # 5) Run the backtest.
         try:
             runresult = cerebro.run()
         except Exception as e:
@@ -139,9 +145,10 @@ class Plugin:
         profit = final_value - 10000.0
         print(f"Evaluated candidate {individual} -> Profit: {profit:.2f}")
 
+        # 6) Retrieve trades from the strategy instance.
+        strat_instance = runresult[0]
+        trades_list = getattr(strat_instance, "trades", [])
         if config.get("show_trades", True):
-            strat_instance = runresult[0]
-            trades_list = getattr(strat_instance, "trades", [])
             if trades_list:
                 print(f"Trades for candidate {individual}:")
                 for i, tr in enumerate(trades_list, 1):
@@ -159,8 +166,11 @@ class Plugin:
         if os.path.exists(temp_pred_file):
             os.remove(temp_pred_file)
 
-        # For demonstration, also compute basic stats from trades.
-        num_trades = len(getattr(strat_instance, "trades", []))
+        # 7) Update plugin trades with those from this evaluation.
+        self.trades = trades_list
+
+        # 8) Compute summary statistics.
+        num_trades = len(trades_list)
         stats = {
             "num_trades": num_trades,
             "win_pct": 0,
@@ -168,12 +178,12 @@ class Plugin:
             "sharpe": 0
         }
         if num_trades > 0:
-            wins = [1 for tr in strat_instance.trades if tr['pnl'] > 0]
+            wins = [1 for tr in trades_list if tr['pnl'] > 0]
             win_pct = (sum(wins) / num_trades) * 100
-            max_dd = max(tr['max_dd'] for tr in strat_instance.trades)
-            # Dummy sharpe ratio calculation: profit / std (if std > 0)
-            profits = [tr['pnl'] for tr in strat_instance.trades]
-            std_profit = (sum((p - (sum(profits)/num_trades))**2 for p in profits)/num_trades)**0.5 if num_trades > 1 else 0
+            max_dd = max(tr['max_dd'] for tr in trades_list)
+            profits = [tr['pnl'] for tr in trades_list]
+            avg_profit = sum(profits) / num_trades
+            std_profit = (sum((p - avg_profit)**2 for p in profits)/num_trades)**0.5 if num_trades > 1 else 0
             sharpe = (profit / std_profit) if std_profit > 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
@@ -184,6 +194,12 @@ class Plugin:
               f"Sharpe: {stats.get('sharpe', 0):.2f}")
 
         return (profit, stats)
+
+    
+    
+    
+    
+    
     # -----------------------------------------------------------------------------
     # Embedded Heuristic Strategy
     # -----------------------------------------------------------------------------
