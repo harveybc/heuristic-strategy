@@ -28,41 +28,35 @@ def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, con
     _num_generations = config.get("num_generations", 10)
     print("[INIT] Optimizer initialized with strategy plugin.")
 
+
 def evaluate_individual(individual):
-     """
-     Evaluates a candidate strategy parameter set.
-     Prints the current epoch number along with the candidate.
-     Expects the plugin's evaluate_candidate() method to return either:
-          - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
-          - Or a single-value tuple (profit,)
-     """
-     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _config, _num_generations
-     if _plugin is None:
-          print("[EVALUATE] ERROR: _plugin is None!")
-          return (-1e6,)
-     
-     # if the _config['load_parameters'] is false,then set the number of epochs to be printed
-     if not _config['load_parameters']:
-          num_epochs = _num_generations
-     else:
-          num_epochs = 1
+    """
+    Evaluates a candidate strategy parameter set.
+    Prints the current epoch number along with the candidate.
+    Expects the plugin's evaluate_candidate() method to return either:
+      - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
+      - Or a single-value tuple (profit,)
+    """
+    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _num_generations
+    if _plugin is None:
+        print("[EVALUATE] ERROR: _plugin is None!")
+        return (-1e6,)
 
+    print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
+    result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
+    if isinstance(result, tuple) and len(result) == 2:
+        profit, stats = result
+        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {profit:.2f}, "
+              f"Trades: {stats.get('num_trades', 0)}, "
+              f"Win%: {stats.get('win_pct', 0):.1f}, "
+              f"MaxDD: {stats.get('max_dd', 0):.2f}, "
+              f"Sharpe: {stats.get('sharpe', 0):.2f}")
+    elif isinstance(result, tuple) and len(result) == 1:
+        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
+    else:
+        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
+    return result
 
-     # Print the candidate and current epoch
-     print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Evaluating candidate (genome): {individual}")
-     result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
-     if isinstance(result, tuple) and len(result) == 2:
-          profit, stats = result
-          print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Candidate result => Profit: {profit:.2f}, "
-               f"Trades: {stats.get('num_trades', 0)}, "
-               f"Win%: {stats.get('win_pct', 0):.1f}, "
-               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-               f"Sharpe: {stats.get('sharpe', 0):.2f}")
-     elif isinstance(result, tuple) and len(result) == 1:
-          print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Candidate result => Profit: {result[0]:.2f} (no stats)")
-     else:
-          print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Candidate result => Profit: {result:.2f} (no stats)")
-     return result
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
@@ -72,7 +66,13 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     Saves the best found parameters as JSON if config['save_config'] is provided.
     """
     global _current_epoch
-    # Initialize global variables
+    from tqdm import tqdm
+    import random
+    import multiprocessing
+    import json
+    from deap import base, creator, tools
+
+    # Initialize globals
     init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config)
 
     optimizable_params = plugin.get_optimizable_params()
@@ -112,7 +112,6 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         pool = multiprocessing.Pool()
         toolbox.register("map", pool.map)
 
-    # Build initial population
     population = toolbox.population(n=population_size)
     print("[OPTIMIZATION] Evaluating initial population...")
     if disable_mp:
@@ -134,9 +133,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     print(f"  Evaluated {len(population)} individuals initially.")
 
-    # Evolution loop
     for gen in range(1, num_generations + 1):
-        _current_epoch = gen  # Update current epoch for candidate evaluation prints
+        _current_epoch = gen
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
 
@@ -169,8 +167,9 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
-        print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits)/len(fits):.2f}")
+        print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits) / len(fits):.2f}")
 
+    from deap import tools
     best_ind = tools.selBest(population, 1)[0]
     print("[OPTIMIZATION] Best parameter set found:")
     best_params = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
@@ -181,7 +180,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     if not disable_mp:
         pool.close()
 
-    # Save the best parameters as JSON if configured
+    # Save the best parameters as JSON if configured (using config["save_config"] for best parameters).
     if config.get("save_config"):
         try:
             with open(config["save_config"], "w") as f:
@@ -194,6 +193,10 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         "best_parameters": best_params,
         "profit": best_ind.fitness.values[0],
     }
+
+if __name__ == '__main__':
+    print("Standalone testing of optimizer not supported; run via main pipeline.")
+
 
 if __name__ == '__main__':
     print("Standalone testing of optimizer not supported; run via main pipeline.")
