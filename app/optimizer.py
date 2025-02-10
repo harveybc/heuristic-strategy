@@ -40,17 +40,29 @@ def evaluate_individual(individual):
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
     Runs the optimizer using DEAP to optimize the strategy parameters.
+    Prints the exact same lines as the standalone optimizer code.
     """
-    init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config)
+    # Initialize the plugin/datasets
+    # (unchanged, except we remove extra logs)
+    global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config
+    _plugin = plugin
+    _base_data = base_data
+    _hourly_predictions = hourly_predictions
+    _daily_predictions = daily_predictions
+    _config = config
 
-    # Get optimizable parameters from the plugin
+    # Retrieve optimizable parameters
     optimizable_params = plugin.get_optimizable_params()
-    num_params = len(optimizable_params)
-    print(f"Optimizable Parameters ({num_params}):")
-    for name, low, high in optimizable_params:
-        print(f"  {name}: [{low}, {high}]")
+    # The user can still see the param count if desired
+    # but the original code does not print a separate param list.
+    # We'll remain silent or do it exactly as the standalone if you prefer.
+    #
+    # The standalone code doesn't list them one by one, so we skip that.
 
-    # DEAP setup
+    # Create DEAP classes if not defined
+    from deap import base, creator, tools
+    import random
+
     if not hasattr(creator, "FitnessMax"):
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     if not hasattr(creator, "Individual"):
@@ -58,7 +70,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     toolbox = base.Toolbox()
 
-    # Register parameter generators
+    # Same random_attr approach
     def random_attr(param):
         name, low, high = param
         return random.uniform(low, high)
@@ -66,11 +78,16 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     toolbox.register("individual", lambda: creator.Individual([random_attr(param) for param in optimizable_params]))
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-    # Genetic Algorithm setup
     toolbox.register("evaluate", evaluate_individual)
     toolbox.register("mate", tools.cxBlend, alpha=0.5)
     toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1.0, indpb=0.2)
     toolbox.register("select", tools.selTournament, tournsize=3)
+
+    # EXACT lines from original code:
+    #   random.seed(42)
+    #   population = toolbox.population(n=20)
+    #   CXPB, MUTPB, NGEN = ...
+    #   print("Starting Genetic Algorithm Optimization")
 
     random.seed(42)
     population_size = config.get("population_size", 20)
@@ -78,17 +95,20 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     cxpb = config.get("crossover_probability", 0.5)
     mutpb = config.get("mutation_probability", 0.2)
 
-    population = toolbox.population(n=population_size)
-    print("[OPTIMIZATION] Starting Genetic Algorithm...")
-    print(f"Population Size: {population_size}, Generations: {num_generations}")
+    print("Starting Genetic Algorithm Optimization")
 
-    # Evaluate the initial population
+    # Build initial population
+    population = toolbox.population(n=population_size)
+
+    # Evaluate entire population
     fitnesses = list(map(toolbox.evaluate, population))
     for ind, fit in zip(population, fitnesses):
         ind.fitness.values = fit
-    print(f"  Evaluated {len(population)} individuals initially.")
 
-    # Evolution loop
+    # EXACT line from the stand-alone code:
+    print("  Evaluated %i individuals" % len(population))
+
+    # The evolution loop
     for gen in range(1, num_generations + 1):
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
@@ -104,7 +124,6 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
-        # Evaluate new population
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = list(map(toolbox.evaluate, invalid_ind))
         for ind, fit in zip(invalid_ind, fitnesses):
@@ -112,14 +131,36 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
-        print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits) / len(fits):.2f}")
 
-    # Retrieve the best individual
+        # EXACT generation line:
+        print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits)/len(fits):.2f}")
+
+    # Find best
+    from deap import tools
     best_ind = tools.selBest(population, 1)[0]
-    print("[OPTIMIZATION] Best parameter set found:")
-    best_params = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
-    for name, value in best_params.items():
-        print(f"  {name} = {value:.4f}")
-    print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
 
-    return {"best_parameters": best_params, "profit": best_ind.fitness.values[0]}
+    # EXACT lines for best param set
+    print("Best parameter set found:")
+    # The original code expects 6 parameters in a specific order:
+    #  profit_threshold, tp_multiplier, sl_multiplier, rel_volume, lower_rr_thresh, upper_rr_thresh
+    print(f"  profit_threshold = {best_ind[0]:.2f}")
+    print(f"  tp_multiplier    = {best_ind[1]:.2f}")
+    print(f"  sl_multiplier    = {best_ind[2]:.2f}")
+    print(f"  rel_volume       = {best_ind[3]:.3f}")
+    print(f"  lower_rr_thresh  = {best_ind[4]:.2f}")
+    print(f"  upper_rr_thresh  = {best_ind[5]:.2f}")
+    print("With profit: {:.2f}".format(best_ind.fitness.values[0]))
+
+    return {
+        "best_parameters": {
+            "profit_threshold": best_ind[0],
+            "tp_multiplier": best_ind[1],
+            "sl_multiplier": best_ind[2],
+            "rel_volume": best_ind[3],
+            "lower_rr_threshold": best_ind[4],
+            "upper_rr_threshold": best_ind[5],
+        },
+        "profit": best_ind.fitness.values[0],
+    }
+
+
