@@ -3,7 +3,7 @@
 DEFAULT_VALUES = {
     "hourly_predictions_file": None,
     "daily_predictions_file": None,
-    "base_dataset_file": "..\\predictor\\examples\\results\\phase_1\\phase_1_base_d3",
+    "base_dataset_file": "..\\predictor\\examples\\results\\phase_1\\phase_1_base_d3.csv",
     "date_column": "DATE_TIME",
     "plugin": "default",
     "time_horizon": 6,
