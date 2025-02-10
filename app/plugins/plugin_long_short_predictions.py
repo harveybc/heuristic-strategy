@@ -422,16 +422,20 @@ class Plugin:
 
         def notify_trade(self, trade):
             """
-            Suppress per‐trade printouts for faster runs.
-            The trade details are still appended to self.trades.
+            When a trade closes, record its details and print a summary.
+            This method appends each trade’s information—including open and close datetimes,
+            entry and exit prices, profit in USD and pips, duration, maximum drawdown, and the trade direction—
+            to the strategy’s trades list.
             """
             if trade.isclosed:
+                # Calculate trade duration in bars.
                 duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
-                dt = self.data0.datetime.datetime(0)
-                entry_price = self.order_entry_price if self.order_entry_price is not None else 0
+                # Capture the close datetime from the current bar.
+                close_dt = self.data0.datetime.datetime(0)
+                # Retrieve the entry price (or default to the current price).
+                entry_price = self.order_entry_price if self.order_entry_price is not None else self.data0.close[0]
                 exit_price = trade.price
                 profit_usd = trade.pnlcomm
-
                 direction = self.order_direction
                 if direction == 'long':
                     profit_pips = (exit_price - entry_price) / self.p.pip_cost
@@ -442,71 +446,43 @@ class Plugin:
                 else:
                     profit_pips = 0
                     intra_dd = 0
-
                 current_balance = self.broker.getvalue()
-                self.trades.append({
+                # Use the last recorded trade entry datetime as the open time.
+                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A"
+                trade_record = {
+                    'open_dt': open_dt,
+                    'close_dt': close_dt,
                     'entry': entry_price,
                     'exit': exit_price,
                     'pnl': profit_usd,
                     'pips': profit_pips,
                     'duration': duration,
-                    'max_dd': intra_dd
-                })
-
-                # Commented out the detailed print to avoid console spam:
-                # print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
-                #       f"Profit (pips)={profit_pips:.2f}, Profit (USD)={profit_usd:.2f}, "
-                #       f"Duration={duration} bars, Max DD (pips)={intra_dd:.2f}, Balance={current_balance:.2f}")
-
+                    'max_dd': intra_dd,
+                    'direction': direction
+                }
+                self.trades.append(trade_record)
+                # Immediately print trade details if desired.
+                print(f"TRADE CLOSED ({direction}): OpenDT={open_dt}, CloseDT={close_dt}, "
+                    f"Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+                    f"PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
+                    f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
+                # Reset order-related variables.
                 self.order_entry_price = None
                 self.current_tp = None
                 self.current_sl = None
                 self.current_direction = None
 
-
-
         def stop(self):
             """
-            At the end of the simulation, force-close any open positions (if any) so that all trades are recorded,
-            then compute and print summary statistics (including number of trades, average profit in USD and pips,
-            max drawdown, trade duration, etc.) exactly like the original strategy.
-            Also, save the balance plot.
+            At the end of the simulation, force-close any open position so that all trades are recorded.
+            Then compute and print summary statistics (including number of trades, average profit in USD and pips,
+            maximum drawdown, and average trade duration), and finally save the balance plot.
             """
-            # Force-close any open position so that notify_trade is triggered
+            # Force-close any open position.
             if self.position:
                 self.close()
-                # Give a short delay (if needed) for the forced close to complete;
-                # if notify_trade wasn’t called (e.g. in a forced close scenario), record a trade manually.
-                if not self.trades:
-                    dt = self.data0.datetime.datetime(0)
-                    entry_price = self.order_entry_price if self.order_entry_price is not None else self.data0.close[0]
-                    exit_price = self.data0.close[0]
-                    profit_usd = self.broker.getvalue() - self.initial_balance
-                    if self.order_direction == 'long':
-                        profit_pips = (exit_price - entry_price) / self.p.pip_cost
-                        intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
-                    elif self.order_direction == 'short':
-                        profit_pips = (entry_price - exit_price) / self.p.pip_cost
-                        intra_dd = (self.trade_high - entry_price) / self.p.pip_cost if self.trade_high is not None else 0
-                    else:
-                        profit_pips = 0
-                        intra_dd = 0
-                    self.trades.append({
-                        'entry': entry_price,
-                        'exit': exit_price,
-                        'pnl': profit_usd,
-                        'pips': profit_pips,
-                        'duration': 0,
-                        'max_dd': intra_dd
-                    })
-
-            # If a TradeAnalyzer exists, print its analysis.
-            if hasattr(self, 'analyzers') and 'tradeanalyzer' in self.analyzers:
-                trade_analyzer = self.analyzers.tradeanalyzer.get_analysis()
-                print("\n==== Trade Analyzer Results ====")
-                for key, value in trade_analyzer.items():
-                    print(f"{key}: {value}")
-
+            # (After a forced close, notify_trade() should be called and record the final trade.)
+            
             # Compute summary statistics.
             min_balance = min(self.balance_history) if self.balance_history else 0
             n_trades = len(self.trades)
@@ -517,7 +493,6 @@ class Plugin:
                 avg_max_dd = sum(t['max_dd'] for t in self.trades) / n_trades
             else:
                 avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
-
             final_balance = self.broker.getvalue()
 
             print("\n==== Summary ====")
@@ -530,7 +505,7 @@ class Plugin:
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
             print(f"Average Trade Duration (bars): {avg_duration:.2f}")
 
-            # Save balance plot.
+            # Save the balance plot.
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 5))
             plt.plot(self.date_history, self.balance_history, label="Balance")
