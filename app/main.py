@@ -11,11 +11,7 @@ from app.config_handler import (
     remote_log
 )
 from app.cli import parse_args
-from app.data_processor import (
-    process_data,
-    load_and_evaluate_model,
-    run_prediction_pipeline
-)
+from app.data_processor import process_data, run_prediction_pipeline
 from app.config import DEFAULT_VALUES
 from app.plugin_loader import load_plugin
 from config_merger import merge_config, process_unknown_args
@@ -31,9 +27,14 @@ def main():
       3. Merge CLI and unknown arguments (first pass without plugin-specific parameters).
       4. Load the specified plugin from the 'heuristic_strategy.plugins' namespace and set its parameters.
       5. Merge configuration again including plugin defaults.
-      6. Depending on the configuration, either load/evaluate an existing model or run the prediction/backtesting pipeline.
-      7. Save the current configuration locally and remotely.
-      8. (Within the pipeline) save optimization results and simulated trades (and optionally print them).
+      6. Run the prediction/backtesting pipeline (trading optimization) and save results.
+      7. Save the current configuration locally and remotely as specified.
+    
+    Note:
+      - For trading strategy plugins, the concept of loading a pre-trained model (load_model)
+        is not applicable. Thus, this branch has been removed.
+      - The pipeline returns optimization results (trading_info) and simulated trades, which are
+        saved as CSV files if specified in the configuration.
     """
     print("Parsing initial arguments...")
     args, unknown_args = parse_args()
@@ -90,18 +91,13 @@ def main():
     print("Merging configuration with CLI arguments and unknown args (second pass, with plugin params)...")
     config = merge_config(config, plugin.plugin_params, {}, file_config, cli_args, unknown_args_dict)
 
-    # Decision: Load and evaluate an existing model or run the prediction/backtesting pipeline.
+    # For trading strategy plugins, loading a pre-trained model is not supported.
     if config.get('load_model'):
-        print("Loading and evaluating model...")
-        try:
-            load_and_evaluate_model(config, plugin)
-        except Exception as e:
-            print(f"Model evaluation failed: {e}")
-            sys.exit(1)
-    else:
-        print("Processing and running prediction pipeline...")
-        # The pipeline now also saves results and trades as CSV files.
-        trading_info, trades = run_prediction_pipeline(config, plugin)
+        print("Warning: 'load_model' is not applicable for trading strategy plugins. Ignoring this parameter.")
+
+    print("Processing and running prediction pipeline...")
+    # The pipeline processes data, runs the optimizer, and saves results and trades.
+    trading_info, trades = run_prediction_pipeline(config, plugin)
 
     # Save the current configuration locally if a save path is specified.
     if config.get('save_config'):
