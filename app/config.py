@@ -8,7 +8,7 @@ DEFAULT_VALUES = {
     "plugin": "default",
     "time_horizon": 6,
     "population_size": 10,
-    "num_generations": 2,
+    "num_epochs": 2,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
     "load_config": None,

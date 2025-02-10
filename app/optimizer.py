@@ -42,7 +42,7 @@ def evaluate_individual(individual):
      
      # if the _config['load_parameters'] is false,then set the number of epochs to be printed
      if not _config['load_parameters']:
-          num_epochs = _config.get("num_epochs", 10)     
+          num_epochs = _config.get("num_generations", 10)     
 
      # Print the candidate and current epoch
      print(f"[EVALUATE][Epoch {_current_epoch}/{num_epochs}] Evaluating candidate (genome): {individual}")
