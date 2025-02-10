@@ -1,46 +1,20 @@
 import pandas as pd
 import numpy as np
-import os
 import time
-import sys
 from app.data_handler import load_csv
+from app.optimizer import run_optimizer
 
 # =============================================================================
 # DATA PROCESSOR FOR TRADING STRATEGY OPTIMIZATION
 # =============================================================================
 #
-# This module processes three CSV datasets:
-#
-#   1. Hourly predictions: Next n_hourly predictions (columns for t+1 to t+n_hourly).
-#   2. Daily predictions: For each tick (hourly timestamp), predictions for the next n_daily days
-#                        (e.g. t+24, t+48, …, t+24*n_daily).
-#   3. Base dataset: Actual rates per tick.
-#
-# If a date column is specified via config (key "date_column"), it is converted to a datetime index
-# and the datasets are aligned to the common date range.
-#
-# If either the hourly_predictions_file or daily_predictions_file is None, the corresponding
-# predictions are auto-generated from the base dataset using config["time_horizon"]:
-#   - Hourly predictions: the next time_horizon ticks (t+1, t+2, …, t+time_horizon)
-#   - Daily predictions: the values at t+24, t+48, …, t+24*time_horizon
-#
-# After processing, the pipeline calls the optimizer (from app.optimizer) via the function
-# run_processing_pipelins.
-#
-# Additionally, the pipeline saves a CSV file containing the optimization results (summary)
-# and, if available, a CSV file containing simulated trades.
+# Processes datasets and runs the optimizer.
+# Calls `run_optimizer()` from `app.optimizer` to optimize the trading strategy.
 # =============================================================================
 
 def create_hourly_predictions(df, horizon):
     """
     Auto-compute hourly predictions from the base dataset.
-    
-    Args:
-        df (pd.DataFrame): Base dataset.
-        horizon (int): Number of future ticks to predict.
-    
-    Returns:
-        pd.DataFrame: DataFrame of hourly predictions.
     """
     blocks = []
     for i in range(len(df) - horizon):
@@ -51,70 +25,37 @@ def create_hourly_predictions(df, horizon):
 def create_daily_predictions(df, horizon):
     """
     Auto-compute daily predictions from the base dataset.
-    
-    Args:
-        df (pd.DataFrame): Base dataset.
-        horizon (int): Number of future days (each day = 24 ticks) to predict.
-    
-    Returns:
-        pd.DataFrame: DataFrame of daily predictions.
     """
     blocks = []
     for i in range(len(df) - horizon * 24):
-        block = []
-        for d in range(1, horizon+1):
-            block.extend(df.iloc[i + d*24].values.flatten())
-        blocks.append(block)
+        block = [df.iloc[i + d*24].values.flatten() for d in range(1, horizon+1)]
+        blocks.append(np.concatenate(block))
     return pd.DataFrame(blocks, index=df.index[:-horizon*24])
 
 def process_data(config):
     """
-    Process the required datasets for trading strategy optimization.
-    
-    If hourly or daily predictions files are not provided, auto-generate predictions
-    from the base dataset using config["time_horizon"].
-    
-    Args:
-        config (dict): Configuration with keys including:
-            "hourly_predictions_file", "daily_predictions_file", "base_dataset_file",
-            "headers", "date_column", "time_horizon"
-    
-    Returns:
-        dict: Dictionary with keys "hourly", "daily", "base" holding processed DataFrames.
+    Loads and processes datasets.
     """
     headers = config.get("headers", True)
     print("Loading datasets...")
-    
-    if config.get("hourly_predictions_file"):
-        hourly_df = load_csv(config["hourly_predictions_file"], headers=headers)
-        print(f"Loaded hourly predictions from file: {config['hourly_predictions_file']}")
-    else:
-        hourly_df = None
-        print("No hourly predictions file provided. Will auto-calculate hourly predictions.")
 
-    if config.get("daily_predictions_file"):
-        daily_df = load_csv(config["daily_predictions_file"], headers=headers)
-        print(f"Loaded daily predictions from file: {config['daily_predictions_file']}")
-    else:
-        daily_df = None
-        print("No daily predictions file provided. Will auto-calculate daily predictions.")
-
+    hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
+    daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
+
     print(f"Base dataset loaded: {base_df.shape}")
 
     if hourly_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
-            raise ValueError("time_horizon must be provided when auto-calculating predictions.")
-        print("Auto-calculating hourly predictions using base dataset...")
+            raise ValueError("time_horizon must be provided when auto-generating predictions.")
+        print("Auto-generating hourly predictions...")
         hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
-        print(f"Auto-generated hourly predictions: {hourly_df.shape}")
 
     if daily_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
-            raise ValueError("time_horizon must be provided when auto-calculating predictions.")
-        print("Auto-calculating daily predictions using base dataset...")
+            raise ValueError("time_horizon must be provided when auto-generating predictions.")
+        print("Auto-generating daily predictions...")
         daily_df = create_daily_predictions(base_df, config["time_horizon"])
-        print(f"Auto-generated daily predictions: {daily_df.shape}")
 
     print("\nDatasets loaded:")
     print(f"  Hourly predictions: {hourly_df.shape}")
@@ -127,20 +68,16 @@ def process_data(config):
             if date_column in df.columns:
                 df[date_column] = pd.to_datetime(df[date_column])
                 df.set_index(date_column, inplace=True)
-                print(f"{label} dataset: Converted '{date_column}' to datetime index (shape: {df.shape}).")
             else:
                 print(f"Warning: '{date_column}' not found in {label} dataset.")
 
-    if (hasattr(hourly_df.index, 'min') and hasattr(daily_df.index, 'min') and hasattr(base_df.index, 'min')):
-        try:
-            common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
-            common_end   = min(hourly_df.index.max(), daily_df.index.max(), base_df.index.max())
-            hourly_df = hourly_df.loc[common_start:common_end]
-            daily_df  = daily_df.loc[common_start:common_end]
-            base_df   = base_df.loc[common_start:common_end]
-            print(f"Datasets aligned to common date range: {common_start} to {common_end}")
-        except Exception as e:
-            print("Error aligning datasets by date:", e)
+    try:
+        common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
+        common_end = min(hourly_df.index.max(), daily_df.index.max(), base_df.index.max())
+        hourly_df, daily_df, base_df = hourly_df.loc[common_start:common_end], daily_df.loc[common_start:common_end], base_df.loc[common_start:common_end]
+        print(f"Datasets aligned to common date range: {common_start} to {common_end}")
+    except Exception as e:
+        print("Error aligning datasets by date:", e)
 
     for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
         df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
@@ -148,47 +85,31 @@ def process_data(config):
 
     return {"hourly": hourly_df, "daily": daily_df, "base": base_df}
 
-def run_processing_pipelins(config, plugin):
+def run_processing_pipeline(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
-    
-    This function processes the datasets (hourly, daily, base) and calls the optimizer from app.optimizer.
-    It then saves optimization results and simulated trades (if available).
-    
-    Args:
-        config (dict): Configuration dictionary.
-        plugin (object): Strategy plugin instance.
-    
-    Returns:
-        tuple: (trading_info, trades)
     """
     start_time = time.time()
     print("\n=== Starting Trading Strategy Optimization Pipeline ===")
-    
+
     datasets = process_data(config)
-    hourly_preds = datasets["hourly"]
-    daily_preds  = datasets["daily"]
-    base_data    = datasets["base"]
-    
+    hourly_preds, daily_preds, base_data = datasets["hourly"], datasets["daily"], datasets["base"]
+
     print("\nProcessed Dataset Shapes:")
     print(f"  Hourly predictions: {hourly_preds.shape}")
     print(f"  Daily predictions:  {daily_preds.shape}")
     print(f"  Base rates:         {base_data.shape}")
-    
+
     if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
-        print("\nPlugin supports optimization interface. Running optimizer...")
-        from app.optimizer import run_optimizer
+        print("\nPlugin supports optimization. Running optimizer...")
         trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
     else:
         print("\nPlugin does not support optimization. Exiting.")
         trading_info = {}
 
-    print("\n=== Trading Strategy Optimization Results ===")
-    if isinstance(trading_info, dict):
-        for key, value in trading_info.items():
-            print(f"{key}: {value}")
-    else:
-        print("Optimizer did not return the expected trading information dictionary.")
+    print("\n=== Optimization Results ===")
+    for key, value in trading_info.items():
+        print(f"{key}: {value}")
 
     if config.get("results_file"):
         try:
@@ -204,9 +125,6 @@ def run_processing_pipelins(config, plugin):
             trades_df = pd.DataFrame(trades)
             trades_df.to_csv(config["trades_file"], index=False)
             print(f"Simulated trades saved to {config['trades_file']}.")
-            if config.get("print_trades"):
-                print("\nSimulated Trades:")
-                print(trades_df)
         except Exception as e:
             print(f"Failed to save simulated trades: {e}")
 
@@ -215,23 +133,4 @@ def run_processing_pipelins(config, plugin):
     return trading_info, trades
 
 if __name__ == "__main__":
-    # Example usage (update file paths and parameters as needed):
-    # from app.plugins.plugin_long_short_predictions import Plugin as StrategyPlugin
-    # config = {
-    #     "hourly_predictions_file": None,
-    #     "daily_predictions_file": None,
-    #     "base_dataset_file": "data/base_dataset.csv",
-    #     "headers": True,
-    #     "date_column": "DATE_TIME",
-    #     "time_horizon": 6,
-    #     "population_size": 20,
-    #     "num_generations": 50,
-    #     "crossover_probability": 0.5,
-    #     "mutation_probability": 0.2,
-    #     "results_file": "optimization_results.csv",
-    #     "trades_file": "simulated_trades.csv",
-    #     "print_trades": True
-    # }
-    # plugin = StrategyPlugin()
-    # run_processing_pipelins(config, plugin)
     pass
