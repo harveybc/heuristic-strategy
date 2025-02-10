@@ -26,11 +26,19 @@ def create_daily_predictions(df, horizon):
     """
     Auto-compute daily predictions from the base dataset.
     """
+    # If there's not enough rows to generate daily predictions, return an empty DataFrame
+    if len(df) < horizon * 24:
+        print("Warning: Not enough rows to create daily predictions.")
+        return pd.DataFrame()  # safe fallback
+
     blocks = []
     for i in range(len(df) - horizon * 24):
-        block = [df.iloc[i + d*24].values.flatten() for d in range(1, horizon+1)]
+        block = []
+        for d in range(1, horizon+1):
+            block.extend(df.iloc[i + d*24].values.flatten())
         blocks.append(np.concatenate(block))
     return pd.DataFrame(blocks, index=df.index[:-horizon*24])
+
 
 def process_data(config):
     """
