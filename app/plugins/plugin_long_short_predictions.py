@@ -470,25 +470,45 @@ class Plugin:
             At the end of the simulation, force-close any open positions (if any) so that all trades are recorded,
             then compute and print summary statistics (including number of trades, average profit in USD and pips,
             max drawdown, trade duration, etc.) exactly like the original strategy.
-            Also save the balance plot.
+            Also, save the balance plot.
             """
             # Force-close any open position so that notify_trade is triggered
             if self.position:
                 self.close()
+                # Give a short delay (if needed) for the forced close to complete;
+                # if notify_trade wasn’t called (e.g. in a forced close scenario), record a trade manually.
+                if not self.trades:
+                    dt = self.data0.datetime.datetime(0)
+                    entry_price = self.order_entry_price if self.order_entry_price is not None else self.data0.close[0]
+                    exit_price = self.data0.close[0]
+                    profit_usd = self.broker.getvalue() - self.initial_balance
+                    if self.order_direction == 'long':
+                        profit_pips = (exit_price - entry_price) / self.p.pip_cost
+                        intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
+                    elif self.order_direction == 'short':
+                        profit_pips = (entry_price - exit_price) / self.p.pip_cost
+                        intra_dd = (self.trade_high - entry_price) / self.p.pip_cost if self.trade_high is not None else 0
+                    else:
+                        profit_pips = 0
+                        intra_dd = 0
+                    self.trades.append({
+                        'entry': entry_price,
+                        'exit': exit_price,
+                        'pnl': profit_usd,
+                        'pips': profit_pips,
+                        'duration': 0,
+                        'max_dd': intra_dd
+                    })
 
-            # Allow a small delay for the forced close to process (if needed)
-            # (In practice, backtrader will call notify_trade for the forced close before calling stop.)
-            
-            # If a TradeAnalyzer was added, print its analysis.
+            # If a TradeAnalyzer exists, print its analysis.
             if hasattr(self, 'analyzers') and 'tradeanalyzer' in self.analyzers:
                 trade_analyzer = self.analyzers.tradeanalyzer.get_analysis()
                 print("\n==== Trade Analyzer Results ====")
                 for key, value in trade_analyzer.items():
                     print(f"{key}: {value}")
 
-            # Compute minimum balance encountered.
+            # Compute summary statistics.
             min_balance = min(self.balance_history) if self.balance_history else 0
-
             n_trades = len(self.trades)
             if n_trades > 0:
                 avg_profit_usd = sum(t['pnl'] for t in self.trades) / n_trades
@@ -510,6 +530,7 @@ class Plugin:
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
             print(f"Average Trade Duration (bars): {avg_duration:.2f}")
 
+            # Save balance plot.
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 5))
             plt.plot(self.date_history, self.balance_history, label="Balance")
@@ -519,6 +540,7 @@ class Plugin:
             plt.legend()
             plt.savefig("balance_plot.png")
             plt.close()
+
 
 
     # -------------------------------------------------------------------------
