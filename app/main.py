@@ -11,7 +11,7 @@ from app.config_handler import (
     remote_log
 )
 from app.cli import parse_args
-from app.data_processor import process_data, run_processing_pipelins
+from app.data_processor import process_data, run_processing_pipeline
 from app.config import DEFAULT_VALUES
 from app.plugin_loader import load_plugin
 from config_merger import merge_config, process_unknown_args
@@ -80,7 +80,7 @@ def main():
         print("Warning: 'load_model' is not applicable for trading strategy plugins. Ignoring this parameter.")
 
     print("Processing and running optimization pipeline...")
-    trading_info, trades = run_processing_pipelins(config, plugin)
+    trading_info, trades = run_processing_pipeline(config, plugin)
 
     if config.get('save_config'):
         try:
