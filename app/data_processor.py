@@ -127,9 +127,13 @@ def process_data(config):
 def run_processing_pipeline(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
+    Now writes out the final balance plot (renamed), the trades CSV, and a summary CSV.
+    Optionally logs the config['strategy_name'] if present.
     """
+
     start_time = time.time()
-    print("\n=== Starting Trading Strategy Optimization Pipeline ===")
+    strat_name = config.get("strategy_name", "Heuristic Strategy")
+    print(f"\n=== Starting Trading Strategy Optimization Pipeline for '{strat_name}' ===")
 
     datasets = process_data(config)
     hourly_preds, daily_preds, base_data = datasets["hourly"], datasets["daily"], datasets["base"]
@@ -140,7 +144,7 @@ def run_processing_pipeline(config, plugin):
     print(f"  Base rates:         {base_data.shape}")
 
     if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
-        print("\nPlugin supports optimization. Running optimizer...")
+        print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
         trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
     else:
         print("\nPlugin does not support optimization. Exiting.")
@@ -150,26 +154,61 @@ def run_processing_pipeline(config, plugin):
     for key, value in trading_info.items():
         print(f"{key}: {value}")
 
-    if config.get("results_file"):
-        try:
-            results_df = pd.DataFrame([trading_info])
-            results_df.to_csv(config["results_file"], index=False)
-            print(f"Optimization results saved to {config['results_file']}.")
-        except Exception as e:
-            print(f"Failed to save optimization results: {e}")
+    # --------------------------------------------------
+    # (1) Rename the final balance plot if it was created
+    # The plugin's strategy "stop()" typically saves 'balance_plot.png'.
+    # We rename it if 'balance_plot_file' is given.
+    # --------------------------------------------------
+    if config.get("balance_plot_file"):
+        import os
+        old_plot = "balance_plot.png"
+        new_plot = config["balance_plot_file"]
+        if os.path.exists(old_plot):
+            try:
+                os.rename(old_plot, new_plot)
+                print(f"Renamed {old_plot} -> {new_plot}")
+            except Exception as e:
+                print(f"Failed to rename {old_plot} to {new_plot}: {e}")
+        else:
+            print(f"Warning: {old_plot} not found; no balance plot to rename.")
 
-    trades = getattr(plugin, "trades", None)
-    if trades is not None and config.get("trades_file"):
+    # --------------------------------------------------
+    # (2) Save trades to CSV if 'trades_csv_file' is specified
+    # We assume plugin's strategy stores trades in plugin.trades or plugin.model.trades
+    # but usually it's in plugin trades if the plugin duplicates them.
+    # If not, you can store them from the strategy instance in evaluate_candidate.
+    # --------------------------------------------------
+    trades_csv = config.get("trades_csv_file")
+    if trades_csv:
         try:
-            trades_df = pd.DataFrame(trades)
-            trades_df.to_csv(config["trades_file"], index=False)
-            print(f"Simulated trades saved to {config['trades_file']}.")
+            import pandas as pd
+            # If your plugin or strategy saves trades in plugin.trades, do that:
+            if hasattr(plugin, "trades") and plugin.trades:
+                pd.DataFrame(plugin.trades).to_csv(trades_csv, index=False)
+                print(f"Trades saved to {trades_csv}.")
+            else:
+                print("Warning: plugin.trades not found or empty.")
         except Exception as e:
-            print(f"Failed to save simulated trades: {e}")
+            print(f"Failed to save trades to {trades_csv}: {e}")
+
+    # --------------------------------------------------
+    # (3) Save summary CSV if 'summary_csv_file' is specified
+    # We'll store final trading_info plus optionally any plugin variables
+    # --------------------------------------------------
+    summary_csv = config.get("summary_csv_file")
+    if summary_csv:
+        try:
+            import pandas as pd
+            df = pd.DataFrame([trading_info])
+            df.to_csv(summary_csv, index=False)
+            print(f"Summary saved to {summary_csv}.")
+        except Exception as e:
+            print(f"Failed to save summary CSV to {summary_csv}: {e}")
 
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
-    return trading_info, trades
+    return trading_info, getattr(plugin, "trades", None)
+
 
 if __name__ == "__main__":
     pass

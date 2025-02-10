@@ -409,32 +409,25 @@ class Plugin:
 
         def notify_trade(self, trade):
             """
-            When a trade closes, record its results and print a summary,
-            matching the exact 'TRADE CLOSED (...)' output in the original strategy.
+            Suppress per‐trade printouts for faster runs.
+            The trade details are still appended to self.trades.
             """
             if trade.isclosed:
-                # Determine trade duration
                 duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
                 dt = self.data0.datetime.datetime(0)
                 entry_price = self.order_entry_price if self.order_entry_price is not None else 0
                 exit_price = trade.price
                 profit_usd = trade.pnlcomm
 
-                # Use the stored order_direction to compute profit in pips
                 direction = self.order_direction
                 if direction == 'long':
                     profit_pips = (exit_price - entry_price) / self.p.pip_cost
+                    intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
                 elif direction == 'short':
                     profit_pips = (entry_price - exit_price) / self.p.pip_cost
-                else:
-                    profit_pips = 0
-
-                # Compute intra‐trade maximum drawdown (in pips) relative to entry price
-                if self.order_direction == 'long':
-                    intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
-                elif self.order_direction == 'short':
                     intra_dd = (self.trade_high - entry_price) / self.p.pip_cost if self.trade_high is not None else 0
                 else:
+                    profit_pips = 0
                     intra_dd = 0
 
                 current_balance = self.broker.getvalue()
@@ -447,15 +440,16 @@ class Plugin:
                     'max_dd': intra_dd
                 })
 
-                print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
-                    f"Profit (pips)={profit_pips:.2f}, Profit (USD)={profit_usd:.2f}, "
-                    f"Duration={duration} bars, Max DD (pips)={intra_dd:.2f}, Balance={current_balance:.2f}")
+                # Commented out the detailed print to avoid console spam:
+                # print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+                #       f"Profit (pips)={profit_pips:.2f}, Profit (USD)={profit_usd:.2f}, "
+                #       f"Duration={duration} bars, Max DD (pips)={intra_dd:.2f}, Balance={current_balance:.2f}")
 
-                # Reset trade‐related variables
                 self.order_entry_price = None
                 self.current_tp = None
                 self.current_sl = None
                 self.current_direction = None
+
 
 
         def stop(self):

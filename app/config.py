@@ -22,5 +22,11 @@ DEFAULT_VALUES = {
     "quiet_mode": False,
     "force_date": False,
     "headers": True,
-    "disable_multiprocessing": True 
+    "disable_multiprocessing": False,
+    #output files for balance plot, trades csv and summary in a csv with all possible statistics
+    "balance_plot_file": "balance_plot.png",
+    "trades_csv_file": "trades.csv",
+    "summary_csv_file": "summary.csv",
+    "strategy_name": "Heuristic Strategy"
+     
 }
