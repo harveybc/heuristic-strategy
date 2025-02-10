@@ -78,8 +78,12 @@ def process_data(config):
     - Loads the hourly predictions, daily predictions (if provided), and the base dataset.
     - If 'max_steps' is provided in config, each dataset is truncated to the first max_steps rows.
     - If a predictions file is not provided, predictions are auto-generated using config["time_horizon"].
-    - If a date_column is provided, it is converted to a datetime index (named "DATE_TIME").
-    - Finally, the datasets are aligned by their common date range and numeric conversion is applied.
+    - If a date_column is provided:
+        * For the Base dataset: converts that column to datetime and sets it as the index (named "DATE_TIME").
+        * For the predictions datasets: if the date_column is present, they are processed normally;
+          otherwise, it is assumed that the predictions are aligned with the base dataset, and the base's
+          index (truncated to the number of rows in the predictions) is assigned.
+    - Finally, the datasets are aligned by their common date range and all columns are converted to numeric.
     
     Args:
         config (dict): Configuration with keys including:
@@ -94,6 +98,10 @@ def process_data(config):
     Returns:
         dict: Dictionary with keys "hourly", "daily", "base" holding the processed DataFrames.
     """
+    import pandas as pd
+    import numpy as np
+    from app.data_handler import load_csv
+
     headers = config.get("headers", True)
     print("Loading datasets...")
 
@@ -103,7 +111,7 @@ def process_data(config):
 
     print(f"Base dataset loaded: {base_df.shape}")
 
-    # Apply max_steps truncation if specified
+    # Truncate datasets to max_steps if provided.
     max_steps = config.get("max_steps")
     if max_steps is not None:
         if hourly_df is not None:
@@ -130,18 +138,41 @@ def process_data(config):
     print(f"  Daily predictions:  {daily_df.shape}")
     print(f"  Base dataset:       {base_df.shape}")
 
-    # Convert date_column to datetime index if provided
     date_column = config.get("date_column")
     if date_column:
-        for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
-            if date_column in df.columns:
-                df[date_column] = pd.to_datetime(df[date_column])
-                df.set_index(date_column, inplace=True)
-                df.index.name = "DATE_TIME"
+        # Process Base dataset.
+        if date_column in base_df.columns:
+            base_df[date_column] = pd.to_datetime(base_df[date_column])
+            base_df.set_index(date_column, inplace=True)
+            base_df.index.name = "DATE_TIME"
+        else:
+            # If not found, assume base_df's index is already datetime.
+            if not pd.api.types.is_datetime64_any_dtype(base_df.index):
+                print(f"Warning: '{date_column}' not found in Base dataset. Using default index.")
             else:
-                print(f"Warning: '{date_column}' not found in {label} dataset.")
+                base_df.index.name = "DATE_TIME"
 
-    # Align datasets by common date range
+        # Process predictions datasets.
+        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
+            if df is not None:
+                if date_column in df.columns:
+                    df[date_column] = pd.to_datetime(df[date_column])
+                    df.set_index(date_column, inplace=True)
+                    df.index.name = "DATE_TIME"
+                else:
+                    print(f"Warning: '{date_column}' not found in {label} dataset. Assuming predictions are aligned with Base.")
+                    # Replace index with Base's index (truncate to the length of the predictions).
+                    df.index = base_df.index[:len(df)]
+                    df.index.name = "DATE_TIME"
+    else:
+        # No date_column provided; ensure predictions have a datetime index.
+        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
+            if df is not None and not pd.api.types.is_datetime64_any_dtype(df.index):
+                print(f"Warning: {label} predictions have no datetime index. Assigning Base index.")
+                df.index = base_df.index[:len(df)]
+                df.index.name = "DATE_TIME"
+
+    # Align datasets by common date range.
     try:
         common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
         common_end = min(hourly_df.index.max(), daily_df.index.max(), base_df.index.max())
@@ -152,7 +183,7 @@ def process_data(config):
     except Exception as e:
         print("Error aligning datasets by date:", e)
 
-    # Convert all columns to numeric and fill missing values
+    # Convert all columns to numeric and fill missing values.
     for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
         df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
         print(f"{label} dataset: Converted columns to numeric (final shape: {df.shape}).")
