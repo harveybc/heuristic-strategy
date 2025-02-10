@@ -164,14 +164,12 @@ def run_processing_pipeline(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
     
-    - Loads and processes datasets.
-    - If config["load_parameters"] is provided (not None), loads candidate parameters
-      from the specified JSON file and evaluates the strategy once using those parameters.
+    - Loads and processes the datasets.
+    - If config["load_parameters"] is not None, loads a JSON file containing candidate parameters and evaluates the strategy once.
       In this mode, it prints and saves the trades, summary, and balance plot.
-    - Otherwise, runs the full optimization via run_optimizer.
-    - At the end, if in optimization mode and config["save_parameters"] is provided,
-      saves the best parameters as JSON.
-    - Finally, renames the balance plot and saves the trades and summary CSV files.
+    - Otherwise, it runs the full GA optimization (via run_optimizer).
+    - At the end, if config["save_parameters"] is provided (and load_parameters is None), it saves the best parameters as JSON.
+    - Finally, it renames the balance plot and saves the trades and summary CSV files.
     """
     import json, os, pandas as pd
     start_time = time.time()
@@ -184,9 +182,9 @@ def run_processing_pipeline(config, plugin):
     print("\nProcessed Dataset Shapes:")
     print(f"  Hourly predictions: {hourly_preds.shape}")
     print(f"  Daily predictions:  {daily_preds.shape}")
-    print(f"  Base dataset:       {base_data.shape}")
+    print(f"  Base rates:         {base_data.shape}")
     
-    # If load_parameters is provided, load candidate parameters and simply evaluate.
+    # Check if load_parameters is provided: if so, skip full optimization and simply evaluate
     if config.get("load_parameters") is not None:
         try:
             with open(config["load_parameters"], "r") as f:
@@ -209,7 +207,6 @@ def run_processing_pipeline(config, plugin):
             # Evaluate candidate using the plugin's evaluation method
             from app.optimizer import evaluate_individual
             result = evaluate_individual(candidate)
-            # We expect evaluate_individual to return (profit, stats)
             trading_info = {"best_parameters": {
                 "profit_threshold": candidate[0],
                 "tp_multiplier": candidate[1],
@@ -221,7 +218,7 @@ def run_processing_pipeline(config, plugin):
         else:
             trading_info = {}
     else:
-        # Run optimization normally if plugin supports it
+        # Normal optimization path
         if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
             print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
             from app.optimizer import run_optimizer
@@ -229,13 +226,12 @@ def run_processing_pipeline(config, plugin):
         else:
             print("\nPlugin does not support optimization. Exiting.")
             trading_info = {}
-    
+
     print("\n=== Optimization Results ===")
     for key, value in trading_info.items():
         print(f"{key}: {value}")
-    
-    # --------------------------------------------------
-    # (1) Rename the final balance plot if it was created.
+
+    # Rename the balance plot if it exists
     if config.get("balance_plot_file"):
         old_plot = "balance_plot.png"
         new_plot = config["balance_plot_file"]
@@ -247,9 +243,8 @@ def run_processing_pipeline(config, plugin):
                 print(f"Failed to rename {old_plot} to {new_plot}: {e}")
         else:
             print(f"Warning: {old_plot} not found; no balance plot to rename.")
-    
-    # --------------------------------------------------
-    # (2) Save trades to CSV if 'trades_csv_file' is specified.
+
+    # Save trades to CSV if specified
     trades_csv = config.get("trades_csv_file")
     if trades_csv:
         try:
@@ -260,9 +255,8 @@ def run_processing_pipeline(config, plugin):
                 print("Warning: plugin.trades not found or empty.")
         except Exception as e:
             print(f"Failed to save trades to {trades_csv}: {e}")
-    
-    # --------------------------------------------------
-    # (3) Save summary CSV if 'summary_csv_file' is specified.
+
+    # Save summary CSV if specified
     summary_csv = config.get("summary_csv_file")
     if summary_csv:
         try:
@@ -271,10 +265,8 @@ def run_processing_pipeline(config, plugin):
             print(f"Summary saved to {summary_csv}.")
         except Exception as e:
             print(f"Failed to save summary CSV to {summary_csv}: {e}")
-    
-    # --------------------------------------------------
-    # (4) If we performed optimization (load_parameters is None) and save_parameters is provided,
-    #     save the best parameters as JSON.
+
+    # If we performed optimization (i.e. load_parameters is None) and save_parameters is provided, save best parameters as JSON.
     if config.get("load_parameters") is None and config.get("save_parameters"):
         try:
             with open(config["save_parameters"], "w") as f:
@@ -282,13 +274,11 @@ def run_processing_pipeline(config, plugin):
             print(f"Best parameters saved to {config['save_parameters']}.")
         except Exception as e:
             print(f"Failed to save best parameters to {config['save_parameters']}: {e}")
-    
-    # --------------------------------------------------
-    # (5) Save full configuration (if desired) is handled in main.py.
-    
+
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
     return trading_info, getattr(plugin, "trades", None)
+
 
 
 if __name__ == "__main__":
