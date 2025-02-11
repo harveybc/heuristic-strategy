@@ -34,6 +34,6 @@ DEFAULT_VALUES = {
     "max_steps": 6300,
     "save_parameters": "parameters.json",
     "load_parameters": None,
-    "use_normalization_json": "predictor\\tests\\data\\phase_1_normalizer_debug_out.json"
+    "use_normalization_json": "tests\\data\\phase_1_normalizer_debug_out.json"
      
 }
