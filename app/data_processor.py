@@ -83,6 +83,8 @@ def process_data(config):
         * For the predictions datasets: if the date_column is present, they are processed normally;
           otherwise, it is assumed that the predictions are aligned with the base dataset, and the base's
           index (truncated to the number of rows in the predictions) is assigned.
+    - If "use_normalization_json" is provided in the config and predictions are loaded from file,
+      they are denormalized using the "CLOSE" column’s min and max values from that JSON.
     - Finally, the datasets are aligned by their common date range and all columns are converted to numeric.
     
     Args:
@@ -94,17 +96,20 @@ def process_data(config):
             - "date_column"
             - "time_horizon"
             - "max_steps"
+            - "use_normalization_json"  (optional: filename for normalization parameters)
     
     Returns:
         dict: Dictionary with keys "hourly", "daily", "base" holding the processed DataFrames.
     """
     import pandas as pd
     import numpy as np
+    import json
     from app.data_handler import load_csv
 
     headers = config.get("headers", True)
     print("Loading datasets...")
 
+    # Load predictions files if provided; otherwise they will be None.
     hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
     daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
@@ -121,6 +126,27 @@ def process_data(config):
         base_df = base_df.iloc[:max_steps]
         print(f"Datasets truncated to the first {max_steps} rows.")
 
+    # --- NEW FUNCTIONALITY: Denormalize externally loaded predictions ---
+    # Only denormalize if the predictions were loaded from a file (i.e. not auto-generated)
+    norm_file = config.get("use_normalization_json")
+    if norm_file is not None:
+        try:
+            with open(norm_file, "r") as f:
+                norm_data = json.load(f)
+            # Use the CLOSE column's normalization parameters
+            close_min = norm_data["CLOSE"]["min"]
+            close_max = norm_data["CLOSE"]["max"]
+            scale = close_max - close_min
+            if hourly_df is not None:
+                print("Denormalizing hourly predictions using CLOSE min and max...")
+                hourly_df = hourly_df.apply(lambda col: col * scale + close_min)
+            if daily_df is not None:
+                print("Denormalizing daily predictions using CLOSE min and max...")
+                daily_df = daily_df.apply(lambda col: col * scale + close_min)
+        except Exception as e:
+            print(f"Failed to load or apply normalization from {norm_file}: {e}")
+
+    # If predictions are not loaded from file, they will be auto-generated below.
     if hourly_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
@@ -146,7 +172,6 @@ def process_data(config):
             base_df.set_index(date_column, inplace=True)
             base_df.index.name = "DATE_TIME"
         else:
-            # If not found, assume base_df's index is already datetime.
             if not pd.api.types.is_datetime64_any_dtype(base_df.index):
                 print(f"Warning: '{date_column}' not found in Base dataset. Using default index.")
             else:
@@ -161,11 +186,9 @@ def process_data(config):
                     df.index.name = "DATE_TIME"
                 else:
                     print(f"Warning: '{date_column}' not found in {label} dataset. Assuming predictions are aligned with Base.")
-                    # Replace index with Base's index (truncate to the length of the predictions).
                     df.index = base_df.index[:len(df)]
                     df.index.name = "DATE_TIME"
     else:
-        # No date_column provided; ensure predictions have a datetime index.
         for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
             if df is not None and not pd.api.types.is_datetime64_any_dtype(df.index):
                 print(f"Warning: {label} predictions have no datetime index. Assigning Base index.")

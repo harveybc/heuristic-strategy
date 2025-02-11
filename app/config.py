@@ -33,6 +33,7 @@ DEFAULT_VALUES = {
     "strategy_name": "Heuristic Strategy",
     "max_steps": 6300,
     "save_parameters": "parameters.json",
-    "load_parameters": None
+    "load_parameters": None,
+    "use_normalization_json": "predictor\\tests\\data\\phase_1_normalizer_debug_out.json"
      
 }
