@@ -367,20 +367,18 @@ class Plugin:
             #print(f"[DEBUG]   Set TP: {self.current_tp:.5f}, SL: {self.current_sl:.5f}")
 
         def compute_size(self, rr):
-            """Compute order size based on risk-reward ratio."""
-            min_vol = self.params['min_order_volume']
-            max_vol = self.params['max_order_volume']
-            if rr >= self.params['upper_rr_threshold']:
+            min_vol = self.params.min_order_volume
+            max_vol = self.params.max_order_volume
+            if rr >= self.params.upper_rr_threshold:
                 size = max_vol
-            elif rr <= self.params['lower_rr_threshold']:
+            elif rr <= self.params.lower_rr_threshold:
                 size = min_vol
             else:
-                size = min_vol + ((rr - self.params['lower_rr_threshold']) /
-                                (self.params['upper_rr_threshold'] - self.params['lower_rr_threshold'])) * (max_vol - min_vol)
-
+                size = min_vol + ((rr - self.params.lower_rr_threshold) /
+                                  (self.params.upper_rr_threshold - self.params.lower_rr_threshold)) * (max_vol - min_vol)
             cash = self.broker.getcash()
-            max_from_cash = cash * self.params['rel_volume'] * self.params['leverage']
-            return max(min(size, max_from_cash), min_vol)  # Ensure order size is never < min_vol
+            max_from_cash = cash * self.params.rel_volume * self.params.leverage
+            return min(size, max_from_cash)
 
 
 
