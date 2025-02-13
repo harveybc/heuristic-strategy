@@ -1,10 +1,10 @@
 # config.py
 
 DEFAULT_VALUES = {
-    "hourly_predictions_file": "tests\\data\\ann_predictions_hourly_d3.csv",
-    "daily_predictions_file": "tests\\data\\ann_predictions_daily_d3.csv",
-    #"hourly_predictions_file": "tests\\data\\lstm_predictions_hourly_d3.csv",
-    #"daily_predictions_file": "tests\\data\\cnn_predictions_daily_d3.csv",
+    #"hourly_predictions_file": "tests\\data\\ann_predictions_hourly_d3.csv",
+    #"daily_predictions_file": "tests\\data\\ann_predictions_daily_d3.csv",
+    "hourly_predictions_file": "tests\\data\\lstm_predictions_hourly_d3.csv",
+    "daily_predictions_file": "tests\\data\\cnn_predictions_daily_d3.csv",
     #"hourly_predictions_file": "tests\\data\\ideal_predictions_hourly_d3.csv",
     #"daily_predictions_file": "tests\\data\\ideal_predictions_daily_d3.csv",
     #"hourly_predictions_file": None,
@@ -16,7 +16,7 @@ DEFAULT_VALUES = {
     "plugin": "default",
     "time_horizon": 6,
     "population_size": 20,
-    "num_generations": 10,
+    "num_generations": 30,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
     "load_config": None,
