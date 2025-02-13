@@ -60,6 +60,8 @@ class Plugin:
             ("upper_rr_threshold", 1.5, 3.0),
         ]
 
+
+
     def evaluate_candidate(self, individual, base_data, hourly_predictions, daily_predictions, config):
         """
         Evaluates a candidate strategy parameter set by merging the provided predictions (hourly and daily)
@@ -181,7 +183,7 @@ class Plugin:
             max_dd = max(tr['max_dd'] for tr in trades_list)
             profits = [tr['pnl'] for tr in trades_list]
             avg_profit = sum(profits) / num_trades
-            std_profit = (sum((p - avg_profit)**2 for p in profits) / num_trades)**0.5 if num_trades > 1 else 0
+            std_profit = (sum((p - avg_profit)**2 for p in profits)/num_trades)**0.5 if num_trades > 1 else 0
             sharpe = (profit / std_profit) if std_profit > 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
@@ -193,7 +195,11 @@ class Plugin:
 
         return (profit, stats)
 
-
+    
+    
+    
+    
+    
     # -----------------------------------------------------------------------------
     # Embedded Heuristic Strategy
     # -----------------------------------------------------------------------------
@@ -304,16 +310,18 @@ class Plugin:
                     if current_price <= self.current_tp or predicted_max > self.current_sl:
                         self.close()
                         return
-                return
+                return  # Do not attempt new entries if a position is open.
             else:
+                # Reset intra‐trade extremes when no position is open.
                 self.trade_low = current_price
                 self.trade_high = current_price
 
-            # Enforce trade frequency.
+            # Enforce trade frequency: no more than max_trades_per_5days in the last 5 days.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
             if len(recent_trades) >= self.p.max_trades_per_5days:
                 return
 
+            # Check if prediction data exists for the current bar.
             if dt_hour not in self.pred_df.index:
                 return
             row = self.pred_df.loc[dt_hour]
@@ -344,6 +352,7 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
+            # Determine signals.
             long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
             short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
 
@@ -368,10 +377,12 @@ class Plugin:
             if order_size <= 0:
                 return
 
+            # Record trade entry details.
             self.trade_entry_dates.append(dt)
             self.trade_entry_bar = len(self)
-            self.current_volume = order_size
+            self.current_volume = order_size  # Store the order volume
 
+            # Place order.
             if signal == 'long':
                 self.buy(size=order_size)
                 self.current_direction = 'long'
@@ -379,10 +390,14 @@ class Plugin:
                 self.sell(size=order_size)
                 self.current_direction = 'short'
 
+            # Store chosen TP and SL.
             self.current_tp = chosen_tp
             self.current_sl = chosen_sl
 
+
+
         def compute_size(self, rr):
+            """Compute order size by linear interpolation between min and max volumes based on RR."""
             min_vol = self.params.min_order_volume
             max_vol = self.params.max_order_volume
             if rr >= self.params.upper_rr_threshold:
@@ -392,14 +407,21 @@ class Plugin:
             else:
                 size = min_vol + ((rr - self.params.lower_rr_threshold) /
                                   (self.params.upper_rr_threshold - self.params.lower_rr_threshold)) * (max_vol - min_vol)
+
             cash = self.broker.getcash()
             max_from_cash = cash * self.params.rel_volume * self.params.leverage
             return min(size, max_from_cash)
 
         def notify_order(self, order):
+            """
+            When an order is completed, record the execution price
+            and capture its direction, just like in the original strategy.
+            """
             if order.status in [order.Completed]:
                 self.order_entry_price = order.executed.price
+                # Set the direction based on whether it's a buy or sell
                 self.order_direction = 'long' if order.isbuy() else 'short'
+
 
         def notify_trade(self, trade):
             if trade.isclosed:
@@ -432,17 +454,29 @@ class Plugin:
                 }
                 self.trades.append(trade_record)
                 print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
-                      f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
-                      f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
+                    f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
+                    f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
+
                 self.order_entry_price = None
                 self.current_tp = None
                 self.current_sl = None
                 self.current_direction = None
                 self.current_volume = None
 
+
+
         def stop(self):
+            """
+            At the end of the simulation, force-close any open position so that all trades are recorded.
+            Then compute and print summary statistics (including number of trades, average profit in USD and pips,
+            maximum drawdown, and average trade duration), and finally save the balance plot.
+            """
+            # Force-close any open position.
             if self.position:
                 self.close()
+            # (After a forced close, notify_trade() should be called and record the final trade.)
+            
+            # Compute summary statistics.
             min_balance = min(self.balance_history) if self.balance_history else 0
             n_trades = len(self.trades)
             if n_trades > 0:
@@ -453,6 +487,7 @@ class Plugin:
             else:
                 avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
             final_balance = self.broker.getvalue()
+
             print("\n==== Summary ====")
             print(f"Initial Balance (USD): {self.initial_balance:.2f}")
             print(f"Final Balance (USD):   {final_balance:.2f}")
@@ -462,6 +497,8 @@ class Plugin:
             print(f"Average Profit (pips): {avg_profit_pips:.2f}")
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
             print(f"Average Trade Duration (bars): {avg_duration:.2f}")
+
+            # Save the balance plot.
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 5))
             plt.plot(self.date_history, self.balance_history, label="Balance")
@@ -472,8 +509,10 @@ class Plugin:
             plt.savefig("balance_plot.png")
             plt.close()
 
+
+
     # -------------------------------------------------------------------------
-    # Dummy methods for interface compatibility
+    # Dummy methods for model building/training (to maintain interface compatibility)
     # -------------------------------------------------------------------------
     def add_debug_info(self, debug_info):
         debug_info.update(self.get_debug_info())
