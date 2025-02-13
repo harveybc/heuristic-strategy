@@ -143,7 +143,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     print(f"  Evaluated {len(population)} individuals initially.")
 
-    for gen in range(1, num_generations + 1):
+    for gen in range(1, num_generations):
         _current_epoch = gen+1
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
