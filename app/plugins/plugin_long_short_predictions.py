@@ -175,9 +175,9 @@ class Plugin:
         and the same logic for trade entries, sizing, frequency, and final summary.
         """
         def __init__(self, pred_file, pip_cost, rel_volume, min_order_volume, max_order_volume,
-                     leverage, profit_threshold, date_start, date_end, min_drawdown_pips,
-                     tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                     max_trades_per_5days, *args, **kwargs):
+                    leverage, profit_threshold, min_drawdown_pips,
+                    tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
+                    max_trades_per_5days, *args, **kwargs):
             super().__init__()
             self.params.pred_file = pred_file
             self.params.pip_cost = pip_cost
@@ -186,8 +186,6 @@ class Plugin:
             self.params.max_order_volume = max_order_volume
             self.params.leverage = leverage
             self.params.profit_threshold = profit_threshold
-            self.params.date_start = date_start
-            self.params.date_end = date_end
             self.params.min_drawdown_pips = min_drawdown_pips
             self.params.tp_multiplier = tp_multiplier
             self.params.sl_multiplier = sl_multiplier
@@ -197,13 +195,6 @@ class Plugin:
 
             # Load predictions from CSV.
             pred_df = pd.read_csv(self.params.pred_file, parse_dates=['DATE_TIME'])
-            pred_df = pred_df[
-                (pred_df['DATE_TIME'] >= self.params.date_start) & 
-                (pred_df['DATE_TIME'] <= self.params.date_end)
-            ]
-            pred_df['DATE_TIME'] = pred_df['DATE_TIME'].apply(
-                lambda dt: dt.replace(minute=0, second=0, microsecond=0)
-            )
             pred_df.set_index('DATE_TIME', inplace=True)
             self.num_hourly_preds = len([c for c in pred_df.columns if c.startswith('Prediction_h_')])
             self.num_daily_preds = len([c for c in pred_df.columns if c.startswith('Prediction_d_')])
