@@ -59,6 +59,7 @@ class Plugin:
     def evaluate_candidate(self, individual, base_data, hourly_predictions, daily_predictions, config):
         """
         Evaluates a candidate strategy parameter set using the provided datasets.
+        Supports both external prediction files and auto-generated predictions.
         """
         import os
         import pandas as pd
@@ -67,7 +68,7 @@ class Plugin:
         # Unpack candidate parameters
         profit_threshold, tp_multiplier, sl_multiplier, rel_volume, lower_rr, upper_rr = individual
 
-        # Merge predictions from hourly and daily data
+        # Use provided predictions without modifying them
         merged_df = pd.DataFrame()
         if hourly_predictions is not None and not hourly_predictions.empty:
             renamed_h = {col: f"Prediction_h_{i+1}" for i, col in enumerate(hourly_predictions.columns)}
@@ -82,8 +83,8 @@ class Plugin:
             print(f"[evaluate_candidate] => Merged predictions are empty for candidate {individual}. Returning profit=0.0.")
             return (0.0, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
+        # Ensure predictions have a datetime index
         if merged_df.index.name is None or merged_df.index.name != "DATE_TIME":
-            merged_df = merged_df.copy()
             merged_df.index.name = "DATE_TIME"
 
         # Save merged predictions to a temporary CSV file
@@ -132,14 +133,9 @@ class Plugin:
             if trades_list:
                 print(f"Trades for candidate {individual}:")
                 for i, tr in enumerate(trades_list, 1):
-                    open_dt = tr.get('open_dt', 'N/A')
-                    close_dt = tr.get('close_dt', 'N/A')
-                    volume = tr.get('volume', 0)
-                    pnl = tr.get('pnl', 0)
-                    pips = tr.get('pips', 0)
-                    max_dd = tr.get('max_dd', 0)
-                    print(f"  Trade #{i}: OpenDT={open_dt}, ExitDT={close_dt}, Volume={volume}, "
-                        f"PnL={pnl:.2f}, Pips={pips:.2f}, MaxDD={max_dd:.2f}")
+                    print(f"  Trade #{i}: OpenDT={tr.get('open_dt', 'N/A')}, ExitDT={tr.get('close_dt', 'N/A')}, "
+                        f"Volume={tr.get('volume', 0)}, PnL={tr.get('pnl', 0):.2f}, "
+                        f"Pips={tr.get('pips', 0):.2f}, MaxDD={tr.get('max_dd', 0):.2f}")
             else:
                 print("  No trades were made for this candidate.")
 
@@ -151,19 +147,14 @@ class Plugin:
 
         # Compute summary statistics
         num_trades = len(trades_list)
-        stats = {
-            "num_trades": num_trades,
-            "win_pct": 0,
-            "max_dd": 0,
-            "sharpe": 0
-        }
+        stats = {"num_trades": num_trades, "win_pct": 0, "max_dd": 0, "sharpe": 0}
         if num_trades > 0:
-            wins = [1 for tr in trades_list if tr['pnl'] > 0]
-            win_pct = (sum(wins) / num_trades) * 100
+            wins = sum(1 for tr in trades_list if tr['pnl'] > 0)
+            win_pct = (wins / num_trades) * 100
             max_dd = max(tr['max_dd'] for tr in trades_list)
             profits = [tr['pnl'] for tr in trades_list]
             avg_profit = sum(profits) / num_trades
-            std_profit = (sum((p - avg_profit) ** 2 for p in profits) / num_trades) ** 0.5 if num_trades > 1 else 0
+            std_profit = np.std(profits) if num_trades > 1 else 0
             sharpe = (profit / std_profit) if std_profit > 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
@@ -175,7 +166,6 @@ class Plugin:
 
         return (profit, stats)
 
-    
 
     class HeuristicStrategy(bt.Strategy):
         """

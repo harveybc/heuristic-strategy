@@ -74,6 +74,9 @@ def create_daily_predictions(df, horizon):
 def process_data(config):
     """
     Loads and processes datasets, ensuring alignment and applying max_steps.
+    - Uses external prediction files if provided.
+    - Generates predictions if files are not available.
+    - Ensures all datasets are properly aligned.
     """
     import pandas as pd
     import numpy as np
@@ -90,42 +93,28 @@ def process_data(config):
 
     print(f"Base dataset loaded: {base_df.shape}")
 
-    # Truncate datasets to max_steps if provided
-    max_steps = config.get("max_steps")
-    if max_steps is not None:
-        if hourly_df is not None:
-            hourly_df = hourly_df.iloc[:max_steps]
-        if daily_df is not None:
-            daily_df = daily_df.iloc[:max_steps]
-        base_df = base_df.iloc[:max_steps]
-        print(f"Datasets truncated to the first {max_steps} rows.")
+    # Auto-generate predictions if files are missing
+    if hourly_df is None:
+        if "time_horizon" not in config or not config["time_horizon"]:
+            raise ValueError("time_horizon must be provided when auto-generating predictions.")
+        print("Auto-generating hourly predictions...")
+        hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
 
-    # Align datasets by their common date range
-    try:
-        common_start = max(filter(lambda x: x is not None, [
-            hourly_df.index.min() if hourly_df is not None else None,
-            daily_df.index.min() if daily_df is not None else None,
-            base_df.index.min()
-        ]))
-        common_end = min(filter(lambda x: x is not None, [
-            hourly_df.index.max() if hourly_df is not None else None,
-            daily_df.index.max() if daily_df is not None else None,
-            base_df.index.max()
-        ]))
+    if daily_df is None:
+        if "time_horizon" not in config or not config["time_horizon"]:
+            raise ValueError("time_horizon must be provided when auto-generating predictions.")
+        print("Auto-generating daily predictions...")
+        daily_df = create_daily_predictions(base_df, config["time_horizon"])
 
-        if hourly_df is not None:
-            hourly_df = hourly_df.loc[common_start:common_end]
-        if daily_df is not None:
-            daily_df = daily_df.loc[common_start:common_end]
-        base_df = base_df.loc[common_start:common_end]
-
-        print(f"Datasets aligned to common date range: {common_start} to {common_end}")
-    except Exception as e:
-        print("Error aligning datasets by date:", e)
+    # Align datasets if they have datetime indexes
+    if isinstance(base_df.index, pd.DatetimeIndex):
+        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
+            if df is not None and not isinstance(df.index, pd.DatetimeIndex):
+                print(f"Warning: {label} dataset does not have a datetime index. Assigning base dataset index.")
+                df.index = base_df.index[:len(df)]
+                df.index.name = "DATE_TIME"
 
     return {"hourly": hourly_df, "daily": daily_df, "base": base_df}
-
-
 
 def run_processing_pipeline(config, plugin):
     """
