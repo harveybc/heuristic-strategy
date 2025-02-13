@@ -260,7 +260,7 @@ class Plugin:
             # --- Compute entry conditions ---
             ideal_profit_pips_long = (max(daily_preds) - current_price) / self.p.pip_cost
             ideal_drawdown_pips_long = max((current_price - min(daily_preds)) / self.p.pip_cost,
-                                           self.p.min_drawdown_pips)
+                                        self.p.min_drawdown_pips)
             rr_long = ideal_profit_pips_long / ideal_drawdown_pips_long if ideal_drawdown_pips_long > 0 else 0
             tp_long = current_price + self.p.tp_multiplier * ideal_profit_pips_long * self.p.pip_cost
             sl_long = current_price - self.p.sl_multiplier * ideal_drawdown_pips_long * self.p.pip_cost
@@ -272,8 +272,8 @@ class Plugin:
             tp_short = current_price - self.p.tp_multiplier * ideal_profit_pips_short * self.p.pip_cost
             sl_short = current_price + self.p.sl_multiplier * ideal_drawdown_pips_short * self.p.pip_cost
 
-            long_signal = ideal_profit_pips_long >= self.p.profit_threshold and rr_long >= rr_short
-            short_signal = ideal_profit_pips_short >= self.p.profit_threshold and rr_short > rr_long
+            long_signal = ideal_profit_pips_long >= self.p.profit_threshold and rr_long >= self.p.lower_rr_threshold
+            short_signal = ideal_profit_pips_short >= self.p.profit_threshold and rr_short >= self.p.lower_rr_threshold
 
             if long_signal:
                 order_size = self.compute_size(rr_long)
@@ -292,13 +292,23 @@ class Plugin:
                     self.current_sl = sl_short
                     self.trade_entry_dates.append(dt)
 
+
         def compute_size(self, rr):
             """Compute order size with volume constraints."""
-            min_vol = self.params.min_order_volume
-            max_vol = self.params.max_order_volume
+            min_vol = self.params['min_order_volume']
+            max_vol = self.params['max_order_volume']
             cash = self.broker.getcash()
-            max_from_cash = cash * self.params.rel_volume * self.params.leverage
-            return max(min_vol, min(max_vol, max_from_cash))
+            max_from_cash = cash * self.params['rel_volume'] * self.params['leverage']
+
+            if rr >= self.params['upper_rr_threshold']:
+                size = max_vol
+            elif rr <= self.params['lower_rr_threshold']:
+                size = min_vol
+            else:
+                size = min_vol + ((rr - self.params['lower_rr_threshold']) /
+                                (self.params['upper_rr_threshold'] - self.params['lower_rr_threshold'])) * (max_vol - min_vol)
+
+            return max(min_vol, min(size, max_from_cash))
 
 
 
@@ -336,9 +346,9 @@ class Plugin:
                     'max_dd': intra_dd
                 }
                 self.trades.append(trade_record)
-                #print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
-                #      f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
-                #      f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
+                print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+                      f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
+                      f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
                 self.order_entry_price = None
                 self.current_tp = None
                 self.current_sl = None
