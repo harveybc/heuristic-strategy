@@ -48,12 +48,15 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            ("profit_threshold", 1, 20),
-            ("tp_multiplier", 0.8, 1.2),
-            ("sl_multiplier", 1.5, 3.0),
+            ("profit_threshold", 0.5, 20),
+            ("tp_multiplier", 0.5, 1.5),
+            ("sl_multiplier", 1.5, 6.0),
             ("rel_volume", 0.01, 0.1),
-            ("lower_rr_threshold", 0.3, 1.0),
-            ("upper_rr_threshold", 1.5, 3.0),
+            ("lower_rr_threshold", 0.2, 1.0),
+            ("upper_rr_threshold", 1.3, 6.0),
+            # size of the time horizon
+            ("time_horizon", 2, 24)
+
         ]
 
     def evaluate_candidate(self, individual, base_data, hourly_predictions, daily_predictions, config):
@@ -65,10 +68,21 @@ class Plugin:
         import pandas as pd
         import backtrader as bt
 
-        # Unpack candidate parameters
-        profit_threshold, tp_multiplier, sl_multiplier, rel_volume, lower_rr, upper_rr = individual
+        # Unpack candidate parameters:
+        # Now the candidate tuple is:
+        # (profit_threshold, tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold, time_horizon)
+        profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr, time_horizon = individual
 
-        # Use provided predictions without modifying them
+        # If both predictions are missing or empty, auto-generate predictions using the candidate's time_horizon.
+        if (hourly_predictions is None or hourly_predictions.empty) and (daily_predictions is None or daily_predictions.empty):
+            print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={time_horizon} for candidate {individual}.")
+            config["time_horizon"] = int(time_horizon)
+            from data_processor import process_data
+            processed = process_data(config)
+            hourly_predictions = processed["hourly"]
+            daily_predictions = processed["daily"]
+
+        # Use provided predictions without modifying them.
         merged_df = pd.DataFrame()
         if hourly_predictions is not None and not hourly_predictions.empty:
             renamed_h = {col: f"Prediction_h_{i+1}" for i, col in enumerate(hourly_predictions.columns)}
@@ -83,21 +97,21 @@ class Plugin:
             print(f"[evaluate_candidate] => Merged predictions are empty for candidate {individual}. Returning profit=0.0.")
             return (0.0, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
-        # Ensure predictions have a datetime index
+        # Ensure predictions have a datetime index.
         if merged_df.index.name is None or merged_df.index.name != "DATE_TIME":
             merged_df.index.name = "DATE_TIME"
 
-        # Save merged predictions to a temporary CSV file
+        # Save merged predictions to a temporary CSV file.
         temp_pred_file = "temp_predictions.csv"
         merged_df.reset_index().to_csv(temp_pred_file, index=False)
 
-        # Build the Cerebro backtest
+        # Build the Cerebro backtest.
         cerebro = bt.Cerebro()
         cerebro.addstrategy(
             self.HeuristicStrategy,
             pred_file=temp_pred_file,
             pip_cost=self.params['pip_cost'],
-            rel_volume=rel_volume,
+            rel_volume=self.params['rel_volume'],  # use plugin default value
             min_order_volume=self.params['min_order_volume'],
             max_order_volume=self.params['max_order_volume'],
             leverage=self.params['leverage'],
@@ -113,7 +127,7 @@ class Plugin:
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
 
-        # Run the backtest
+        # Run the backtest.
         try:
             runresult = cerebro.run()
         except Exception as e:
@@ -126,7 +140,7 @@ class Plugin:
         profit = final_value - 10000.0
         print(f"Evaluated candidate {individual} -> Profit: {profit:.2f}")
 
-        # Retrieve trades from the strategy instance
+        # Retrieve trades from the strategy instance.
         strat_instance = runresult[0]
         trades_list = getattr(strat_instance, "trades", [])
         if config.get("show_trades", True):
@@ -142,10 +156,10 @@ class Plugin:
         if os.path.exists(temp_pred_file):
             os.remove(temp_pred_file)
 
-        # Update plugin trades with those from this evaluation
+        # Update plugin trades with those from this evaluation.
         self.trades = trades_list
 
-        # Compute summary statistics
+        # Compute summary statistics.
         num_trades = len(trades_list)
         stats = {"num_trades": num_trades, "win_pct": 0, "max_dd": 0, "sharpe": 0}
         if num_trades > 0:
@@ -165,6 +179,7 @@ class Plugin:
             f"Sharpe: {stats.get('sharpe', 0):.2f}")
 
         return (profit, stats)
+
 
 
     class HeuristicStrategy(bt.Strategy):
