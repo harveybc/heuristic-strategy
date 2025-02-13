@@ -2,7 +2,7 @@ import datetime
 import os
 import backtrader as bt
 import pandas as pd
-
+import numpy as np
 
 class Plugin:
     """
