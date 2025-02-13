@@ -265,14 +265,10 @@ class Plugin:
                     if self.trade_low is None or current_price < self.trade_low:
                         self.trade_low = current_price
                     if dt_hour in self.pred_df.index:
-                        preds_hourly = [
-                            self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                            for i in range(1, self.num_hourly_preds + 1)
-                        ]
-                        preds_daily = [
-                            self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                            for i in range(1, self.num_daily_preds + 1)
-                        ]
+                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                                        for i in range(1, self.num_hourly_preds + 1)]
+                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                                       for i in range(1, self.num_daily_preds + 1)]
                         predicted_min = min(preds_hourly + preds_daily)
                     else:
                         predicted_min = current_price
@@ -283,14 +279,10 @@ class Plugin:
                     if self.trade_high is None or current_price > self.trade_high:
                         self.trade_high = current_price
                     if dt_hour in self.pred_df.index:
-                        preds_hourly = [
-                            self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                            for i in range(1, self.num_hourly_preds + 1)
-                        ]
-                        preds_daily = [
-                            self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                            for i in range(1, self.num_daily_preds + 1)
-                        ]
+                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                                        for i in range(1, self.num_hourly_preds + 1)]
+                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                                       for i in range(1, self.num_daily_preds + 1)]
                         predicted_max = max(preds_hourly + preds_daily)
                     else:
                         predicted_max = current_price
@@ -383,7 +375,6 @@ class Plugin:
             self.current_sl = chosen_sl
 
 
-
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
             max_vol = self.params.max_order_volume
@@ -410,6 +401,7 @@ class Plugin:
                 entry_price = self.order_entry_price if self.order_entry_price is not None else 0
                 exit_price = trade.price
                 profit_usd = trade.pnlcomm
+
                 direction = self.order_direction
                 if direction == 'long':
                     profit_pips = (exit_price - entry_price) / self.p.pip_cost
@@ -420,9 +412,10 @@ class Plugin:
                 else:
                     profit_pips = 0
                     intra_dd = 0
+
                 current_balance = self.broker.getvalue()
-                # FIX: Use the most recent trade entry date as open_dt
-                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A"
+                # Use the last trade entry time as the open_dt.
+                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else ""
                 trade_record = {
                     'open_dt': open_dt,
                     'close_dt': dt,
