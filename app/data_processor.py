@@ -129,6 +129,7 @@ def run_processing_pipeline(config, plugin):
     """
     import json, os, pandas as pd
     from app.optimizer import init_optimizer, evaluate_individual, run_optimizer
+    import time
 
     start_time = time.time()
     strat_name = config.get("strategy_name", "Heuristic Strategy")
@@ -157,9 +158,9 @@ def run_processing_pipeline(config, plugin):
                 loaded_params.get("profit_threshold", plugin.params["profit_threshold"]),
                 loaded_params.get("tp_multiplier", plugin.params["tp_multiplier"]),
                 loaded_params.get("sl_multiplier", plugin.params["sl_multiplier"]),
-                loaded_params.get("rel_volume", plugin.params["rel_volume"]),
                 loaded_params.get("lower_rr_threshold", plugin.params["lower_rr_threshold"]),
-                loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"])
+                loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"]),
+                int(loaded_params.get("time_horizon", 3))
             ]
             print(f"Evaluating strategy with loaded parameters: {candidate}")
             # Initialize optimizer globals so that evaluate_individual() can use them
@@ -169,9 +170,9 @@ def run_processing_pipeline(config, plugin):
                 "profit_threshold": candidate[0],
                 "tp_multiplier": candidate[1],
                 "sl_multiplier": candidate[2],
-                "rel_volume": candidate[3],
-                "lower_rr_threshold": candidate[4],
-                "upper_rr_threshold": candidate[5],
+                "lower_rr_threshold": candidate[3],
+                "upper_rr_threshold": candidate[4],
+                "time_horizon": candidate[5]
             }, "profit": result[0]}
         else:
             trading_info = {}
