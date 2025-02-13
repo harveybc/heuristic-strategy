@@ -1,10 +1,10 @@
 # config.py
 
 DEFAULT_VALUES = {
-    #"hourly_predictions_file": "tests\\data\\ann_predictions_hourly.csv",
-    #"daily_predictions_file": "tests\\data\\ann_predictions_daily.csv",
-    "hourly_predictions_file": "tests\\data\\ideal_predictions_hourly.csv",
-    "daily_predictions_file": "tests\\data\\ideal_predictions_daily.csv",
+    "hourly_predictions_file": "tests\\data\\ann_predictions_hourly.csv",
+    "daily_predictions_file": "tests\\data\\ann_predictions_daily.csv",
+    #"hourly_predictions_file": "tests\\data\\ideal_predictions_hourly.csv",
+    #"daily_predictions_file": "tests\\data\\ideal_predictions_daily.csv",
     #"hourly_predictions_file": None,
     #"daily_predictions_file":  None,
     
