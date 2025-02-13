@@ -356,10 +356,10 @@ class Plugin:
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
             #print(f"[DEBUG] Entry calculations at {dt}:")
-            print(f"        current_price: {current_price:.5f}")
-            print(f"        Daily predictions: {daily_preds}")
-            print(f"        Long -> ideal_profit_pips: {ideal_profit_pips_buy:.2f}, ideal_drawdown: {ideal_drawdown_pips_buy:.2f}, RR: {rr_buy:.2f}, TP: {tp_buy:.5f}, SL: {sl_buy:.5f}")
-            print(f"        Short -> ideal_profit_pips: {ideal_profit_pips_sell:.2f}, ideal_drawdown: {ideal_drawdown_pips_sell:.2f}, RR: {rr_sell:.2f}, TP: {tp_sell:.5f}, SL: {sl_sell:.5f}")
+            #print(f"        current_price: {current_price:.5f}")
+            #print(f"        Daily predictions: {daily_preds}")
+            #print(f"        Long -> ideal_profit_pips: {ideal_profit_pips_buy:.2f}, ideal_drawdown: {ideal_drawdown_pips_buy:.2f}, RR: {rr_buy:.2f}, TP: {tp_buy:.5f}, SL: {sl_buy:.5f}")
+            #print(f"        Short -> ideal_profit_pips: {ideal_profit_pips_sell:.2f}, ideal_drawdown: {ideal_drawdown_pips_sell:.2f}, RR: {rr_sell:.2f}, TP: {tp_sell:.5f}, SL: {sl_sell:.5f}")
 
             long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
             short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
