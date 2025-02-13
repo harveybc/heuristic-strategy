@@ -74,7 +74,8 @@ class Plugin:
         profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr, time_horizon = individual
 
         # If both predictions are missing or empty, auto-generate predictions using the candidate's time_horizon.
-        if (hourly_predictions is None or hourly_predictions.empty) and (daily_predictions is None or daily_predictions.empty):
+
+        if (config['hourly_predictions_file'] is None) and (config['daily_predictions_file'] is None):
             print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={time_horizon} for candidate {individual}.")
             config["time_horizon"] = int(time_horizon)
             from data_processor import process_data
