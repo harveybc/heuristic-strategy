@@ -15,7 +15,7 @@ DEFAULT_VALUES = {
     "date_column": "DATE_TIME",
     "plugin": "default",
     "time_horizon": 6,
-    "population_size": 12,
+    "population_size": 20,
     "num_generations": 10,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
