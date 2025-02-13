@@ -1,10 +1,10 @@
 # config.py
 
 DEFAULT_VALUES = {
-    "hourly_predictions_file": "tests\\data\\ann_predictions_hourly_d3.csv",
-    "daily_predictions_file": "tests\\data\\ann_predictions_daily_d3.csv",
-    #"hourly_predictions_file": "tests\\data\\lstm_predictions_hourly_d3.csv",
-    #"daily_predictions_file": "tests\\data\\cnn_predictions_daily_d3.csv",
+    #"hourly_predictions_file": "tests\\data\\ann_predictions_hourly_d3.csv",
+    #"daily_predictions_file": "tests\\data\\ann_predictions_daily_d3.csv",
+    "hourly_predictions_file": "tests\\data\\lstm_predictions_hourly_d3.csv",
+    "daily_predictions_file": "tests\\data\\cnn_predictions_daily_d3.csv",
     #"hourly_predictions_file": "tests\\data\\ideal_predictions_hourly_d3.csv",
     #"daily_predictions_file": "tests\\data\\ideal_predictions_daily_d3.csv",
     "hourly_predictions_file": None,
