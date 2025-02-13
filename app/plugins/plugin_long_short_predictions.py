@@ -170,12 +170,14 @@ class Plugin:
     class HeuristicStrategy(bt.Strategy):
         """
         Forex Dynamic Volume Strategy using perfect future predictions.
-        """
 
+        This replicates the original HeuristicStrategy exactly, with all printed messages
+        and the same logic for trade entries, sizing, frequency, and final summary.
+        """
         def __init__(self, pred_file, pip_cost, rel_volume, min_order_volume, max_order_volume,
-                     leverage, profit_threshold, min_drawdown_pips,
-                     tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                     max_trades_per_5days, *args, **kwargs):
+                    leverage, profit_threshold, min_drawdown_pips,
+                    tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
+                    max_trades_per_5days, *args, **kwargs):
             super().__init__()
             self.params.pred_file = pred_file
             self.params.pip_cost = pip_cost
@@ -209,96 +211,176 @@ class Plugin:
             self.current_tp = None
             self.current_sl = None
             self.current_direction = None
+            self.order_direction = None
             self.trade_entry_bar = None
 
         def next(self):
             dt = self.data0.datetime.datetime(0)
             dt_hour = dt.replace(minute=0, second=0, microsecond=0)
             current_price = self.data0.close[0]
-
+            print(f"[DEBUG]   next() called at {dt} (dt_hour: {dt_hour}), current_price: {current_price:.5f}")
+            
             # Record balance and time for plotting.
             balance = self.broker.getvalue()
             self.balance_history.append(balance)
             self.date_history.append(dt)
+            print(f"[DEBUG]   Recorded balance: {balance:.2f}")
 
             # --- If in position, handle exit logic ---
             if self.position:
+                print(f"[DEBUG]   In position: current_direction={self.current_direction}")
                 if self.current_direction == 'long':
                     if self.trade_low is None or current_price < self.trade_low:
                         self.trade_low = current_price
-                    if current_price >= self.current_tp or current_price < self.current_sl:
+                        print(f"[DEBUG]   (Long) Updated trade_low to: {self.trade_low:.5f}")
+                    if dt_hour in self.pred_df.index:
+                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                                        for i in range(1, self.num_hourly_preds + 1)]
+                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                                       for i in range(1, self.num_daily_preds + 1)]
+                        predicted_min = min(preds_hourly + preds_daily)
+                        print(f"[DEBUG]   (Long) Predicted_min from hourly: {preds_hourly}, daily: {preds_daily} => {predicted_min:.5f}")
+                    else:
+                        predicted_min = current_price
+                        print(f"[DEBUG]   (Long) dt_hour {dt_hour} not in prediction index")
+                    # Condition 1: current price reaches TP.
+                    if current_price >= self.current_tp:
+                        print(f"[DEBUG]   (Long) Exit condition 1 met: current_price {current_price:.5f} >= TP {self.current_tp:.5f}")
+                        self.close()
+                        return
+                    # Condition 2: predicted_min below SL.
+                    if predicted_min < self.current_sl:
+                        print(f"[DEBUG]   (Long) Exit condition 2 met: predicted_min {predicted_min:.5f} < SL {self.current_sl:.5f}")
                         self.close()
                         return
                 elif self.current_direction == 'short':
                     if self.trade_high is None or current_price > self.trade_high:
                         self.trade_high = current_price
-                    if current_price <= self.current_tp or current_price > self.current_sl:
+                        print(f"[DEBUG]   (Short) Updated trade_high to: {self.trade_high:.5f}")
+                    if dt_hour in self.pred_df.index:
+                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                                        for i in range(1, self.num_hourly_preds + 1)]
+                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                                       for i in range(1, self.num_daily_preds + 1)]
+                        predicted_max = max(preds_hourly + preds_daily)
+                        print(f"[DEBUG]   (Short) Predicted_max from hourly: {preds_hourly}, daily: {preds_daily} => {predicted_max:.5f}")
+                    else:
+                        predicted_max = current_price
+                        print(f"[DEBUG]   (Short) dt_hour {dt_hour} not in prediction index")
+                    # Condition 1: current price reaches TP.
+                    if current_price <= self.current_tp:
+                        print(f"[DEBUG]   (Short) Exit condition 1 met: current_price {current_price:.5f} <= TP {self.current_tp:.5f}")
+                        self.close()
+                        return
+                    # Condition 2: predicted_max above SL.
+                    if predicted_max > self.current_sl:
+                        print(f"[DEBUG]   (Short) Exit condition 2 met: predicted_max {predicted_max:.5f} > SL {self.current_sl:.5f}")
                         self.close()
                         return
                 return  # Do not attempt new entries if still in a position.
-
-            # Not in position: reset trade extremes.
-            self.trade_low = current_price
-            self.trade_high = current_price
+            else:
+                # Not in position: reset trade extremes.
+                self.trade_low = current_price
+                self.trade_high = current_price
+                print(f"[DEBUG]   Not in position: Reset trade_low and trade_high to {current_price:.5f}")
 
             # Enforce trade frequency.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
             if len(recent_trades) >= self.p.max_trades_per_5days:
+                print(f"[DEBUG]   Trade frequency limit reached: {len(recent_trades)} trades in last 5 days")
                 return
 
             if dt_hour not in self.pred_df.index:
+                print(f"[DEBUG]   No prediction data for dt_hour {dt_hour}")
                 return
-
             row = self.pred_df.loc[dt_hour]
             try:
                 daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
             except KeyError:
+                print(f"[DEBUG]   Daily prediction keys not found at dt_hour {dt_hour}")
                 return
             if not daily_preds or all(pd.isna(daily_preds)):
+                print(f"[DEBUG]   Daily predictions at {dt_hour} are empty or NaN")
                 return
 
-            # --- Compute entry conditions ---
-            ideal_profit_pips_long = (max(daily_preds) - current_price) / self.p.pip_cost
-            ideal_drawdown_pips_long = max((current_price - min(daily_preds)) / self.p.pip_cost,
+            # --- Compute entry conditions for long ---
+            ideal_profit_pips_buy = (max(daily_preds) - current_price) / self.p.pip_cost
+            ideal_drawdown_pips_buy = max((current_price - min(daily_preds)) / self.p.pip_cost,
+                                          self.p.min_drawdown_pips)
+            rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
+            tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
+            sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
+
+            # --- Compute entry conditions for short ---
+            ideal_profit_pips_sell = (current_price - min(daily_preds)) / self.p.pip_cost
+            ideal_drawdown_pips_sell = max((max(daily_preds) - current_price) / self.p.pip_cost,
                                            self.p.min_drawdown_pips)
-            rr_long = ideal_profit_pips_long / ideal_drawdown_pips_long if ideal_drawdown_pips_long > 0 else 0
-            tp_long = current_price + self.p.tp_multiplier * ideal_profit_pips_long * self.p.pip_cost
-            sl_long = current_price - self.p.sl_multiplier * ideal_drawdown_pips_long * self.p.pip_cost
+            rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
+            tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
+            sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            ideal_profit_pips_short = (current_price - min(daily_preds)) / self.p.pip_cost
-            ideal_drawdown_pips_short = max((max(daily_preds) - current_price) / self.p.pip_cost,
-                                            self.p.min_drawdown_pips)
-            rr_short = ideal_profit_pips_short / ideal_drawdown_pips_short if ideal_drawdown_pips_short > 0 else 0
-            tp_short = current_price - self.p.tp_multiplier * ideal_profit_pips_short * self.p.pip_cost
-            sl_short = current_price + self.p.sl_multiplier * ideal_drawdown_pips_short * self.p.pip_cost
+            print(f"[DEBUG]   Entry calculations at {dt}:")
+            #print(f"        current_price: {current_price:.5f}")
+            #print(f"        Daily predictions: {daily_preds}")
+            #print(f"        Long -> ideal_profit_pips: {ideal_profit_pips_buy:.2f}, ideal_drawdown: {ideal_drawdown_pips_buy:.2f}, RR: {rr_buy:.2f}, TP: {tp_buy:.5f}, SL: {sl_buy:.5f}")
+            #print(f"        Short -> ideal_profit_pips: {ideal_profit_pips_sell:.2f}, ideal_drawdown: {ideal_drawdown_pips_sell:.2f}, RR: {rr_sell:.2f}, TP: {tp_sell:.5f}, SL: {sl_sell:.5f}")
 
-            long_signal = ideal_profit_pips_long >= self.p.profit_threshold and rr_long >= rr_short
-            short_signal = ideal_profit_pips_short >= self.p.profit_threshold and rr_short > rr_long
+            long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
+            short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
 
-            if long_signal:
-                order_size = self.compute_size(rr_long)
-                if order_size > 0:
-                    self.buy(size=order_size)
-                    self.current_direction = 'long'
-                    self.current_tp = tp_long
-                    self.current_sl = sl_long
-                    self.trade_entry_dates.append(dt)
-            elif short_signal:
-                order_size = self.compute_size(rr_short)
-                if order_size > 0:
-                    self.sell(size=order_size)
-                    self.current_direction = 'short'
-                    self.current_tp = tp_short
-                    self.current_sl = sl_short
-                    self.trade_entry_dates.append(dt)
+            if long_signal and (rr_buy >= rr_sell):
+                signal = 'long'
+                chosen_tp = tp_buy
+                chosen_sl = sl_buy
+                chosen_rr = rr_buy
+                print(f"[DEBUG]   Long signal triggered")
+            elif short_signal and (rr_sell > rr_buy):
+                signal = 'short'
+                chosen_tp = tp_sell
+                chosen_sl = sl_sell
+                chosen_rr = rr_sell
+                print(f"[DEBUG]   Short signal triggered")
+            else:
+                print(f"[DEBUG]   No entry signal triggered")
+                return
+
+            order_size = self.compute_size(chosen_rr)
+            print(f"[DEBUG]   Computed order size: {order_size:.2f}")
+            if order_size <= 0:
+                print("[DEBUG] Order size <= 0, skipping trade")
+                return
+
+            self.trade_entry_dates.append(dt)
+            self.trade_entry_bar = len(self)
+            self.current_volume = order_size
+            print(f"[DEBUG]   Placing {signal} order at {current_price:.5f} with volume {order_size:.2f}")
+
+            if signal == 'long':
+                self.buy(size=order_size)
+                self.current_direction = 'long'
+            elif signal == 'short':
+                self.sell(size=order_size)
+                self.current_direction = 'short'
+
+            self.current_tp = chosen_tp
+            self.current_sl = chosen_sl
+            print(f"[DEBUG]   Set TP: {self.current_tp:.5f}, SL: {self.current_sl:.5f}")
 
         def compute_size(self, rr):
-            """Compute order size with volume constraints."""
-            min_vol = self.params.min_order_volume
-            max_vol = self.params.max_order_volume
+            """Compute order size based on risk-reward ratio."""
+            min_vol = self.params['min_order_volume']
+            max_vol = self.params['max_order_volume']
+            if rr >= self.params['upper_rr_threshold']:
+                size = max_vol
+            elif rr <= self.params['lower_rr_threshold']:
+                size = min_vol
+            else:
+                size = min_vol + ((rr - self.params['lower_rr_threshold']) /
+                                (self.params['upper_rr_threshold'] - self.params['lower_rr_threshold'])) * (max_vol - min_vol)
+
             cash = self.broker.getcash()
-            max_from_cash = cash * self.params.rel_volume * self.params.leverage
-            return max(min_vol, min(max_vol, max_from_cash))
+            max_from_cash = cash * self.params['rel_volume'] * self.params['leverage']
+            return max(min(size, max_from_cash), min_vol)  # Ensure order size is never < min_vol
 
 
 
@@ -336,7 +418,7 @@ class Plugin:
                     'max_dd': intra_dd
                 }
                 self.trades.append(trade_record)
-                #print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+                print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
                 #      f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
                 #      f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
                 self.order_entry_price = None
