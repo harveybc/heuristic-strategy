@@ -73,33 +73,7 @@ def create_daily_predictions(df, horizon):
 
 def process_data(config):
     """
-    Loads and processes datasets.
-    
-    - Loads the hourly predictions, daily predictions (if provided), and the base dataset.
-    - If 'max_steps' is provided in config, each dataset is truncated to the first max_steps rows.
-    - If a predictions file is not provided, predictions are auto-generated using config["time_horizon"].
-    - If a date_column is provided:
-        * For the Base dataset: converts that column to datetime and sets it as the index (named "DATE_TIME").
-        * For the predictions datasets: if the date_column is present, they are processed normally;
-          otherwise, it is assumed that the predictions are aligned with the base dataset, and the base's
-          index (truncated to the number of rows in the predictions) is assigned.
-    - If "use_normalization_json" is provided in the config and predictions are loaded from file,
-      they are denormalized using the "CLOSE" column’s min and max values from that JSON.
-    - Finally, the datasets are aligned by their common date range and all columns are converted to numeric.
-    
-    Args:
-        config (dict): Configuration with keys including:
-            - "hourly_predictions_file"
-            - "daily_predictions_file"
-            - "base_dataset_file"
-            - "headers"
-            - "date_column"
-            - "time_horizon"
-            - "max_steps"
-            - "use_normalization_json"  (optional: filename for normalization parameters)
-    
-    Returns:
-        dict: Dictionary with keys "hourly", "daily", "base" holding the processed DataFrames.
+    Loads and processes datasets, ensuring alignment and applying max_steps.
     """
     import pandas as pd
     import numpy as np
@@ -109,14 +83,14 @@ def process_data(config):
     headers = config.get("headers", True)
     print("Loading datasets...")
 
-    # Load predictions files if provided; otherwise they will be None.
+    # Load datasets based on config parameters
     hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
     daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
 
     print(f"Base dataset loaded: {base_df.shape}")
 
-    # Truncate datasets to max_steps if provided.
+    # Truncate datasets to max_steps if provided
     max_steps = config.get("max_steps")
     if max_steps is not None:
         if hourly_df is not None:
@@ -126,92 +100,31 @@ def process_data(config):
         base_df = base_df.iloc[:max_steps]
         print(f"Datasets truncated to the first {max_steps} rows.")
 
-    # --- NEW FUNCTIONALITY: Denormalize externally loaded predictions ---
-    # Only denormalize if the predictions were loaded from a file (i.e. not auto-generated)
-    norm_file = config.get("use_normalization_json")
-    if norm_file is not None:
-        try:
-            with open(norm_file, "r") as f:
-                norm_data = json.load(f)
-            # Use the CLOSE column's normalization parameters
-            close_min = norm_data["CLOSE"]["min"]
-            close_max = norm_data["CLOSE"]["max"]
-            scale = close_max - close_min
-            if hourly_df is not None:
-                print("Denormalizing hourly predictions using CLOSE min and max...")
-                hourly_df = hourly_df.apply(lambda col: col * scale + close_min)
-            if daily_df is not None:
-                print("Denormalizing daily predictions using CLOSE min and max...")
-                daily_df = daily_df.apply(lambda col: col * scale + close_min)
-        except Exception as e:
-            print(f"Failed to load or apply normalization from {norm_file}: {e}")
-
-    # If predictions are not loaded from file, they will be auto-generated below.
-    if hourly_df is None:
-        if "time_horizon" not in config or not config["time_horizon"]:
-            raise ValueError("time_horizon must be provided when auto-generating predictions.")
-        print("Auto-generating hourly predictions...")
-        hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
-
-    if daily_df is None:
-        if "time_horizon" not in config or not config["time_horizon"]:
-            raise ValueError("time_horizon must be provided when auto-generating predictions.")
-        print("Auto-generating daily predictions...")
-        daily_df = create_daily_predictions(base_df, config["time_horizon"])
-
-    print("\nDatasets loaded:")
-    print(f"  Hourly predictions: {hourly_df.shape}")
-    print(f"  Daily predictions:  {daily_df.shape}")
-    print(f"  Base dataset:       {base_df.shape}")
-
-    date_column = config.get("date_column")
-    if date_column:
-        # Process Base dataset.
-        if date_column in base_df.columns:
-            base_df[date_column] = pd.to_datetime(base_df[date_column])
-            base_df.set_index(date_column, inplace=True)
-            base_df.index.name = "DATE_TIME"
-        else:
-            if not pd.api.types.is_datetime64_any_dtype(base_df.index):
-                print(f"Warning: '{date_column}' not found in Base dataset. Using default index.")
-            else:
-                base_df.index.name = "DATE_TIME"
-
-        # Process predictions datasets.
-        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
-            if df is not None:
-                if date_column in df.columns:
-                    df[date_column] = pd.to_datetime(df[date_column])
-                    df.set_index(date_column, inplace=True)
-                    df.index.name = "DATE_TIME"
-                else:
-                    print(f"Warning: '{date_column}' not found in {label} dataset. Assuming predictions are aligned with Base.")
-                    df.index = base_df.index[:len(df)]
-                    df.index.name = "DATE_TIME"
-    else:
-        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
-            if df is not None and not pd.api.types.is_datetime64_any_dtype(df.index):
-                print(f"Warning: {label} predictions have no datetime index. Assigning Base index.")
-                df.index = base_df.index[:len(df)]
-                df.index.name = "DATE_TIME"
-
-    # Align datasets by common date range.
+    # Align datasets by their common date range
     try:
-        common_start = max(hourly_df.index.min(), daily_df.index.min(), base_df.index.min())
-        common_end = min(hourly_df.index.max(), daily_df.index.max(), base_df.index.max())
-        hourly_df = hourly_df.loc[common_start:common_end]
-        daily_df = daily_df.loc[common_start:common_end]
+        common_start = max(filter(lambda x: x is not None, [
+            hourly_df.index.min() if hourly_df is not None else None,
+            daily_df.index.min() if daily_df is not None else None,
+            base_df.index.min()
+        ]))
+        common_end = min(filter(lambda x: x is not None, [
+            hourly_df.index.max() if hourly_df is not None else None,
+            daily_df.index.max() if daily_df is not None else None,
+            base_df.index.max()
+        ]))
+
+        if hourly_df is not None:
+            hourly_df = hourly_df.loc[common_start:common_end]
+        if daily_df is not None:
+            daily_df = daily_df.loc[common_start:common_end]
         base_df = base_df.loc[common_start:common_end]
+
         print(f"Datasets aligned to common date range: {common_start} to {common_end}")
     except Exception as e:
         print("Error aligning datasets by date:", e)
 
-    # Convert all columns to numeric and fill missing values.
-    for label, df in zip(["Hourly", "Daily", "Base"], [hourly_df, daily_df, base_df]):
-        df[df.columns] = df[df.columns].apply(pd.to_numeric, errors="coerce").fillna(0)
-        print(f"{label} dataset: Converted columns to numeric (final shape: {df.shape}).")
-
     return {"hourly": hourly_df, "daily": daily_df, "base": base_df}
+
 
 
 def run_processing_pipeline(config, plugin):
