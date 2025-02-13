@@ -254,18 +254,25 @@ class Plugin:
             dt = self.data0.datetime.datetime(0)
             dt_hour = dt.replace(minute=0, second=0, microsecond=0)
             current_price = self.data0.close[0]
+
+            # Record current balance and date for plotting.
             self.balance_history.append(self.broker.getvalue())
             self.date_history.append(dt)
 
+            # --- If in position, handle exit logic ---
             if self.position:
                 if self.current_direction == 'long':
                     if self.trade_low is None or current_price < self.trade_low:
                         self.trade_low = current_price
                     if dt_hour in self.pred_df.index:
-                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                        for i in range(1, self.num_hourly_preds + 1)]
-                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
+                        preds_hourly = [
+                            self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                            for i in range(1, self.num_hourly_preds + 1)
+                        ]
+                        preds_daily = [
+                            self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                            for i in range(1, self.num_daily_preds + 1)
+                        ]
                         predicted_min = min(preds_hourly + preds_daily)
                     else:
                         predicted_min = current_price
@@ -276,25 +283,32 @@ class Plugin:
                     if self.trade_high is None or current_price > self.trade_high:
                         self.trade_high = current_price
                     if dt_hour in self.pred_df.index:
-                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                        for i in range(1, self.num_hourly_preds + 1)]
-                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
+                        preds_hourly = [
+                            self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                            for i in range(1, self.num_hourly_preds + 1)
+                        ]
+                        preds_daily = [
+                            self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                            for i in range(1, self.num_daily_preds + 1)
+                        ]
                         predicted_max = max(preds_hourly + preds_daily)
                     else:
                         predicted_max = current_price
                     if current_price <= self.current_tp or predicted_max > self.current_sl:
                         self.close()
                         return
-                return
+                return  # Do not attempt new entries if a position is open.
             else:
+                # Reset intra‐trade extremes when no position is open.
                 self.trade_low = current_price
                 self.trade_high = current_price
 
+            # Enforce trade frequency: no more than max_trades_per_5days in the last 5 days.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
             if len(recent_trades) >= self.p.max_trades_per_5days:
                 return
 
+            # Check if prediction data exists for the current bar.
             if dt_hour not in self.pred_df.index:
                 return
             row = self.pred_df.loc[dt_hour]
@@ -305,16 +319,27 @@ class Plugin:
             if not daily_preds or all(pd.isna(daily_preds)):
                 return
 
+            # --- Debug: Print computed values for entry logic ---
             ideal_profit_pips_buy = (max(daily_preds) - current_price) / self.p.pip_cost
-            ideal_drawdown_pips_buy = max((current_price - min(daily_preds)) / self.p.pip_cost,
-                                          self.p.min_drawdown_pips)
+            print(f"[DEBUG] dt: {dt}, current_price: {current_price:.5f}, "
+                  f"max(daily_preds): {max(daily_preds):.5f}, min(daily_preds): {min(daily_preds):.5f}, "
+                  f"ideal_profit_pips_buy: {ideal_profit_pips_buy:.2f}, profit_threshold: {self.p.profit_threshold}")
+            
+            # --- Long (Buy) Calculations ---
+            ideal_drawdown_pips_buy = max(
+                (current_price - min(daily_preds)) / self.p.pip_cost,
+                self.p.min_drawdown_pips
+            )
             rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
 
+            # --- Short (Sell) Calculations ---
             ideal_profit_pips_sell = (current_price - min(daily_preds)) / self.p.pip_cost
-            ideal_drawdown_pips_sell = max((max(daily_preds) - current_price) / self.p.pip_cost,
-                                           self.p.min_drawdown_pips)
+            ideal_drawdown_pips_sell = max(
+                (max(daily_preds) - current_price) / self.p.pip_cost,
+                self.p.min_drawdown_pips
+            )
             rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
@@ -338,6 +363,7 @@ class Plugin:
             if signal is None:
                 return
 
+            # Compute order size.
             order_size = self.compute_size(chosen_rr)
             if order_size <= 0:
                 return
@@ -355,6 +381,8 @@ class Plugin:
 
             self.current_tp = chosen_tp
             self.current_sl = chosen_sl
+
+
 
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
