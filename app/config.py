@@ -1,8 +1,10 @@
 # config.py
 
 DEFAULT_VALUES = {
-    "hourly_predictions_file": "..\\predictor\\examples\\results\\phase_1\\phase_1_lstm_12600_1h_prediction.csv",
-    "daily_predictions_file": "..\\predictor\\examples\\results\\phase_1_daily\\phase_1_cnn_6300_1d_prediction.csv",
+    "hourly_predictions_file": "..\\predictor\\prediction_hourly.csv",
+    "daily_predictions_file": "..\\predictor\\prediction.csv",
+    #"hourly_predictions_file": "..\\predictor\\examples\\results\\phase_1\\phase_1_lstm_12600_1h_prediction.csv",
+    #"daily_predictions_file": "..\\predictor\\examples\\results\\phase_1_daily\\phase_1_cnn_6300_1d_prediction.csv",
     #"hourly_predictions_file": None,
     #"daily_predictions_file":  None,
     
@@ -34,6 +36,6 @@ DEFAULT_VALUES = {
     "max_steps": 6300,
     "save_parameters": "parameters.json",
     "load_parameters": None,
-    "use_normalization_json": "tests\\data\\phase_1_normalizer_debug_out.json"
+    "use_normalization_json": None
      
 }
