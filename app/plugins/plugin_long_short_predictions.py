@@ -76,7 +76,7 @@ class Plugin:
         # If both predictions are missing or empty, auto-generate predictions using the candidate's time_horizon.
 
         if (config['hourly_predictions_file'] is None) and (config['daily_predictions_file'] is None):
-            print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={time_horizon} for candidate {individual}.")
+            print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={int(time_horizon)} for candidate {individual}.")
             config["time_horizon"] = int(time_horizon)
             from data_processor import process_data
             processed = process_data(config)
