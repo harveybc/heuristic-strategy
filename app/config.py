@@ -3,10 +3,10 @@
 DEFAULT_VALUES = {
     #"hourly_predictions_file": "tests\\data\\ann_hourly_output.csv",
     #"daily_predictions_file": "tests\\data\\ann_daily_output.csv",
-    "hourly_predictions_file": "tests\\data\\ideal_hourly_output.csv",
-    "daily_predictions_file": "tests\\data\\ideal_daily_output.csv",
-    #"hourly_predictions_file": None,
-    #"daily_predictions_file":  None,
+    #"hourly_predictions_file": "tests\\data\\ideal_hourly_output.csv",
+    #"daily_predictions_file": "tests\\data\\ideal_daily_output.csv",
+    "hourly_predictions_file": None,
+    "daily_predictions_file":  None,
     
     "base_dataset_file": "..\\predictor\\examples\\data\\phase_1\\phase_1_base_d1.csv",
     "date_column": "DATE_TIME",
