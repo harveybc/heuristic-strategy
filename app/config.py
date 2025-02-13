@@ -13,7 +13,7 @@ DEFAULT_VALUES = {
     "plugin": "default",
     "time_horizon": 6,
     "population_size": 12,
-    "num_generations": 3,
+    "num_generations": 10,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
     "load_config": None,
