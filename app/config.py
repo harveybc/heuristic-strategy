@@ -1,14 +1,14 @@
 # config.py
 
 DEFAULT_VALUES = {
-    "hourly_predictions_file": "..\\predictor\\prediction_hourly.csv",
-    "daily_predictions_file": "..\\predictor\\prediction.csv",
+    "hourly_predictions_file": "..\\trading-signal\\hourly_output.csv",
+    "daily_predictions_file": "..\\trading-signal\\daily_output.csv",
     #"hourly_predictions_file": "..\\predictor\\examples\\results\\phase_1\\phase_1_lstm_12600_1h_prediction.csv",
     #"daily_predictions_file": "..\\predictor\\examples\\results\\phase_1_daily\\phase_1_cnn_6300_1d_prediction.csv",
     #"hourly_predictions_file": None,
     #"daily_predictions_file":  None,
     
-    "base_dataset_file": "..\\predictor\\examples\\data\\phase_1\\phase_1_base_d3.csv",
+    "base_dataset_file": "..\\predictor\\examples\\data\\phase_1\\phase_1_base_d1.csv",
     "date_column": "DATE_TIME",
     "plugin": "default",
     "time_horizon": 6,
