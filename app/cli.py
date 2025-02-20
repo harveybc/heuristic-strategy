@@ -14,6 +14,7 @@ def parse_args():
     parser.add_argument('--plugin', type=str, help='Name of the strategy plugin to use.')
     
     # Optimizer configuration parameters
+    parser.add_argument('--max_steps', type=int, help='Max number of ticks (steps)')
     parser.add_argument('--population_size', type=int, help='Population size for the optimizer.')
     parser.add_argument('--num_generations', type=int, help='Number of generations for the optimizer.')
     parser.add_argument('--crossover_probability', type=float, help='Crossover probability for the optimizer.')
