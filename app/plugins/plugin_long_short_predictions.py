@@ -15,7 +15,7 @@ class Plugin:
     # Default plugin parameters (must be present for optimizer integration)
     plugin_params = {
         'pip_cost': 0.00001,
-        'rel_volume': 0.05,
+        'rel_volume': 0.01,
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 1000,
