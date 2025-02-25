@@ -14,7 +14,7 @@ DEFAULT_VALUES = {
     #"hourly_predictions_file": None,
     #"daily_predictions_file":  None,
     
-    "base_dataset_file": "tests\\data\\phase_1_base_d3.csv",
+    "base_dataset_file": "tests\\data\\phase_2_base_d3.csv",
     #"base_dataset_file": "tests\\data\\phase_1_base_d1.csv",
     "date_column": "DATE_TIME",
     "plugin": "default",
