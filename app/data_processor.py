@@ -156,7 +156,7 @@ def run_processing_pipeline(config, plugin):
     
     - Loads and processes datasets.
     - Before sending data to the strategy plugin, computes and prints a table with MAE and R² for each prediction horizon,
-      using as target el valor de la columna CLOSE del dataset base (full).
+      using as target the CLOSE value from the full base dataset.
     - If config["load_parameters"] is provided, loads candidate parameters from the specified JSON file and evaluates the strategy once.
     - Otherwise, runs the full optimization via run_optimizer().
     - At the end, renames the balance plot and saves the trades and summary CSV files.
@@ -174,19 +174,20 @@ def run_processing_pipeline(config, plugin):
     hourly_preds = datasets["hourly"]
     daily_preds = datasets["daily"]
     base_data = datasets["base"]         # Aligned base (issuance times)
-    base_full = datasets["base_full"]      # Base dataset completo
+    base_full = datasets["base_full"]      # Full base dataset
 
-    # Calcular métricas de error para cada horizonte de predicción
+    # Calculate error metrics for each prediction horizon
 
-    # Para predicciones horarias: cada columna corresponde a la predicción para h horas en el futuro.
+    # For hourly predictions: each column corresponds to the forecast for h hours ahead.
     n_hourly = hourly_preds.shape[1]
     hourly_results = []
-    for h in range(1, n_hourly+1):
-        # Para cada tiempo de emisión, el target real es el valor de CLOSE en (tiempo + h horas)
+    for h in range(1, n_hourly + 1):
+        # For each forecast, the target is CLOSE at (timestamp + h hours)
         forecast_times = hourly_preds.index + pd.Timedelta(hours=h)
         actual = base_full.reindex(forecast_times)["CLOSE"]
-        pred = hourly_preds.iloc[:, h-1]
-        # Solo evaluamos donde tengamos valor real
+        # Reassign index so that actual aligns element-wise with pred
+        actual.index = hourly_preds.index
+        pred = hourly_preds.iloc[:, h - 1]
         valid = actual.notna()
         if valid.sum() == 0:
             mae = None
@@ -198,13 +199,15 @@ def run_processing_pipeline(config, plugin):
     
     df_hourly = pd.DataFrame(hourly_results)
 
-    # Para predicciones diarias: cada columna corresponde a la predicción para d días en el futuro (24*d horas)
+    # For daily predictions: each column corresponds to the forecast for d days ahead (24*d hours).
     n_daily = daily_preds.shape[1]
     daily_results = []
-    for d in range(1, n_daily+1):
-        forecast_times = daily_preds.index + pd.Timedelta(hours=24*d)
+    for d in range(1, n_daily + 1):
+        forecast_times = daily_preds.index + pd.Timedelta(hours=24 * d)
         actual = base_full.reindex(forecast_times)["CLOSE"]
-        pred = daily_preds.iloc[:, d-1]
+        # Reassign index so that actual aligns with the predictions
+        actual.index = daily_preds.index
+        pred = daily_preds.iloc[:, d - 1]
         valid = actual.notna()
         if valid.sum() == 0:
             mae = None
@@ -216,13 +219,13 @@ def run_processing_pipeline(config, plugin):
     
     df_daily = pd.DataFrame(daily_results)
 
-    # Imprimir las tablas de métricas
+    # Print the error metrics tables
     print("\nError Metrics for Hourly Predictions:")
     print(df_hourly.to_string(index=False))
     print("\nError Metrics for Daily Predictions:")
     print(df_daily.to_string(index=False))
 
-    # Verificación adicional: imprimir rangos finales antes de enviar al plugin
+    # Additional verification: print final aligned date ranges before sending data to the plugin
     print(f"\nFinal Base dataset date range: {base_data.index.min()} to {base_data.index.max()}")
     print(f"Final Hourly predictions date range: {hourly_preds.index.min()} to {hourly_preds.index.max()}")
     print(f"Final Daily predictions date range: {daily_preds.index.min()} to {daily_preds.index.max()}")
@@ -232,7 +235,7 @@ def run_processing_pipeline(config, plugin):
     print(f"  Hourly predictions: {hourly_preds.shape}")
     print(f"  Daily predictions:  {daily_preds.shape}")
 
-    # A continuación, se envían los datos al plugin (evaluación o optimización)
+    # Proceed with sending data to the plugin (evaluation or optimization)
     if config.get("load_parameters") is not None:
         try:
             with open(config["load_parameters"], "r") as f:
@@ -318,7 +321,6 @@ def run_processing_pipeline(config, plugin):
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
     return trading_info, getattr(plugin, "trades", None)
-
 
 
 if __name__ == "__main__":
