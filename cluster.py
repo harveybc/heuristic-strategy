@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 ###############################################################################
 
 # Lee el dataset desde un archivo CSV
-df = pd.read_csv("cars.csv")
+df = pd.read_csv("Car_Datasets_inventory.csv")
 
 # Elimina duplicados si los hubiera
 df.drop_duplicates(inplace=True)
