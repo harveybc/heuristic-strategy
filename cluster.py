@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 ###############################################################################
 
 # Lee el dataset desde un archivo CSV
-df = pd.read_csv("cars.csv")
+df = pd.read_csv("Car_Datasets_inventory.csv")
 
 # Elimina duplicados si los hubiera
 df.drop_duplicates(inplace=True)
@@ -71,12 +71,12 @@ df["transmission_num"].fillna(df["transmission_num"].mode()[0], inplace=True)
 df["seller_type_num"] = df["seller_type"].map({"Individual": 0, "Dealer": 1})
 df["seller_type_num"].fillna(df["seller_type_num"].mode()[0], inplace=True)
 
-# Para 'fuel': asignar un entero arbitrario (no existe orden natural)
+# Para 'fuel': asignar un entero arbitrario (sin orden natural)
 fuel_mapping = {cat: i for i, cat in enumerate(df["fuel"].unique())}
 df["fuel_num"] = df["fuel"].map(fuel_mapping)
 df["fuel_num"].fillna(df["fuel_num"].mode()[0], inplace=True)
 
-# Verificar que en las columnas de interés no queden NaN; si es así, imputar con la mediana
+# Asegurar que no queden NaN en las columnas de interés
 cols_to_check = ["year", "km_driven", "owner_num", "transmission_num", "seller_type_num", "fuel_num"]
 for col in cols_to_check:
     if df[col].isnull().sum() > 0:
@@ -97,8 +97,8 @@ df["price_cluster"] = kmeans_price.labels_
 
 # Calcular el promedio de 'selling_price' en cada cluster y determinar el cluster de precio alto
 cluster_avg = df.groupby("price_cluster")["selling_price"].mean()
-high_price_cluster = cluster_avg.idxmax()  # Este será el "cluster de caros"
-# El otro se considerará "cluster de baratos"
+high_price_cluster = cluster_avg.idxmax()  # Este será el "cluster de Caros"
+# El otro se considerará "Cluster de Baratos"
 
 # Definir el umbral de precio como el promedio de los dos centros
 centers = kmeans_price.cluster_centers_
@@ -223,44 +223,36 @@ plt.show()
 # 7. CÁLCULO DEL CENTROIDE DEL CLUSTER DE AUTOS CAROS
 ###############################################################################
 
-# Para variables numéricas: calcular la media en el cluster de autos caros
+# Calcular el promedio de las variables numéricas para el cluster de autos caros
 num_cols_for_centroid = ["year", "selling_price", "km_driven", "owner_num", 
                          "transmission_num", "seller_type_num", "fuel_num"]
 centroid_numeric = df_high[num_cols_for_centroid].mean()
 
-# Para las variables categóricas, aproximamos los valores promedios (de las variables numéricas ya procesadas)
-# y los convertimos a los valores originales.
+# Para las variables categóricas, redondeamos el valor promedio (de las variables numéricas ya procesadas)
+owner_avg = int(round(centroid_numeric["owner_num"]))
+transmission_avg = int(round(centroid_numeric["transmission_num"]))
+seller_type_avg = int(round(centroid_numeric["seller_type_num"]))
+fuel_avg = int(round(centroid_numeric["fuel_num"]))
 
-# Redondear los valores promedio para las variables categóricas
-owner_val = int(round(centroid_numeric["owner_num"]))
-transmission_val = int(round(centroid_numeric["transmission_num"]))
-seller_type_val = int(round(centroid_numeric["seller_type_num"]))
-fuel_val = int(round(centroid_numeric["fuel_num"]))
-
-# Definir las conversiones inversas:
+# Definir los mapeos inversos para obtener la categoría original
 owner_mapping = {1: "First Owner", 2: "Second Owner", 3: "Third Owner", 4: "Fourth & Above"}
 transmission_mapping = {0: "Manual", 1: "Automatic"}
 seller_type_mapping = {0: "Individual", 1: "Dealer"}
-# Invertir el mapping de fuel
+# Para fuel, invertimos el mapeo original
 inverse_fuel_mapping = {v: k for k, v in fuel_mapping.items()}
 
-# Obtener la categoría correspondiente
-owner_cat = owner_mapping.get(owner_val, "Unknown")
-transmission_cat = transmission_mapping.get(transmission_val, "Unknown")
-seller_type_cat = seller_type_mapping.get(seller_type_val, "Unknown")
-fuel_cat = inverse_fuel_mapping.get(fuel_val, "Unknown")
+# Obtener las etiquetas correspondientes
+owner_label = owner_mapping.get(owner_avg, "Unknown")
+transmission_label = transmission_mapping.get(transmission_avg, "Unknown")
+seller_type_label = seller_type_mapping.get(seller_type_avg, "Unknown")
+fuel_label = inverse_fuel_mapping.get(fuel_avg, "Unknown")
 
-# Construir la tabla del centroide para variables categóricas,
-# mostrando el valor de texto original y entre paréntesis el valor numérico
-centroid_categorical_adjusted = {
-    "owner": f"{owner_cat} ({owner_val})",
-    "transmission": f"{transmission_cat} ({transmission_val})",
-    "seller_type": f"{seller_type_cat} ({seller_type_val})",
-    "fuel": f"{fuel_cat} ({fuel_val})"
-}
-
+# Imprimir el centroide en el formato deseado
 print("\n=== Centroide del Cluster de Autos Caros ===")
 print("Valores promedio (variables numéricas):")
 print(centroid_numeric)
-print("\nCategorías predominantes (variables categóricas convertidas):")
-print(centroid_categorical_adjusted)
+print("\nVariables categóricas:")
+print(f"owner_num: {owner_label} ({centroid_numeric['owner_num']:.6e})")
+print(f"transmission_num: {transmission_label} ({centroid_numeric['transmission_num']:.6e})")
+print(f"seller_type_num: {seller_type_label} ({centroid_numeric['seller_type_num']:.6e})")
+print(f"fuel_num: {fuel_label} ({centroid_numeric['fuel_num']:.6e})")
