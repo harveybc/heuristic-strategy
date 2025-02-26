@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 # 1. Cargar el dataset
 # =========================
 # Suponemos que el archivo CSV se llama "Car_Datasets_inventory.csv"
-df = pd.read_csv("Car_Datasets_inventory.csv")
+df = pd.read_csv("cars.csv")
 
 # Verificamos las primeras filas
 print(df.head())
