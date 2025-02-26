@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 # 1. Cargar el dataset
 # =========================
 # Supongamos que el archivo CSV se llama "Car_Datasets_inventory.csv"
-df = pd.read_csv("Car_Datasets_inventory.csv")
+df = pd.read_csv("cars.csv")
 
 # Eliminar filas con valores faltantes en las columnas críticas
 df.dropna(subset=["selling_price", "km_driven", "year", "owner", "transmission", "seller_type", "fuel"], inplace=True)
