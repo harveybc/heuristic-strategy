@@ -69,14 +69,13 @@ def create_daily_predictions(df, horizon):
     daily_idx = df.index[:(nrows - required_rows)]
     return pd.DataFrame(blocks, index=daily_idx)
 
-
-
 def process_data(config):
     """
     Loads and processes datasets, ensuring alignment and applying max_steps.
     - Uses external prediction files if provided.
     - Generates predictions if files are not available.
-    - Ensures all datasets are properly aligned.
+    - Ensures all datasets (base, hourly predictions, daily predictions) are properly aligned to the common date range.
+      Additionally, preserves the full base dataset (base_full) for later evaluation.
     """
     import pandas as pd
     import numpy as np
@@ -90,8 +89,10 @@ def process_data(config):
     hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
     daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
-
     print(f"Base dataset loaded: {base_df.shape}")
+
+    # Conserva una copia completa del base dataset para la evaluación
+    base_df_full = base_df.copy()
 
     # Auto-generate predictions if files are missing
     if hourly_df is None:
@@ -106,44 +107,135 @@ def process_data(config):
         print("Auto-generating daily predictions...")
         daily_df = create_daily_predictions(base_df, config["time_horizon"])
 
-    # Align datasets if they have datetime indexes
-    if isinstance(base_df.index, pd.DatetimeIndex):
-        for label, df in zip(["Hourly", "Daily"], [hourly_df, daily_df]):
-            if df is not None and not isinstance(df.index, pd.DatetimeIndex):
-                print(f"Warning: {label} dataset does not have a datetime index. Assigning base dataset index.")
-                df.index = base_df.index[:len(df)]
-                df.index.name = "DATE_TIME"
+    # Ensure that hourly and daily predictions have a datetime index based on DATE_TIME column, if not already set.
+    if hourly_df is not None:
+        if not isinstance(hourly_df.index, pd.DatetimeIndex):
+            if "DATE_TIME" in hourly_df.columns:
+                hourly_df.index = pd.to_datetime(hourly_df["DATE_TIME"])
+            else:
+                raise ValueError("hourly_df does not have a DATE_TIME column.")
+    if daily_df is not None:
+        if not isinstance(daily_df.index, pd.DatetimeIndex):
+            if "DATE_TIME" in daily_df.columns:
+                daily_df.index = pd.to_datetime(daily_df["DATE_TIME"])
+            else:
+                raise ValueError("daily_df does not have a DATE_TIME column.")
 
-    return {"hourly": hourly_df, "daily": daily_df, "base": base_df}
+    # Ensure base_df has a datetime index as well.
+    if not isinstance(base_df.index, pd.DatetimeIndex):
+        if "DATE_TIME" in base_df.columns:
+            base_df.index = pd.to_datetime(base_df["DATE_TIME"])
+        else:
+            raise ValueError("base_df does not have a DATE_TIME column.")
+
+    # Align all datasets to the common date range (intersection of their datetime indexes)
+    common_index = base_df.index.intersection(hourly_df.index).intersection(daily_df.index)
+    if common_index.empty:
+        raise ValueError("No common date range found among base, hourly, and daily predictions.")
+
+    # Aquí se recortan los tres datasets al rango común
+    base_df = base_df.loc[common_index]         # <-- Alinea el dataset base
+    hourly_df = hourly_df.loc[common_index]
+    daily_df = daily_df.loc[common_index]
+
+    # Verify that all datasets have the same number of rows
+    if not (len(base_df) == len(hourly_df) == len(daily_df)):
+        raise ValueError("After alignment, the number of rows in base, hourly, and daily predictions do not match!")
+
+    # Print aligned date ranges
+    print(f"Aligned Base dataset range: {base_df.index.min()} to {base_df.index.max()}")
+    print(f"Aligned Hourly predictions range: {hourly_df.index.min()} to {hourly_df.index.max()}")
+    print(f"Aligned Daily predictions range: {daily_df.index.min()} to {daily_df.index.max()}")
+
+    return {"hourly": hourly_df, "daily": daily_df, "base": base_df, "base_full": base_df_full}
+
 
 def run_processing_pipeline(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
     
     - Loads and processes datasets.
-    - If config["load_parameters"] is provided (not None), loads candidate parameters from the specified JSON file
-      and evaluates the strategy once using those parameters (printing all trades, summary, and saving outputs).
+    - Before sending data to the strategy plugin, computes and prints a table with MAE and R² for each prediction horizon,
+      using as target the CLOSE value from the full base dataset.
+    - If config["load_parameters"] is provided, loads candidate parameters from the specified JSON file and evaluates the strategy once.
     - Otherwise, runs the full optimization via run_optimizer().
     - At the end, renames the balance plot and saves the trades and summary CSV files.
-    - If in optimization mode and if config["save_parameters"] is provided, saves the best parameters as JSON.
+    - If in optimization mode and config["save_parameters"] is provided, saves the best parameters as JSON.
     """
-    import json, os, pandas as pd
+    import json, os, pandas as pd, time
     from app.optimizer import init_optimizer, evaluate_individual, run_optimizer
-    import time
+    from sklearn.metrics import mean_absolute_error, r2_score
 
     start_time = time.time()
     strat_name = config.get("strategy_name", "Heuristic Strategy")
     print(f"\n=== Starting Trading Strategy Optimization Pipeline for '{strat_name}' ===")
 
     datasets = process_data(config)
-    hourly_preds, daily_preds, base_data = datasets["hourly"], datasets["daily"], datasets["base"]
+    hourly_preds = datasets["hourly"]
+    daily_preds = datasets["daily"]
+    base_data = datasets["base"]         # Aligned base (issuance times)
+    base_full = datasets["base_full"]      # Full base dataset
+
+    # Calculate error metrics for each prediction horizon
+
+    # For hourly predictions: each column corresponds to the forecast for h hours ahead.
+    n_hourly = hourly_preds.shape[1]
+    hourly_results = []
+    for h in range(1, n_hourly + 1):
+        # For each forecast, the target is CLOSE at (timestamp + h hours)
+        forecast_times = hourly_preds.index + pd.Timedelta(hours=h)
+        actual = base_full.reindex(forecast_times)["CLOSE"]
+        # Reassign index so that actual aligns element-wise with pred
+        actual.index = hourly_preds.index
+        pred = hourly_preds.iloc[:, h - 1]
+        valid = actual.notna()
+        if valid.sum() == 0:
+            mae = None
+            r2 = None
+        else:
+            mae = mean_absolute_error(actual[valid], pred[valid])
+            r2 = r2_score(actual[valid], pred[valid])
+        hourly_results.append({"Horizon (hours)": h, "MAE": mae, "R2": r2})
+    
+    df_hourly = pd.DataFrame(hourly_results)
+
+    # For daily predictions: each column corresponds to the forecast for d days ahead (24*d hours).
+    n_daily = daily_preds.shape[1]
+    daily_results = []
+    for d in range(1, n_daily + 1):
+        forecast_times = daily_preds.index + pd.Timedelta(hours=24 * d)
+        actual = base_full.reindex(forecast_times)["CLOSE"]
+        # Reassign index so that actual aligns with the predictions
+        actual.index = daily_preds.index
+        pred = daily_preds.iloc[:, d - 1]
+        valid = actual.notna()
+        if valid.sum() == 0:
+            mae = None
+            r2 = None
+        else:
+            mae = mean_absolute_error(actual[valid], pred[valid])
+            r2 = r2_score(actual[valid], pred[valid])
+        daily_results.append({"Horizon (days)": d, "MAE": mae, "R2": r2})
+    
+    df_daily = pd.DataFrame(daily_results)
+
+    # Print the error metrics tables
+    print("\nError Metrics for Hourly Predictions:")
+    print(df_hourly.to_string(index=False))
+    print("\nError Metrics for Daily Predictions:")
+    print(df_daily.to_string(index=False))
+
+    # Additional verification: print final aligned date ranges before sending data to the plugin
+    print(f"\nFinal Base dataset date range: {base_data.index.min()} to {base_data.index.max()}")
+    print(f"Final Hourly predictions date range: {hourly_preds.index.min()} to {hourly_preds.index.max()}")
+    print(f"Final Daily predictions date range: {daily_preds.index.min()} to {daily_preds.index.max()}")
 
     print("\nProcessed Dataset Shapes:")
+    print(f"  Base dataset:       {base_data.shape}")
     print(f"  Hourly predictions: {hourly_preds.shape}")
     print(f"  Daily predictions:  {daily_preds.shape}")
-    print(f"  Base dataset:       {base_data.shape}")
 
-    # If load_parameters is provided, load candidate parameters and evaluate the strategy once.
+    # Proceed with sending data to the plugin (evaluation or optimization)
     if config.get("load_parameters") is not None:
         try:
             with open(config["load_parameters"], "r") as f:
@@ -153,7 +245,6 @@ def run_processing_pipeline(config, plugin):
             print(f"Failed to load parameters from {config['load_parameters']}: {e}")
             loaded_params = None
         if loaded_params is not None:
-            # Construct candidate in the same order as get_optimizable_params():
             candidate = [
                 loaded_params.get("profit_threshold", plugin.params["profit_threshold"]),
                 loaded_params.get("tp_multiplier", plugin.params["tp_multiplier"]),
@@ -163,7 +254,6 @@ def run_processing_pipeline(config, plugin):
                 int(loaded_params.get("time_horizon", 3))
             ]
             print(f"Evaluating strategy with loaded parameters: {candidate}")
-            # Initialize optimizer globals so that evaluate_individual() can use them
             init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
             result = evaluate_individual(candidate)
             trading_info = {"best_parameters": {
@@ -177,7 +267,6 @@ def run_processing_pipeline(config, plugin):
         else:
             trading_info = {}
     else:
-        # Otherwise, run full optimization.
         if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
             print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
             trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
@@ -189,7 +278,6 @@ def run_processing_pipeline(config, plugin):
     for key, value in trading_info.items():
         print(f"{key}: {value}")
 
-    # Rename the final balance plot if 'balance_plot_file' is provided.
     if config.get("balance_plot_file"):
         old_plot = "balance_plot.png"
         new_plot = config["balance_plot_file"]
@@ -202,7 +290,6 @@ def run_processing_pipeline(config, plugin):
         else:
             print(f"Warning: {old_plot} not found; no balance plot to rename.")
 
-    # Save trades to CSV if 'trades_csv_file' is specified.
     trades_csv = config.get("trades_csv_file")
     if trades_csv:
         try:
@@ -214,7 +301,6 @@ def run_processing_pipeline(config, plugin):
         except Exception as e:
             print(f"Failed to save trades to {trades_csv}: {e}")
 
-    # Save summary CSV if 'summary_csv_file' is specified.
     summary_csv = config.get("summary_csv_file")
     if summary_csv:
         try:
@@ -224,7 +310,6 @@ def run_processing_pipeline(config, plugin):
         except Exception as e:
             print(f"Failed to save summary CSV to {summary_csv}: {e}")
 
-    # Save best parameters as JSON if in optimization mode and load_parameters is not provided.
     if config.get("load_parameters") is None and config.get("save_parameters"):
         try:
             with open(config["save_parameters"], "w") as f:
@@ -236,7 +321,6 @@ def run_processing_pipeline(config, plugin):
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
     return trading_info, getattr(plugin, "trades", None)
-
 
 
 if __name__ == "__main__":
