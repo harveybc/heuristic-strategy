@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 ###############################################################################
 
 # Lee el dataset desde un archivo CSV
-df = pd.read_csv("cars.csv")
+df = pd.read_csv("Car_Datasets_inventory.csv")
 
 # Elimina duplicados si los hubiera
 df.drop_duplicates(inplace=True)
@@ -65,14 +65,13 @@ df["owner_num"] = df["owner"].apply(convert_owner)
 
 # Para 'transmission': Manual=0, Automatic=1
 df["transmission_num"] = df["transmission"].map({"Manual": 0, "Automatic": 1})
-# Si quedan NaN, se imputan con la moda (0 o 1)
 df["transmission_num"].fillna(df["transmission_num"].mode()[0], inplace=True)
 
 # Para 'seller_type': Individual=0, Dealer=1
 df["seller_type_num"] = df["seller_type"].map({"Individual": 0, "Dealer": 1})
 df["seller_type_num"].fillna(df["seller_type_num"].mode()[0], inplace=True)
 
-# Para 'fuel': asignamos un entero arbitrario
+# Para 'fuel': asignar un entero arbitrario (no existe orden natural)
 fuel_mapping = {cat: i for i, cat in enumerate(df["fuel"].unique())}
 df["fuel_num"] = df["fuel"].map(fuel_mapping)
 df["fuel_num"].fillna(df["fuel_num"].mode()[0], inplace=True)
@@ -98,7 +97,8 @@ df["price_cluster"] = kmeans_price.labels_
 
 # Calcular el promedio de 'selling_price' en cada cluster y determinar el cluster de precio alto
 cluster_avg = df.groupby("price_cluster")["selling_price"].mean()
-high_price_cluster = cluster_avg.idxmax()
+high_price_cluster = cluster_avg.idxmax()  # Este será el "cluster de caros"
+# El otro se considerará "cluster de baratos"
 
 # Definir el umbral de precio como el promedio de los dos centros
 centers = kmeans_price.cluster_centers_
@@ -112,20 +112,15 @@ df_high = df[df["price_cluster"] == high_price_cluster]
 #                4. IMPORTANCIA DE VARIABLES EN EL PRECIO (R.F.)              #
 ###############################################################################
 
-# Variables independientes (X) y variable objetivo (y)
 X = df[["year", "km_driven", "owner_num", "transmission_num", "seller_type_num", "fuel_num"]]
 y = df["selling_price"]
 
-# Confirmar que no existan NaN en X
 if X.isnull().sum().sum() > 0:
     raise ValueError("Existen valores NaN en las variables independientes después del preprocesamiento.")
 
-# Entrenar un RandomForestRegressor para obtener la importancia de cada variable
 rf = RandomForestRegressor(n_estimators=100, random_state=42)
 rf.fit(X, y)
 importances = rf.feature_importances_
-
-# Crear un DataFrame con la importancia de cada característica
 feature_importance_df = pd.DataFrame({
     "Feature": X.columns,
     "Importance": importances
@@ -138,7 +133,6 @@ print(feature_importance_df)
 # 5. REDUCCIÓN DIMENSIONAL CON PCA (2D para visualización)
 ###############################################################################
 
-# Usamos todas las columnas numéricas (excepto selling_price) para PCA
 cols_for_pca = ["year", "km_driven", "owner_num", "transmission_num", "seller_type_num", "fuel_num"]
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(df[cols_for_pca])
@@ -151,6 +145,13 @@ df["PCA2"] = X_pca[:, 1]
 ###############################################################################
 # 6. GRÁFICOS
 ###############################################################################
+
+# Definir etiquetas personalizadas para los clusters
+def cluster_label(cluster_id):
+    if cluster_id == high_price_cluster:
+        return "Cluster de Caros"
+    else:
+        return "Cluster de Baratos"
 
 # 6.1 Histograma de selling_price con línea de corte
 plt.figure(figsize=(10,6))
@@ -167,7 +168,8 @@ plt.show()
 plt.figure(figsize=(10,6))
 for cluster_id in df["price_cluster"].unique():
     subset = df[df["price_cluster"] == cluster_id]
-    plt.scatter(subset["km_driven"], subset["selling_price"], alpha=0.6, label=f"Cluster {cluster_id}")
+    plt.scatter(subset["km_driven"], subset["selling_price"], alpha=0.6, 
+                label=cluster_label(cluster_id))
 median_km_high = np.median(df_high["km_driven"])
 plt.axvline(x=median_km_high, color="green", linestyle="--", linewidth=2,
             label="Mediana km_driven (autos caros)")
@@ -178,11 +180,11 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-# 6.3 Gráfico PCA 2D: Proyección de autos por cluster
+# 6.3 Scatter plot PCA 2D: Proyección de autos por cluster
 plt.figure(figsize=(10,6))
 for cluster_id in df["price_cluster"].unique():
     subset = df[df["price_cluster"] == cluster_id]
-    plt.scatter(subset["PCA1"], subset["PCA2"], alpha=0.6, label=f"Cluster {cluster_id}")
+    plt.scatter(subset["PCA1"], subset["PCA2"], alpha=0.6, label=cluster_label(cluster_id))
 plt.xlabel("PCA1")
 plt.ylabel("PCA2")
 plt.title("Proyección PCA (2D) de Autos Agrupados por Precio")
@@ -196,8 +198,11 @@ fig = plt.figure(figsize=(10,7))
 ax = fig.add_subplot(111, projection="3d")
 for cluster_id in df["price_cluster"].unique():
     subset = df[df["price_cluster"] == cluster_id]
-    ax.scatter(subset[top_features[0]], subset[top_features[1]], subset[top_features[2]],
-               alpha=0.6, label=f"Cluster {cluster_id}")
+    ax.scatter(subset[top_features[0]],
+               subset[top_features[1]],
+               subset[top_features[2]],
+               alpha=0.6,
+               label=cluster_label(cluster_id))
 ax.set_xlabel(top_features[0])
 ax.set_ylabel(top_features[1])
 ax.set_zlabel(top_features[2])
