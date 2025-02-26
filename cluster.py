@@ -11,7 +11,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # =========================
 # 1. Cargar el dataset
 # =========================
-df = pd.read_csv("Car_Datasets_inventory.csv")
+df = pd.read_csv("cars.csv")
 
 # =========================
 # 2. Manejo de valores NaN
