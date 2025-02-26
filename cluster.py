@@ -11,13 +11,24 @@ from mpl_toolkits.mplot3d import Axes3D
 # =========================
 # 1. Cargar el dataset
 # =========================
-df = pd.read_csv("cars.csv")
-
-# Eliminar filas con valores faltantes
-df.dropna(subset=["selling_price", "km_driven", "year", "owner", "transmission", "seller_type", "fuel"], inplace=True)
+df = pd.read_csv("Car_Datasets_inventory.csv")
 
 # =========================
-# 2. Preprocesamiento
+# 2. Manejo de valores NaN
+# =========================
+# Eliminar filas donde 'selling_price' sea NaN, ya que es la variable objetivo
+df.dropna(subset=['selling_price'], inplace=True)
+
+# Rellenar valores numéricos NaN con la media
+numeric_cols = ['year', 'km_driven']
+df[numeric_cols] = df[numeric_cols].apply(lambda x: x.fillna(x.mean()))
+
+# Rellenar valores categóricos con la moda
+categorical_cols = ['owner', 'transmission', 'seller_type', 'fuel']
+df[categorical_cols] = df[categorical_cols].apply(lambda x: x.fillna(x.mode()[0]))
+
+# =========================
+# 3. Preprocesamiento de características
 # =========================
 def convert_owner(owner):
     owner_str = str(owner).lower()
@@ -39,10 +50,10 @@ df['fuel_num'] = df['fuel'].map(fuel_mapping)
 features = ['year', 'selling_price', 'km_driven', 'owner_num', 'transmission_num', 'seller_type_num', 'fuel_num']
 
 # =========================
-# 3. Determinar línea de corte usando KMeans (k=2)
+# 4. Determinar la línea de corte en precio con KMeans
 # =========================
 prices = df[['selling_price']].values
-kmeans_price = KMeans(n_clusters=2, random_state=42)
+kmeans_price = KMeans(n_clusters=2, n_init=10, random_state=42)
 kmeans_price.fit(prices)
 df['price_cluster'] = kmeans_price.labels_
 
@@ -54,10 +65,17 @@ threshold = np.mean(centers)
 df_high = df[df['price_cluster'] == high_price_cluster]
 
 # =========================
-# 4. Importancia de variables en el precio
+# 5. Importancia de variables en el precio
 # =========================
 X = df[['year', 'km_driven', 'owner_num', 'transmission_num', 'seller_type_num', 'fuel_num']]
 y = df['selling_price']
+
+# Confirmar que no hay valores NaN
+if X.isnull().sum().sum() > 0:
+    print("Error: X contiene valores NaN después del preprocesamiento")
+    print(X.isnull().sum())
+    exit()
+
 rf = RandomForestRegressor(n_estimators=100, random_state=42)
 rf.fit(X, y)
 importances = rf.feature_importances_
@@ -69,7 +87,7 @@ print("\nImportancia de características en el precio de venta:")
 print(feature_importance_df)
 
 # =========================
-# 5. PCA para visualizar todas las variables
+# 6. PCA para visualizar todas las variables
 # =========================
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
@@ -90,7 +108,7 @@ plt.legend()
 plt.show()
 
 # =========================
-# 6. Gráfico 3D con las 3 características más importantes
+# 7. Gráfico 3D con las 3 características más importantes
 # =========================
 top_features = feature_importance_df['Feature'][:3].values
 fig = plt.figure(figsize=(10,6))
@@ -106,7 +124,7 @@ plt.legend()
 plt.show()
 
 # =========================
-# 7. Mapa de calor de correlaciones
+# 8. Mapa de calor de correlaciones
 # =========================
 plt.figure(figsize=(8,6))
 sns.heatmap(df[['selling_price', 'year', 'km_driven', 'owner_num', 'transmission_num', 'seller_type_num', 'fuel_num']].corr(), 
