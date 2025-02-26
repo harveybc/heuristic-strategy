@@ -7,8 +7,8 @@ from sklearn.preprocessing import StandardScaler
 # =========================
 # 1. Cargar el dataset
 # =========================
-
-df = pd.read_csv("cars.csv")
+# Suponemos que el archivo CSV se llama "Car_Datasets_inventory.csv"
+df = pd.read_csv("Car_Datasets_inventory.csv")
 
 # Verificamos las primeras filas
 print(df.head())
@@ -18,12 +18,16 @@ print(df.head())
 # =========================
 # Convertir 'owner' a valor numérico (asumiendo un orden)
 def convert_owner(owner):
-    owner = owner.lower()
-    if "first" in owner:
+    # Si es nulo, se retorna np.nan
+    if pd.isnull(owner):
+        return np.nan
+    # Convertir el valor a cadena
+    owner_str = str(owner).lower()
+    if "first" in owner_str:
         return 1
-    elif "second" in owner:
+    elif "second" in owner_str:
         return 2
-    elif "third" in owner:
+    elif "third" in owner_str:
         return 3
     else:
         return 4  # "Fourth & Above" u otros
@@ -56,7 +60,7 @@ df['price_cluster'] = kmeans_price.labels_
 cluster_avg = df.groupby('price_cluster')['selling_price'].mean()
 high_price_cluster = cluster_avg.idxmax()
 
-# Definir el umbral como el promedio de los dos centros (puede interpretarse como la frontera)
+# Definir el umbral como el promedio de los dos centros (frontera)
 centers = kmeans_price.cluster_centers_
 threshold = np.mean(centers)
 print("Umbral de precio determinado:", threshold)
@@ -65,8 +69,7 @@ print("Umbral de precio determinado:", threshold)
 # 4. Filtrar autos de precio alto (por ejemplo, > threshold)
 # =========================
 df_high = df[df['price_cluster'] == high_price_cluster]
-# O, si se prefiere, filtrar directamente por precio mayor a un valor (ej. > 500,000)
-# df_high = df[df['selling_price'] > 500000]
+# Alternativamente: df_high = df[df['selling_price'] > 500000]
 
 # =========================
 # 5. Calcular el centroide del cluster de autos caros
