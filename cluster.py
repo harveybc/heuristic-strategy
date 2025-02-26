@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 ###############################################################################
 
 # Lee el dataset desde un archivo CSV
-df = pd.read_csv("cars.csv")
+df = pd.read_csv("Car_Datasets_inventory.csv")
 
 # Elimina duplicados si los hubiera
 df.drop_duplicates(inplace=True)
@@ -146,7 +146,7 @@ df["PCA2"] = X_pca[:, 1]
 # 6. GRÁFICOS
 ###############################################################################
 
-# Definir etiquetas personalizadas para los clusters
+# Función para etiquetar clusters
 def cluster_label(cluster_id):
     if cluster_id == high_price_cluster:
         return "Cluster de Caros"
@@ -198,11 +198,8 @@ fig = plt.figure(figsize=(10,7))
 ax = fig.add_subplot(111, projection="3d")
 for cluster_id in df["price_cluster"].unique():
     subset = df[df["price_cluster"] == cluster_id]
-    ax.scatter(subset[top_features[0]],
-               subset[top_features[1]],
-               subset[top_features[2]],
-               alpha=0.6,
-               label=cluster_label(cluster_id))
+    ax.scatter(subset[top_features[0]], subset[top_features[1]], subset[top_features[2]],
+               alpha=0.6, label=cluster_label(cluster_id))
 ax.set_xlabel(top_features[0])
 ax.set_ylabel(top_features[1])
 ax.set_zlabel(top_features[2])
@@ -224,20 +221,43 @@ plt.show()
 ###############################################################################
 
 # Para variables numéricas: calcular la media en el cluster de autos caros
-num_cols_for_centroid = ["year", "selling_price", "km_driven", "owner_num", "transmission_num", "seller_type_num", "fuel_num"]
+num_cols_for_centroid = ["year", "selling_price", "km_driven", "owner_num", 
+                         "transmission_num", "seller_type_num", "fuel_num"]
 centroid_numeric = df_high[num_cols_for_centroid].mean()
 
-# Para las variables categóricas originales: usar la moda
-cat_cols_for_centroid = ["owner", "transmission", "seller_type", "fuel"]
-centroid_categorical = {
-    "owner": df_high["owner"].mode().iloc[0],
-    "transmission": df_high["transmission"].mode().iloc[0],
-    "seller_type": df_high["seller_type"].mode().iloc[0],
-    "fuel": df_high["fuel"].mode().iloc[0]
+# Para las variables categóricas, en lugar de la moda, aproximamos los valores numéricos
+# y los convertimos a los valores originales.
+
+# Redondear los valores promedio para las variables categóricas
+owner_val = int(round(centroid_numeric["owner_num"]))
+transmission_val = int(round(centroid_numeric["transmission_num"]))
+seller_type_val = int(round(centroid_numeric["seller_type_num"]))
+fuel_val = int(round(centroid_numeric["fuel_num"]))
+
+# Definir las conversiones inversas:
+owner_mapping = {1: "First Owner", 2: "Second Owner", 3: "Third Owner", 4: "Fourth & Above"}
+transmission_mapping = {0: "Manual", 1: "Automatic"}
+seller_type_mapping = {0: "Individual", 1: "Dealer"}
+# Crear el mapeo inverso para fuel
+inverse_fuel_mapping = {v: k for k, v in fuel_mapping.items()}
+
+# Obtener la categoría correspondiente
+owner_cat = owner_mapping.get(owner_val, "Unknown")
+transmission_cat = transmission_mapping.get(transmission_val, "Unknown")
+seller_type_cat = seller_type_mapping.get(seller_type_val, "Unknown")
+# Para fuel, usamos el mapeo inverso
+fuel_cat = inverse_fuel_mapping.get(fuel_val, "Unknown")
+
+# Construir la tabla del centroide para variables categóricas, mostrando el valor original y el número entre paréntesis.
+centroid_categorical_adjusted = {
+    "owner": f"{owner_cat} ({owner_val})",
+    "transmission": f"{transmission_cat} ({transmission_val})",
+    "seller_type": f"{seller_type_cat} ({seller_type_val})",
+    "fuel": f"{fuel_cat} ({fuel_val})"
 }
 
 print("\n=== Centroide del Cluster de Autos Caros ===")
 print("Valores promedio (variables numéricas):")
 print(centroid_numeric)
-print("\nCategorías predominantes (variables originales):")
-print(centroid_categorical)
+print("\nCategorías predominantes (variables categóricas convertidas):")
+print(centroid_categorical_adjusted)
