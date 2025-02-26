@@ -198,8 +198,11 @@ fig = plt.figure(figsize=(10,7))
 ax = fig.add_subplot(111, projection="3d")
 for cluster_id in df["price_cluster"].unique():
     subset = df[df["price_cluster"] == cluster_id]
-    ax.scatter(subset[top_features[0]], subset[top_features[1]], subset[top_features[2]],
-               alpha=0.6, label=cluster_label(cluster_id))
+    ax.scatter(subset[top_features[0]],
+               subset[top_features[1]],
+               subset[top_features[2]],
+               alpha=0.6,
+               label=cluster_label(cluster_id))
 ax.set_xlabel(top_features[0])
 ax.set_ylabel(top_features[1])
 ax.set_zlabel(top_features[2])
@@ -225,7 +228,7 @@ num_cols_for_centroid = ["year", "selling_price", "km_driven", "owner_num",
                          "transmission_num", "seller_type_num", "fuel_num"]
 centroid_numeric = df_high[num_cols_for_centroid].mean()
 
-# Para las variables categóricas, en lugar de la moda, aproximamos los valores numéricos
+# Para las variables categóricas, aproximamos los valores promedios (de las variables numéricas ya procesadas)
 # y los convertimos a los valores originales.
 
 # Redondear los valores promedio para las variables categóricas
@@ -238,17 +241,17 @@ fuel_val = int(round(centroid_numeric["fuel_num"]))
 owner_mapping = {1: "First Owner", 2: "Second Owner", 3: "Third Owner", 4: "Fourth & Above"}
 transmission_mapping = {0: "Manual", 1: "Automatic"}
 seller_type_mapping = {0: "Individual", 1: "Dealer"}
-# Crear el mapeo inverso para fuel
+# Invertir el mapping de fuel
 inverse_fuel_mapping = {v: k for k, v in fuel_mapping.items()}
 
 # Obtener la categoría correspondiente
 owner_cat = owner_mapping.get(owner_val, "Unknown")
 transmission_cat = transmission_mapping.get(transmission_val, "Unknown")
 seller_type_cat = seller_type_mapping.get(seller_type_val, "Unknown")
-# Para fuel, usamos el mapeo inverso
 fuel_cat = inverse_fuel_mapping.get(fuel_val, "Unknown")
 
-# Construir la tabla del centroide para variables categóricas, mostrando el valor original y el número entre paréntesis.
+# Construir la tabla del centroide para variables categóricas,
+# mostrando el valor de texto original y entre paréntesis el valor numérico
 centroid_categorical_adjusted = {
     "owner": f"{owner_cat} ({owner_val})",
     "transmission": f"{transmission_cat} ({transmission_val})",
