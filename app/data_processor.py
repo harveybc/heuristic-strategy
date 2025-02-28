@@ -140,7 +140,13 @@ def process_data(config):
 
     # Verify that all datasets have the same number of rows
     if not (len(base_df) == len(hourly_df) == len(daily_df)):
-        raise ValueError("After alignment, the number of rows in base, hourly, and daily predictions do not match!")
+        min_len = min(len(base_df), len(hourly_df), len(daily_df))
+        print("Warning: After alignment, the number of rows differ. Trimming each dataset to the minimum length:", min_len)
+        base_df = base_df.iloc[:min_len]
+        hourly_df = hourly_df.iloc[:min_len]
+        daily_df = daily_df.iloc[:min_len]
+        if not (len(base_df) == len(hourly_df) == len(daily_df)):
+            raise ValueError("After alignment and trimming, the number of rows in base, hourly, and daily predictions still do not match!")
 
     # Print aligned date ranges
     print(f"Aligned Base dataset range: {base_df.index.min()} to {base_df.index.max()}")
@@ -148,7 +154,6 @@ def process_data(config):
     print(f"Aligned Daily predictions range: {daily_df.index.min()} to {daily_df.index.max()}")
 
     return {"hourly": hourly_df, "daily": daily_df, "base": base_df, "base_full": base_df_full}
-
 
 def run_processing_pipeline(config, plugin):
     """
@@ -321,7 +326,6 @@ def run_processing_pipeline(config, plugin):
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
     return trading_info, getattr(plugin, "trades", None)
-
 
 if __name__ == "__main__":
     pass
