@@ -84,9 +84,12 @@ def main():
 
     if config.get('save_config'):
         try:
-            # Ensure all non-serializable objects are converted
-            serializable_config = {key: (value.to_dict() if isinstance(value, pd.DataFrame) else value)
-                                for key, value in config.items()}
+            # Remove any datasets (pandas DataFrames) from the configuration before saving.
+            serializable_config = {
+            key: (value.to_dict() if hasattr(value, "to_dict") else value)
+            for key, value in config.items()
+            if not isinstance(value, pd.DataFrame)
+            }
             
             save_config(serializable_config, config['save_config'])
             print(f"Configuration saved to {config['save_config']}.")
