@@ -26,8 +26,8 @@ class Plugin:
         'lower_rr_threshold': 0.5,
         'upper_rr_threshold': 2.0,
         'max_trades_per_5days': 3,
-        'default_uncertainty_short_term': 0.0,  # new: default uncertainty for short-term (hourly)
-        'default_uncertainty_long_term': 0.0,   # new: default uncertainty for long-term (daily)
+        'default_uncertainty_short_term': 0.005,  # new: default uncertainty for short-term (hourly)
+        'default_uncertainty_long_term': 0.003,   # new: default uncertainty for long-term (daily)
     }
 
     def __init__(self):
