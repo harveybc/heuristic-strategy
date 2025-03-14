@@ -27,8 +27,8 @@ class Plugin:
         'upper_rr_threshold': 2.0,
         'max_trades_per_5days': 3,
         # Default uncertainty values used if none are provided:
-        'default_uncertainty_short_term': 0.0,
-        'default_uncertainty_long_term': 0.0,
+        'default_uncertainty_short_term': 0.1,
+        'default_uncertainty_long_term': 0.1,
     }
 
     def __init__(self):
