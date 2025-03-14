@@ -3,7 +3,7 @@ pandas
 h5py
 scipy
 build
-pytestpip
+pytest
 pdoc3
 pydot
 graphviz
