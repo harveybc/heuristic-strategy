@@ -44,28 +44,17 @@ def create_daily_predictions(df, horizon):
         # Attempt to fetch each day offset at i + d*24
         for d in range(1, horizon + 1):
             idx = i + d * 24
-            # If idx is out of range for some reason (edge cases), skip safely
             if idx >= nrows:
                 break
-            row_vals = df.iloc[idx].values  # shape: (features,)
+            row_vals = df.iloc[idx].values
             if row_vals.ndim == 0:
-                # means we have an empty row or zero-dimensional array
                 continue
             block_values.extend(row_vals.flatten())
-        # If we got some values, append them to blocks
         if block_values:
             blocks.append(block_values)
-        else:
-            # If we ended up with no valid data for that block, skip
-            continue
-
     if not blocks:
-        # No valid blocks were created
         print("Warning: daily predictions are empty after alignment. Returning an empty DataFrame.")
         return pd.DataFrame()
-
-    # The resulting blocks length = nrows - required_rows
-    # Align the index accordingly
     daily_idx = df.index[:(nrows - required_rows)]
     return pd.DataFrame(blocks, index=daily_idx)
 
@@ -74,24 +63,24 @@ def process_data(config):
     Loads and processes datasets, ensuring alignment and applying max_steps.
     - Uses external prediction files if provided.
     - Generates predictions if files are not available.
-    - Ensures all datasets (base, hourly predictions, daily predictions) are properly aligned to the common date range.
+    - Loads uncertainties if provided.
+    - Ensures all datasets (base, hourly predictions, daily predictions, uncertainties) 
+      are properly aligned to the common date range.
+    - Truncates all datasets to config['max_steps'] rows (if specified).
       Additionally, preserves the full base dataset (base_full) for later evaluation.
     """
-    import pandas as pd
-    import numpy as np
-    import json
     from app.data_handler import load_csv
 
     headers = config.get("headers", True)
     print("Loading datasets...")
 
-    # Load datasets based on config parameters
+    # Load predictions and base
     hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
     daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
     print(f"Base dataset loaded: {base_df.shape}")
 
-    # Conserva una copia completa del base dataset para la evaluación
+    # Keep a full copy for later evaluation
     base_df_full = base_df.copy()
 
     # Auto-generate predictions if files are missing
@@ -100,67 +89,94 @@ def process_data(config):
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
         print("Auto-generating hourly predictions...")
         hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
-
     if daily_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
         print("Auto-generating daily predictions...")
         daily_df = create_daily_predictions(base_df, config["time_horizon"])
 
-    # Ensure that hourly and daily predictions have a datetime index based on DATE_TIME column, if not already set.
-    if hourly_df is not None:
-        if not isinstance(hourly_df.index, pd.DatetimeIndex):
-            if "DATE_TIME" in hourly_df.columns:
-                hourly_df.index = pd.to_datetime(hourly_df["DATE_TIME"])
-            else:
-                raise ValueError("hourly_df does not have a DATE_TIME column.")
-    if daily_df is not None:
-        if not isinstance(daily_df.index, pd.DatetimeIndex):
-            if "DATE_TIME" in daily_df.columns:
-                daily_df.index = pd.to_datetime(daily_df["DATE_TIME"])
-            else:
-                raise ValueError("daily_df does not have a DATE_TIME column.")
+    # Load uncertainties if available
+    uncertainty_hourly_df = None
+    uncertainty_daily_df = None
+    if config.get("uncertainty_hourly_file"):
+        uncertainty_hourly_df = load_csv(config["uncertainty_hourly_file"], headers=headers)
+    if config.get("uncertainty_daily_file"):
+        uncertainty_daily_df = load_csv(config["uncertainty_daily_file"], headers=headers)
 
-    # Ensure base_df has a datetime index as well.
-    if not isinstance(base_df.index, pd.DatetimeIndex):
-        if "DATE_TIME" in base_df.columns:
-            base_df.index = pd.to_datetime(base_df["DATE_TIME"])
-        else:
-            raise ValueError("base_df does not have a DATE_TIME column.")
+    # Ensure all datasets have a datetime index based on DATE_TIME column.
+    def ensure_datetime(df, name):
+        if not isinstance(df.index, pd.DatetimeIndex):
+            if "DATE_TIME" in df.columns:
+                df.index = pd.to_datetime(df["DATE_TIME"])
+            else:
+                raise ValueError(f"{name} does not have a DATE_TIME column.")
+        return df
 
-    # Align all datasets to the common date range (intersection of their datetime indexes)
+    base_df = ensure_datetime(base_df, "base_df")
+    hourly_df = ensure_datetime(hourly_df, "hourly_df")
+    daily_df = ensure_datetime(daily_df, "daily_df")
+    if uncertainty_hourly_df is not None:
+        uncertainty_hourly_df = ensure_datetime(uncertainty_hourly_df, "uncertainty_hourly_df")
+    if uncertainty_daily_df is not None:
+        uncertainty_daily_df = ensure_datetime(uncertainty_daily_df, "uncertainty_daily_df")
+
+    # Compute common index across all datasets (only include uncertainties if available)
     common_index = base_df.index.intersection(hourly_df.index).intersection(daily_df.index)
+    if uncertainty_hourly_df is not None:
+        common_index = common_index.intersection(uncertainty_hourly_df.index)
+    if uncertainty_daily_df is not None:
+        common_index = common_index.intersection(uncertainty_daily_df.index)
     if common_index.empty:
-        raise ValueError("No common date range found among base, hourly, and daily predictions.")
+        raise ValueError("No common date range found among base, predictions, and uncertainties.")
 
-    # Aquí se recortan los tres datasets al rango común
-    base_df = base_df.loc[common_index]         # <-- Alinea el dataset base
+    # Trim all datasets to the common date range
+    base_df = base_df.loc[common_index]
     hourly_df = hourly_df.loc[common_index]
     daily_df = daily_df.loc[common_index]
+    if uncertainty_hourly_df is not None:
+        uncertainty_hourly_df = uncertainty_hourly_df.loc[common_index]
+    if uncertainty_daily_df is not None:
+        uncertainty_daily_df = uncertainty_daily_df.loc[common_index]
 
-    # Verify that all datasets have the same number of rows
-    if not (len(base_df) == len(hourly_df) == len(daily_df)):
-        raise ValueError("After alignment, the number of rows in base, hourly, and daily predictions do not match!")
+    # Apply max_steps if provided: truncate all datasets to the same number of rows.
+    if "max_steps" in config:
+        max_steps = config["max_steps"]
+        base_df = base_df.iloc[:max_steps]
+        hourly_df = hourly_df.iloc[:max_steps]
+        daily_df = daily_df.iloc[:max_steps]
+        if uncertainty_hourly_df is not None:
+            uncertainty_hourly_df = uncertainty_hourly_df.iloc[:max_steps]
+        if uncertainty_daily_df is not None:
+            uncertainty_daily_df = uncertainty_daily_df.iloc[:max_steps]
 
-    # Print aligned date ranges
+    # Print aligned date ranges and shapes.
     print(f"Aligned Base dataset range: {base_df.index.min()} to {base_df.index.max()}")
     print(f"Aligned Hourly predictions range: {hourly_df.index.min()} to {hourly_df.index.max()}")
     print(f"Aligned Daily predictions range: {daily_df.index.min()} to {daily_df.index.max()}")
+    if uncertainty_hourly_df is not None:
+        print(f"Aligned Hourly uncertainties range: {uncertainty_hourly_df.index.min()} to {uncertainty_hourly_df.index.max()}")
+    if uncertainty_daily_df is not None:
+        print(f"Aligned Daily uncertainties range: {uncertainty_daily_df.index.min()} to {uncertainty_daily_df.index.max()}")
 
-    return {"hourly": hourly_df, "daily": daily_df, "base": base_df, "base_full": base_df_full}
-
+    return {
+        "hourly": hourly_df,
+        "daily": daily_df,
+        "base": base_df,
+        "base_full": base_df_full,
+        "uncertainty_hourly": uncertainty_hourly_df,
+        "uncertainty_daily": uncertainty_daily_df
+    }
 
 def run_processing_pipeline(config, plugin):
     """
     Executes the trading strategy optimization pipeline.
     
     - Loads and processes datasets.
-    - Before sending data to the strategy plugin, computes and prints a table with MAE and R² for each prediction horizon,
-      using as target the CLOSE value from the full base dataset.
-    - If config["load_parameters"] is provided, loads candidate parameters from the specified JSON file and evaluates the strategy once.
-    - Otherwise, runs the full optimization via run_optimizer().
-    - At the end, renames the balance plot and saves the trades and summary CSV files.
-    - If in optimization mode and config["save_parameters"] is provided, saves the best parameters as JSON.
+    - Computes and prints error metrics for each prediction horizon.
+    - If config["load_parameters"] is provided, loads candidate parameters and evaluates the strategy once.
+    - Otherwise, runs full optimization via run_optimizer().
+    - Renames the balance plot and saves trades and summary CSV files.
+    - Saves best parameters if in optimization mode.
     """
     import json, os, pandas as pd, time
     from app.optimizer import init_optimizer, evaluate_individual, run_optimizer
@@ -173,19 +189,19 @@ def run_processing_pipeline(config, plugin):
     datasets = process_data(config)
     hourly_preds = datasets["hourly"]
     daily_preds = datasets["daily"]
-    base_data = datasets["base"]         # Aligned base (issuance times)
+    base_data = datasets["base"]         # Aligned base dataset
     base_full = datasets["base_full"]      # Full base dataset
 
-    # Calculate error metrics for each prediction horizon
+    # Inject processed uncertainties into the config so the plugin can use them
+    config["uncertainty_hourly"] = datasets.get("uncertainty_hourly")
+    config["uncertainty_daily"] = datasets.get("uncertainty_daily")
 
-    # For hourly predictions: each column corresponds to the forecast for h hours ahead.
+    # Calculate error metrics for hourly predictions
     n_hourly = hourly_preds.shape[1]
     hourly_results = []
     for h in range(1, n_hourly + 1):
-        # For each forecast, the target is CLOSE at (timestamp + h hours)
         forecast_times = hourly_preds.index + pd.Timedelta(hours=h)
         actual = base_full.reindex(forecast_times)["CLOSE"]
-        # Reassign index so that actual aligns element-wise with pred
         actual.index = hourly_preds.index
         pred = hourly_preds.iloc[:, h - 1]
         valid = actual.notna()
@@ -196,16 +212,14 @@ def run_processing_pipeline(config, plugin):
             mae = mean_absolute_error(actual[valid], pred[valid])
             r2 = r2_score(actual[valid], pred[valid])
         hourly_results.append({"Horizon (hours)": h, "MAE": mae, "R2": r2})
-    
     df_hourly = pd.DataFrame(hourly_results)
 
-    # For daily predictions: each column corresponds to the forecast for d days ahead (24*d hours).
+    # Calculate error metrics for daily predictions
     n_daily = daily_preds.shape[1]
     daily_results = []
     for d in range(1, n_daily + 1):
         forecast_times = daily_preds.index + pd.Timedelta(hours=24 * d)
         actual = base_full.reindex(forecast_times)["CLOSE"]
-        # Reassign index so that actual aligns with the predictions
         actual.index = daily_preds.index
         pred = daily_preds.iloc[:, d - 1]
         valid = actual.notna()
@@ -216,16 +230,13 @@ def run_processing_pipeline(config, plugin):
             mae = mean_absolute_error(actual[valid], pred[valid])
             r2 = r2_score(actual[valid], pred[valid])
         daily_results.append({"Horizon (days)": d, "MAE": mae, "R2": r2})
-    
     df_daily = pd.DataFrame(daily_results)
 
-    # Print the error metrics tables
     print("\nError Metrics for Hourly Predictions:")
     print(df_hourly.to_string(index=False))
     print("\nError Metrics for Daily Predictions:")
     print(df_daily.to_string(index=False))
 
-    # Additional verification: print final aligned date ranges before sending data to the plugin
     print(f"\nFinal Base dataset date range: {base_data.index.min()} to {base_data.index.max()}")
     print(f"Final Hourly predictions date range: {hourly_preds.index.min()} to {hourly_preds.index.max()}")
     print(f"Final Daily predictions date range: {daily_preds.index.min()} to {daily_preds.index.max()}")
@@ -235,7 +246,7 @@ def run_processing_pipeline(config, plugin):
     print(f"  Hourly predictions: {hourly_preds.shape}")
     print(f"  Daily predictions:  {daily_preds.shape}")
 
-    # Proceed with sending data to the plugin (evaluation or optimization)
+    # Proceed with evaluation or optimization using the processed uncertainties as well.
     if config.get("load_parameters") is not None:
         try:
             with open(config["load_parameters"], "r") as f:
@@ -321,7 +332,6 @@ def run_processing_pipeline(config, plugin):
     end_time = time.time()
     print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
     return trading_info, getattr(plugin, "trades", None)
-
 
 if __name__ == "__main__":
     pass

@@ -15,7 +15,7 @@ class Plugin:
     # Default plugin parameters (must be present for optimizer integration)
     plugin_params = {
         'pip_cost': 0.00001,
-        'rel_volume': 0.02, # uses max 2% of balance for each order (default) 
+        'rel_volume': 0.02,  # uses max 2% of balance for each order (default)
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 1000,
@@ -26,6 +26,9 @@ class Plugin:
         'lower_rr_threshold': 0.5,
         'upper_rr_threshold': 2.0,
         'max_trades_per_5days': 3,
+        # Default uncertainty values used if none are provided:
+        'default_uncertainty_short_term': 0.0,
+        'default_uncertainty_long_term': 0.0,
     }
 
     def __init__(self):
@@ -51,12 +54,9 @@ class Plugin:
             ("profit_threshold", 0.5, 20),
             ("tp_multiplier", 0.5, 1.5),
             ("sl_multiplier", 1.5, 6.0),
-            #("rel_volume", 0.01, 0.1),
             ("lower_rr_threshold", 0.2, 1.0),
             ("upper_rr_threshold", 1.3, 6.0),
-            # size of the time horizon
             ("time_horizon", 2, 24)
-
         ]
 
     # --- Updated evaluate_candidate method ---
@@ -69,84 +69,49 @@ class Plugin:
         # (profit_threshold, tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold, time_horizon)
         profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr, time_horizon = individual
 
-        # If both predictions are missing or empty, auto-generate predictions using the candidate's time_horizon.
-        if (config['hourly_predictions_file'] is None) and (config['daily_predictions_file'] is None):
-            print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={int(time_horizon)} for candidate {individual}.")
-            config["time_horizon"] = int(time_horizon)
-            from data_processor import process_data
-            processed = process_data(config)
-            hourly_predictions = processed["hourly"]
-            daily_predictions = processed["daily"]
+        # Check that predictions are available.
+        if (hourly_predictions is None or hourly_predictions.empty or 
+            daily_predictions is None or daily_predictions.empty):
+            print(f"[evaluate_candidate] Predictions are missing or empty for candidate {individual}. Returning profit=0.0.")
+            return (0.0, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
-        # Use provided predictions without modifying them.
+        # Merge predictions (rename columns for clarity).
         merged_df = pd.DataFrame()
-        if hourly_predictions is not None and not hourly_predictions.empty:
-            renamed_h = {col: f"Prediction_h_{i+1}" for i, col in enumerate(hourly_predictions.columns)}
-            hr = hourly_predictions.rename(columns=renamed_h)
-            merged_df = hr.copy() if merged_df.empty else merged_df.join(hr, how="outer")
-        if daily_predictions is not None and not daily_predictions.empty:
-            renamed_d = {col: f"Prediction_d_{i+1}" for i, col in enumerate(daily_predictions.columns)}
-            dr = daily_predictions.rename(columns=renamed_d)
-            merged_df = dr.copy() if merged_df.empty else merged_df.join(dr, how="outer")
+        renamed_h = {col: f"Prediction_h_{i+1}" for i, col in enumerate(hourly_predictions.columns)}
+        hr = hourly_predictions.rename(columns=renamed_h)
+        merged_df = hr.copy()
+        renamed_d = {col: f"Prediction_d_{i+1}" for i, col in enumerate(daily_predictions.columns)}
+        dr = daily_predictions.rename(columns=renamed_d)
+        merged_df = merged_df.join(dr, how="outer")
 
-        # --- New functionality: Merge uncertainties with predictions ---
-        # Merge hourly uncertainties.
-        if config.get('uncertainty_hourly_file') is not None:
-            uh = pd.read_csv(config['uncertainty_hourly_file'], parse_dates=['DATE_TIME'])
-            uh.set_index('DATE_TIME', inplace=True)
-            renamed_uh = {col: f"Uncertainty_h_{i+1}" for i, col in enumerate(uh.columns)}
-            uncertainty_hourly = uh.rename(columns=renamed_uh)
-        else:
-            if hourly_predictions is not None and not hourly_predictions.empty:
-                default_val = self.params.get('default_uncertainty_short_term', 0.0)
-                uncertainty_hourly = pd.DataFrame(
-                    default_val,
-                    index=hourly_predictions.index,
-                    columns=[f"Uncertainty_h_{i+1}" for i in range(hourly_predictions.shape[1])]
-                )
-            else:
-                uncertainty_hourly = pd.DataFrame()
-        # Merge daily uncertainties.
-        if config.get('uncertainty_daily_file') is not None:
-            ud = pd.read_csv(config['uncertainty_daily_file'], parse_dates=['DATE_TIME'])
-            ud.set_index('DATE_TIME', inplace=True)
-            renamed_ud = {col: f"Uncertainty_d_{i+1}" for i, col in enumerate(ud.columns)}
-            uncertainty_daily = ud.rename(columns=renamed_ud)
-        else:
-            if daily_predictions is not None and not daily_predictions.empty:
-                default_val = self.params.get('default_uncertainty_long_term', 0.0)
-                uncertainty_daily = pd.DataFrame(
-                    default_val,
-                    index=daily_predictions.index,
-                    columns=[f"Uncertainty_d_{i+1}" for i in range(daily_predictions.shape[1])]
-                )
-            else:
-                uncertainty_daily = pd.DataFrame()
-
-        if not uncertainty_hourly.empty:
-            merged_df = merged_df.join(uncertainty_hourly, how="inner") if not merged_df.empty else uncertainty_hourly.copy()
-        if not uncertainty_daily.empty:
-            merged_df = merged_df.join(uncertainty_daily, how="inner") if not merged_df.empty else uncertainty_daily.copy()
+        # Merge uncertainties from config if available; otherwise use default values.
+        uncertainty_hourly = config.get("uncertainty_hourly")
+        if uncertainty_hourly is None:
+            default_val = self.params.get('default_uncertainty_short_term', 0.0)
+            uncertainty_hourly = pd.DataFrame(default_val, index=hourly_predictions.index,
+                                               columns=[f"Uncertainty_h_{i+1}" for i in range(hourly_predictions.shape[1])])
+        uncertainty_daily = config.get("uncertainty_daily")
+        if uncertainty_daily is None:
+            default_val = self.params.get('default_uncertainty_long_term', 0.0)
+            uncertainty_daily = pd.DataFrame(default_val, index=daily_predictions.index,
+                                              columns=[f"Uncertainty_d_{i+1}" for i in range(daily_predictions.shape[1])])
+        merged_df = merged_df.join(uncertainty_hourly, how="inner")
+        merged_df = merged_df.join(uncertainty_daily, how="inner")
 
         if merged_df.empty:
             print(f"[evaluate_candidate] => Merged predictions and uncertainties are empty for candidate {individual}. Returning profit=0.0.")
             return (0.0, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
-        # Ensure predictions have a datetime index.
         if merged_df.index.name is None or merged_df.index.name != "DATE_TIME":
             merged_df.index.name = "DATE_TIME"
 
-        # Save merged predictions (and uncertainties) to a temporary CSV file.
-        temp_pred_file = "temp_predictions.csv"
-        merged_df.reset_index().to_csv(temp_pred_file, index=False)
-
-        # Build the Cerebro backtest.
+        # Pass the merged DataFrame directly to the strategy.
         cerebro = bt.Cerebro()
         cerebro.addstrategy(
             self.HeuristicStrategy,
-            pred_file=temp_pred_file,
+            pred_df=merged_df,
             pip_cost=self.params['pip_cost'],
-            rel_volume=self.params['rel_volume'],  # use plugin default value
+            rel_volume=self.params['rel_volume'],
             min_order_volume=self.params['min_order_volume'],
             max_order_volume=self.params['max_order_volume'],
             leverage=self.params['leverage'],
@@ -162,20 +127,16 @@ class Plugin:
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
 
-        # Run the backtest.
         try:
             runresult = cerebro.run()
         except Exception as e:
             print("Error during backtest:", e)
-            if os.path.exists(temp_pred_file):
-                os.remove(temp_pred_file)
             return (-1e6, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
         final_value = cerebro.broker.getvalue()
         profit = final_value - 10000.0
         print(f"Evaluated candidate {individual} -> Profit: {profit:.2f}")
 
-        # Retrieve trades from the strategy instance.
         strat_instance = runresult[0]
         trades_list = getattr(strat_instance, "trades", [])
         if config.get("show_trades", True):
@@ -183,18 +144,13 @@ class Plugin:
                 print(f"Trades for candidate {individual}:")
                 for i, tr in enumerate(trades_list, 1):
                     print(f"  Trade #{i}: OpenDT={tr.get('open_dt', 'N/A')}, ExitDT={tr.get('close_dt', 'N/A')}, "
-                        f"Volume={tr.get('volume', 0)}, PnL={tr.get('pnl', 0):.2f}, "
-                        f"Pips={tr.get('pips', 0):.2f}, MaxDD={tr.get('max_dd', 0):.2f}")
+                          f"Volume={tr.get('volume', 0)}, PnL={tr.get('pnl', 0):.2f}, "
+                          f"Pips={tr.get('pips', 0):.2f}, MaxDD={tr.get('max_dd', 0):.2f}")
             else:
                 print("  No trades were made for this candidate.")
 
-        if os.path.exists(temp_pred_file):
-            os.remove(temp_pred_file)
-
-        # Update plugin trades with those from this evaluation.
         self.trades = trades_list
 
-        # Compute summary statistics.
         num_trades = len(trades_list)
         stats = {"num_trades": num_trades, "win_pct": 0, "max_dd": 0, "sharpe": 0}
         if num_trades > 0:
@@ -208,29 +164,26 @@ class Plugin:
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
         print(f"[EVALUATE] Candidate result => Profit: {profit:.2f}, "
-            f"Trades: {stats.get('num_trades', 0)}, "
-            f"Win%: {stats.get('win_pct', 0):.1f}, "
-            f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-            f"Sharpe: {stats.get('sharpe', 0):.2f}")
+              f"Trades: {stats.get('num_trades', 0)}, "
+              f"Win%: {stats.get('win_pct', 0):.1f}, "
+              f"MaxDD: {stats.get('max_dd', 0):.2f}, "
+              f"Sharpe: {stats.get('sharpe', 0):.2f}")
 
         return (profit, stats)
-
 
 
     class HeuristicStrategy(bt.Strategy):
         """
         Forex Dynamic Volume Strategy using perfect future predictions.
-
-        This replicates the original HeuristicStrategy exactly, with all printed messages
-        and the same logic for trade entries, sizing, frequency, and final summary.
+        This replicates the original HeuristicStrategy exactly.
         """
         # --- Updated __init__ method of HeuristicStrategy ---
-        def __init__(self, pred_file, pip_cost, rel_volume, min_order_volume, max_order_volume,
-                    leverage, profit_threshold, min_drawdown_pips,
-                    tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                    max_trades_per_5days, *args, **kwargs):
+        def __init__(self, pred_df, pip_cost, rel_volume, min_order_volume, max_order_volume,
+                     leverage, profit_threshold, min_drawdown_pips,
+                     tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
+                     max_trades_per_5days, *args, **kwargs):
             super().__init__()
-            self.params.pred_file = pred_file
+            self.pred_df = pred_df
             self.params.pip_cost = pip_cost
             self.params.rel_volume = rel_volume
             self.params.min_order_volume = min_order_volume
@@ -244,15 +197,10 @@ class Plugin:
             self.params.upper_rr_threshold = upper_rr_threshold
             self.params.max_trades_per_5days = max_trades_per_5days
 
-            # Load predictions (and uncertainties, if present) from CSV.
-            pred_df = pd.read_csv(self.params.pred_file, parse_dates=['DATE_TIME'])
-            pred_df.set_index('DATE_TIME', inplace=True)
-            self.num_hourly_preds = len([c for c in pred_df.columns if c.startswith('Prediction_h_')])
-            self.num_daily_preds = len([c for c in pred_df.columns if c.startswith('Prediction_d_')])
-            # New: Count uncertainty columns (if any).
-            self.num_hourly_uncs = len([c for c in pred_df.columns if c.startswith('Uncertainty_h_')])
-            self.num_daily_uncs = len([c for c in pred_df.columns if c.startswith('Uncertainty_d_')])
-            self.pred_df = pred_df
+            self.num_hourly_preds = len([c for c in self.pred_df.columns if c.startswith('Prediction_h_')])
+            self.num_daily_preds = len([c for c in self.pred_df.columns if c.startswith('Prediction_d_')])
+            self.num_hourly_uncs = len([c for c in self.pred_df.columns if c.startswith('Uncertainty_h_')])
+            self.num_daily_uncs = len([c for c in self.pred_df.columns if c.startswith('Uncertainty_d_')])
 
             self.data0 = self.datas[0]
             self.initial_balance = self.broker.getvalue()
@@ -268,18 +216,15 @@ class Plugin:
             self.order_direction = None
             self.trade_entry_bar = None
 
-
         # --- Updated next() method of HeuristicStrategy ---
         def next(self):
             dt = self.data0.datetime.datetime(0)
             dt_hour = dt.replace(minute=0, second=0, microsecond=0)
             current_price = self.data0.close[0]
-            # Record balance and time for plotting.
             balance = self.broker.getvalue()
             self.balance_history.append(balance)
             self.date_history.append(dt)
 
-            # --- If in position, handle exit logic ---
             if self.position:
                 if self.current_direction == 'long':
                     if self.trade_low is None or current_price < self.trade_low:
@@ -289,26 +234,24 @@ class Plugin:
                                         for i in range(1, self.num_hourly_preds + 1)]
                         if self.num_hourly_uncs > 0:
                             uncs_hourly = [self.pred_df.loc[dt_hour].get(f'Uncertainty_h_{i}', 0)
-                                        for i in range(1, self.num_hourly_uncs + 1)]
+                                           for i in range(1, self.num_hourly_uncs + 1)]
                             adjusted_preds_hourly = [p - u for p, u in zip(preds_hourly, uncs_hourly)]
                         else:
                             adjusted_preds_hourly = preds_hourly
                         preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                    for i in range(1, self.num_daily_preds + 1)]
+                                       for i in range(1, self.num_daily_preds + 1)]
                         if self.num_daily_uncs > 0:
                             uncs_daily = [self.pred_df.loc[dt_hour].get(f'Uncertainty_d_{i}', 0)
-                                        for i in range(1, self.num_daily_uncs + 1)]
+                                          for i in range(1, self.num_daily_uncs + 1)]
                             adjusted_preds_daily = [p - u for p, u in zip(preds_daily, uncs_daily)]
                         else:
                             adjusted_preds_daily = preds_daily
                         predicted_min = min(adjusted_preds_hourly + adjusted_preds_daily)
                     else:
                         predicted_min = current_price
-                    # Condition 1: current price reaches TP.
                     if current_price >= self.current_tp:
                         self.close()
                         return
-                    # Condition 2: adjusted predicted_min below SL.
                     if predicted_min < self.current_sl:
                         self.close()
                         return
@@ -320,36 +263,32 @@ class Plugin:
                                         for i in range(1, self.num_hourly_preds + 1)]
                         if self.num_hourly_uncs > 0:
                             uncs_hourly = [self.pred_df.loc[dt_hour].get(f'Uncertainty_h_{i}', 0)
-                                        for i in range(1, self.num_hourly_uncs + 1)]
+                                           for i in range(1, self.num_hourly_uncs + 1)]
                             adjusted_preds_hourly = [p + u for p, u in zip(preds_hourly, uncs_hourly)]
                         else:
                             adjusted_preds_hourly = preds_hourly
                         preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                    for i in range(1, self.num_daily_preds + 1)]
+                                       for i in range(1, self.num_daily_preds + 1)]
                         if self.num_daily_uncs > 0:
                             uncs_daily = [self.pred_df.loc[dt_hour].get(f'Uncertainty_d_{i}', 0)
-                                        for i in range(1, self.num_daily_uncs + 1)]
+                                          for i in range(1, self.num_daily_uncs + 1)]
                             adjusted_preds_daily = [p + u for p, u in zip(preds_daily, uncs_daily)]
                         else:
                             adjusted_preds_daily = preds_daily
                         predicted_max = max(adjusted_preds_hourly + adjusted_preds_daily)
                     else:
                         predicted_max = current_price
-                    # Condition 1: current price reaches TP.
                     if current_price <= self.current_tp:
                         self.close()
                         return
-                    # Condition 2: adjusted predicted_max above SL.
                     if predicted_max > self.current_sl:
                         self.close()
                         return
-                return  # Do not attempt new entries if still in a position.
+                return
             else:
-                # Not in position: reset trade extremes.
                 self.trade_low = current_price
                 self.trade_high = current_price
 
-            # Enforce trade frequency.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
             if len(recent_trades) >= self.p.max_trades_per_5days:
                 return
@@ -364,7 +303,6 @@ class Plugin:
             if not daily_preds or all(pd.isna(daily_preds)):
                 return
 
-            # --- Compute entry conditions for long using uncertainties if available ---
             if self.num_daily_uncs > 0:
                 daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
                 adjusted_max = max([pred + unc for pred, unc in zip(daily_preds, daily_uncs)])
@@ -378,7 +316,6 @@ class Plugin:
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
 
-            # --- Compute entry conditions for short using uncertainties if available ---
             if self.num_daily_uncs > 0:
                 daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
                 adjusted_max = max([pred + unc for pred, unc in zip(daily_preds, daily_uncs)])
@@ -392,7 +329,6 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            # Determine signal.
             long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
             short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
 
@@ -428,7 +364,6 @@ class Plugin:
             self.current_tp = chosen_tp
             self.current_sl = chosen_sl
 
-
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
             max_vol = self.params.max_order_volume
@@ -442,8 +377,6 @@ class Plugin:
             cash = self.broker.getcash()
             max_from_cash = cash * self.params.rel_volume * self.params.leverage
             return min(size, max_from_cash)
-
-
 
         def notify_order(self, order):
             if order.status in [order.Completed]:
@@ -487,8 +420,7 @@ class Plugin:
                 self.current_sl = None
                 self.current_direction = None
                 self.current_volume = None
-        
-        
+
         def stop(self):
             if self.position:
                 self.close()
