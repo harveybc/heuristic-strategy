@@ -12,10 +12,10 @@ class Plugin:
     - Exposes plugin_params with default values and the required methods for optimization.
     """
 
-    # Default plugin parameters (must be present for optimizer integration)
+    # Updated plugin parameters (only the added keys are shown here for clarity)
     plugin_params = {
         'pip_cost': 0.00001,
-        'rel_volume': 0.02, # uses max 2% of balance for each order (default) 
+        'rel_volume': 0.02,  # uses max 2% of balance for each order (default)
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 1000,
@@ -26,6 +26,8 @@ class Plugin:
         'lower_rr_threshold': 0.5,
         'upper_rr_threshold': 2.0,
         'max_trades_per_5days': 3,
+        'default_uncertainty_short_term': 0.0,  # new: default uncertainty for short-term (hourly)
+        'default_uncertainty_long_term': 0.0,   # new: default uncertainty for long-term (daily)
     }
 
     def __init__(self):
@@ -74,7 +76,6 @@ class Plugin:
         profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr, time_horizon = individual
 
         # If both predictions are missing or empty, auto-generate predictions using the candidate's time_horizon.
-
         if (config['hourly_predictions_file'] is None) and (config['daily_predictions_file'] is None):
             print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={int(time_horizon)} for candidate {individual}.")
             config["time_horizon"] = int(time_horizon)
@@ -94,8 +95,46 @@ class Plugin:
             dr = daily_predictions.rename(columns=renamed_d)
             merged_df = dr.copy() if merged_df.empty else merged_df.join(dr, how="outer")
 
+        # --- New functionality: Load uncertainties and merge with predictions ---
+        uncertainty_hourly = pd.DataFrame()
+        uncertainty_daily = pd.DataFrame()
+
+        if config.get('uncertainty_hourly_file') is not None:
+            uh = pd.read_csv(config['uncertainty_hourly_file'], parse_dates=['DATE_TIME'])
+            uh.set_index('DATE_TIME', inplace=True)
+            renamed_uh = {col: f"Uncertainty_h_{i+1}" for i, col in enumerate(uh.columns)}
+            uncertainty_hourly = uh.rename(columns=renamed_uh)
+        else:
+            if hourly_predictions is not None and not hourly_predictions.empty:
+                default_val = self.params['default_uncertainty_short_term']
+                uncertainty_hourly = pd.DataFrame(
+                    default_val,
+                    index=hourly_predictions.index,
+                    columns=[f"Uncertainty_h_{i+1}" for i in range(hourly_predictions.shape[1])]
+                )
+
+        if config.get('uncertainty_daily_file') is not None:
+            ud = pd.read_csv(config['uncertainty_daily_file'], parse_dates=['DATE_TIME'])
+            ud.set_index('DATE_TIME', inplace=True)
+            renamed_ud = {col: f"Uncertainty_d_{i+1}" for i, col in enumerate(ud.columns)}
+            uncertainty_daily = ud.rename(columns=renamed_ud)
+        else:
+            if daily_predictions is not None and not daily_predictions.empty:
+                default_val = self.params['default_uncertainty_long_term']
+                uncertainty_daily = pd.DataFrame(
+                    default_val,
+                    index=daily_predictions.index,
+                    columns=[f"Uncertainty_d_{i+1}" for i in range(daily_predictions.shape[1])]
+                )
+
+        if not uncertainty_hourly.empty:
+            merged_df = merged_df.join(uncertainty_hourly, how="inner") if not merged_df.empty else uncertainty_hourly.copy()
+        if not uncertainty_daily.empty:
+            merged_df = merged_df.join(uncertainty_daily, how="inner") if not merged_df.empty else uncertainty_daily.copy()
+
+        # Trim merged_df to common date range (inner join already ensures this)
         if merged_df.empty:
-            print(f"[evaluate_candidate] => Merged predictions are empty for candidate {individual}. Returning profit=0.0.")
+            print(f"[evaluate_candidate] => Merged predictions and uncertainties are empty for candidate {individual}. Returning profit=0.0.")
             return (0.0, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
         # Ensure predictions have a datetime index.
@@ -191,9 +230,9 @@ class Plugin:
         and the same logic for trade entries, sizing, frequency, and final summary.
         """
         def __init__(self, pred_file, pip_cost, rel_volume, min_order_volume, max_order_volume,
-                    leverage, profit_threshold, min_drawdown_pips,
-                    tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                    max_trades_per_5days, *args, **kwargs):
+             leverage, profit_threshold, min_drawdown_pips,
+             tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
+             max_trades_per_5days, *args, **kwargs):
             super().__init__()
             self.params.pred_file = pred_file
             self.params.pip_cost = pip_cost
@@ -209,11 +248,14 @@ class Plugin:
             self.params.upper_rr_threshold = upper_rr_threshold
             self.params.max_trades_per_5days = max_trades_per_5days
 
-            # Load predictions from CSV.
+            # Load predictions and uncertainties from CSV.
             pred_df = pd.read_csv(self.params.pred_file, parse_dates=['DATE_TIME'])
             pred_df.set_index('DATE_TIME', inplace=True)
             self.num_hourly_preds = len([c for c in pred_df.columns if c.startswith('Prediction_h_')])
             self.num_daily_preds = len([c for c in pred_df.columns if c.startswith('Prediction_d_')])
+            # New: Count uncertainty columns.
+            self.num_hourly_uncs = len([c for c in pred_df.columns if c.startswith('Uncertainty_h_')])
+            self.num_daily_uncs = len([c for c in pred_df.columns if c.startswith('Uncertainty_d_')])
             self.pred_df = pred_df
 
             self.data0 = self.datas[0]
@@ -229,6 +271,7 @@ class Plugin:
             self.current_direction = None
             self.order_direction = None
             self.trade_entry_bar = None
+
 
         def next(self):
             dt = self.data0.datetime.datetime(0)
@@ -252,10 +295,16 @@ class Plugin:
                     if dt_hour in self.pred_df.index:
                         preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
                                         for i in range(1, self.num_hourly_preds + 1)]
+                        uncs_hourly = [self.pred_df.loc[dt_hour].get(f'Uncertainty_h_{i}', self.p.default_uncertainty_short_term)
+                                    for i in range(1, self.num_hourly_preds + 1)]
                         preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
-                        predicted_min = min(preds_hourly + preds_daily)
-                        #print(f"[DEBUG]   (Long) Predicted_min from hourly: {preds_hourly}, daily: {preds_daily} => {predicted_min:.5f}")
+                                    for i in range(1, self.num_daily_preds + 1)]
+                        uncs_daily = [self.pred_df.loc[dt_hour].get(f'Uncertainty_d_{i}', self.p.default_uncertainty_long_term)
+                                    for i in range(1, self.num_daily_preds + 1)]
+                        adjusted_preds_hourly = [p - u for p, u in zip(preds_hourly, uncs_hourly)]
+                        adjusted_preds_daily = [p - u for p, u in zip(preds_daily, uncs_daily)]
+                        predicted_min = min(adjusted_preds_hourly + adjusted_preds_daily)
+                        #print(f"[DEBUG]   (Long) Adjusted predicted_min: {predicted_min:.5f}")
                     else:
                         predicted_min = current_price
                         #print(f"[DEBUG]   (Long) dt_hour {dt_hour} not in prediction index")
@@ -264,9 +313,9 @@ class Plugin:
                         #print(f"[DEBUG]   (Long) Exit condition 1 met: current_price {current_price:.5f} >= TP {self.current_tp:.5f}")
                         self.close()
                         return
-                    # Condition 2: predicted_min below SL.
+                    # Condition 2: adjusted predicted_min below SL.
                     if predicted_min < self.current_sl:
-                        #print(f"[DEBUG]   (Long) Exit condition 2 met: predicted_min {predicted_min:.5f} < SL {self.current_sl:.5f}")
+                        #print(f"[DEBUG]   (Long) Exit condition 2 met: adjusted predicted_min {predicted_min:.5f} < SL {self.current_sl:.5f}")
                         self.close()
                         return
                 elif self.current_direction == 'short':
@@ -276,10 +325,16 @@ class Plugin:
                     if dt_hour in self.pred_df.index:
                         preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
                                         for i in range(1, self.num_hourly_preds + 1)]
+                        uncs_hourly = [self.pred_df.loc[dt_hour].get(f'Uncertainty_h_{i}', self.p.default_uncertainty_short_term)
+                                    for i in range(1, self.num_hourly_preds + 1)]
                         preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
-                        predicted_max = max(preds_hourly + preds_daily)
-                        #print(f"[DEBUG]   (Short) Predicted_max from hourly: {preds_hourly}, daily: {preds_daily} => {predicted_max:.5f}")
+                                    for i in range(1, self.num_daily_preds + 1)]
+                        uncs_daily = [self.pred_df.loc[dt_hour].get(f'Uncertainty_d_{i}', self.p.default_uncertainty_long_term)
+                                    for i in range(1, self.num_daily_preds + 1)]
+                        adjusted_preds_hourly = [p + u for p, u in zip(preds_hourly, uncs_hourly)]
+                        adjusted_preds_daily = [p + u for p, u in zip(preds_daily, uncs_daily)]
+                        predicted_max = max(adjusted_preds_hourly + adjusted_preds_daily)
+                        #print(f"[DEBUG]   (Short) Adjusted predicted_max: {predicted_max:.5f}")
                     else:
                         predicted_max = current_price
                         #print(f"[DEBUG]   (Short) dt_hour {dt_hour} not in prediction index")
@@ -288,9 +343,9 @@ class Plugin:
                         #print(f"[DEBUG]   (Short) Exit condition 1 met: current_price {current_price:.5f} <= TP {self.current_tp:.5f}")
                         self.close()
                         return
-                    # Condition 2: predicted_max above SL.
+                    # Condition 2: adjusted predicted_max above SL.
                     if predicted_max > self.current_sl:
-                        #print(f"[DEBUG]   (Short) Exit condition 2 met: predicted_max {predicted_max:.5f} > SL {self.current_sl:.5f}")
+                        #print(f"[DEBUG]   (Short) Exit condition 2 met: adjusted predicted_max {predicted_max:.5f} > SL {self.current_sl:.5f}")
                         self.close()
                         return
                 return  # Do not attempt new entries if still in a position.
@@ -311,33 +366,45 @@ class Plugin:
                 return
             row = self.pred_df.loc[dt_hour]
             try:
-                daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
+                # Retrieve predictions and uncertainties for entry calculation.
+                preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                                for i in range(1, self.num_hourly_preds + 1)]
+                uncs_hourly = [self.pred_df.loc[dt_hour].get(f'Uncertainty_h_{i}', self.p.default_uncertainty_short_term)
+                            for i in range(1, self.num_hourly_preds + 1)]
+                preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                            for i in range(1, self.num_daily_preds + 1)]
+                uncs_daily = [self.pred_df.loc[dt_hour].get(f'Uncertainty_d_{i}', self.p.default_uncertainty_long_term)
+                            for i in range(1, self.num_daily_preds + 1)]
             except KeyError:
                 #print(f"[DEBUG]   Daily prediction keys not found at dt_hour {dt_hour}")
                 return
-            if not daily_preds or all(pd.isna(daily_preds)):
+
+            if not preds_daily or all(pd.isna(preds_daily)):
                 #print(f"[DEBUG]   Daily predictions at {dt_hour} are empty or NaN")
                 return
 
-            # --- Compute entry conditions for long ---
-            ideal_profit_pips_buy = (max(daily_preds) - current_price) / self.p.pip_cost
-            ideal_drawdown_pips_buy = max((current_price - min(daily_preds)) / self.p.pip_cost,
-                                          self.p.min_drawdown_pips)
+            # --- Compute entry conditions for long using uncertainties ---
+            adjusted_maxs_hourly = [p + u for p, u in zip(preds_hourly, uncs_hourly)]
+            adjusted_maxs_daily = [p + u for p, u in zip(preds_daily, uncs_daily)]
+            adjusted_max = max(adjusted_maxs_hourly + adjusted_maxs_daily)
+            adjusted_mins_hourly = [p - u for p, u in zip(preds_hourly, uncs_hourly)]
+            adjusted_mins_daily = [p - u for p, u in zip(preds_daily, uncs_daily)]
+            adjusted_min = min(adjusted_mins_hourly + adjusted_mins_daily)
+            ideal_profit_pips_buy = (adjusted_max - current_price) / self.p.pip_cost
+            ideal_drawdown_pips_buy = max((current_price - adjusted_min) / self.p.pip_cost, self.p.min_drawdown_pips)
             rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
 
-            # --- Compute entry conditions for short ---
-            ideal_profit_pips_sell = (current_price - min(daily_preds)) / self.p.pip_cost
-            ideal_drawdown_pips_sell = max((max(daily_preds) - current_price) / self.p.pip_cost,
-                                           self.p.min_drawdown_pips)
+            # --- Compute entry conditions for short using uncertainties ---
+            ideal_profit_pips_sell = (current_price - adjusted_min) / self.p.pip_cost
+            ideal_drawdown_pips_sell = max((adjusted_max - current_price) / self.p.pip_cost, self.p.min_drawdown_pips)
             rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
             #print(f"[DEBUG]   Entry calculations at {dt}:")
             #print(f"        current_price: {current_price:.5f}")
-            #print(f"        Daily predictions: {daily_preds}")
             #print(f"        Long -> ideal_profit_pips: {ideal_profit_pips_buy:.2f}, ideal_drawdown: {ideal_drawdown_pips_buy:.2f}, RR: {rr_buy:.2f}, TP: {tp_buy:.5f}, SL: {sl_buy:.5f}")
             #print(f"        Short -> ideal_profit_pips: {ideal_profit_pips_sell:.2f}, ideal_drawdown: {ideal_drawdown_pips_sell:.2f}, RR: {rr_sell:.2f}, TP: {tp_sell:.5f}, SL: {sl_sell:.5f}")
 
@@ -381,6 +448,7 @@ class Plugin:
             self.current_tp = chosen_tp
             self.current_sl = chosen_sl
             #print(f"[DEBUG]   Set TP: {self.current_tp:.5f}, SL: {self.current_sl:.5f}")
+
 
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
