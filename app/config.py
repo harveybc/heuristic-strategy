@@ -6,6 +6,11 @@ DEFAULT_VALUES = {
     #"uncertainty_hourly_file":"tests/data/phase_1_transformer_25200_1h_uncertanties.csv",
     #"uncertainty_daily_file": "tests/data/phase_1_transformer_25200_1d_uncertanties.csv",
     #"base_dataset_file": "tests/data/phase_1_base_d3.csv",
+    "hourly_predictions_file": None,
+    "daily_predictions_file": None,
+    "uncertainty_hourly_file":None,
+    "uncertainty_daily_file": None,
+    "base_dataset_file": None,
     
     "date_column": "DATE_TIME",
     "plugin": "default",
