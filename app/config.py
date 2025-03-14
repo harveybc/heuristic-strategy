@@ -5,11 +5,11 @@ DEFAULT_VALUES = {
     #"daily_predictions_file": "tests/data/phase_1_transformer_25200_1d_prediction.csv",
     #"uncertainty_hourly_file":"tests/data/phase_1_transformer_25200_1h_uncertanties.csv",
     #"uncertainty_daily_file": "tests/data/phase_1_transformer_25200_1d_uncertanties.csv",
-    #"base_dataset_file": "tests/data/phase_1_base_d3.csv",
-    #"hourly_predictions_file": None,
-    #daily_predictions_file": None,
-    #"uncertainty_hourly_file":None,
-    #"uncertainty_daily_file": None,
+    "base_dataset_file": "tests/data/phase_1_base_d3.csv",
+    "hourly_predictions_file": None,
+    "daily_predictions_file": None,
+    "uncertainty_hourly_file":None,
+    "uncertainty_daily_file": None,
     
     "date_column": "DATE_TIME",
     "plugin": "default",
@@ -39,6 +39,8 @@ DEFAULT_VALUES = {
     "save_parameters": "parameters.json",
     "load_parameters": None,
     #"use_normalization_json": "tests/data/phase_1_normalizer_debug_out.json",
-    "use_normalization_json": None
+    "use_normalization_json": None,
+    "default_uncertainty_short_term": 0.003,
+    "default_uncertainty_long_term": 0.005,
      
 }
