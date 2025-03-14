@@ -84,10 +84,15 @@ def main():
 
     if config.get('save_config'):
         try:
-            save_config(config, config['save_config'])
+            # Ensure all non-serializable objects are converted
+            serializable_config = {key: (value.to_dict() if isinstance(value, pd.DataFrame) else value)
+                                for key, value in config.items()}
+            
+            save_config(serializable_config, config['save_config'])
             print(f"Configuration saved to {config['save_config']}.")
         except Exception as e:
             print(f"Failed to save configuration locally: {e}")
+
 
     if config.get('remote_save_config'):
         print(f"Remote saving configuration to {config['remote_save_config']}")
