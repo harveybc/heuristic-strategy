@@ -27,7 +27,7 @@ class Plugin:
         'upper_rr_threshold': 2.0,
         'max_trades_per_5days': 3,
         # Default uncertainty values used if none are provided:
-        'default_uncertainty_short_term': 0.002,
+        'default_uncertainty_short_term': 0.003,
         'default_uncertainty_long_term': 0.005,
     }
 
@@ -84,17 +84,28 @@ class Plugin:
         dr = daily_predictions.rename(columns=renamed_d)
         merged_df = merged_df.join(dr, how="outer")
 
-        # Merge uncertainties from config if available; otherwise use default values.
+        # --- Merge uncertainties from config (which were preprocessed by the data processor) ---
+        # If uncertainties are not provided, create DataFrames using default constant values.
         uncertainty_hourly = config.get("uncertainty_hourly")
         if uncertainty_hourly is None:
             default_val = self.params.get('default_uncertainty_short_term', 0.0)
             uncertainty_hourly = pd.DataFrame(default_val, index=hourly_predictions.index,
                                                columns=[f"Uncertainty_h_{i+1}" for i in range(hourly_predictions.shape[1])])
+        else:
+            # If the file was loaded from file, rename its columns.
+            uncertainty_hourly = uncertainty_hourly.rename(
+                columns=lambda x: f"Uncertainty_h_{x.split('_')[-1]}" if x.startswith("Uncertainty_") and not x.startswith("Uncertainty_h_") else x
+            )
         uncertainty_daily = config.get("uncertainty_daily")
         if uncertainty_daily is None:
             default_val = self.params.get('default_uncertainty_long_term', 0.0)
             uncertainty_daily = pd.DataFrame(default_val, index=daily_predictions.index,
                                               columns=[f"Uncertainty_d_{i+1}" for i in range(daily_predictions.shape[1])])
+        else:
+            uncertainty_daily = uncertainty_daily.rename(
+                columns=lambda x: f"Uncertainty_d_{x.split('_')[-1]}" if x.startswith("Uncertainty_") and not x.startswith("Uncertainty_d_") else x
+            )
+
         merged_df = merged_df.join(uncertainty_hourly, how="inner")
         merged_df = merged_df.join(uncertainty_daily, how="inner")
 
@@ -158,7 +169,6 @@ class Plugin:
             win_pct = (wins / num_trades) * 100
             max_dd = max(tr['max_dd'] for tr in trades_list)
             profits = [tr['pnl'] for tr in trades_list]
-            avg_profit = sum(profits) / num_trades
             std_profit = np.std(profits) if num_trades > 1 else 0
             sharpe = (profit / std_profit) if std_profit > 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
