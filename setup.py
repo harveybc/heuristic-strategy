@@ -10,8 +10,8 @@ setup(
             'heuristic_strategy=app.main:main'
         ],
         'heuristic_strategy.plugins': [
-            'default=heuristic_strategy_plugins.plugins.plugin_long_short_predictions:Plugin',
-            'ls_pred_strategy=heuristic_strategy_plugins.plugins.plugin_long_short_predictions:Plugin'
+            'default=heuristic_strategy_plugins.plugin_long_short_predictions:Plugin',
+            'ls_pred_strategy=heuristic_strategy_plugins.plugin_long_short_predictions:Plugin'
         ]
     },
     install_requires=[
