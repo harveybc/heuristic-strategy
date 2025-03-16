@@ -3,7 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name='heuristic_strategy',
     version='0.1.0',
-    packages=find_packages(),
+    packages=find_packages(where='.', include=['app', 'app.*']),
+    package_dir={'': '.'},
     entry_points={
         'console_scripts': [
             'heuristic_strategy=app.main:main'
@@ -14,7 +15,7 @@ setup(
         ]
     },
     install_requires=[
-        
+        # your dependencies here
     ],
     author='Harvey Bastidas',
     author_email='your.email@example.com',
