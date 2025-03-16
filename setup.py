@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='heuristic_strategy',
     version='0.1.0',
-    packages=find_packages(where='.', include=['app', 'app.*']),
+    packages=find_packages(where='.', include=['app', 'app.*', 'heuristic_strategy_plugins', 'heuristic_strategy_plugins.*']),
     package_dir={'': '.'},
     entry_points={
         'console_scripts': [
