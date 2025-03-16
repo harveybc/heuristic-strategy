@@ -173,13 +173,28 @@ class Plugin:
             sharpe = (profit / std_profit) if std_profit > 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
+        # --- New functionality: Calculate risk as maximum drawdown ratio over balance history ---
+        balance_history = strat_instance.balance_history
+        running_max = -float('inf')
+        max_drawdown_ratio = 0.0
+        for b in balance_history:
+            if b > running_max:
+                running_max = b
+            else:
+                drawdown_ratio = (running_max - b) / running_max if running_max != 0 else 0
+                if drawdown_ratio > max_drawdown_ratio:
+                    max_drawdown_ratio = drawdown_ratio
+        stats["risk"] = max_drawdown_ratio
+
         print(f"[EVALUATE] Candidate result => Profit: {profit:.2f}, "
               f"Trades: {stats.get('num_trades', 0)}, "
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-              f"Sharpe: {stats.get('sharpe', 0):.2f}")
+              f"Sharpe: {stats.get('sharpe', 0):.2f}",
+              f"Risk: {stats.get('risk', 0):.2f}")
 
         return (profit, stats)
+
 
 
     class HeuristicStrategy(bt.Strategy):
