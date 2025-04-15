@@ -42,5 +42,10 @@ DEFAULT_VALUES = {
     "use_normalization_json": None,
     "default_uncertainty_short_term": 0.003,
     "default_uncertainty_long_term": 0.005,
+    "daily_columns": ["Prediction_H24", "Prediction_H48", "Prediction_H72", "Prediction_H96", "Prediction_H120", "Prediction_H144"],
+    "hourly_columns": ["Prediction_H1", "Prediction_H2", "Prediction_H3", "Prediction_H4", "Prediction_H5", "Prediction_H6"],
+    "uncertainty_daily_columns": ["Uncertainty_H24", "Uncertainty_H48", "Uncertainty_H72", "Uncertainty_H96", "Uncertainty_H120", "Uncertainty_H144"],
+    "uncertainty_hourly_columns": ["Uncertainty_H1", "Uncertainty_H2", "Uncertainty_H3", "Uncertainty_H4", "Uncertainty_H5", "Uncertainty_H6"]
+    
      
 }
