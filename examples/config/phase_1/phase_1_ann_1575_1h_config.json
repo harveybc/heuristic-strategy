@@ -1,12 +1,14 @@
 {
     "hourly_predictions_file": "examples/results/phase_1/phase_1_ann_1575_1h_prediction.csv",
     "daily_predictions_file": "examples/results/phase_1/phase_1_ann_1575_1d_prediction.csv",
+    "uncertainty_hourly_file":"examples/results/phase_1/phase_1_ann_1575_1h_uncertanties.csv",
+    "uncertainty_daily_file": "examples/results/phase_1/phase_1_ann_1575_1d_uncertanties.csv",
     "base_dataset_file": "examples/data/phase_1_base_d3.csv",
     "date_column": "DATE_TIME",
     "plugin": "default",
     "time_horizon": 6,
-    "population_size": 20,
-    "num_generations": 30,
+    "population_size": 5,
+    "num_generations": 10,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
     "load_config": null,
@@ -21,13 +23,17 @@
     "force_date": false,
     "headers": true,
     "disable_multiprocessing": true,
-    "balance_plot_file": "balance_plot.png",
-    "trades_csv_file": "trades.csv",
-    "summary_csv_file": "summary.csv",
+    "balance_plot_file": "examples/results/phase_1/phase_1_ann_1575_balance_plot.png",
+    "trades_csv_file": "examples/results/phase_1/phase_1_ann_1575_trades.csv",
+    "summary_csv_file": "examples/results/phase_1/phase_1_ann_1575_summary.csv",
     "strategy_name": "Heuristic Strategy",
     "max_steps": 6300,
     "save_parameters": "parameters.json",
     "load_parameters": null,
-    "use_normalization_json": null
-
+    "use_normalization_json": null,
+    "default_uncertainty_short_term": 0.003,
+    "default_uncertainty_long_term": 0.005,
+    "max_trades_per_5days": 3,
+    "rel_volume": 0.02
+     
 }
