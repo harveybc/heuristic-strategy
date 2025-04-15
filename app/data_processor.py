@@ -149,8 +149,87 @@ def process_data(config):
         if uncertainty_daily_df is not None:
             uncertainty_daily_df = uncertainty_daily_df.iloc[:max_steps]
 
-    # Print aligned date ranges and shapes.
+
+
+    # ----- START: Insert this code block -----
+
+    # Select only the configured columns for each dataframe AFTER alignment and truncation
+    # The DATE_TIME column is already set as the index by ensure_datetime
+
+    print("Selecting configured columns...")
+
+    # Select configured hourly prediction columns
+    if "hourly_columns" in config:
+        try:
+            # Ensure all specified columns exist before selection
+            missing_cols = [col for col in config["hourly_columns"] if col not in hourly_df.columns]
+            if missing_cols:
+                raise ValueError(f"Missing required hourly columns: {missing_cols}")
+            hourly_df = hourly_df[config["hourly_columns"]]
+            print(f"Selected hourly columns: {list(hourly_df.columns)}")
+        except KeyError as e:
+            raise KeyError(f"Error selecting hourly columns: {e}. Check config['hourly_columns'] and the input file.") from e
+        except ValueError as e:
+            raise ValueError(f"Error validating hourly columns: {e}") from e
+    else:
+        print("Warning: 'hourly_columns' not specified in config. Returning all available columns for hourly predictions.")
+
+    # Select configured daily prediction columns
+    if "daily_columns" in config:
+        try:
+            # Ensure all specified columns exist before selection
+            missing_cols = [col for col in config["daily_columns"] if col not in daily_df.columns]
+            if missing_cols:
+                raise ValueError(f"Missing required daily columns: {missing_cols}")
+            daily_df = daily_df[config["daily_columns"]]
+            print(f"Selected daily columns: {list(daily_df.columns)}")
+        except KeyError as e:
+            raise KeyError(f"Error selecting daily columns: {e}. Check config['daily_columns'] and the input file.") from e
+        except ValueError as e:
+            raise ValueError(f"Error validating daily columns: {e}") from e
+    else:
+        print("Warning: 'daily_columns' not specified in config. Returning all available columns for daily predictions.")
+
+    # Select configured hourly uncertainty columns (if dataframe exists)
+    if uncertainty_hourly_df is not None:
+        if "uncertainty_hourly_columns" in config:
+            try:
+                # Ensure all specified columns exist before selection
+                missing_cols = [col for col in config["uncertainty_hourly_columns"] if col not in uncertainty_hourly_df.columns]
+                if missing_cols:
+                    raise ValueError(f"Missing required uncertainty hourly columns: {missing_cols}")
+                uncertainty_hourly_df = uncertainty_hourly_df[config["uncertainty_hourly_columns"]]
+                print(f"Selected uncertainty hourly columns: {list(uncertainty_hourly_df.columns)}")
+            except KeyError as e:
+                raise KeyError(f"Error selecting uncertainty hourly columns: {e}. Check config['uncertainty_hourly_columns'] and the input file.") from e
+            except ValueError as e:
+                raise ValueError(f"Error validating uncertainty hourly columns: {e}") from e
+        else:
+            print("Warning: 'uncertainty_hourly_columns' not specified in config. Returning all available columns for hourly uncertainty.")
+
+    # Select configured daily uncertainty columns (if dataframe exists)
+    if uncertainty_daily_df is not None:
+        if "uncertainty_daily_columns" in config:
+            try:
+                # Ensure all specified columns exist before selection
+                missing_cols = [col for col in config["uncertainty_daily_columns"] if col not in uncertainty_daily_df.columns]
+                if missing_cols:
+                    raise ValueError(f"Missing required uncertainty daily columns: {missing_cols}")
+                uncertainty_daily_df = uncertainty_daily_df[config["uncertainty_daily_columns"]]
+                print(f"Selected uncertainty daily columns: {list(uncertainty_daily_df.columns)}")
+            except KeyError as e:
+                raise KeyError(f"Error selecting uncertainty daily columns: {e}. Check config['uncertainty_daily_columns'] and the input file.") from e
+            except ValueError as e:
+                raise ValueError(f"Error validating uncertainty daily columns: {e}") from e
+        else:
+            print("Warning: 'uncertainty_daily_columns' not specified in config. Returning all available columns for daily uncertainty.")
+
+    # ----- END: Insert this code block -----
+
+
+    # Print aligned date ranges and shapes.  <-- Existing code starts here
     print(f"Aligned Base dataset range: {base_df.index.min()} to {base_df.index.max()}")
+    # ... (rest of the existing print statements and the return statement) ...
     print(f"Aligned Hourly predictions range: {hourly_df.index.min()} to {hourly_df.index.max()}")
     print(f"Aligned Daily predictions range: {daily_df.index.min()} to {daily_df.index.max()}")
     if uncertainty_hourly_df is not None:
