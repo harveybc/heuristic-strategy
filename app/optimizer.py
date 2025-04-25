@@ -202,6 +202,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     return {
         "best_parameters": best_params,
         "profit": best_ind.fitness.values[0],
+        "stats": best_ind.stats
     }
 
 if __name__ == '__main__':
