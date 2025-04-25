@@ -199,9 +199,18 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         except Exception as e:
             print(f"Failed to save best parameters to {config['save_config']}: {e}")
 
+    # Evaluate the best individual one more time to extract stats
+    result = _plugin.evaluate_candidate(best_ind, _base_data, _hourly_predictions, _daily_predictions, _config)
+    if isinstance(result, tuple) and len(result) == 2:
+        profit, stats = result
+    else:
+        profit = result[0] if isinstance(result, tuple) else result
+        stats = {}
+
     return {
         "best_parameters": best_params,
-        "profit": best_ind.fitness.values[0],
+        "profit": profit,
+        "stats": stats,
     }
 
 if __name__ == '__main__':
