@@ -61,11 +61,11 @@ def evaluate_individual(individual):
     # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
-        return result
+        return (result, {})
     else:
         # Fallback: assume result is a single numeric value.
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
-        return (result,)
+        return (result,{})
 
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
