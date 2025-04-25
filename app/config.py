@@ -1,11 +1,11 @@
 # config.py
 
 DEFAULT_VALUES = {
-    "hourly_predictions_file": "tests/data/phase_1_transformer_25200_1h_prediction.csv",
-    "daily_predictions_file": "tests/data/phase_1_transformer_25200_1d_prediction.csv",
-    "uncertainty_hourly_file":"tests/data/phase_1_transformer_25200_1h_uncertanties.csv",
-    "uncertainty_daily_file": "tests/data/phase_1_transformer_25200_1d_uncertanties.csv",
-    "base_dataset_file": "tests/data/phase_1_base_d3.csv",
+    "hourly_predictions_file": "examples/data/phase_1/phase_1_transformer_25200_1h_prediction.csv",
+    "daily_predictions_file": "examples/data/phase_1_daily/phase_1_transformer_25200_1d_prediction.csv",
+    "uncertainty_hourly_file":"examples/data/phase_1/phase_1_transformer_25200_1h_uncertanties.csv",
+    "uncertainty_daily_file": "examples/data/phase_1_daily/phase_1_transformer_25200_1d_uncertanties.csv",
+    "base_dataset_file": "examples/data/phase_1/phase_1_base_d3.csv",
     #"hourly_predictions_file": None,
     #"daily_predictions_file": None,
     #"uncertainty_hourly_file":None,
@@ -38,7 +38,7 @@ DEFAULT_VALUES = {
     "max_steps": 6300,
     "save_parameters": "parameters.json",
     "load_parameters": None,
-    #"use_normalization_json": "tests/data/phase_1_normalizer_debug_out.json",
+    #"use_normalization_json": "tests/data/phase_1/phase_1_normalizer_debug_out.json",
     "use_normalization_json": None,
     "default_uncertainty_short_term": 0.003,
     "default_uncertainty_long_term": 0.005,
