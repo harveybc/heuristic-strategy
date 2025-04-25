@@ -128,20 +128,18 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
             for ind in population:
-                fit = toolbox.evaluate(ind)
-                (f,stats) = fit
-                ind.fitness.values = f
-                fitnesses.append(f)
+                f, stats = toolbox.evaluate(ind)
+                ind.fitness.values = (f,)
+                fitnesses.append((f,))
                 pbar.update(1)
     else:
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
-            for fit,stats in toolbox.map(toolbox.evaluate, population):
-                fitnesses.append(fit)
+            for fit, stats in toolbox.map(toolbox.evaluate, population):
+                fitnesses.append((fit,))
                 pbar.update(1)
         for ind, f in zip(population, fitnesses):
             ind.fitness.values = f
-
     print(f"  Evaluated {len(population)} individuals initially.")
 
     for gen in range(1, num_generations):
@@ -164,18 +162,17 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         if disable_mp:
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
                 for ind in invalid_ind:
-                    fit,stats = toolbox.evaluate(ind)
-                    ind.fitness.values = fit
+                    fit, stats = toolbox.evaluate(ind)
+                    ind.fitness.values = (fit,)
                     pbar.update(1)
         else:
             fitnesses = []
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
-                for fit,stats in toolbox.map(toolbox.evaluate, invalid_ind):
-                    fitnesses.append(fit)
+                for fit, stats in toolbox.map(toolbox.evaluate, invalid_ind):
+                    fitnesses.append((fit,))
                     pbar.update(1)
             for ind, f in zip(invalid_ind, fitnesses):
                 ind.fitness.values = f
-
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
         print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits) / len(fits):.2f}")
