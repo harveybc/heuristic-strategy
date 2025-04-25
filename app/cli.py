@@ -10,7 +10,7 @@ def parse_args():
     parser.add_argument('--base_dataset_file', type=str, help='Path to the CSV file with actual rates (base dataset).')
     parser.add_argument('--date_column', type=str, help='Name of the date/time column in the CSV files.')
     parser.add_argument('--predictor_hourly_config_file', type=str, help='Path to the configuration file for the hourly predictor, overrides the hourly predictions and uncertainties files.')
-    parser.add_argument('--predictor_hourly_config_file', type=str, help='Path to the configuration file for the daily predictor, overrides the daily predictions and uncertainties files.')
+    parser.add_argument('--predictor_daily_config_file', type=str, help='Path to the configuration file for the daily predictor, overrides the daily predictions and uncertainties files.')
     
     # Plugin selection
     parser.add_argument('--plugin', type=str, help='Name of the strategy plugin to use.')
