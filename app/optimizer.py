@@ -128,9 +128,10 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
             for ind in population:
-                fit,stats = toolbox.evaluate(ind)
-                ind.fitness.values = fit
-                fitnesses.append(fit)
+                fit = toolbox.evaluate(ind)
+                f,stats = fit
+                ind.fitness.values = f
+                fitnesses.append(f)
                 pbar.update(1)
     else:
         fitnesses = []
