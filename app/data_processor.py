@@ -387,7 +387,8 @@ def run_processing_pipeline(config, plugin):
                 "lower_rr_threshold": candidate[3],
                 "upper_rr_threshold": candidate[4],
                 "time_horizon": candidate[5]
-            }, "profit": result[0]}
+            }, "profit": result[0], 
+                "stats": result[1]}
         else:
             trading_info = {}
     else:

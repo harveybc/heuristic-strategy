@@ -57,7 +57,7 @@ def evaluate_individual(individual):
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
               f"Sharpe: {stats.get('sharpe', 0):.2f}")
-        return (profit,)
+        return (profit, stats)
     # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
