@@ -404,7 +404,10 @@ def run_processing_pipeline(config, plugin):
     else:
         if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
             print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
-            trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
+            # Run optimizer and then flatten the 'stats' dict into top-level keys
+            _raw_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
+            _stats = _raw_info.pop("stats", {}) or {}
+            trading_info = {**_stats, **_raw_info}
         else:
             print("\nPlugin does not support optimization. Exiting.")
             trading_info = {}
