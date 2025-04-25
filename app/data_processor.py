@@ -89,14 +89,22 @@ def process_data(config):
         config["hourly_predictions_file"] = predictor_hourly_config.get("output_file")
         config["uncertainty_hourly_file"] = predictor_hourly_config.get("uncertainties_file")
 
-
-
     if config.get("predictor_daily_config_file"):
         print(f"Loading daily predictor config from {config['predictor_daily_config_file']}")
         with open(config["predictor_daily_config_file"], "r") as f:
             predictor_daily_config = json.load(f)
         config["daily_predictions_file"] = predictor_daily_config.get("output_file")
         config["uncertainty_daily_file"] = predictor_daily_config.get("uncertainties_file")
+        # Extract the base filename path as the predictor_daily_config_file except its extension
+        base_filename = config["predictor_daily_config_file"].rsplit(".", 1)[0]
+        config["save_config"] = base_filename + "_config_out.json"
+        config["save_log"] = base_filename + "_debug_log.json"
+        config["balance_plot_file"] = base_filename + "_balance_plot.png"
+        config["trades_csv_file"] = base_filename + "_trades.csv"
+        config["summary_csv_file"] = base_filename + "_summary.csv"
+        config["save_parameters"] = base_filename + "_parameters.json"
+
+        
 
     # Load predictions and base
     hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
@@ -122,7 +130,7 @@ def process_data(config):
     # Load uncertainties if available
     uncertainty_hourly_df = None
     uncertainty_daily_df = None
-    
+
 
     if config.get("uncertainty_hourly_file"):
         uncertainty_hourly_df = load_csv(config["uncertainty_hourly_file"], headers=headers)
