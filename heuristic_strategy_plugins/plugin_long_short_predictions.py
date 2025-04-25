@@ -34,6 +34,7 @@ class Plugin:
     def __init__(self):
         self.params = self.plugin_params.copy()
         self.trades = []
+        self.stats = {}
 
     def set_params(self, **kwargs):
         """Update plugin parameters dynamically."""
@@ -192,7 +193,7 @@ class Plugin:
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
               f"Sharpe: {stats.get('sharpe', 0):.2f}",
               f"Risk: {stats.get('risk', 0):.2f}")
-
+        self.stats = stats
         return (profit, stats)
 
 

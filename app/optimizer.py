@@ -57,7 +57,7 @@ def evaluate_individual(individual):
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
               f"Sharpe: {stats.get('sharpe', 0):.2f}")
-        return (profit, stats)
+        return (profit,)
     # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
@@ -128,14 +128,14 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
             for ind in population:
-                fit,stats = toolbox.evaluate(ind)
+                fit = toolbox.evaluate(ind)
                 ind.fitness.values = fit
                 fitnesses.append(fit)
                 pbar.update(1)
     else:
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
-            for  (fit,stats) in toolbox.map(toolbox.evaluate, population):
+            for fit in toolbox.map(toolbox.evaluate, population):
                 fitnesses.append(fit)
                 pbar.update(1)
         for ind, f in zip(population, fitnesses):
@@ -163,13 +163,13 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         if disable_mp:
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
                 for ind in invalid_ind:
-                    fit,stats = toolbox.evaluate(ind)
+                    fit = toolbox.evaluate(ind)
                     ind.fitness.values = fit
                     pbar.update(1)
         else:
             fitnesses = []
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
-                for fit in toolbox.map(toolbox.evaluate[0], invalid_ind):
+                for fit in toolbox.map(toolbox.evaluate, invalid_ind):
                     fitnesses.append(fit)
                     pbar.update(1)
             for ind, f in zip(invalid_ind, fitnesses):
