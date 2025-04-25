@@ -96,7 +96,7 @@ def process_data(config):
         config["daily_predictions_file"] = predictor_daily_config.get("output_file")
         config["uncertainty_daily_file"] = predictor_daily_config.get("uncertainties_file")
         # Extract the base filename path as the predictor_daily_config_file except its extension
-        base_filename = predictor_daily_config.get("results_file")
+        base_filename = predictor_daily_config.get("output_file")
         base_filename = base_filename.rsplit(".", 1)[0]
         config["save_config"] = base_filename + "_config_out.json"
         config["save_log"] = base_filename + "_debug_log.json"
