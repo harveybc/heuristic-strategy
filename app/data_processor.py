@@ -381,15 +381,24 @@ def run_processing_pipeline(config, plugin):
             print(f"Evaluating strategy with loaded parameters: {candidate}")
             init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
             result = evaluate_individual(candidate)
-            trading_info = {"best_parameters": {
-                "profit_threshold": candidate[0],
-                "tp_multiplier": candidate[1],
-                "sl_multiplier": candidate[2],
-                "lower_rr_threshold": candidate[3],
-                "upper_rr_threshold": candidate[4],
-                "time_horizon": candidate[5]
-            }, "profit": result[0], 
-                "stats": result[1]}
+
+
+            # Unpack result into profit and stats
+            profit, stats = result
+
+            # Build trading_info with profit plus one entry per stat key/value
+            trading_info = {
+                "profit": profit,
+                **stats,
+                "best_parameters": {
+                    "profit_threshold": candidate[0],
+                    "tp_multiplier":    candidate[1],
+                    "sl_multiplier":    candidate[2],
+                    "lower_rr_threshold": candidate[3],
+                    "upper_rr_threshold": candidate[4],
+                    "time_horizon":     candidate[5]
+                }
+            }
         else:
             trading_info = {}
     else:
