@@ -442,7 +442,9 @@ def run_processing_pipeline(config, plugin):
     summary_csv = config.get("summary_csv_file")
     if summary_csv:
         try:
-            df = pd.DataFrame([trading_info])
+            info = trading_info.copy()
+            info.pop("best_parameters", None)
+            df = pd.DataFrame([info])
             df.to_csv(summary_csv, index=False)
             print(f"Summary saved to {summary_csv}.")
         except Exception as e:
