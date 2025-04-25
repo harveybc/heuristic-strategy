@@ -93,17 +93,19 @@ def process_data(config):
         print(f"Loading daily predictor config from {config['predictor_daily_config_file']}")
         with open(config["predictor_daily_config_file"], "r") as f:
             predictor_daily_config = json.load(f)
-        config["daily_predictions_file"] = predictor_daily_config.get("output_file")
+        output_file = predictor_daily_config.get("output_file")
+        if not output_file:
+            raise ValueError("predictor_daily_config_file did not specify 'output_file'")
+        config["daily_predictions_file"] = output_file
         config["uncertainty_daily_file"] = predictor_daily_config.get("uncertainties_file")
-        # Extract the base filename path as the predictor_daily_config_file except its extension
-        base_filename = config["daily_predictions_file"]
-        base_filename = base_filename.rsplit(".", 1)[0]
-        config["save_config"] = base_filename + "_config_out.json"
-        config["save_log"] = base_filename + "_debug_log.json"
-        config["balance_plot_file"] = base_filename + "_balance_plot.png"
-        config["trades_csv_file"] = base_filename + "_trades.csv"
-        config["summary_csv_file"] = base_filename + "_summary.csv"
-        config["save_parameters"] = base_filename + "_parameters.json"
+        # Extract the base filename path as the daily_predictions_file except its extension
+        base_filename = output_file.rsplit(".", 1)[0]
+        config["save_config"] = f"{base_filename}_config_out.json"
+        config["save_log"] = f"{base_filename}_debug_log.json"
+        config["balance_plot_file"] = f"{base_filename}_balance_plot.png"
+        config["trades_csv_file"] = f"{base_filename}_trades.csv"
+        config["summary_csv_file"] = f"{base_filename}_summary.csv"
+        config["save_parameters"] = f"{base_filename}_parameters.json"
 
         
 
