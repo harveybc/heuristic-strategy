@@ -163,8 +163,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
                 for ind in invalid_ind:
                     fit, stats = toolbox.evaluate(ind)
-                    ind.fitness.values = (fit,)
-                    ind["stats"] = stats
+                    ind.fitness.values = (fit, stats)
+
                     pbar.update(1)
         else:
             fitnesses = []
@@ -201,7 +201,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     return {
         "best_parameters": best_params,
         "profit": best_ind.fitness.values[0],
-        "stats": best_ind["stats"]
+        "stats": best_ind.stats
     }
 
 if __name__ == '__main__':
