@@ -57,15 +57,15 @@ def evaluate_individual(individual):
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
               f"Sharpe: {stats.get('sharpe', 0):.2f}")
-        return (profit, stats)
+        return (profit,)
     # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
-        return (result, {})
+        return result
     else:
         # Fallback: assume result is a single numeric value.
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
-        return (result,{})
+        return (result,)
 
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
@@ -128,18 +128,19 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
             for ind in population:
-                f, stats = toolbox.evaluate(ind)
-                ind.fitness.values = (f,stats)
-                fitnesses.append((f,stats))
+                fit = toolbox.evaluate(ind)
+                ind.fitness.values = fit
+                fitnesses.append(fit)
                 pbar.update(1)
     else:
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
-            for fit, stats in toolbox.map(toolbox.evaluate, population):
-                fitnesses.append((fit,stats))
+            for fit in toolbox.map(toolbox.evaluate, population):
+                fitnesses.append(fit)
                 pbar.update(1)
         for ind, f in zip(population, fitnesses):
             ind.fitness.values = f
+
     print(f"  Evaluated {len(population)} individuals initially.")
 
     for gen in range(1, num_generations):
@@ -162,18 +163,18 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         if disable_mp:
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
                 for ind in invalid_ind:
-                    fit, stats = toolbox.evaluate(ind)
-                    ind.fitness.values = (fit, stats)
-
+                    fit = toolbox.evaluate(ind)
+                    ind.fitness.values = fit
                     pbar.update(1)
         else:
             fitnesses = []
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
-                for fit, stats in toolbox.map(toolbox.evaluate, invalid_ind):
-                    fitnesses.append((fit,stats))
+                for fit in toolbox.map(toolbox.evaluate, invalid_ind):
+                    fitnesses.append(fit)
                     pbar.update(1)
             for ind, f in zip(invalid_ind, fitnesses):
                 ind.fitness.values = f
+
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
         print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits) / len(fits):.2f}")
@@ -201,7 +202,6 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     return {
         "best_parameters": best_params,
         "profit": best_ind.fitness.values[0],
-        "stats": best_ind.fitness.values[1]
     }
 
 if __name__ == '__main__':
