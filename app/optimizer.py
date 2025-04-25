@@ -164,7 +164,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                 for ind in invalid_ind:
                     fit, stats = toolbox.evaluate(ind)
                     ind.fitness.values = (fit,)
-                    ind.stats = stats
+                    ind["stats"] = stats
                     pbar.update(1)
         else:
             fitnesses = []
