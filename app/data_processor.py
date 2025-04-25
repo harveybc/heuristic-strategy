@@ -93,21 +93,17 @@ def process_data(config):
         print(f"Loading daily predictor config from {config['predictor_daily_config_file']}")
         with open(config["predictor_daily_config_file"], "r") as f:
             predictor_daily_config = json.load(f)
-        output_file = predictor_daily_config.get("output_file")
-        # Validate and assign output file for daily predictions
-        if not isinstance(output_file, str) or not output_file.strip():
-            raise ValueError(f"predictor_daily_config_file must specify a valid 'output_file' string, got {output_file!r}")
-        config["daily_predictions_file"] = output_file
+        config["daily_predictions_file"] = predictor_daily_config.get("output_file")
         config["uncertainty_daily_file"] = predictor_daily_config.get("uncertainties_file")
-        # Extract base filename path using os.path.splitext for safety
-        import os
-        base_filename = os.path.splitext(output_file)[0]
-        config["save_config"] = f"{base_filename}_config_out.json"
-        config["save_log"] = f"{base_filename}_debug_log.json"
-        config["balance_plot_file"] = f"{base_filename}_balance_plot.png"
-        config["trades_csv_file"] = f"{base_filename}_trades.csv"
-        config["summary_csv_file"] = f"{base_filename}_summary.csv"
-        config["save_parameters"] = f"{base_filename}_parameters.json"
+        # Extract the base filename path as the predictor_daily_config_file except its extension
+        base_filename = predictor_daily_config.get("results_file")
+        base_filename = base_filename.rsplit(".", 1)[0]
+        config["save_config"] = base_filename + "_config_out.json"
+        config["save_log"] = base_filename + "_debug_log.json"
+        config["balance_plot_file"] = base_filename + "_balance_plot.png"
+        config["trades_csv_file"] = base_filename + "_trades.csv"
+        config["summary_csv_file"] = base_filename + "_summary.csv"
+        config["save_parameters"] = base_filename + "_parameters.json"
 
         
 
