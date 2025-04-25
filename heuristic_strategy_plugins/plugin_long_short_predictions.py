@@ -171,7 +171,11 @@ class Plugin:
             max_dd = max(tr['max_dd'] for tr in trades_list)
             profits = [tr['pnl'] for tr in trades_list]
             std_profit = np.std(profits) if num_trades > 1 else 0
-            sharpe = (profit / std_profit) if std_profit > 0 else 0
+            risk_free_rate = 0.1
+            initial_capital = 10000.0
+            risk_free_return = initial_capital * risk_free_rate
+            excess_profit = profit - risk_free_return
+            sharpe = excess_profit / std_profit if std_profit > 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
         # --- New functionality: Calculate risk as maximum drawdown ratio over balance history ---
