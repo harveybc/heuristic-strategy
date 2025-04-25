@@ -39,7 +39,7 @@ DEFAULT_VALUES = {
     "strategy_name": "Heuristic Strategy",
     "max_steps": 6300,
     "save_parameters": "examples/results/phase_1_daily/phase_1_transformer_25200_1d_parameters.json",
-    "load_parameters": None,
+    "load_parameters": "parameters.json",
     #"use_normalization_json": "tests/data/phase_1/phase_1_normalizer_debug_out.json",
     "use_normalization_json": None,
     "default_uncertainty_short_term": 0.003,
