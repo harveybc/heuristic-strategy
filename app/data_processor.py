@@ -407,7 +407,7 @@ def run_processing_pipeline(config, plugin):
             # Run optimizer and then flatten the 'stats' dict into top-level keys
             _raw_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
             _stats = _raw_info.pop("stats", {}) or {}
-            trading_info = {**_raw_info, **_stats}
+            trading_info = {"initial_capital":10000,**_raw_info, **_stats}
         else:
             print("\nPlugin does not support optimization. Exiting.")
             trading_info = {}
