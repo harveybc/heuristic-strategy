@@ -1,10 +1,10 @@
 # config.py
 
 DEFAULT_VALUES = {
-    "hourly_predictions_file": "examples/data/phase_1/phase_1_transformer_25200_1h_prediction.csv",
-    "daily_predictions_file": "examples/data/phase_1_daily/phase_1_transformer_25200_1d_prediction.csv",
-    "uncertainty_hourly_file":"examples/data/phase_1/phase_1_transformer_25200_1h_uncertanties.csv",
-    "uncertainty_daily_file": "examples/data/phase_1_daily/phase_1_transformer_25200_1d_uncertanties.csv",
+    "hourly_predictions_file": "examples/results/phase_1/phase_1_transformer_25200_1h_prediction.csv",
+    "daily_predictions_file": "examples/results/phase_1_daily/phase_1_transformer_25200_1d_prediction.csv",
+    "uncertainty_hourly_file":"examples/results/phase_1/phase_1_transformer_25200_1h_uncertanties.csv",
+    "uncertainty_daily_file": "examples/results/phase_1_daily/phase_1_transformer_25200_1d_uncertanties.csv",
     "base_dataset_file": "examples/data/phase_1/phase_1_base_d3.csv",
     #"hourly_predictions_file": None,
     #"daily_predictions_file": None,
