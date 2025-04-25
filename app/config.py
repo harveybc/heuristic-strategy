@@ -10,8 +10,8 @@ DEFAULT_VALUES = {
     #"daily_predictions_file": None,
     #"uncertainty_hourly_file":None,
     #"uncertainty_daily_file": None,
-    "predictor_hourly_config_file": "examples/config/phase_1/phase_1_transformer_25200_1h_config.json",
-    "predictor_daily_config_file": "examples/config/phase_1_daily/phase_1_transformer_25200_1d_config.json",
+    "predictor_hourly_config_file": "examples/config/phase_1/phase_1_ann_25200_1h_config.json",
+    "predictor_daily_config_file": "examples/config/phase_1_daily/phase_1_ann_25200_1d_config.json",
     
     "date_column": "DATE_TIME",
     "plugin": "default",
