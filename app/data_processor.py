@@ -3,6 +3,8 @@ import numpy as np
 import time
 from app.data_handler import load_csv
 from app.optimizer import run_optimizer
+from sklearn.metrics import mean_absolute_error, r2_score
+import json
 
 # =============================================================================
 # DATA PROCESSOR FOR TRADING STRATEGY OPTIMIZATION
@@ -74,6 +76,28 @@ def process_data(config):
     headers = config.get("headers", True)
     print("Loading datasets...")
 
+    # Load predictor json configuration files if provided
+    hourly_predictions_file = None
+    daily_predictions_file = None
+    uncertainty_hourly_file = None
+    uncertainty_daily_file = None
+
+    if config.get("predictor_hourly_config_file"):
+        print(f"Loading hourly predictor config from {config['predictor_hourly_config_file']}")
+        with open(config["predictor_hourly_config_file"], "r") as f:
+            predictor_hourly_config = json.load(f)
+        config["hourly_predictions_file"] = predictor_hourly_config.get("output_file")
+        config["uncertainty_hourly_file"] = predictor_hourly_config.get("uncertainties_file")
+
+
+
+    if config.get("predictor_daily_config_file"):
+        print(f"Loading daily predictor config from {config['predictor_daily_config_file']}")
+        with open(config["predictor_daily_config_file"], "r") as f:
+            predictor_daily_config = json.load(f)
+        config["daily_predictions_file"] = predictor_daily_config.get("output_file")
+        config["uncertainty_daily_file"] = predictor_daily_config.get("uncertainties_file")
+
     # Load predictions and base
     hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
     daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
@@ -98,6 +122,8 @@ def process_data(config):
     # Load uncertainties if available
     uncertainty_hourly_df = None
     uncertainty_daily_df = None
+    
+
     if config.get("uncertainty_hourly_file"):
         uncertainty_hourly_df = load_csv(config["uncertainty_hourly_file"], headers=headers)
     if config.get("uncertainty_daily_file"):
