@@ -52,7 +52,7 @@ def evaluate_individual(individual):
     # If the result returns both profit and stats, extract and print them.
     if isinstance(result, tuple) and len(result) == 2:
         profit, stats = result
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {profit:.2f}, "
+        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result0 => Profit: {profit:.2f}, "
               f"Trades: {stats.get('num_trades', 0)}, "
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
@@ -60,11 +60,11 @@ def evaluate_individual(individual):
         return (profit, stats)
     # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
+        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result1 => Profit: {result[0]:.2f} (no stats)")
         return (result[0], {})
     else:
         # Fallback: assume result is a single numeric value.
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
+        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result2 => Profit: {result:.2f} (no stats)")
         return (result,{})
 
 
