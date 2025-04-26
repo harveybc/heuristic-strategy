@@ -42,7 +42,7 @@ def evaluate_individual(individual):
     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _num_generations
     if _plugin is None:
         print("[EVALUATE] ERROR: _plugin is None!")
-        return (-1e6,)
+        return (-1e6,{})
     
     # Print the candidate and current epoch information.
     print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
@@ -57,15 +57,15 @@ def evaluate_individual(individual):
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
               f"Sharpe: {stats.get('sharpe', 0):.2f}")
-        return (profit,)
+        return (profit, stats)
     # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
-        return result
+        return (result, {})
     else:
         # Fallback: assume result is a single numeric value.
         print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
-        return (result,)
+        return (result,{})
 
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
