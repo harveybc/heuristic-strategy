@@ -25,7 +25,7 @@ class Plugin:
         'sl_multiplier': 2.0,
         'lower_rr_threshold': 0.5,
         'upper_rr_threshold': 2.0,
-        'max_trades_per_5days': 3,
+        'max_trades_per_5days': 20,
         # Default uncertainty values used if none are provided:
         'default_uncertainty_short_term': 0.005,
         'default_uncertainty_long_term': 0.01,
@@ -57,7 +57,7 @@ class Plugin:
             ("sl_multiplier", 1.5, 6.0),
             ("lower_rr_threshold", 0.2, 1.0),
             ("upper_rr_threshold", 1.3, 6.0),
-            ("time_horizon", 2, 24)
+            ("time_horizon", 1, 48)
         ]
 
     # --- Updated evaluate_candidate method ---
