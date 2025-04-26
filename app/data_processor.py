@@ -387,10 +387,6 @@ def run_processing_pipeline(config, plugin):
                 profit = result[0] if isinstance(result, tuple) else result
                 stats = {}
 
-
-            # Unpack result into profit and stats
-            profit, stats = result
-
             # Build trading_info with profit plus one entry per stat key/value
             trading_info = {
                 "profit": profit,
