@@ -17,17 +17,9 @@ from app.plugin_loader import load_plugin
 from config_merger import merge_config, process_unknown_args
 
 def main():
-    """
-    Main entry point for the heuristic_strategy application.
-
-    This function orchestrates:
-      1. Parsing CLI arguments.
-      2. Loading default, remote, and local configurations.
-      3. Merging configurations with CLI and unknown args.
-      4. Loading the specified plugin from the 'heuristic_strategy.plugins' namespace.
-      5. Merging plugin parameters.
-      6. Running the processing pipeline (optimization and trade simulation).
-      7. Saving configurations remotely (if specified).
+"""
+    Orquesta la ejecución completa del sistema, incluyendo la optimización (si se configura)
+    y la ejecución del pipeline completo (preprocesamiento, entrenamiento, predicción y evaluación).
     """
     print("Parsing initial arguments...")
     args, unknown_args = parse_args()
@@ -37,6 +29,7 @@ def main():
     config: Dict[str, Any] = DEFAULT_VALUES.copy()
 
     file_config: Dict[str, Any] = {}
+    # Carga remota de configuración si se solicita
     if args.remote_load_config:
         try:
             file_config = remote_load_config(args.remote_load_config, args.username, args.password)
@@ -45,6 +38,7 @@ def main():
             print(f"Failed to load remote configuration: {e}")
             sys.exit(1)
 
+    # Carga local de configuración si se solicita
     if args.load_config:
         try:
             file_config = load_config(args.load_config)
@@ -53,10 +47,19 @@ def main():
             print(f"Failed to load local configuration: {e}")
             sys.exit(1)
 
-    print("Merging configuration with CLI and unknown args (first pass, no plugin params)...")
+    # Primera fusión de la configuración (sin parámetros específicos de plugins)
+    print("Merging configuration with CLI arguments and unknown args (first pass, no plugin params)...")
     unknown_args_dict = process_unknown_args(unknown_args)
     config = merge_config(config, {}, {}, file_config, cli_args, unknown_args_dict)
 
+    # Selección del plugins
+    if not cli_args.get('predictor_plugin'):
+        cli_args['predictor_plugin'] = config.get('predictor_plugin', 'default_predictor')
+    plugin_name = config.get('predictor_plugin', 'default_predictor')
+    
+    
+    # --- CARGA DE PLUGINS ---
+    
     # If no plugin is provided on CLI, use the one defined in configuration.
     if not cli_args.get('plugin'):
         cli_args['plugin'] = config.get('plugin', 'default')
