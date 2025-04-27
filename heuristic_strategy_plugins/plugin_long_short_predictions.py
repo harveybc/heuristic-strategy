@@ -25,6 +25,7 @@ class Plugin:
         'sl_multiplier': 2.0,
         'lower_rr_threshold': 0.5,
         'upper_rr_threshold': 2.0,
+
         # Default uncertainty values used if none are provided:
         'default_uncertainty_short_term': 0.005,
         'default_uncertainty_long_term': 0.01,
