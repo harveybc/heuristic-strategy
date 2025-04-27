@@ -133,7 +133,7 @@ class Plugin:
             sl_multiplier=sl_multiplier,
             lower_rr_threshold=lower_rr,
             upper_rr_threshold=upper_rr,
-            max_trades_per_5days=self.params['max_trades_per_5days']
+            max_trades_per_5days=config['max_trades_per_5days']
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
