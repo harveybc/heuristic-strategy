@@ -21,6 +21,7 @@ DEFAULT_VALUES = {
     "num_generations": 10,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
+    "use_hourly": False,
     "load_config": None,
     "save_config": "examples/results/phase_1_daily/phase_1_transformer_25200_1d_config_out.json",
     "remote_log": None,

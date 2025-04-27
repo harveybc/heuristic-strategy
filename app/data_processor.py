@@ -81,7 +81,7 @@ def process_data(config):
     daily_predictions_file = None
     uncertainty_hourly_file = None
     uncertainty_daily_file = None
-
+    base_filename = ""
     prefix = config.get("prefix", "_best_daily")
     if config.get("predictor_hourly_config_file"):
         print(f"Loading hourly predictor config from {config['predictor_hourly_config_file']}")
@@ -89,6 +89,20 @@ def process_data(config):
             predictor_hourly_config = json.load(f)
         config["hourly_predictions_file"] = predictor_hourly_config.get("output_file")
         config["uncertainty_hourly_file"] = predictor_hourly_config.get("uncertainties_file")
+        # Extract the base filename path as the predictor_daily_config_file except its extension
+        # and append the prefix to the filename
+        # specify the base directory to save the results(hourly/daily) from the config use_hourly config parameter
+        if config.get("use_hourly", False):
+            base_filename = predictor_hourly_config.get("results_file")
+        base_filename = base_filename.rsplit(".", 1)[0]
+        config["save_config"] = base_filename + prefix + "_config_out.json"
+        config["save_log"] = base_filename + prefix + "_debug_log.json"
+        config["balance_plot_file"] = base_filename + prefix + "_balance_plot.png"
+        config["trades_csv_file"] = base_filename + prefix + "_trades.csv"
+        config["summary_csv_file"] = base_filename + prefix + "_summary.csv"
+        config["save_parameters"] = base_filename + prefix + "_parameters.json"
+
+        
 
     if config.get("predictor_daily_config_file"):
         print(f"Loading daily predictor config from {config['predictor_daily_config_file']}")
@@ -97,7 +111,10 @@ def process_data(config):
         config["daily_predictions_file"] = predictor_daily_config.get("output_file")
         config["uncertainty_daily_file"] = predictor_daily_config.get("uncertainties_file")
         # Extract the base filename path as the predictor_daily_config_file except its extension
-        base_filename = predictor_daily_config.get("results_file")
+        # and append the prefix to the filename
+        # specify the base directory to save the results(hourly/daily) from the config use_hourly config parameter
+        if not(config.get("use_hourly", False)):
+            base_filename = predictor_daily_config.get("results_file")
         base_filename = base_filename.rsplit(".", 1)[0]
         config["save_config"] = base_filename + prefix + "_config_out.json"
         config["save_log"] = base_filename + prefix + "_debug_log.json"
