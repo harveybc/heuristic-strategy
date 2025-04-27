@@ -21,7 +21,9 @@ def parse_args():
     parser.add_argument('--num_generations', type=int, help='Number of generations for the optimizer.')
     parser.add_argument('--crossover_probability', type=float, help='Crossover probability for the optimizer.')
     parser.add_argument('--mutation_probability', type=float, help='Mutation probability for the optimizer.')
-    
+    #max_trades_per_5days
+    parser.add_argument('--max_trades_per_5days', type=int, help='Max number of trades per 5 days.')
+
     # Configuration saving and loading
     parser.add_argument('--load_config', type=str, help='Path to load a configuration file.')
     parser.add_argument('--save_config', type=str, help='Path to save the current configuration.')
@@ -36,5 +38,6 @@ def parse_args():
     parser.add_argument('--quiet_mode', action='store_true', help='Suppress output messages.')
     parser.add_argument('--force_date', action='store_true', help='Include date in the output CSV files.')
     parser.add_argument('--headers', action='store_true', help='Indicate if the CSV files have headers.')
+
     
     return parser.parse_known_args()
