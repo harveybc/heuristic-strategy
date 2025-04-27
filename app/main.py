@@ -17,7 +17,7 @@ from app.plugin_loader import load_plugin
 from config_merger import merge_config, process_unknown_args
 
 def main():
-"""
+    """
     Orquesta la ejecución completa del sistema, incluyendo la optimización (si se configura)
     y la ejecución del pipeline completo (preprocesamiento, entrenamiento, predicción y evaluación).
     """
