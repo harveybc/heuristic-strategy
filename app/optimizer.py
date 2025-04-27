@@ -36,36 +36,33 @@ def evaluate_individual(individual):
     Expects the plugin's evaluate_candidate() method to return either:
          - A tuple: (profit, stats) where stats is a dict containing keys 'num_trades', 'win_pct', 'max_dd', 'sharpe'
          - Or a single-value tuple (profit,)
-    This function returns a tuple containing only the profit (of length 1), 
-    so that it matches the fitness weight configuration.
+    This function always returns (profit, stats) to satisfy downstream requirements.
     """
     global _plugin, _base_data, _hourly_predictions, _daily_predictions, _config, _current_epoch, _num_generations
     if _plugin is None:
         print("[EVALUATE] ERROR: _plugin is None!")
-        return (-1e6,{})
+        return -1e6, {}
     
     # Print the candidate and current epoch information.
     print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
     
     result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
     
-    # If the result returns both profit and stats, extract and print them.
+    # Normalize to (profit, stats)
     if isinstance(result, tuple) and len(result) == 2:
         profit, stats = result
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result0 => Profit: {profit:.2f}, "
-              f"Trades: {stats.get('num_trades', 0)}, "
-              f"Win%: {stats.get('win_pct', 0):.1f}, "
-              f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-              f"Sharpe: {stats.get('sharpe', 0):.2f}")
-        return (profit, stats)
-    # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result1 => Profit: {result[0]:.2f} (no stats)")
-        return (result[0],{})
+        profit, stats = result[0], {}
     else:
-        # Fallback: assume result is a single numeric value.
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result2 => Profit: {result:.2f} (no stats)")
-        return (result,{})
+        profit, stats = result, {}
+    
+    print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate => "
+          f"Profit: {profit:.2f}, "
+          f"Trades: {stats.get('num_trades', 0)}, "
+          f"Win%: {stats.get('win_pct', 0):.1f}, "
+          f"MaxDD: {stats.get('max_dd', 0):.2f}, "
+          f"Sharpe: {stats.get('sharpe', 0):.2f}")
+    return profit, stats
 
 
 def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
@@ -129,7 +126,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
             for ind in population:
                 result = toolbox.evaluate(ind)
-                ind.fitness.values = result
+                ind.fitness.values = (result[0],)
                 fitnesses.append(result)
                 pbar.update(1)
     else:
@@ -139,7 +136,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                 fitnesses.append(result)
                 pbar.update(1)
         for ind, f in zip(population, fitnesses):
-            ind.fitness.values = f
+            ind.fitness.values = (f[0],)
 
     print(f"  Evaluated {len(population)} individuals initially.")
 
@@ -164,7 +161,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
             with tqdm(total=len(invalid_ind), desc=f"Epoch {gen} eval", unit="cand") as pbar:
                 for ind in invalid_ind:
                     fit = toolbox.evaluate(ind)
-                    ind.fitness.values = fit
+                    ind.fitness.values = (fit[0],)
                     pbar.update(1)
         else:
             fitnesses = []
@@ -173,7 +170,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                     fitnesses.append(fit)
                     pbar.update(1)
             for ind, f in zip(invalid_ind, fitnesses):
-                ind.fitness.values = f
+                ind.fitness.values = (f[0],)
 
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
