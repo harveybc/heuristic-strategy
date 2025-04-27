@@ -13,7 +13,7 @@ DEFAULT_VALUES = {
     "predictor_hourly_config_file": "examples/config/phase_1/phase_1_ann_25200_1h_config.json",
     "predictor_daily_config_file": "examples/config/phase_1_daily/phase_1_ann_25200_1d_config.json",
     "prefix": "best_daily_",
-
+    "max_trades_per_5days": 3,
     "date_column": "DATE_TIME",
     "plugin": "default",
     "time_horizon": 6,
