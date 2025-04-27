@@ -82,6 +82,7 @@ def process_data(config):
     uncertainty_hourly_file = None
     uncertainty_daily_file = None
 
+    prefix = config.get("prefix", "_best_daily")
     if config.get("predictor_hourly_config_file"):
         print(f"Loading hourly predictor config from {config['predictor_hourly_config_file']}")
         with open(config["predictor_hourly_config_file"], "r") as f:
@@ -98,12 +99,12 @@ def process_data(config):
         # Extract the base filename path as the predictor_daily_config_file except its extension
         base_filename = predictor_daily_config.get("results_file")
         base_filename = base_filename.rsplit(".", 1)[0]
-        config["save_config"] = base_filename + "_config_out.json"
-        config["save_log"] = base_filename + "_debug_log.json"
-        config["balance_plot_file"] = base_filename + "_balance_plot.png"
-        config["trades_csv_file"] = base_filename + "_trades.csv"
-        config["summary_csv_file"] = base_filename + "_summary.csv"
-        config["save_parameters"] = base_filename + "_parameters.json"
+        config["save_config"] = base_filename + prefix + "_config_out.json"
+        config["save_log"] = base_filename + prefix + "_debug_log.json"
+        config["balance_plot_file"] = base_filename + prefix + "_balance_plot.png"
+        config["trades_csv_file"] = base_filename + prefix + "_trades.csv"
+        config["summary_csv_file"] = base_filename + prefix + "_summary.csv"
+        config["save_parameters"] = base_filename + prefix + "_parameters.json"
 
         
 
