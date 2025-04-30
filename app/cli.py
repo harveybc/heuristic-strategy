@@ -41,5 +41,9 @@ def parse_args():
     parser.add_argument('--force_date', action='store_true', help='Include date in the output CSV files.')
     parser.add_argument('--headers', action='store_true', help='Indicate if the CSV files have headers.')
 
-    
+    # "feature_extractor_file": "examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_encoder_model.h5.keras",
+    # "train_fe" : false
+    parser.add_argument('--feature_extractor_file', type=str, help='Path to the feature extractor file.')
+    parser.add_argument('--train_fe', action='store_true', help='Train the feature extractor.')
+
     return parser.parse_known_args()
