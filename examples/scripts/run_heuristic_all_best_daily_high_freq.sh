@@ -21,6 +21,12 @@ for file in "$CONFIG_DIR"/*.json; do
     sh ./heuristic.sh --predictor_hourly_config_file "$file" --predictor_daily_config_file "examples/config/phase_3_1_daily/phase_3_1_cnn_1d_config.json" --base_dataset_file "examples/data/phase_3/base_d6.csv" --load_parameters "examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json" --prefix "_best_daily_high_freq" --max_trades_per_5days 20 --use_hourly
 done
 
+CONFIG_DIR="examples/config/phase_3_2"
+
+for file in "$CONFIG_DIR"/*.json; do
+    echo "Running preprocessor with configuration: $(basename "$file")"
+    sh ./heuristic.sh --predictor_hourly_config_file "$file" --predictor_daily_config_file "examples/config/phase_3_2_daily/phase_3_2_cnn_1d_config.json" --base_dataset_file "examples/data/phase_3/base_d6.csv" --load_parameters "examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json" --prefix "_best_daily_high_freq" --max_trades_per_5days 20 --use_hourly
+done
 
 
 echo "All configurations processed."
