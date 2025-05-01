@@ -27,7 +27,7 @@ declare -A LOAD_PARAMS=(
     [phase_3_2]="examples/config/phase_3_2_daily/phase_3_2_cnn_1d_config.json"
 )
 
-PREFIX="_best_hourly_high_freq"
+PREFIX="_high_freq"
 MAX_TRADES=20
 
 for PH in "${PHASES[@]}"; do

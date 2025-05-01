@@ -1,50 +1,50 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-# list your phases here
 PHASES=(phase_1 phase_2 phase_3_1 phase_3_2)
 
-# common args
-PREFIX="_low_freq"
-MAX_TRADES=3
-USE_HOURLY=""
-LOAD_PARAMS=(
-    # adjust these if they differ by phase
-    phase_1:examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json
-    phase_2:examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json
-    phase_3_1:examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json
-    phase_3_2:examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json
+# per‐phase base datasets
+declare -A BASE_DATA_MAP=(
+    [phase_1]="examples/data/phase_1/phase_1_base_d3.csv"
+    [phase_2]="examples/data/phase_2_4/base_d3.csv"
+    [phase_3_1]="examples/data/phase_3/base_d6.csv"
+    [phase_3_2]="examples/data/phase_3/base_d6.csv"
 )
 
+# per‐phase hourly configs
+declare -A HOURLY_CFG_MAP=(
+    [phase_1]="examples/config/phase_1/phase_1_cnn_25200_1h_config.json"
+    [phase_2]="examples/config/phase_2/phase_2_2_cnn_1h_config.json"
+    [phase_3_1]="examples/config/phase_3_1/phase_3_1_cnn_1h_config.json"
+    [phase_3_2]="examples/config/phase_3_2/phase_3_2_cnn_1h_config.json"
+)
+
+# per‐phase load‐parameters
+declare -A LOAD_PARAMS=(
+    [phase_1]="examples/config/phase_1_daily/phase_1_ann_25200_1d_config.json"
+    [phase_2]="examples/config/phase_2_daily/phase_2_4_ann_1d_config.json"
+    [phase_3_1]="examples/config/phase_3_1_daily/phase_3_1_cnn_1d_config.json"
+    [phase_3_2]="examples/config/phase_3_2_daily/phase_3_2_cnn_1d_config.json"
+)
+
+PREFIX="_low_freq"
+MAX_TRADES=3
+
 for PH in "${PHASES[@]}"; do
-    CONFIG_DIR="examples/config/${PH}"
-    DAILY_DIR="${CONFIG_DIR}_daily"
-    BASE_DATA="examples/data/${PH/phase_/phase_}_${PH/_1/}_d$( [ "$PH" = "phase_1" ] && echo 3 || echo 6 ).csv"
-
-    # pick the correct load‐parameters for this phase
-    for entry in "${LOAD_PARAMS[@]}"; do
-        key=${entry%%:*}; val=${entry#*:}
-        [[ $key == $PH ]] && LOAD_PARAM="$val"
-    done
-
-    for file in "$CONFIG_DIR"/*.json; do
-        base=$(basename "$file")
-        # replace _1d_ → _1h_ in the filename
-        daily_base="${base/_1d_/_1h_}"
-        daily_file="$DAILY_DIR/$daily_base"
-
-        echo "Running heuristic.sh"
-        echo "  hourly: $file"
-        echo "  daily : $daily_file"
-
+    DAILY_DIR="examples/config/${PH}_daily"
+    for daily_cfg in "$DAILY_DIR"/*.json; do
+        echo "Running heuristic.sh with:"
+        echo "  daily : $daily_cfg"
+        echo "  hourly: ${HOURLY_CFG_MAP[$PH]}"
+        echo "  base  : ${BASE_DATA_MAP[$PH]}"
+        echo "  load  : ${LOAD_PARAMS[$PH]}"
         sh ./heuristic.sh \
-            --predictor_hourly_config_file "$file" \
-            --predictor_daily_config_file "$daily_file" \
-            --base_dataset_file "$BASE_DATA" \
-            --load_parameters "$LOAD_PARAM" \
-            --prefix "$PREFIX" \
-            --max_trades_per_5days "$MAX_TRADES" \
-            $USE_HOURLY
+            --predictor_daily_config_file  "$daily_cfg" \
+            --predictor_hourly_config_file "${HOURLY_CFG_MAP[$PH]}" \
+            --base_dataset_file           "${BASE_DATA_MAP[$PH]}" \
+            --load_parameters             "${LOAD_PARAMS[$PH]}" \
+            --prefix                      "$PREFIX" \
+            --max_trades_per_5days        "$MAX_TRADES"
     done
 done
 
