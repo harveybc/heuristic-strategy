@@ -11,14 +11,6 @@ declare -A BASE_DATA_MAP=(
     [phase_3_2]="examples/data/phase_3/base_d6.csv"
 )
 
-# per‐phase hourly configs
-declare -A HOURLY_CFG_MAP=(
-    [phase_1]="examples/config/phase_1/phase_1_cnn_25200_1h_config.json"
-    [phase_2]="examples/config/phase_2/phase_2_2_cnn_1h_config.json"
-    [phase_3_1]="examples/config/phase_3_1/phase_3_1_cnn_1h_config.json"
-    [phase_3_2]="examples/config/phase_3_2/phase_3_2_cnn_1h_config.json"
-)
-
 # per‐phase load‐parameters
 declare -A LOAD_PARAMS=(
     [phase_1]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json"
