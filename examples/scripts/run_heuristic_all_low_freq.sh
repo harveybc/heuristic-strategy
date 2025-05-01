@@ -21,10 +21,10 @@ declare -A HOURLY_CFG_MAP=(
 
 # per‐phase load‐parameters
 declare -A LOAD_PARAMS=(
-    [phase_1]="examples/config/phase_1_daily/phase_1_ann_25200_1d_config.json"
-    [phase_2]="examples/config/phase_2_daily/phase_2_4_ann_1d_config.json"
-    [phase_3_1]="examples/config/phase_3_1_daily/phase_3_1_cnn_1d_config.json"
-    [phase_3_2]="examples/config/phase_3_2_daily/phase_3_2_cnn_1d_config.json"
+    [phase_1]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json"
+    [phase_2]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json"
+    [phase_3_1]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json"
+    [phase_3_2]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json"
 )
 
 PREFIX="_low_freq"
