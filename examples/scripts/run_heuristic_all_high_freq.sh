@@ -10,10 +10,10 @@ MAX_TRADES=20
 USE_HOURLY=""
 LOAD_PARAMS=(
     # adjust these if they differ by phase
-    phase_1:examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json
-    phase_2:examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json
+    phase_1:examples/results/phase_1_daily/phase_1_ann_25200_1d_results_high_frequency_parameters.json
+    phase_2:examples/results/phase_2_daily/phase_2_ann_25200_1d_results_high_frequency_parameters.json
     phase_3_1:examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json
-    phase_3_2:examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json
+    phase_3_2:examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_results_high_frequency_parameters.json
 )
 
 for PH in "${PHASES[@]}"; do
@@ -29,8 +29,8 @@ for PH in "${PHASES[@]}"; do
 
     for file in "$CONFIG_DIR"/*.json; do
         base=$(basename "$file")
-        # replace _1d_ → _1h_ in the filename
-        daily_base="${base/_1d_/_1h_}"
+        # replace _1h_ → _1d_ in the filename
+        daily_base="${base/_1h_/_1d_}"
         daily_file="$DAILY_DIR/$daily_base"
 
         echo "Running heuristic.sh"
