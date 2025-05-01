@@ -33,7 +33,7 @@ LOAD_PARAMS=(
 )
 
 for PH in "${PHASES[@]}"; do
-    CONFIG_DIR="examples/config/${PH}\_daily"
+    CONFIG_DIR="examples/config/${PH}_daily"
     DAILY_DIR="${CONFIG_DIR}"
     BASE_DATA="${BASE_DATA_MAP[$PH]}"
     HOURLY_CFG="${HOURLY_CFG_MAP[$PH]}"
