@@ -29,35 +29,42 @@ def create_daily_predictions(df, horizon):
     Auto-compute daily predictions from the base dataset.
 
     Each row i in 'df' yields a block of predicted values at offsets t+24, t+48, ... t+24*horizon.
-    If there are not enough rows (or any row indexing is invalid), we return an empty DataFrame.
+    Works on pandas.Series or single-column DataFrame.
     """
-    nrows = len(df)
+    # If someone passed a single-column DataFrame, pull out the Series
+    if isinstance(df, pd.DataFrame) and df.shape[1] == 1:
+        series = df.iloc[:, 0]
+    else:
+        series = df  # assume it's a Series
+
+    nrows = len(series)
     required_rows = horizon * 24
 
-    # If the dataset is too short for daily predictions, return empty.
     if nrows < required_rows:
         print("Warning: Not enough rows to create daily predictions. Returning an empty DataFrame.")
         return pd.DataFrame()
 
     blocks = []
-    # For each row i, gather the next horizon days (24*horizon ticks).
     for i in range(nrows - required_rows):
         block_values = []
-        # Attempt to fetch each day offset at i + d*24
         for d in range(1, horizon + 1):
             idx = i + d * 24
             if idx >= nrows:
                 break
-            row_vals = df.iloc[idx].values
-            if row_vals.ndim == 0:
-                continue
-            block_values.extend(row_vals.flatten())
+            val = series.iloc[idx]
+            # if it's array‐like, flatten; otherwise just append the scalar
+            if isinstance(val, (np.ndarray, pd.Series, list)):
+                block_values.extend(np.asarray(val).flatten())
+            else:
+                block_values.append(val)
         if block_values:
             blocks.append(block_values)
+
     if not blocks:
         print("Warning: daily predictions are empty after alignment. Returning an empty DataFrame.")
         return pd.DataFrame()
-    daily_idx = df.index[:(nrows - required_rows)]
+
+    daily_idx = series.index[: (nrows - required_rows)]
     return pd.DataFrame(blocks, index=daily_idx)
 
 def process_data(config):
