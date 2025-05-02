@@ -153,8 +153,20 @@ def process_data(config):
 
     if config.get("uncertainty_hourly_file"):
         uncertainty_hourly_df = load_csv(config["uncertainty_hourly_file"], headers=headers)
+    
+    else:
+        # set a constant value for the uncertainty of config["default_uncertainty_short_term"] with the same size as the hourly_df
+        if hourly_df is not None:
+            uncertainty_hourly_df = pd.DataFrame(config["default_uncertainty_short_term"], index=hourly_df.index, columns=hourly_df.columns)
+            print(f"Uncertainty hourly dataset created with constant value: {config['default_uncertainty_short_term']}")
+
     if config.get("uncertainty_daily_file"):
         uncertainty_daily_df = load_csv(config["uncertainty_daily_file"], headers=headers)
+    else:
+        # set a constant value for the uncertainty of config["default_uncertainty_long_term"] with the same size as the daily_df
+        if daily_df is not None:
+            uncertainty_daily_df = pd.DataFrame(config["default_uncertainty_long_term"], index=daily_df.index, columns=daily_df.columns)
+            print(f"Uncertainty daily dataset created with constant value: {config['default_uncertainty_long_term']}")
 
     # Ensure all datasets have a datetime index based on DATE_TIME column.
     def ensure_datetime(df, name):
