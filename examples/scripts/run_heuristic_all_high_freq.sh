@@ -13,10 +13,10 @@ declare -A BASE_DATA_MAP=(
 
 # per‐phase load‐parameters
 declare -A LOAD_PARAMS=(
-    [phase_1]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json"
-    [phase_2]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json"
-    [phase_3_1]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json"
-    [phase_3_2]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json"
+    [phase_1]="parameters.json"
+    [phase_2]="parameters.json"
+    [phase_3_1]="parameters.json"
+    [phase_3_2]="parameters.json"
 )
 
 PREFIX="_high_freq"
