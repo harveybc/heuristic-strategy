@@ -140,12 +140,24 @@ def process_data(config):
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
         print("Auto-generating hourly predictions...")
         hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
+        # assign the column names to the hourly_df with the specified in: config["hourly_columns"]
+        if config.get("hourly_columns"):
+            hourly_df.columns = config["hourly_columns"]
+        else:
+            hourly_df.columns = [f"Prediction_H{i}" for i in range(1, config["time_horizon"] + 1)]
+
+
     if daily_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
         print("Auto-generating daily predictions...")
         daily_df = create_daily_predictions(base_df, config["time_horizon"])
-
+        # assign the column names to the daily_df with the specified in: config["daily_columns"]
+        if config.get("daily_columns"):
+            daily_df.columns = config["daily_columns"]
+        else:
+            daily_df.columns = [f"Prediction_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
+    
     # Load uncertainties if available
     uncertainty_hourly_df = None
     uncertainty_daily_df = None
@@ -153,12 +165,17 @@ def process_data(config):
 
     if config.get("uncertainty_hourly_file"):
         uncertainty_hourly_df = load_csv(config["uncertainty_hourly_file"], headers=headers)
-    
     else:
         # set a constant value for the uncertainty of config["default_uncertainty_short_term"] with the same size as the hourly_df
         if hourly_df is not None:
             uncertainty_hourly_df = pd.DataFrame(config["default_uncertainty_short_term"], index=hourly_df.index, columns=hourly_df.columns)
             print(f"Uncertainty hourly dataset created with constant value: {config['default_uncertainty_short_term']}")
+            # assign the column names to the uncertainty_hourly_df with the specified in: config["uncertainty_hourly_columns"]
+            if config.get("uncertainty_hourly_columns"):
+                uncertainty_hourly_df.columns = config["uncertainty_hourly_columns"]
+            else:
+                uncertainty_hourly_df.columns = [f"Uncertainty_H{i}" for i in range(1, config["time_horizon"] + 1)]
+    
 
     if config.get("uncertainty_daily_file"):
         uncertainty_daily_df = load_csv(config["uncertainty_daily_file"], headers=headers)
@@ -167,6 +184,12 @@ def process_data(config):
         if daily_df is not None:
             uncertainty_daily_df = pd.DataFrame(config["default_uncertainty_long_term"], index=daily_df.index, columns=daily_df.columns)
             print(f"Uncertainty daily dataset created with constant value: {config['default_uncertainty_long_term']}")
+            # assign the column names to the uncertainty_daily_df with the specified in: config["uncertainty_daily_columns"]
+            if config.get("uncertainty_daily_columns"):
+                uncertainty_daily_df.columns = config["uncertainty_daily_columns"]
+            else:
+                uncertainty_daily_df.columns = [f"Uncertainty_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
+                
 
     # Ensure all datasets have a datetime index based on DATE_TIME column.
     def ensure_datetime(df, name):
