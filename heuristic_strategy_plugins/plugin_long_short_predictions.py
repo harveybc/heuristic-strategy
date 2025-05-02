@@ -335,29 +335,49 @@ class Plugin:
             if not daily_preds or all(pd.isna(daily_preds)):
                 return
 
+            # Prepare adjusted predictions for buy scenario
             if self.num_daily_uncs > 0:
                 daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
-                adjusted_max = max([pred + unc for pred, unc in zip(daily_preds, daily_uncs)])
-                adjusted_min = min([pred - unc for pred, unc in zip(daily_preds, daily_uncs)])
+                adjusted_preds_buy = [pred - unc for pred, unc in zip(daily_preds, daily_uncs)]
             else:
-                adjusted_max = max(daily_preds)
-                adjusted_min = min(daily_preds)
-            ideal_profit_pips_buy = (adjusted_max - current_price) / self.p.pip_cost
-            ideal_drawdown_pips_buy = max((current_price - adjusted_min) / self.p.pip_cost, self.p.min_drawdown_pips)
+                adjusted_preds_buy = daily_preds
+
+            # Calculate ideal profit (pips) and drawdown (pips) using minimum before the maximum predicted price
+            profit_pred = max(adjusted_preds_buy)
+            max_idx = adjusted_preds_buy.index(profit_pred)
+            min_before_max = min(adjusted_preds_buy[:max_idx+1]) if adjusted_preds_buy else current_price
+
+            ideal_profit_pips_buy = (profit_pred - current_price) / self.p.pip_cost
+            ideal_drawdown_pips_buy = (profit_pred - min_before_max) / self.p.pip_cost
             rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
-
             if self.num_daily_uncs > 0:
-                daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
-                adjusted_max = max([pred + unc for pred, unc in zip(daily_preds, daily_uncs)])
-                adjusted_min = min([pred - unc for pred, unc in zip(daily_preds, daily_uncs)])
+                daily_uncs = [
+                    row.get(f'Uncertainty_d_{i}', 0)
+                    for i in range(1, self.num_daily_uncs + 1)
+                ]
+                adjusted_preds_sell = [
+                    pred + unc
+                    for pred, unc in zip(daily_preds, daily_uncs)
+                ]
             else:
-                adjusted_max = max(daily_preds)
-                adjusted_min = min(daily_preds)
-            ideal_profit_pips_sell = (current_price - adjusted_min) / self.p.pip_cost
-            ideal_drawdown_pips_sell = max((adjusted_max - current_price) / self.p.pip_cost, self.p.min_drawdown_pips)
-            rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
+                adjusted_preds_sell = daily_preds
+
+            # Find the predicted minimum (worst case profit) and the max before it (drawdown)
+            min_pred = min(adjusted_preds_sell)
+            min_idx = adjusted_preds_sell.index(min_pred)
+            max_before_min = max(adjusted_preds_sell[: min_idx + 1])
+
+            ideal_profit_pips_sell = (current_price - min_pred) / self.p.pip_cost
+            ideal_drawdown_pips_sell = (max_before_min - min_pred) / self.p.pip_cost
+
+
+            rr_sell = (
+                ideal_profit_pips_sell / ideal_drawdown_pips_sell
+                if ideal_drawdown_pips_sell > 0
+                else 0
+            )
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
