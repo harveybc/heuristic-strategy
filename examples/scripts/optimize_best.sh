@@ -1,2 +1,3 @@
 #!/bin/bash
-bash --load_config 
+bash --load_config examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json 
+bash --load_config examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json
