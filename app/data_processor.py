@@ -175,6 +175,10 @@ def process_data(config):
                 uncertainty_hourly_df.columns = config["uncertainty_hourly_columns"]
             else:
                 uncertainty_hourly_df.columns = [f"Uncertainty_H{i}" for i in range(1, config["time_horizon"] + 1)]
+            # assign the same DATE_TIME column to the uncertainty_hourly_df with the same index as the hourly_df
+            uncertainty_hourly_df["DATE_TIME"] = hourly_df.index
+            uncertainty_hourly_df.set_index("DATE_TIME", inplace=True)
+
     
 
     if config.get("uncertainty_daily_file"):
@@ -189,7 +193,11 @@ def process_data(config):
                 uncertainty_daily_df.columns = config["uncertainty_daily_columns"]
             else:
                 uncertainty_daily_df.columns = [f"Uncertainty_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
-                
+            # assign the same DATE_TIME column to the uncertainty_daily_df with the same index as the daily_df
+            uncertainty_daily_df["DATE_TIME"] = daily_df.index
+            uncertainty_daily_df.set_index("DATE_TIME", inplace=True)
+            
+
 
     # Ensure all datasets have a datetime index based on DATE_TIME column.
     def ensure_datetime(df, name):
