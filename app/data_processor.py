@@ -135,29 +135,31 @@ def process_data(config):
     base_df_full = base_df.copy()
 
     # Auto-generate predictions if files are missing
+    # … inside process_data() …
+
+    # Auto-generate predictions if files are missing
     if hourly_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
         print("Auto-generating hourly predictions...")
-        hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
-        # assign the column names to the hourly_df with the specified in: config["hourly_columns"]
+        # only use the CLOSE series so each block is horizon-length, not horizon * ncols
+        hourly_df = create_hourly_predictions(base_df["CLOSE"], config["time_horizon"])
         if config.get("hourly_columns"):
             hourly_df.columns = config["hourly_columns"]
         else:
             hourly_df.columns = [f"Prediction_H{i}" for i in range(1, config["time_horizon"] + 1)]
 
-
     if daily_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
         print("Auto-generating daily predictions...")
-        daily_df = create_daily_predictions(base_df, config["time_horizon"])
-        # assign the column names to the daily_df with the specified in: config["daily_columns"]
+        # likewise here
+        daily_df = create_daily_predictions(base_df["CLOSE"], config["time_horizon"])
         if config.get("daily_columns"):
             daily_df.columns = config["daily_columns"]
         else:
             daily_df.columns = [f"Prediction_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
-    
+
     # Load uncertainties if available
     uncertainty_hourly_df = None
     uncertainty_daily_df = None
