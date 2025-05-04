@@ -306,9 +306,26 @@ class Plugin:
                         print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
                     elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
-                        # ... (Potential Long Signal calculation - unchanged) ...
-                        # ... (Set signal='long', chosen_rr, tp_entry, sl_entry) ...
-                        pass # Keep long logic as is
+                        # Potential Long Signal - Calculate TP/SL based on buy_idx event
+                        idx = buy_idx
+                        ideal_profit_pips = future_moves[idx] # Profit is the positive move
+                        min_before_signal = current_price
+                        if idx > 0:
+                             min_before_signal = min([current_price] + future[:idx])
+                        price_at_signal = future[idx]
+                        ideal_drawdown_pips = max(0, (price_at_signal - min_before_signal) / self.p.pip_cost) # Drawdown for long
+
+                        # --- MODIFIED: Always set signal if buy_idx is valid, handle zero drawdown in SL ---
+                        signal = 'long'
+                        chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
+                        tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
+                        # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
+                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                        sl_entry = current_price - self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
+
+                        # --- ADDED: Debug print for potential long signal ---
+                        print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        # --- End Added print ---
 
             # --- END: Signal Generation Logic ---
 
