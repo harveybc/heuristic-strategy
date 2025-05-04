@@ -381,25 +381,29 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
+            long_signal  = (ideal_profit_pips_buy  >= self.p.profit_threshold)
             short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
-            #long_signal = rr_buy >= self.p.profit_threshold
-            #short_signal = rr_sell >= self.p.profit_threshold
 
-            if long_signal and (rr_buy >= rr_sell):
-                signal = 'long'
-                chosen_tp = tp_buy
-                chosen_sl = sl_buy
-                chosen_rr = rr_buy
-            elif short_signal and (rr_sell > rr_buy):
-                signal = 'short'
-                chosen_tp = tp_sell
-                chosen_sl = sl_sell
-                chosen_rr = rr_sell
+            # Decide direction:
+            if long_signal and short_signal:
+                # both sides valid → pick the higher RR
+                if rr_buy >= rr_sell:
+                    signal, chosen_rr = 'long', rr_buy
+                else:
+                    signal, chosen_rr = 'short', rr_sell
+            elif long_signal:
+                signal, chosen_rr = 'long', rr_buy
+            elif short_signal:
+                signal, chosen_rr = 'short', rr_sell
             else:
-                #print("[DEBUG] No valid signal found, skipping trade")
                 return
-            
+
+            # assign TP/SL
+            if signal == 'long':
+                chosen_tp, chosen_sl = tp_buy,  sl_buy
+            else:
+                chosen_tp, chosen_sl = tp_sell, sl_sell
+
             order_size = self.compute_size(chosen_rr)
             if order_size <= 0:
                 print("[DEBUG] Order size <= 0, skipping trade")
