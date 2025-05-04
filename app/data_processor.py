@@ -465,8 +465,8 @@ def run_processing_pipeline(config, plugin):
                     "tp_multiplier":    candidate[1],
                     "sl_multiplier":    candidate[2],
                     "lower_rr_threshold": candidate[3],
-                    "upper_rr_threshold": candidate[4],
-                    "time_horizon":     candidate[5]
+                    "upper_rr_threshold": candidate[4]
+                    
                 }
             }
         else:
