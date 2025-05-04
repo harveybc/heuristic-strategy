@@ -70,7 +70,7 @@ class Plugin:
 
         # Unpack candidate parameters:
         # (profit_threshold, tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold, time_horizon)
-        profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr = individual
+        tp_multiplier, sl_multiplier, lower_rr, upper_rr = individual
 
         # Check that predictions are available.
         if (hourly_predictions is None or hourly_predictions.empty or 
