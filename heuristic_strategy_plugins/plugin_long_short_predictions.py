@@ -486,63 +486,75 @@ class Plugin:
             # print(f"[{dt}] NOTIFY TRADE: Ref={trade.ref}, IsOpen={trade.isopen}, IsClosed={trade.isclosed}, Size={trade.size}, PnL={trade.pnlcomm:.2f}", flush=True)
 
             if trade.isclosed:
-                # Use the direction and entry price stored when the position was opened
-                direction = self.entry_order_direction
-                entry_price = self.order_entry_price if self.order_entry_price is not None else 0
+                # --- MODIFIED: Infer direction and entry price directly from trade object ---
+                # trade.size is positive for closed longs (closed by sell), negative for closed shorts (closed by buy)
+                direction = 'long' if trade.size > 0 else 'short'
+                entry_price = trade.price # Use average entry price from trade object
 
-                # --- Fallbacks for safety (should ideally not be needed) ---
-                if direction is None:
-                    print(f"[{dt}] WARNING: Trade closed but self.entry_order_direction is None! Inferring from trade size.")
-                    direction = 'long' if trade.size > 0 else 'short' # trade.size is negative for shorts closed by buy
+                # --- REMOVED: Reliance on potentially unreliable state variables ---
+                # direction = self.entry_order_direction
+                # entry_price = self.order_entry_price if self.order_entry_price is not None else 0
+                # --- REMOVED: Fallbacks based on those state variables ---
 
-                if entry_price == 0:
-                     print(f"[{dt}] WARNING: Trade closed but self.order_entry_price is 0! Using trade.price (average entry).")
-                     entry_price = trade.price # Fallback to average trade entry price
+                print(f"[{dt}] NOTIFY TRADE CLOSED - Inferred Direction='{direction}', Avg EntryPrice={entry_price:.5f}", flush=True)
+                # --- End Modification ---
 
-                print(f"[{dt}] NOTIFY TRADE CLOSED - Using Direction='{direction}', EntryPrice={entry_price:.5f}", flush=True)
-                # --- End Fallbacks ---
-
+                # --- Keep existing calculation logic below, using the inferred direction/entry_price ---
                 duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
-                exit_price = trade.price # This is average entry price. Exit price isn't directly available.
+                # exit_price = trade.price # This was already using trade.price, which is avg entry.
                 profit_usd = trade.pnlcomm
 
-                # Calculate pips and intra-trade drawdown based on the correctly identified direction and entry price
                 profit_pips = 0
                 intra_dd = 0
                 exit_price_implied = entry_price # Default if calculation fails
 
-                if entry_price != 0 and trade.size != 0: # Avoid division by zero
+                # Use abs(trade.size) for volume in calculations
+                trade_volume = abs(trade.size)
+                pip_cost = self.p.pip_cost # Use the parameter directly
+
+                # Ensure calculations are safe
+                if entry_price != 0 and trade_volume != 0 and pip_cost != 0:
                     if direction == 'long':
-                        # trade.size is positive for closed long
-                        exit_price_implied = entry_price + (profit_usd / (abs(trade.size) * self.p.pip_cost))
-                        profit_pips = (exit_price_implied - entry_price) / self.p.pip_cost
-                        intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
+                        # PnL = (Exit - Entry) * Volume / pip_cost (if pip_cost is price per pip)
+                        # Exit = Entry + (PnL * pip_cost / Volume) -- Check your pip_cost definition
+                        # Assuming pip_cost is price per pip (e.g., 0.0001 for EURUSD)
+                        # If PnL is in quote currency: Exit = Entry + PnL / Volume
+                        exit_price_implied = entry_price + (profit_usd / trade_volume) # Simpler if PnL is in quote currency
+                        profit_pips = (exit_price_implied - entry_price) / pip_cost
+                        if self.trade_low is not None: # Use tracked low during trade
+                             intra_dd = max(0, (entry_price - self.trade_low) / pip_cost)
                     elif direction == 'short':
-                        # trade.size is negative for closed short
-                        exit_price_implied = entry_price - (profit_usd / (abs(trade.size) * self.p.pip_cost))
-                        profit_pips = (entry_price - exit_price_implied) / self.p.pip_cost
-                        intra_dd = (self.trade_high - entry_price) / self.p.pip_cost if self.trade_high is not None else 0
+                        # PnL = (Entry - Exit) * Volume / pip_cost
+                        # Exit = Entry - (PnL * pip_cost / Volume)
+                        exit_price_implied = entry_price - (profit_usd / trade_volume) # Simpler if PnL is in quote currency
+                        profit_pips = (entry_price - exit_price_implied) / pip_cost
+                        if self.trade_high is not None: # Use tracked high during trade
+                             intra_dd = max(0, (self.trade_high - entry_price) / pip_cost)
+                else:
+                     print(f"[{dt}] WARNING: Cannot calculate pips/exit price accurately (Entry={entry_price}, Volume={trade_volume}, PipCost={pip_cost})")
+
 
                 current_balance = self.broker.getvalue()
-                # Use trade.open_datetime() for more accurate open time if needed, requires Backtrader >= 1.9.77.123
-                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A" # Still potentially inaccurate if trades overlap
+                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A"
 
                 trade_record = {
                     'open_dt': open_dt,
                     'close_dt': dt,
-                    'volume': abs(trade.size), # Actual closed size
+                    'volume': trade_volume, # Use calculated volume
                     'pnl': profit_usd,
                     'pips': profit_pips,
                     'duration': duration,
                     'max_dd': intra_dd,
-                    'direction': direction # Use the determined direction
+                    'direction': direction # Use the inferred direction
                 }
                 self.trades.append(trade_record)
                 print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit=(Implied){exit_price_implied:.5f}, "
-                      f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
+                      f"Volume={trade_record['volume']:.2f}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
                       f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
 
-                # --- Reset state AFTER processing the closed trade ---
+                # --- Keep the existing state reset logic ---
+                # Even if not used for logging above, resetting them might be important
+                # for other parts of the logic or preventing future conflicts.
                 self.order_entry_price = None
                 self.entry_order_direction = None # CRITICAL: Reset the flag
                 self.current_tp = None
@@ -550,7 +562,7 @@ class Plugin:
                 self.current_direction = None # Position is closed
                 self.current_volume = None
                 self.trade_entry_bar = None
-                # self.trade_low = None # Reset high/low when position is confirmed closed
+                # self.trade_low = None # Reset high/low when position is confirmed closed in next()
                 # self.trade_high = None
 
         def stop(self):
