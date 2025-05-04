@@ -559,7 +559,9 @@ class Plugin:
             min_balance = min(self.balance_history) if self.balance_history else 0
             n_trades = len(self.trades)
             n_long_trades = 0
+            n_short_trades = 0
             long_trade_percentage = 0.0
+            short_trade_percentage = 0.0
 
             if n_trades > 0:
                 avg_profit_usd = sum(t['pnl'] for t in self.trades) / n_trades
@@ -567,7 +569,9 @@ class Plugin:
                 avg_duration = sum(t['duration'] for t in self.trades) / n_trades
                 avg_max_dd = sum(t['max_dd'] for t in self.trades) / n_trades
                 n_long_trades = sum(1 for t in self.trades if t.get('direction') == 'long')
+                n_short_trades = n_trades - n_long_trades # Calculate shorts
                 long_trade_percentage = (n_long_trades / n_trades) * 100
+                short_trade_percentage = (n_short_trades / n_trades) * 100
             else:
                 avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
 
@@ -578,7 +582,8 @@ class Plugin:
             print(f"Minimum Balance (USD): {min_balance:.2f}")
             print(f"Number of Trades: {n_trades}")
             if n_trades > 0:
-                print(f"  Long Trades: {n_long_trades} ({long_trade_percentage:.1f}%)")
+                print(f"  Long Trades:  {n_long_trades} ({long_trade_percentage:.1f}%)")
+                print(f"  Short Trades: {n_short_trades} ({short_trade_percentage:.1f}%)")
             print(f"Average Profit (USD): {avg_profit_usd:.2f}")
             print(f"Average Profit (pips): {avg_profit_pips:.2f}")
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
