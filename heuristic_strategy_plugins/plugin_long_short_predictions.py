@@ -54,11 +54,14 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            ("profit_threshold", 100, 1000),
+            ("profit_threshold", 100, 1000), # Still in pips
             ("tp_multiplier", 0.3, 3.0),
             ("sl_multiplier", 0.5, 6.0),
-            ("lower_rr_threshold", 0.0, 200.0),
-            ("upper_rr_threshold", 300, 1000.0),
+            # --- MODIFIED Bounds for Ratio Thresholds ---
+            # Define sensible bounds for the profit/risk ratio
+            ("lower_rr_threshold", 0.1, 1.5), # e.g., Lower threshold between 0.1 and 1.5 RR
+            ("upper_rr_threshold", 1.0, 5.0), # e.g., Upper threshold between 1.0 and 5.0 RR
+            # --- End Modification ---
             #("time_horizon", 1, 48)
         ]
 
