@@ -382,13 +382,12 @@ class Plugin:
             long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
             short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
 
-            #if long_signal and (rr_buy >= rr_sell):
-            if long_signal and (min_idx >= max_idx):
+            if long_signal and (rr_buy >= rr_sell):
                 signal = 'long'
                 chosen_tp = tp_buy
                 chosen_sl = sl_buy
                 chosen_rr = rr_buy
-            if short_signal and (max_idx > min_idx):
+            if short_signal and (rr_sell > rr_buy):
                 signal = 'short'
                 chosen_tp = tp_sell
                 chosen_sl = sl_sell
