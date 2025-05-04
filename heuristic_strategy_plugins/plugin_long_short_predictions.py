@@ -25,12 +25,11 @@ class Plugin:
         'sl_multiplier': 2.0,
         'lower_rr_threshold': 0.1,
         'upper_rr_threshold': 1.0,
-
+        
         # Default uncertainty values used if none are provided:
         "default_uncertainty_short_term": 0.0005,
         #"default_uncertainty_short_term": 0.000001,
-        "default_uncertainty_long_term": 0.002,
-        #"default_uncertainty_long_term": 0.000001,
+        "default_uncertainty_long_term": 0.009,
     }
 
     def __init__(self):

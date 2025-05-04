@@ -49,7 +49,7 @@ DEFAULT_VALUES = {
     # Default uncertainty values used if none are provided:
     "default_uncertainty_short_term": 0.0005,
     #"default_uncertainty_short_term": 0.000001,
-    "default_uncertainty_long_term": 0.002,
+    "default_uncertainty_long_term": 0.009,
     #"default_uncertainty_long_term": 0.000001,
     "daily_columns": ["Prediction_H24", "Prediction_H48", "Prediction_H72", "Prediction_H96", "Prediction_H120", "Prediction_H144"],
     "hourly_columns": ["Prediction_H1", "Prediction_H2", "Prediction_H3", "Prediction_H4", "Prediction_H5", "Prediction_H6"],
