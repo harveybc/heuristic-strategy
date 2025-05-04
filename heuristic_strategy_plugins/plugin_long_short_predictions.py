@@ -15,7 +15,7 @@ class Plugin:
     # Default plugin parameters (must be present for optimizer integration)
     plugin_params = {
         'pip_cost': 0.00001,
-        'rel_volume': 0.03,  # uses max0.5% of balance for each order (default)
+        'rel_volume': 0.03,  # uses max 3% of balance for each order (default)
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 100,
@@ -23,8 +23,8 @@ class Plugin:
         'min_drawdown_pips': 10,
         'tp_multiplier': 0.9,
         'sl_multiplier': 2.0,
-        'lower_rr_threshold': -1000.0,
-        'upper_rr_threshold': 1000.0,
+        'lower_rr_threshold': 200.0,
+        'upper_rr_threshold': 600.0,
 
         # Default uncertainty values used if none are provided:
         #"default_uncertainty_short_term": 0.0005,
@@ -54,11 +54,11 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            ("profit_threshold", 0, 1000),
+            ("profit_threshold", 100, 1000),
             ("tp_multiplier", 0.3, 3.0),
             ("sl_multiplier", 0.5, 6.0),
-            ("lower_rr_threshold", -1000.0, 0.0),
-            ("upper_rr_threshold", 0.1, 1000.0),
+            ("lower_rr_threshold", 0.0, 200.0),
+            ("upper_rr_threshold", 300, 1000.0),
             #("time_horizon", 1, 48)
         ]
 
