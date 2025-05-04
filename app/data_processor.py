@@ -449,7 +449,7 @@ def run_processing_pipeline(config, plugin):
             ]
             print(f"Evaluating strategy with loaded parameters: {candidate}")
             init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
-            result = evaluate_individual(candidate, loaded_params = None)
+            result = evaluate_individual(candidate)
             if isinstance(result, tuple) and len(result) == 2:
                 profit, stats = result
             else:
