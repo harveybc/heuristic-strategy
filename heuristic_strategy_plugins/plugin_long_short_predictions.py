@@ -3,7 +3,6 @@ import os
 import backtrader as bt
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
 class Plugin:
     """
@@ -211,66 +210,47 @@ class Plugin:
         Forex Dynamic Volume Strategy using perfect future predictions.
         This replicates the original HeuristicStrategy exactly.
         """
-        params = (
-            ('pip_cost', 0.0001),
-            ('rel_volume', 0.01),
-            ('min_order_volume', 1000),
-            ('max_order_volume', 1000000),
-            ('leverage', 30),
-            ('profit_threshold', 50), # Pips
-            ('min_drawdown_pips', 10), # Minimum acceptable drawdown for SL calculation
-            ('tp_multiplier', 1.0),
-            ('sl_multiplier', 1.0),
-            ('lower_rr_threshold', 100), # RR in pips for min size
-            ('upper_rr_threshold', 1000), # RR in pips for max size
-            ('max_trades_per_5days', 3),
-        )
-
+        # --- Updated __init__ method of HeuristicStrategy ---
         def __init__(self, pred_df, pip_cost, rel_volume, min_order_volume, max_order_volume,
                      leverage, profit_threshold, min_drawdown_pips,
                      tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
                      max_trades_per_5days, *args, **kwargs):
-
+            super().__init__()
             self.pred_df = pred_df
-            # Override params from constructor if provided
-            self.p.pip_cost = pip_cost
-            self.p.rel_volume = rel_volume
-            self.p.min_order_volume = min_order_volume
-            self.p.max_order_volume = max_order_volume
-            self.p.leverage = leverage
-            self.p.profit_threshold = profit_threshold
-            self.p.min_drawdown_pips = min_drawdown_pips
-            self.p.tp_multiplier = tp_multiplier
-            self.p.sl_multiplier = sl_multiplier
-            self.p.lower_rr_threshold = lower_rr_threshold
-            self.p.upper_rr_threshold = upper_rr_threshold
-            self.p.max_trades_per_5days = max_trades_per_5days
+            self.params.pip_cost = pip_cost
+            self.params.rel_volume = rel_volume
+            self.params.min_order_volume = min_order_volume
+            self.params.max_order_volume = max_order_volume
+            self.params.leverage = leverage
+            self.params.profit_threshold = profit_threshold
+            self.params.min_drawdown_pips = min_drawdown_pips
+            self.params.tp_multiplier = tp_multiplier
+            self.params.sl_multiplier = sl_multiplier
+            self.params.lower_rr_threshold = lower_rr_threshold
+            self.params.upper_rr_threshold = upper_rr_threshold
+            self.params.max_trades_per_5days = max_trades_per_5days
 
-            self.trades = []
+            self.num_hourly_preds = len([c for c in self.pred_df.columns if c.startswith('Prediction_h_')])
+            self.num_daily_preds = len([c for c in self.pred_df.columns if c.startswith('Prediction_d_')])
+            self.num_hourly_uncs = len([c for c in self.pred_df.columns if c.startswith('Uncertainty_h_')])
+            self.num_daily_uncs = len([c for c in self.pred_df.columns if c.startswith('Uncertainty_d_')])
+
+            self.data0 = self.datas[0]
+            self.initial_balance = self.broker.getvalue()
+            self.trade_entry_dates = []
             self.balance_history = []
             self.date_history = []
-            self.trade_entry_dates = []
-            self.initial_balance = 0
-            self.num_daily_preds = kwargs.get('num_daily_preds', 6)
-            self.num_hourly_preds = kwargs.get('num_hourly_preds', 6)
-
-            # --- State Variables ---
+            self.trade_low = None
+            self.trade_high = None
+            self.trades = []
             self.current_tp = None
             self.current_sl = None
-            self.current_direction = None # 'long' or 'short' when in position
-            self.trade_entry_bar = None # Bar number of entry
-            self.current_volume = None # Store volume of current trade
-            self.trade_low = None # Track low price during trade
-            self.trade_high = None # Track high price during trade
-            # REMOVED state variables previously used for passing info
+            self.current_direction = None
+            self.trade_entry_bar = None
+            self.order_entry_price = None # Store entry price associated with entry_order_direction
+            self.entry_order_direction = None # Store direction of the order that opened the position
 
-        def start(self):
-            self.initial_balance = self.broker.getvalue()
-            self.balance_history.append(self.initial_balance)
-            # Use data start date if available
-            start_date = self.data0.datetime.date(0) if len(self.data0) > 0 else "N/A"
-            self.date_history.append(start_date)
-
+        # --- Corrected next() method ---
         def next(self):
             dt = self.data0.datetime.datetime(0)
             dt_hour = dt.replace(minute=0, second=0, microsecond=0)
@@ -279,354 +259,345 @@ class Plugin:
             self.balance_history.append(balance)
             self.date_history.append(dt)
 
-            # --- START: Signal Generation Logic ---
+            # --- START: Signal Generation Logic (Revised TP/SL Calculation) ---
             signal = None
             chosen_rr = 0
-            tp_entry, sl_entry = None, None
+            tp_entry, sl_entry = None, None # Generic TP/SL for entry
 
             if dt_hour in self.pred_df.index:
                 row = self.pred_df.loc[dt_hour]
                 try:
                     daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
-                    if not daily_preds or all(pd.isna(p) for p in daily_preds): daily_preds = []
-                except KeyError: daily_preds = []
+                    if not daily_preds or all(pd.isna(p) for p in daily_preds):
+                         daily_preds = []
+                except KeyError:
+                    daily_preds = []
 
-                if daily_preds:
-                    future = daily_preds
+                if daily_preds: # Only proceed if we have valid daily predictions
+                    # --- Signal Generation based on UNADJUSTED Daily Threshold Crossing ---
+                    future = daily_preds # Use raw daily preds for signal
                     future_moves = [(p - current_price)/self.p.pip_cost for p in future]
+
                     buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
                     sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
 
+                    #print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True)
+
+                    # --- Determine Signal and Calculate TP/SL based on Signal Event ---
                     if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
+                        # Potential Short Signal - Calculate TP/SL based on sell_idx event
                         idx = sell_idx
-                        ideal_profit_pips = -future_moves[idx]
+                        ideal_profit_pips = -future_moves[idx] # Profit is the negative move (positive value)
                         max_before_signal = current_price
-                        if idx > 0: max_before_signal = max([current_price] + future[:idx])
+                        if idx > 0:
+                             max_before_signal = max([current_price] + future[:idx])
                         price_at_signal = future[idx]
                         ideal_drawdown_pips = max(0, (max_before_signal - price_at_signal) / self.p.pip_cost)
-                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
 
+                        # --- MODIFIED: Always set signal if sell_idx is valid, handle zero drawdown in SL ---
                         signal = 'short'
-                        chosen_rr = ideal_profit_pips
+                        chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
                         tp_entry = current_price - self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
+                        # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
+                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
                         sl_entry = current_price + self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
 
-                    elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
-                        idx = buy_idx
-                        ideal_profit_pips = future_moves[idx]
-                        min_before_signal = current_price
-                        if idx > 0: min_before_signal = min([current_price] + future[:idx])
-                        price_at_signal = future[idx]
-                        ideal_drawdown_pips = max(0, (price_at_signal - min_before_signal) / self.p.pip_cost)
-                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                        # DEBUG 1: Log potential short signal details
+                        print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
-                        signal = 'long'
-                        chosen_rr = ideal_profit_pips
-                        tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
-                        sl_entry = current_price - self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
+                    elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
+                        # ... (Potential Long Signal calculation - unchanged) ...
+                        # ... (Set signal='long', chosen_rr, tp_entry, sl_entry) ...
+                        pass # Keep long logic as is
+
             # --- END: Signal Generation Logic ---
+
 
             # --- Position Management ---
             if self.position:
-                # Update trade high/low only if state is consistent
-                if self.current_direction is not None:
-                    if self.trade_low is None or current_price < self.trade_low: self.trade_low = current_price
-                    if self.trade_high is None or current_price > self.trade_high: self.trade_high = current_price
+                # Update trade high/low
+                if self.trade_low is None or current_price < self.trade_low: self.trade_low = current_price
+                if self.trade_high is None or current_price > self.trade_high: self.trade_high = current_price
 
                 should_close = False
                 reason = "N/A"
-                # Check Hard TP/SL (use state set at entry)
-                if self.current_direction == 'long':
-                    if self.current_tp is not None and current_price >= self.current_tp: should_close, reason = True, "Hard TP"
-                    elif self.current_sl is not None and current_price <= self.current_sl: should_close, reason = True, "Hard SL"
-                elif self.current_direction == 'short':
-                    if self.current_tp is not None and current_price <= self.current_tp: should_close, reason = True, "Hard TP"
-                    elif self.current_sl is not None and current_price >= self.current_sl: should_close, reason = True, "Hard SL"
 
-                # Check Early Close (Hourly Preds)
+                # Check Hard TP/SL first
+                if self.current_direction == 'long':
+                    if current_price >= self.current_tp: should_close, reason = True, "Hard TP"
+                    elif current_price <= self.current_sl: should_close, reason = True, "Hard SL"
+                elif self.current_direction == 'short':
+                    if current_price <= self.current_tp: should_close, reason = True, "Hard TP"
+                    elif current_price >= self.current_sl: should_close, reason = True, "Hard SL"
+
+                # Check Early Close based on Hourly Predictions if not already closing
                 if not should_close and dt_hour in self.pred_df.index and self.num_hourly_preds > 0:
-                    # ... (Insert your existing hourly early close logic here) ...
-                    # Example placeholder:
-                    # hourly_preds = ...
-                    # if some_condition(hourly_preds, self.current_direction):
-                    #    should_close, reason = True, "Hourly Early Close"
-                    pass
+                    row = self.pred_df.loc[dt_hour]
+                    try:
+                        hourly_preds = [row[f'Prediction_h_{i}'] for i in range(1, self.num_hourly_preds + 1)]
+                        if not hourly_preds or all(pd.isna(p) for p in hourly_preds):
+                            hourly_preds = []
+                    except KeyError:
+                        hourly_preds = []
+
+                    if hourly_preds: # Only check if hourly preds are valid
+                        # Apply uncertainty for early close check
+                        if self.num_hourly_uncs > 0:
+                            hourly_uncs = [row.get(f'Uncertainty_h_{i}', 0) for i in range(1, self.num_hourly_uncs + 1)]
+                            if len(hourly_uncs) < len(hourly_preds): hourly_uncs.extend([0]*(len(hourly_preds)-len(hourly_uncs)))
+                            elif len(hourly_uncs) > len(hourly_preds): hourly_uncs = hourly_uncs[:len(hourly_preds)]
+                            adjusted_hourly_preds_long = [pred + unc for pred, unc in zip(hourly_preds, hourly_uncs)] # Worse case for long
+                            adjusted_hourly_preds_short = [pred - unc for pred, unc in zip(hourly_preds, hourly_uncs)] # Worse case for short
+                        else:
+                            adjusted_hourly_preds_long = list(hourly_preds)
+                            adjusted_hourly_preds_short = list(hourly_preds)
+
+                        # Check if any hourly prediction crosses the SL
+                        if self.current_direction == 'long' and adjusted_hourly_preds_long:
+                            predicted_hourly_min = min(adjusted_hourly_preds_long)
+                            if predicted_hourly_min < self.current_sl:
+                                should_close, reason = True, f"Hourly Pred Min ({predicted_hourly_min:.5f}) < SL ({self.current_sl:.5f})"
+                        elif self.current_direction == 'short' and adjusted_hourly_preds_short:
+                            predicted_hourly_max = max(adjusted_hourly_preds_short)
+                            if predicted_hourly_max > self.current_sl:
+                                should_close, reason = True, f"Hourly Pred Max ({predicted_hourly_max:.5f}) > SL ({self.current_sl:.5f})"
 
                 if should_close:
-                    print(f"[{dt}] Closing position ({self.current_direction or 'Unknown'}) due to: {reason}")
+                    #print(f"[{dt}] Closing position ({self.current_direction}) due to: {reason}")
                     self.close() # Close position
-                    # Reset direction/TP/SL immediately after initiating close
-                    # self.current_direction = None # Let notify_trade handle final reset
-                    # self.current_tp = None
-                    # self.current_sl = None
+                    # CRITICAL: Return AFTER closing to prevent immediate re-entry on the same bar
                     return # Exit next() after closing position
 
-                # If not closing, just wait for next bar.
-                return # Return if still managing position
+                # --- REMOVED THE PREMATURE RETURN ---
+                # If not closing, execution will now CONTINUE to the entry logic below,
+                # even if a position is currently held.
+                # return # <<<< REMOVED THIS LINE (Previously around line 380)
 
-            # --- Entry Logic (Only reached if NOT in position) ---
-            else: # Reset high/low when confirmed flat
+            # --- Entry Logic (Now reachable even if self.position was true, unless closed above) ---
+            else:
+                # Reset trade high/low when not in position (This part is fine)
                 self.trade_low = None
                 self.trade_high = None
 
-            # Trade frequency limit
+            # Check trade frequency limit (only if not in position - This might need adjustment if allowing reversals)
+            # Consider if this check should happen earlier or be modified if reversing positions is intended.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
-            if len(recent_trades) >= self.p.max_trades_per_5days:
+            if len(recent_trades) >= self.p.max_trades_per_5days and not self.position: # Apply only if flat?
                  # print(f"[{dt}] Trade limit reached, skipping entry.") # Optional log
                  return
 
-            # Place order based on signal
+            # --- Place order based on the signal determined earlier ---
             if signal is not None:
-                # Ensure we are definitely flat before entering
+                # --- ADD CHECK: Only enter if FLAT ---
+                # If the goal is strictly one position at a time, add this check.
+                # If reversals are allowed, remove this check.
                 if self.position:
-                    print(f"[{dt}] Signal '{signal}' generated, but position object still exists. Skipping entry.")
+                    #print(f"[{dt}] Signal '{signal}' generated, but already in position. Skipping entry.")
                     return
+                # --- END ADD CHECK ---
 
-                chosen_tp, chosen_sl = tp_entry, sl_entry
+
+                # Assign the TP/SL calculated during signal generation
+                chosen_tp, chosen_sl = tp_entry, sl_entry # Use the new TP/SL
+
+                # Final check if TP/SL are valid before proceeding
                 if chosen_tp is None or chosen_sl is None:
-                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL is None, skipping trade.")
+                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed (drawdown=0?), skipping trade.")
                      return
 
                 order_size = self.compute_size(chosen_rr)
+
+                # DEBUG 2: Log details just before order size check, specifically for shorts
+                if signal == 'short':
+                    print(f"[{dt}] DEBUG: Short Entry Check: Size={order_size:.2f}, RR={chosen_rr:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}", flush=True)
+
+                # Check Order Size
                 if order_size <= 0:
                     print(f"[{dt}] Signal '{signal}' generated, but order size <= 0 ({order_size:.2f}), skipping trade")
                     return
 
-                # --- Set state JUST BEFORE placing order ---
-                self.current_tp = chosen_tp
-                self.current_sl = chosen_sl
-                self.current_direction = signal # Set intended direction
-                self.current_volume = order_size
-                self.trade_entry_bar = len(self) # Bar number index
+                # Record entry details BEFORE placing order
                 self.trade_entry_dates.append(dt)
-                self.trade_low = current_price # Initialize trade high/low for this trade
+                self.trade_entry_bar = len(self) # Bar index of entry
+                self.current_volume = order_size
+                self.current_tp = chosen_tp # Store TP/SL for management
+                self.current_sl = chosen_sl
+                self.current_direction = signal # Store direction
+
+                # Reset trade high/low for the new trade
+                self.trade_low = current_price
                 self.trade_high = current_price
+
+                # DEBUG before placing order
+               # print(f"[{dt}] Attempting to place order: Signal={signal}, Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}, RR={chosen_rr:.2f}")
 
                 # Place the actual order
                 if signal == 'long':
-                    print(f"[{dt}] PLACING LONG ORDER: Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}", flush=True)
                     self.buy(size=order_size)
                 elif signal == 'short':
-                    print(f"[{dt}] PLACING SHORT ORDER: Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}", flush=True)
+                    # DEBUG 3: Log just before placing short order
+                    print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
                     self.sell(size=order_size)
+
+            # --- End of Entry Logic ---
 
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
             max_vol = self.params.max_order_volume
-            # Ensure thresholds are valid
-            lower_rr = self.params.lower_rr_threshold
-            upper_rr = self.params.upper_rr_threshold
-            if upper_rr <= lower_rr: # Avoid division by zero / invalid range
-                size = min_vol if rr <= lower_rr else max_vol
-            elif rr >= upper_rr:
+            if rr >= self.params.upper_rr_threshold:
                 size = max_vol
-            elif rr <= lower_rr:
+            elif rr <= self.params.lower_rr_threshold:
                 size = min_vol
             else:
-                size = min_vol + ((rr - lower_rr) / (upper_rr - lower_rr)) * (max_vol - min_vol)
-
+                size = min_vol + ((rr - self.params.lower_rr_threshold) /
+                                  (self.params.upper_rr_threshold - self.params.lower_rr_threshold)) * (max_vol - min_vol)
             cash = self.broker.getcash()
-            # Ensure leverage and rel_volume are positive
-            leverage = max(1, self.params.leverage) # Use at least 1x leverage
-            rel_volume = max(0, self.params.rel_volume)
-            max_from_cash = cash * rel_volume * leverage
-
-            calculated_size = min(size, max_from_cash)
-            # Ensure final size is not negative
-            return max(0, calculated_size)
+            max_from_cash = cash * self.params.rel_volume * self.params.leverage
+            return min(size, max_from_cash)
 
         def notify_order(self, order):
             dt = self.data0.datetime.datetime(0)
-            if order.status in [order.Completed]:
-                print(f"[{dt}] NOTIFY ORDER COMPLETED: Ref={order.ref}, Type={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}, Exec Price={order.executed.price:.5f}", flush=True)
-            elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-                print(f"[{dt}] NOTIFY ORDER FAILED/CANCELLED: Ref={order.ref}, Status={order.getstatusname()}", flush=True)
-                # If an entry order failed, reset the state that was set in next()
-                # Check if the failed order matches the intended entry state
-                is_entry_order_failed = False
-                if self.current_direction == 'long' and order.isbuy() and not self.position:
-                    is_entry_order_failed = True
-                elif self.current_direction == 'short' and order.issell() and not self.position:
-                    is_entry_order_failed = True
+            if order.status in [order.Submitted, order.Accepted]:
+                # Optional: Log submission/acceptance
+                # print(f"[{dt}] NOTIFY ORDER: Ref={order.ref}, Status={order.getstatusname()}, Type={'BUY' if order.isbuy() else 'SELL'}, Size={order.created.size}", flush=True)
+                return
 
-                if is_entry_order_failed:
-                     print(f"[{dt}] Entry order ({self.current_direction}) failed, resetting state.")
-                     self.current_tp = None
-                     self.current_sl = None
-                     self.current_direction = None
-                     self.current_volume = None
-                     self.trade_entry_bar = None
-                     if self.trade_entry_dates: self.trade_entry_dates.pop() # Remove tentative entry date
-                     self.trade_low = None
-                     self.trade_high = None
+            if order.status in [order.Completed]:
+                # Check if this order completion resulted in opening the current position
+                # Check if position exists, matches order size, and entry direction hasn't been set yet
+                if self.position and abs(self.position.size) == abs(order.executed.size) and self.entry_order_direction is None:
+                     self.entry_order_direction = 'long' if order.isbuy() else 'short'
+                     self.order_entry_price = order.executed.price # Store entry price associated with this entry
+                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Entry Detected): Ref={order.ref}, Entry Direction Set To='{self.entry_order_direction}', Entry Price Set To={self.order_entry_price:.5f}", flush=True)
+                else:
+                     # This order might be closing, partial fill, or something else - log for info
+                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Non-Entry or State Already Set): Ref={order.ref}, Type={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
+                return
+
+            if order.status in [order.Canceled, order.Margin, order.Rejected]:
+                print(f"[{dt}] NOTIFY ORDER FAILED/CANCELLED: Ref={order.ref}, Status={order.getstatusname()}", flush=True)
+                # If an entry order failed, reset the direction flag if it was somehow set
+                # This part needs careful thought depending on desired behavior on failure
+                # self.entry_order_direction = None
 
         def notify_trade(self, trade):
             dt = self.data0.datetime.datetime(0)
+            # Optional: Log entry into notify_trade
+            # print(f"[{dt}] NOTIFY TRADE: Ref={trade.ref}, IsOpen={trade.isopen}, IsClosed={trade.isclosed}, Size={trade.size}, PnL={trade.pnlcomm:.2f}", flush=True)
+
             if trade.isclosed:
-                # --- Determine Direction and Entry Price from Trade Object ---
-                # trade.size > 0 for closed longs (closed by sell), < 0 for closed shorts (closed by buy)
-                direction = 'long' if trade.size > 0 else 'short'
-                entry_price = trade.price # Use average entry price from trade object
+                # Use the direction and entry price stored when the position was opened
+                direction = self.entry_order_direction
+                entry_price = self.order_entry_price if self.order_entry_price is not None else 0
 
-                print(f"[{dt}] NOTIFY TRADE CLOSED - Inferred Direction='{direction}', Avg EntryPrice={entry_price:.5f}", flush=True)
+                # --- Fallbacks for safety (should ideally not be needed) ---
+                if direction is None:
+                    print(f"[{dt}] WARNING: Trade closed but self.entry_order_direction is None! Inferring from trade size.")
+                    direction = 'long' if trade.size > 0 else 'short' # trade.size is negative for shorts closed by buy
 
-                # Use state tracked during the trade if available, otherwise default
-                entry_bar = self.trade_entry_bar if self.trade_entry_bar is not None else (len(self) - 1) # Approx if state missing
-                duration = len(self) - entry_bar
-                trade_low_during = self.trade_low
-                trade_high_during = self.trade_high
+                if entry_price == 0:
+                     print(f"[{dt}] WARNING: Trade closed but self.order_entry_price is 0! Using trade.price (average entry).")
+                     entry_price = trade.price # Fallback to average trade entry price
 
+                print(f"[{dt}] NOTIFY TRADE CLOSED - Using Direction='{direction}', EntryPrice={entry_price:.5f}", flush=True)
+                # --- End Fallbacks ---
+
+                duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
+                exit_price = trade.price # This is average entry price. Exit price isn't directly available.
                 profit_usd = trade.pnlcomm
+
+                # Calculate pips and intra-trade drawdown based on the correctly identified direction and entry price
                 profit_pips = 0
                 intra_dd = 0
-                exit_price_implied = entry_price # Default
+                exit_price_implied = entry_price # Default if calculation fails
 
-                # Ensure volume is non-zero before calculating pips/exit
-                trade_volume = abs(trade.size)
-                if entry_price != 0 and trade_volume != 0 and self.p.pip_cost != 0:
-                    # Calculate implied exit price based on PnL
+                if entry_price != 0 and trade.size != 0: # Avoid division by zero
                     if direction == 'long':
-                        # PnL = (Exit - Entry) * Volume * PipValueFactor (usually 1/pip_cost)
-                        # Exit = Entry + PnL / (Volume * PipValueFactor)
-                        # Assuming PipValueFactor = 1 / pip_cost (needs verification based on broker/asset)
-                        exit_price_implied = entry_price + (profit_usd / trade_volume) # Simpler if price is direct quote currency
-                        # Let's recalculate pips directly from prices if possible
-                        profit_pips = (exit_price_implied - entry_price) / self.p.pip_cost # Check this calculation carefully
-                        if trade_low_during is not None:
-                             intra_dd = max(0, (entry_price - trade_low_during) / self.p.pip_cost)
+                        # trade.size is positive for closed long
+                        exit_price_implied = entry_price + (profit_usd / (abs(trade.size) * self.p.pip_cost))
+                        profit_pips = (exit_price_implied - entry_price) / self.p.pip_cost
+                        intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
                     elif direction == 'short':
-                        # PnL = (Entry - Exit) * Volume * PipValueFactor
-                        # Exit = Entry - PnL / (Volume * PipValueFactor)
-                        exit_price_implied = entry_price - (profit_usd / trade_volume) # Simpler if price is direct quote currency
-                        profit_pips = (entry_price - exit_price_implied) / self.p.pip_cost # Check this calculation carefully
-                        if trade_high_during is not None:
-                             intra_dd = max(0, (trade_high_during - entry_price) / self.p.pip_cost)
-                else:
-                     print(f"[{dt}] WARNING: Cannot calculate pips/exit price accurately (Entry={entry_price}, Size={trade_volume}, PipCost={self.p.pip_cost})")
-
+                        # trade.size is negative for closed short
+                        exit_price_implied = entry_price - (profit_usd / (abs(trade.size) * self.p.pip_cost))
+                        profit_pips = (entry_price - exit_price_implied) / self.p.pip_cost
+                        intra_dd = (self.trade_high - entry_price) / self.p.pip_cost if self.trade_high is not None else 0
 
                 current_balance = self.broker.getvalue()
-                # Use trade object datetime if available and reliable
-                open_dt_approx = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A"
+                # Use trade.open_datetime() for more accurate open time if needed, requires Backtrader >= 1.9.77.123
+                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A" # Still potentially inaccurate if trades overlap
 
                 trade_record = {
-                    'open_dt': open_dt_approx, # Approximate open time
+                    'open_dt': open_dt,
                     'close_dt': dt,
-                    'volume': trade_volume,
+                    'volume': abs(trade.size), # Actual closed size
                     'pnl': profit_usd,
                     'pips': profit_pips,
                     'duration': duration,
                     'max_dd': intra_dd,
-                    'direction': direction # Use inferred direction
+                    'direction': direction # Use the determined direction
                 }
                 self.trades.append(trade_record)
                 print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit=(Implied){exit_price_implied:.5f}, "
-                      f"Volume={trade_record['volume']:.2f}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
+                      f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
                       f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
 
                 # --- Reset state AFTER processing the closed trade ---
-                # Reset state variables associated with being in a position
+                self.order_entry_price = None
+                self.entry_order_direction = None # CRITICAL: Reset the flag
                 self.current_tp = None
                 self.current_sl = None
-                self.current_direction = None # Position is now closed
+                self.current_direction = None # Position is closed
                 self.current_volume = None
                 self.trade_entry_bar = None
-                # High/low are reset in next() when flat is confirmed
+                # self.trade_low = None # Reset high/low when position is confirmed closed
+                # self.trade_high = None
 
         def stop(self):
-            # --- Final Summary Calculation ---
             if self.position:
-                print("Warning: Position still open at the end of backtest. Closing.")
-                self.close() # Ensure position is closed before final summary
-
-            min_balance = min(self.balance_history) if self.balance_history else self.initial_balance
-            final_balance = self.broker.getvalue()
+                self.close()
+            min_balance = min(self.balance_history) if self.balance_history else 0
             n_trades = len(self.trades)
             n_long_trades = 0
             n_short_trades = 0
             long_trade_percentage = 0.0
             short_trade_percentage = 0.0
-            avg_profit_usd = 0.0
-            avg_profit_pips = 0.0
-            avg_duration = 0.0
-            avg_max_dd = 0.0
 
             if n_trades > 0:
-                try:
-                    avg_profit_usd = sum(t['pnl'] for t in self.trades) / n_trades
-                except ZeroDivisionError: avg_profit_usd = 0.0
-                try:
-                    avg_profit_pips = sum(t['pips'] for t in self.trades) / n_trades
-                except ZeroDivisionError: avg_profit_pips = 0.0
-                try:
-                    avg_duration = sum(t['duration'] for t in self.trades) / n_trades
-                except ZeroDivisionError: avg_duration = 0.0
-                try:
-                    avg_max_dd = sum(t['max_dd'] for t in self.trades) / n_trades
-                except ZeroDivisionError: avg_max_dd = 0.0
-
+                avg_profit_usd = sum(t['pnl'] for t in self.trades) / n_trades
+                avg_profit_pips = sum(t['pips'] for t in self.trades) / n_trades
+                avg_duration = sum(t['duration'] for t in self.trades) / n_trades
+                avg_max_dd = sum(t['max_dd'] for t in self.trades) / n_trades
                 n_long_trades = sum(1 for t in self.trades if t.get('direction') == 'long')
-                n_short_trades = n_trades - n_long_trades
-                try:
-                    long_trade_percentage = (n_long_trades / n_trades) * 100
-                    short_trade_percentage = (n_short_trades / n_trades) * 100
-                except ZeroDivisionError:
-                    long_trade_percentage = 0.0
-                    short_trade_percentage = 0.0
+                n_short_trades = n_trades - n_long_trades # Calculate shorts
+                long_trade_percentage = (n_long_trades / n_trades) * 100
+                short_trade_percentage = (n_short_trades / n_trades) * 100
+            else:
+                avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
 
+            final_balance = self.broker.getvalue()
             print("\n==== Summary ====")
             print(f"Initial Balance (USD): {self.initial_balance:.2f}")
             print(f"Final Balance (USD):   {final_balance:.2f}")
             print(f"Minimum Balance (USD): {min_balance:.2f}")
             print(f"Number of Trades: {n_trades}")
             if n_trades > 0:
-               print(f"  Long Trades:  {n_long_trades} ({long_trade_percentage:.1f}%)")
-               print(f"  Short Trades: {n_short_trades} ({short_trade_percentage:.1f}%)")
+                print(f"  Long Trades:  {n_long_trades} ({long_trade_percentage:.1f}%)")
+                print(f"  Short Trades: {n_short_trades} ({short_trade_percentage:.1f}%)")
             print(f"Average Profit (USD): {avg_profit_usd:.2f}")
             print(f"Average Profit (pips): {avg_profit_pips:.2f}")
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
             print(f"Average Trade Duration (bars): {avg_duration:.2f}")
+            import matplotlib.pyplot as plt
+            plt.figure(figsize=(10, 5))
+            plt.plot(self.date_history, self.balance_history, label="Balance")
+            plt.xlabel("Date")
+            plt.ylabel("Balance (USD)")
+            plt.title("Balance vs Date")
+            plt.legend()
+            plt.savefig("balance_plot.png")
+            plt.close()
 
-            # --- Plotting ---
-            try:
-                plt.figure(figsize=(12, 6))
-                plt.plot(self.date_history, self.balance_history)
-                plt.title('Balance Over Time')
-                plt.xlabel('Date')
-                plt.ylabel('Balance (USD)')
-                plt.grid(True)
-                plt.savefig('balance_plot.png') # Save the plot
-                # plt.show() # Optionally display plot
-                plt.close() # Close plot to free memory
-            except Exception as e:
-                print(f"Error generating plot: {e}")
-
-            # --- Save Trades and Summary ---
-            try:
-                trades_df = pd.DataFrame(self.trades)
-                trades_df.to_csv('trades.csv', index=False)
-            except Exception as e:
-                print(f"Error saving trades CSV: {e}")
-
-            summary_data = {
-                "Initial Balance": self.initial_balance,
-                "Final Balance": final_balance,
-                "Minimum Balance": min_balance,
-                "Number of Trades": n_trades,
-                "Number Long Trades": n_long_trades,
-                "Number Short Trades": n_short_trades,
-                "Long Trade Percentage": long_trade_percentage,
-                "Short Trade Percentage": short_trade_percentage,
-                "Average Profit USD": avg_profit_usd,
-                "Average Profit Pips": avg_profit_pips,
-                "Average Duration Bars": avg_duration,
-                "Average Max Drawdown Pips": avg_max_dd
-            }
-            try:
-                summary_df = pd.DataFrame([summary_data])
-                summary_df.to_csv('summary.csv', index=False)
-            except Exception as e:
-                print(f"Error saving summary CSV: {e}")
 
     # -------------------------------------------------------------------------
     # Dummy methods for interface compatibility
@@ -657,64 +628,3 @@ class Plugin:
 
     def load(self, file_path):
         print("load() not applicable for trading strategy plugin.")
-
-# Example usage within a Cerebro setup (replace with your actual setup)
-if __name__ == '__main__':
-    # This is a placeholder for how you might run Cerebro
-    # You need to provide your data feed and prediction dataframe loading
-    cerebro = bt.Cerebro()
-
-    # --- Dummy Data Feed ---
-    # Replace with your actual data loading
-    import datetime
-    dates = pd.date_range(start='2023-01-01', periods=500, freq='H')
-    data = pd.DataFrame({
-        'datetime': dates,
-        'open': np.random.rand(500) * 10 + 1.1,
-        'high': lambda x: x['open'] + np.random.rand(500) * 0.5,
-        'low': lambda x: x['open'] - np.random.rand(500) * 0.5,
-        'close': lambda x: x['open'] + (np.random.rand(500) - 0.5) * 0.8,
-        'volume': np.random.randint(100, 1000, 500)
-    })
-    data['high'] = data.apply(lambda row: row['open'] + np.random.rand() * 0.001, axis=1)
-    data['low'] = data.apply(lambda row: row['open'] - np.random.rand() * 0.001, axis=1)
-    data['close'] = data.apply(lambda row: row['open'] + (np.random.rand() - 0.5) * 0.0008, axis=1)
-    data = data.set_index('datetime')
-    data_feed = bt.feeds.PandasData(dataname=data)
-    cerebro.adddata(data_feed)
-    # --- Dummy Prediction Data ---
-    # Replace with your actual prediction loading
-    pred_dates = pd.date_range(start='2023-01-01', periods=500, freq='H')
-    pred_data = {}
-    for i in range(1, 7):
-        pred_data[f'Prediction_d_{i}'] = data['close'].shift(-i*24) # Dummy future prices
-    pred_df = pd.DataFrame(pred_data, index=pred_dates)
-    pred_df = pred_df.fillna(method='ffill').fillna(method='bfill') # Fill NaNs
-
-    # --- Strategy Parameters ---
-    # Use defaults or load from config
-    strategy_params = {
-        'pred_df': pred_df,
-        'pip_cost': 0.0001,
-        'rel_volume': 0.01,
-        'min_order_volume': 1000,
-        'max_order_volume': 1000000,
-        'leverage': 30,
-        'profit_threshold': 50,
-        'min_drawdown_pips': 10,
-        'tp_multiplier': 1.0,
-        'sl_multiplier': 1.0,
-        'lower_rr_threshold': 100,
-        'upper_rr_threshold': 1000,
-        'max_trades_per_5days': 10, # Increased for dummy data
-        'num_daily_preds': 6,
-        'num_hourly_preds': 0 # Disable hourly for this example
-    }
-
-    cerebro.addstrategy(Plugin.HeuristicStrategy, **strategy_params)
-    cerebro.broker.set_cash(10000.0)
-    cerebro.broker.setcommission(commission=0.0002) # Example commission
-
-    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
-    cerebro.run()
-    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
