@@ -274,6 +274,8 @@ class Plugin:
             signal = None
             chosen_rr = 0
             tp_entry, sl_entry = None, None # Generic TP/SL for entry
+            ideal_profit_pips = 0 # Initialize
+            effective_drawdown_pips = 0 # Initialize
 
             if dt_hour in self.pred_df.index:
                 row = self.pred_df.loc[dt_hour]
@@ -284,6 +286,23 @@ class Plugin:
                 except KeyError:
                     daily_preds = []
 
+                # --- ADDED: Get Daily Uncertainties ---
+                daily_uncs = []
+                if self.num_daily_uncs > 0:
+                    try:
+                        daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
+                        # Ensure daily_uncs has same length as daily_preds, padding with 0 if needed
+                        if len(daily_uncs) < len(daily_preds):
+                            daily_uncs.extend([0]*(len(daily_preds)-len(daily_uncs)))
+                        elif len(daily_uncs) > len(daily_preds):
+                            daily_uncs = daily_uncs[:len(daily_preds)]
+                    except KeyError:
+                        daily_uncs = [0] * len(daily_preds) # Fallback to zeros
+                else:
+                    daily_uncs = [0] * len(daily_preds) # Fallback to zeros if no uncertainty columns
+                # --- END ADDED ---
+
+
                 if daily_preds: # Only proceed if we have valid daily predictions
                     # --- Signal Generation based on UNADJUSTED Daily Threshold Crossing ---
                     future = daily_preds # Use raw daily preds for signal
@@ -292,11 +311,9 @@ class Plugin:
                     buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
                     sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
 
-                    #print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True)
-
                     # --- Determine Signal and Calculate TP/SL based on Signal Event ---
                     if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
-                        # Potential Short Signal - Calculate TP/SL based on sell_idx event
+                        # --- Potential Short Signal ---
                         idx = sell_idx
                         ideal_profit_pips = -future_moves[idx] # Profit is the negative move (positive value)
                         max_before_signal = current_price
@@ -305,49 +322,62 @@ class Plugin:
                         price_at_signal = future[idx]
                         ideal_drawdown_pips = max(0, (max_before_signal - price_at_signal) / self.p.pip_cost)
 
-                        # --- MODIFIED: Always set signal if sell_idx is valid, handle zero drawdown in SL ---
                         signal = 'short'
-                        # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
                         effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
 
-                        # --- MODIFIED: Calculate chosen_rr as ratio ---
-                        chosen_rr = ideal_profit_pips / effective_drawdown_pips if effective_drawdown_pips > 0 else 0
-                        # --- End Modification ---
+                        # --- Apply Uncertainty to Profit and Drawdown ---
+                        uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
+                        uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
 
-                        tp_entry = current_price - self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
-                        sl_entry = current_price + self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
+                        # Reduce profit target, increase drawdown target
+                        adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
+                        adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
+                        # --- End Uncertainty Application ---
 
-                        # DEBUG 1: Log potential short signal details
-                        # Note: The logged RR will now be the ratio
-                        #print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
+
+                        # --- Use Adjusted Pips for TP/SL ---
+                        tp_entry = current_price - self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                        sl_entry = current_price + self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                        # --- End TP/SL Adjustment ---
+
+                        #print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}(adj:{adjusted_profit_pips:.2f}), eff_drawdown={effective_drawdown_pips:.2f}(adj:{adjusted_drawdown_pips:.2f}), Unc={uncertainty_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
 
                     elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
-                        # Potential Long Signal - Calculate TP/SL based on buy_idx event
+                        # --- Potential Long Signal ---
                         idx = buy_idx
                         ideal_profit_pips = future_moves[idx] # Profit is the positive move
                         min_before_signal = current_price
                         if idx > 0:
                              min_before_signal = min([current_price] + future[:idx])
                         price_at_signal = future[idx]
-                        ideal_drawdown_pips = max(0, (price_at_signal - min_before_signal) / self.p.pip_cost) # Drawdown for long
+                        # --- Corrected Drawdown Calculation for Long ---
+                        # Drawdown is how much price dropped *before* hitting the target price_at_signal
+                        ideal_drawdown_pips = max(0, (current_price - min_before_signal) / self.p.pip_cost)
+                        # --- End Correction ---
 
-                        # --- MODIFIED: Always set signal if buy_idx is valid, handle zero drawdown in SL ---
+
                         signal = 'long'
-                        # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
                         effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
 
-                        # --- MODIFIED: Calculate chosen_rr as ratio ---
-                        chosen_rr = ideal_profit_pips / effective_drawdown_pips if effective_drawdown_pips > 0 else 0
-                        # --- End Modification ---
+                        # --- Apply Uncertainty to Profit and Drawdown ---
+                        uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
+                        uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
 
-                        tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
-                        sl_entry = current_price - self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
+                        # Reduce profit target, increase drawdown target
+                        adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
+                        adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
+                        # --- End Uncertainty Application ---
 
-                        # --- ADDED: Debug print for potential long signal ---
-                        # Note: The logged RR will now be the ratio
-                        #print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
-                        # --- End Added print ---
+                        chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
+
+                        # --- Use Adjusted Pips for TP/SL ---
+                        tp_entry = current_price + self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                        sl_entry = current_price - self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                        # --- End TP/SL Adjustment ---
+
+                        #print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}(adj:{adjusted_profit_pips:.2f}), eff_drawdown={effective_drawdown_pips:.2f}(adj:{adjusted_drawdown_pips:.2f}), Unc={uncertainty_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
             # --- END: Signal Generation Logic ---
 
