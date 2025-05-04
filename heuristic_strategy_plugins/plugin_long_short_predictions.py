@@ -316,7 +316,7 @@ class Plugin:
                     buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
                     sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
 
-                    print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True) # Log potential signal
+                    #print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True) # Log potential signal
 
                     if buy_idx is None and sell_idx is None:
                         pass # No signal based on threshold crossing
@@ -435,7 +435,7 @@ class Plugin:
                 self.trade_high = current_price
 
                 # DEBUG before placing order
-                print(f"[{dt}] Attempting to place order: Signal={signal}, Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}, RR={chosen_rr:.2f}")
+               # print(f"[{dt}] Attempting to place order: Signal={signal}, Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}, RR={chosen_rr:.2f}")
 
                 # Place the actual order
                 if signal == 'long':
