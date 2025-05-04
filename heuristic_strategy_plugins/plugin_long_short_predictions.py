@@ -246,8 +246,9 @@ class Plugin:
             self.current_tp = None
             self.current_sl = None
             self.current_direction = None
-            self.order_direction = None
             self.trade_entry_bar = None
+            self.order_entry_price = None # Store entry price associated with entry_order_direction
+            self.entry_order_direction = None # Store direction of the order that opened the position
 
         # --- Corrected next() method ---
         def next(self):
@@ -455,48 +456,102 @@ class Plugin:
             return min(size, max_from_cash)
 
         def notify_order(self, order):
+            dt = self.data0.datetime.datetime(0)
+            if order.status in [order.Submitted, order.Accepted]:
+                # Optional: Log submission/acceptance
+                # print(f"[{dt}] NOTIFY ORDER: Ref={order.ref}, Status={order.getstatusname()}, Type={'BUY' if order.isbuy() else 'SELL'}, Size={order.created.size}", flush=True)
+                return
+
             if order.status in [order.Completed]:
-                self.order_entry_price = order.executed.price
-                self.order_direction = 'long' if order.isbuy() else 'short'
+                # Check if this order completion resulted in opening the current position
+                # Check if position exists, matches order size, and entry direction hasn't been set yet
+                if self.position and abs(self.position.size) == abs(order.executed.size) and self.entry_order_direction is None:
+                     self.entry_order_direction = 'long' if order.isbuy() else 'short'
+                     self.order_entry_price = order.executed.price # Store entry price associated with this entry
+                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Entry Detected): Ref={order.ref}, Entry Direction Set To='{self.entry_order_direction}', Entry Price Set To={self.order_entry_price:.5f}", flush=True)
+                else:
+                     # This order might be closing, partial fill, or something else - log for info
+                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Non-Entry or State Already Set): Ref={order.ref}, Type={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
+                return
+
+            if order.status in [order.Canceled, order.Margin, order.Rejected]:
+                print(f"[{dt}] NOTIFY ORDER FAILED/CANCELLED: Ref={order.ref}, Status={order.getstatusname()}", flush=True)
+                # If an entry order failed, reset the direction flag if it was somehow set
+                # This part needs careful thought depending on desired behavior on failure
+                # self.entry_order_direction = None
 
         def notify_trade(self, trade):
+            dt = self.data0.datetime.datetime(0)
+            # Optional: Log entry into notify_trade
+            # print(f"[{dt}] NOTIFY TRADE: Ref={trade.ref}, IsOpen={trade.isopen}, IsClosed={trade.isclosed}, Size={trade.size}, PnL={trade.pnlcomm:.2f}", flush=True)
+
             if trade.isclosed:
-                duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
-                dt = self.data0.datetime.datetime(0)
+                # Use the direction and entry price stored when the position was opened
+                direction = self.entry_order_direction
                 entry_price = self.order_entry_price if self.order_entry_price is not None else 0
-                exit_price = trade.price
+
+                # --- Fallbacks for safety (should ideally not be needed) ---
+                if direction is None:
+                    print(f"[{dt}] WARNING: Trade closed but self.entry_order_direction is None! Inferring from trade size.")
+                    direction = 'long' if trade.size > 0 else 'short' # trade.size is negative for shorts closed by buy
+
+                if entry_price == 0:
+                     print(f"[{dt}] WARNING: Trade closed but self.order_entry_price is 0! Using trade.price (average entry).")
+                     entry_price = trade.price # Fallback to average trade entry price
+
+                print(f"[{dt}] NOTIFY TRADE CLOSED - Using Direction='{direction}', EntryPrice={entry_price:.5f}", flush=True)
+                # --- End Fallbacks ---
+
+                duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
+                exit_price = trade.price # This is average entry price. Exit price isn't directly available.
                 profit_usd = trade.pnlcomm
-                direction = self.order_direction
-                if direction == 'long':
-                    profit_pips = (exit_price - entry_price) / self.p.pip_cost
-                    intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
-                elif direction == 'short':
-                    profit_pips = (entry_price - exit_price) / self.p.pip_cost
-                    intra_dd = (self.trade_high - entry_price) / self.p.pip_cost if self.trade_high is not None else 0
-                else:
-                    profit_pips = 0
-                    intra_dd = 0
+
+                # Calculate pips and intra-trade drawdown based on the correctly identified direction and entry price
+                profit_pips = 0
+                intra_dd = 0
+                exit_price_implied = entry_price # Default if calculation fails
+
+                if entry_price != 0 and trade.size != 0: # Avoid division by zero
+                    if direction == 'long':
+                        # trade.size is positive for closed long
+                        exit_price_implied = entry_price + (profit_usd / (abs(trade.size) * self.p.pip_cost))
+                        profit_pips = (exit_price_implied - entry_price) / self.p.pip_cost
+                        intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0
+                    elif direction == 'short':
+                        # trade.size is negative for closed short
+                        exit_price_implied = entry_price - (profit_usd / (abs(trade.size) * self.p.pip_cost))
+                        profit_pips = (entry_price - exit_price_implied) / self.p.pip_cost
+                        intra_dd = (self.trade_high - entry_price) / self.p.pip_cost if self.trade_high is not None else 0
+
                 current_balance = self.broker.getvalue()
-                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A"
+                # Use trade.open_datetime() for more accurate open time if needed, requires Backtrader >= 1.9.77.123
+                open_dt = self.trade_entry_dates[-1] if self.trade_entry_dates else "N/A" # Still potentially inaccurate if trades overlap
+
                 trade_record = {
                     'open_dt': open_dt,
                     'close_dt': dt,
-                    'volume': self.current_volume if hasattr(self, "current_volume") and self.current_volume is not None else 0,
+                    'volume': abs(trade.size), # Actual closed size
                     'pnl': profit_usd,
                     'pips': profit_pips,
                     'duration': duration,
                     'max_dd': intra_dd,
-                    'direction': direction # Store the direction
+                    'direction': direction # Use the determined direction
                 }
                 self.trades.append(trade_record)
-                print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+                print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit=(Implied){exit_price_implied:.5f}, "
                       f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
                       f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
+
+                # --- Reset state AFTER processing the closed trade ---
                 self.order_entry_price = None
+                self.entry_order_direction = None # CRITICAL: Reset the flag
                 self.current_tp = None
                 self.current_sl = None
-                self.current_direction = None
+                self.current_direction = None # Position is closed
                 self.current_volume = None
+                self.trade_entry_bar = None
+                # self.trade_low = None # Reset high/low when position is confirmed closed
+                # self.trade_high = None
 
         def stop(self):
             if self.position:
