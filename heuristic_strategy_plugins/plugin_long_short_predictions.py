@@ -500,7 +500,9 @@ class Plugin:
                     self.buy(size=order_size)
                 elif signal == 'short':
                     print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
-
+                    # --- ADDED MISSING CALL ---
+                    self.sell(size=order_size)
+                    # --- END ADDED ---
 
             # --- End of Entry Logic ---
 
