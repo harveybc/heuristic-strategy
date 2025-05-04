@@ -311,7 +311,7 @@ class Plugin:
 
                         # DEBUG 1: Log potential short signal details
                         # Note: The logged RR will now be the ratio
-                        print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        #print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
 
                     elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
@@ -338,7 +338,7 @@ class Plugin:
 
                         # --- ADDED: Debug print for potential long signal ---
                         # Note: The logged RR will now be the ratio
-                        print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        #print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
                         # --- End Added print ---
 
             # --- END: Signal Generation Logic ---
