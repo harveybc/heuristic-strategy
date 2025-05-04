@@ -19,7 +19,7 @@ class Plugin:
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 100,
-        'profit_threshold': -50,
+        'profit_threshold': 50,
         'min_drawdown_pips': 10,
         'tp_multiplier': 0.9,
         'sl_multiplier': 2.0,
@@ -54,7 +54,7 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            ("profit_threshold", -300, 300),
+            #("profit_threshold", -300, 300),
             ("tp_multiplier", 0.3, 3.0),
             ("sl_multiplier", 0.5, 6.0),
             ("lower_rr_threshold", -1000.0, 0.0),
@@ -351,8 +351,10 @@ class Plugin:
             ideal_drawdown_pips_buy = (profit_pred - min_before_max) / self.p.pip_cost
             
             #rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
-            rr_buy = (ideal_profit_pips_buy - ideal_drawdown_pips_buy )/(max_idx+1)
+            #rr_buy = (ideal_profit_pips_buy - ideal_drawdown_pips_buy )/(max_idx+1)
             #rr_buy = ideal_profit_pips_buy 
+            rr_buy = ideal_profit_pips_buy / (max_idx+1)
+
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
             if self.num_daily_uncs > 0:
@@ -371,8 +373,10 @@ class Plugin:
 
 
             #rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
-            rr_sell = (ideal_profit_pips_sell - ideal_drawdown_pips_sell)/(min_idx+1)
+            #rr_sell = (ideal_profit_pips_sell - ideal_drawdown_pips_sell)/(min_idx+1)
             #rr_sell = ideal_profit_pips_sell
+            rr_sell = ideal_profit_pips_sell/ (min_idx+1)
+            
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
