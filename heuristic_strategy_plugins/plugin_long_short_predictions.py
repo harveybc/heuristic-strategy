@@ -419,147 +419,75 @@ class Plugin:
 
             # --- Place order based on the signal determined earlier ---
             if signal is not None:
-                # --- ADD CHECK: Only enter if FLAT ---
-                # If the goal is strictly one position at a time, add this check.
-                # If reversals are allowed, remove this check.
                 if self.position:
-                    #print(f"[{dt}] Signal '{signal}' generated, but already in position. Skipping entry.")
-                    return
-                # --- END ADD CHECK ---
+                    return # Already in position
 
-
-                # Assign the TP/SL calculated during signal generation
-                chosen_tp, chosen_sl = tp_entry, sl_entry # Use the new TP/SL
-
-                # Final check if TP/SL are valid before proceeding
+                chosen_tp, chosen_sl = tp_entry, sl_entry
                 if chosen_tp is None or chosen_sl is None:
-                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed (drawdown=0?), skipping trade.")
+                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed, skipping trade.")
                      return
 
-                # --- MODIFIED CALL to compute_size ---
-                # current_price is already available from the top of next()
-                # self.initial_balance is available from __init__/start()
-                order_size = self.compute_size(chosen_rr, current_price, self.initial_balance)
-                # --- End Modification ---
+                # --- Step 1: Calculate size based on RR ---
+                # This correctly implements the min/max/interpolation based on RR ratio
+                order_size_rr_based = self.compute_size(chosen_rr, current_price, self.initial_balance)
+                # --- End Step 1 ---
 
-                # DEBUG 2: Log details just before order size check, specifically for shorts
-                if signal == 'short':
-                    print(f"[{dt}] DEBUG: Short Entry Check: Size={order_size:.2f}, RR={chosen_rr:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}", flush=True)
+                # --- Step 2: Calculate Max Size based on Value Cap (rel_volume * current_balance) ---
+                current_balance = self.broker.getvalue() # Use current equity/balance
+                max_value_allowed = current_balance * self.params.rel_volume
+                max_size_from_value_cap = 0
+                if current_price > 0:
+                    # Calculate max size whose value is <= max_value_allowed
+                    max_size_from_value_cap = max_value_allowed / current_price
+                else:
+                    print(f"[{dt}] WARNING: Current price is zero. Cannot calculate value cap size.")
+                    max_size_from_value_cap = 0 # Cannot afford anything if price is zero
 
-                # Check Order Size
+                # Ensure the value cap respects the absolute min/max volume parameters
+                max_size_from_value_cap = max(0, max_size_from_value_cap) # Cannot be negative
+                max_size_from_value_cap = min(max_size_from_value_cap, self.params.max_order_volume) # Cannot exceed absolute max
+                # If the cap is > 0 but < min_vol, should we allow min_vol if RR logic wanted more?
+                # Let's allow min_vol if the cap is non-zero, otherwise cap forces zero.
+                if max_size_from_value_cap > 0:
+                     max_size_from_value_cap = max(self.params.min_order_volume, max_size_from_value_cap)
+
+                # --- End Step 2 ---
+
+                # --- Step 3: Determine Final Order Size ---
+                # Final size is the minimum of the RR-based size and the value-cap size
+                order_size = min(order_size_rr_based, max_size_from_value_cap)
+
+                # Final clamp: Ensure it's still within [min_vol, max_vol] range (or zero)
+                # This handles cases where RR logic calculated < min_vol or value cap forced < min_vol
+                if order_size > 0:
+                    order_size = max(self.params.min_order_volume, min(order_size, self.params.max_order_volume))
+                else:
+                    order_size = 0 # Ensure it's exactly zero if capped to zero
+
+                print(f"[{dt}] DEBUG: Size Calc ({signal}): RR={chosen_rr:.2f} -> RR_Size={order_size_rr_based:.2f}. ValueCapSize={max_size_from_value_cap:.2f}. FinalSize={order_size:.2f}", flush=True)
+                # --- End Step 3 ---
+
+
+                # Check Final Order Size
                 if order_size <= 0:
-                    print(f"[{dt}] Signal '{signal}' generated, but order size <= 0 ({order_size:.2f}), skipping trade")
+                    print(f"[{dt}] Signal '{signal}' generated, but final order size <= 0 ({order_size:.2f}) after value cap, skipping trade")
                     return
 
                 # Record entry details BEFORE placing order
-                self.trade_entry_dates.append(dt)
-                self.trade_entry_bar = len(self) # Bar index of entry
-                self.current_volume = order_size
-                self.current_tp = chosen_tp # Store TP/SL for management
-                self.current_sl = chosen_sl
-                self.current_direction = signal # Store direction
-
-                # Reset trade high/low for the new trade
-                self.trade_low = current_price
-                self.trade_high = current_price
-
-                # DEBUG before placing order
-               # print(f"[{dt}] Attempting to place order: Signal={signal}, Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}, RR={chosen_rr:.2f}")
+                # ... (existing code: self.trade_entry_dates.append...) ...
+                self.current_volume = order_size # Use the final capped size
+                # ... (existing code: self.current_tp = ...) ...
 
                 # Place the actual order
                 if signal == 'long':
+                    print(f"[{dt}] DEBUG: PLACING LONG ORDER: Size={order_size:.2f}", flush=True)
                     self.buy(size=order_size)
                 elif signal == 'short':
-                    # DEBUG 3: Log just before placing short order
                     print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
                     self.sell(size=order_size)
 
+
             # --- End of Entry Logic ---
-
-            # --- Inside next() method ---
-            def next(self):
-                # ... (get dt, current_price, balance etc.) ...
-                # ... (signal generation logic -> signal, chosen_rr, ideal_profit_pips, tp_entry, sl_entry) ...
-
-                # --- Position Management ---
-                # ... (existing code) ...
-
-                # --- Entry Logic ---
-                else:
-                    # ... (reset trade high/low) ...
-
-                # Check trade frequency limit
-                # ... (existing code) ...
-
-                if signal is not None:
-                    if self.position:
-                        return # Already in position
-
-                    chosen_tp, chosen_sl = tp_entry, sl_entry
-                    if chosen_tp is None or chosen_sl is None:
-                         print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed, skipping trade.")
-                         return
-
-                    # --- Step 1: Calculate size based on RR ---
-                    # This correctly implements the min/max/interpolation based on RR ratio
-                    order_size_rr_based = self.compute_size(chosen_rr, current_price, self.initial_balance)
-                    # --- End Step 1 ---
-
-                    # --- Step 2: Calculate Max Size based on Value Cap (rel_volume * current_balance) ---
-                    current_balance = self.broker.getvalue() # Use current equity/balance
-                    max_value_allowed = current_balance * self.params.rel_volume
-                    max_size_from_value_cap = 0
-                    if current_price > 0:
-                        # Calculate max size whose value is <= max_value_allowed
-                        max_size_from_value_cap = max_value_allowed / current_price
-                    else:
-                        print(f"[{dt}] WARNING: Current price is zero. Cannot calculate value cap size.")
-                        max_size_from_value_cap = 0 # Cannot afford anything if price is zero
-
-                    # Ensure the value cap respects the absolute min/max volume parameters
-                    max_size_from_value_cap = max(0, max_size_from_value_cap) # Cannot be negative
-                    max_size_from_value_cap = min(max_size_from_value_cap, self.params.max_order_volume) # Cannot exceed absolute max
-                    # If the cap is > 0 but < min_vol, should we allow min_vol if RR logic wanted more?
-                    # Let's allow min_vol if the cap is non-zero, otherwise cap forces zero.
-                    if max_size_from_value_cap > 0:
-                         max_size_from_value_cap = max(self.params.min_order_volume, max_size_from_value_cap)
-
-                    # --- End Step 2 ---
-
-                    # --- Step 3: Determine Final Order Size ---
-                    # Final size is the minimum of the RR-based size and the value-cap size
-                    order_size = min(order_size_rr_based, max_size_from_value_cap)
-
-                    # Final clamp: Ensure it's still within [min_vol, max_vol] range (or zero)
-                    # This handles cases where RR logic calculated < min_vol or value cap forced < min_vol
-                    if order_size > 0:
-                        order_size = max(self.params.min_order_volume, min(order_size, self.params.max_order_volume))
-                    else:
-                        order_size = 0 # Ensure it's exactly zero if capped to zero
-
-                    print(f"[{dt}] DEBUG: Size Calc ({signal}): RR={chosen_rr:.2f} -> RR_Size={order_size_rr_based:.2f}. ValueCapSize={max_size_from_value_cap:.2f}. FinalSize={order_size:.2f}", flush=True)
-                    # --- End Step 3 ---
-
-
-                    # Check Final Order Size
-                    if order_size <= 0:
-                        print(f"[{dt}] Signal '{signal}' generated, but final order size <= 0 ({order_size:.2f}) after value cap, skipping trade")
-                        return
-
-                    # Record entry details BEFORE placing order
-                    # ... (existing code: self.trade_entry_dates.append...) ...
-                    self.current_volume = order_size # Use the final capped size
-                    # ... (existing code: self.current_tp = ...) ...
-
-                    # Place the actual order
-                    if signal == 'long':
-                        print(f"[{dt}] DEBUG: PLACING LONG ORDER: Size={order_size:.2f}", flush=True)
-                        self.buy(size=order_size)
-                    elif signal == 'short':
-                        print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
-                        self.sell(size=order_size)
-
-                # --- End of Entry Logic ---
 
         # --- Corrected compute_size method (Removed Value Limit Constraint) ---
         # Arguments current_price, initial_balance are kept for signature consistency but not used here
