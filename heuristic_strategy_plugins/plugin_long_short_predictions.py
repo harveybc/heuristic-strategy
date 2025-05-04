@@ -473,7 +473,7 @@ class Plugin:
                     order_size = 0
 
                 # --- UPDATED Debug Print Variable Name ---
-                print(f"[{dt}] DEBUG: Size Calc ({signal}): RR={chosen_rr:.2f} -> RR_Size={order_size_rr_based:.2f}. NotionalCapSize={max_size_from_notional_cap:.2f}. FinalSize={order_size:.2f}", flush=True)
+                #print(f"[{dt}] DEBUG: Size Calc ({signal}): RR={chosen_rr:.2f} -> RR_Size={order_size_rr_based:.2f}. NotionalCapSize={max_size_from_notional_cap:.2f}. FinalSize={order_size:.2f}", flush=True)
                 # --- End Step 4 ---
 
 
@@ -496,10 +496,10 @@ class Plugin:
 
                 # Place the actual order
                 if signal == 'long':
-                    print(f"[{dt}] DEBUG: PLACING LONG ORDER: Size={order_size:.2f}", flush=True)
+                    #print(f"[{dt}] DEBUG: PLACING LONG ORDER: Size={order_size:.2f}", flush=True)
                     self.buy(size=order_size)
                 elif signal == 'short':
-                    print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
+                    #print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
                     # --- ADDED MISSING CALL ---
                     self.sell(size=order_size)
                     # --- END ADDED ---
@@ -579,23 +579,23 @@ class Plugin:
                          # Record the entry price from the first fill notification for this attempt
                          if self.order_entry_price is None:
                              self.order_entry_price = order.executed.price
-                             print(f"[{dt}] NOTIFY ORDER COMPLETED (Entry Detected): Ref={order.ref}, Entry Direction Set To='{self.current_direction}', Entry Price Set To={self.order_entry_price:.5f}", flush=True)
-                         else:
+                             #print(f"[{dt}] NOTIFY ORDER COMPLETED (Entry Detected): Ref={order.ref}, Entry Direction Set To='{self.current_direction}', Entry Price Set To={self.order_entry_price:.5f}", flush=True)
+                         #else:
                              # Log subsequent fills if needed (e.g., for partial fills)
-                             print(f"[{dt}] NOTIFY ORDER COMPLETED (Subsequent Fill): Ref={order.ref}, Price={order.executed.price:.5f}, Size={order.executed.size}", flush=True)
+                             #print(f"[{dt}] NOTIFY ORDER COMPLETED (Subsequent Fill): Ref={order.ref}, Price={order.executed.price:.5f}, Size={order.executed.size}", flush=True)
 
                          # Reset the flag indicating we are waiting for an entry confirmation.
                          self.entry_order_direction = None # Reset flag after processing entry
 
                     else:
                          # Order completed, but it didn't match the expected entry direction.
-                         print(f"[{dt}] NOTIFY ORDER COMPLETED (Mismatch/Non-Entry): Ref={order.ref}, Expected='{self.entry_order_direction}', Got={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
+                         #print(f"[{dt}] NOTIFY ORDER COMPLETED (Mismatch/Non-Entry): Ref={order.ref}, Expected='{self.entry_order_direction}', Got={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
                          # Reset flag if it was somehow still set
                          self.entry_order_direction = None
 
-                else:
+                #else:
                      # Order completed, but we weren't expecting an entry (likely a close order)
-                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Close Order?): Ref={order.ref}, Type={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
+                     #print(f"[{dt}] NOTIFY ORDER COMPLETED (Close Order?): Ref={order.ref}, Type={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
 
 
             elif order.status in [order.Canceled, order.Margin, order.Rejected]:
@@ -632,7 +632,7 @@ class Plugin:
                      trade_volume = abs(trade.size) # Fallback to potentially unreliable trade.size
                      entry_price = trade.price
 
-                print(f"[{dt}] NOTIFY TRADE CLOSED - Using State: Direction='{direction}', Volume={trade_volume:.2f}, Stored EntryPrice={self.order_entry_price if self.order_entry_price is not None else 'N/A'}, TradePrice={trade.price:.5f}", flush=True)
+                #print(f"[{dt}] NOTIFY TRADE CLOSED - Using State: Direction='{direction}', Volume={trade_volume:.2f}, Stored EntryPrice={self.order_entry_price if self.order_entry_price is not None else 'N/A'}, TradePrice={trade.price:.5f}", flush=True)
                 # --- End Modification ---
 
                 duration = len(self) - (self.trade_entry_bar if self.trade_entry_bar is not None else 0)
