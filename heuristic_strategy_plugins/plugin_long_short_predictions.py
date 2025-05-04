@@ -422,7 +422,11 @@ class Plugin:
                      print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed (drawdown=0?), skipping trade.")
                      return
 
-                order_size = self.compute_size(chosen_rr)
+                # --- MODIFIED CALL to compute_size ---
+                # current_price is already available from the top of next()
+                # self.initial_balance is available from __init__/start()
+                order_size = self.compute_size(chosen_rr, current_price, self.initial_balance)
+                # --- End Modification ---
 
                 # DEBUG 2: Log details just before order size check, specifically for shorts
                 if signal == 'short':
@@ -458,19 +462,48 @@ class Plugin:
 
             # --- End of Entry Logic ---
 
-        def compute_size(self, rr):
+        # --- Corrected compute_size method ---
+        def compute_size(self, rr, current_price, initial_balance):
             min_vol = self.params.min_order_volume
             max_vol = self.params.max_order_volume
-            if rr >= self.params.upper_rr_threshold:
-                size = max_vol
-            elif rr <= self.params.lower_rr_threshold:
-                size = min_vol
+            lower_rr = self.params.lower_rr_threshold
+            upper_rr = self.params.upper_rr_threshold
+
+            # 1. Calculate size based on RR thresholds (linear interpolation)
+            size_from_rr = 0
+            if upper_rr <= lower_rr: # Handle invalid range
+                size_from_rr = min_vol if rr <= lower_rr else max_vol
+            elif rr >= upper_rr:
+                size_from_rr = max_vol
+            elif rr <= lower_rr:
+                size_from_rr = min_vol
             else:
-                size = min_vol + ((rr - self.params.lower_rr_threshold) /
-                                  (self.params.upper_rr_threshold - self.params.lower_rr_threshold)) * (max_vol - min_vol)
-            cash = self.broker.getcash()
-            max_from_cash = cash * self.params.rel_volume * self.params.leverage
-            return min(size, max_from_cash)
+                # Linear interpolation between min_vol and max_vol
+                size_from_rr = min_vol + ((rr - lower_rr) / (upper_rr - lower_rr)) * (max_vol - min_vol)
+
+            # 2. Calculate max size based on value limit (initial_balance * rel_volume * leverage)
+            max_value_allowed = initial_balance * self.params.rel_volume * self.params.leverage
+            max_size_from_value = float('inf') # Default to no limit if price is zero
+
+            if current_price > 0:
+                max_size_from_value = max_value_allowed / current_price
+            else:
+                # Cannot determine size if price is zero, log warning and return 0
+                print(f"[{self.data0.datetime.datetime(0)}] WARNING: Current price is zero in compute_size. Cannot calculate size.")
+                return 0
+
+            # 3. Determine final size: minimum of RR-based size, value-based size limit, and absolute max_vol param
+            #    Also ensure it doesn't go below min_vol (unless size_from_rr calculated it lower, e.g., if min_vol=0)
+            final_size = min(size_from_rr, max_size_from_value, max_vol)
+
+            # Ensure final size is non-negative
+            final_size = max(0, final_size)
+
+            # --- Optional Debug Print ---
+            # print(f"[{self.data0.datetime.datetime(0)}] Compute Size: rr={rr:.2f}, size_rr={size_from_rr:.2f}, max_val={max_value_allowed:.2f}, price={current_price:.5f}, max_size_val={max_size_from_value:.2f}, final_size={final_size:.2f}")
+            # --- End Debug Print ---
+
+            return final_size
 
         def notify_order(self, order):
             dt = self.data0.datetime.datetime(0)
