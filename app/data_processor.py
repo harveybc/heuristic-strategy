@@ -445,12 +445,11 @@ def run_processing_pipeline(config, plugin):
                 loaded_params.get("tp_multiplier", plugin.params["tp_multiplier"]),
                 loaded_params.get("sl_multiplier", plugin.params["sl_multiplier"]),
                 loaded_params.get("lower_rr_threshold", plugin.params["lower_rr_threshold"]),
-                loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"]),
-                int(loaded_params.get("time_horizon", 3))
+                loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"])
             ]
             print(f"Evaluating strategy with loaded parameters: {candidate}")
             init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
-            result = evaluate_individual(candidate)
+            result = evaluate_individual(candidate, loaded_params = None)
             if isinstance(result, tuple) and len(result) == 2:
                 profit, stats = result
             else:
