@@ -19,7 +19,7 @@ class Plugin:
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 100,
-        'profit_threshold': 100,
+        'profit_threshold': 300,
         'min_drawdown_pips': 10,
         'tp_multiplier': 0.9,
         'sl_multiplier': 2.0,
