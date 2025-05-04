@@ -431,29 +431,31 @@ class Plugin:
                 order_size_rr_based = self.compute_size(chosen_rr, current_price, self.initial_balance)
                 # --- End Step 1 ---
 
-                # --- Step 2: Calculate Max Size based on Value Cap (rel_volume * current_balance) ---
+                # --- Step 2: Calculate Max Size based on Notional Value Cap ---
                 current_balance = self.broker.getvalue() # Use current equity/balance
-                max_value_allowed = current_balance * self.params.rel_volume # Max value = 3% of current balance
-                max_size_from_value_cap = 0
+                # --- CORRECTED: Calculate max NOTIONAL value allowed ---
+                max_notional_value_allowed = current_balance * self.params.rel_volume * self.params.leverage
+                # --- End Correction ---
+                max_size_from_notional_cap = 0
                 if current_price > 0:
-                    # Calculate max size whose value is <= max_value_allowed
-                    max_size_from_value_cap = max_value_allowed / current_price
+                    # Calculate max size whose notional value is <= max_notional_value_allowed
+                    max_size_from_notional_cap = max_notional_value_allowed / current_price
                 else:
-                    print(f"[{dt}] WARNING: Current price is zero. Cannot calculate value cap size.")
-                    max_size_from_value_cap = 0
+                    print(f"[{dt}] WARNING: Current price is zero. Cannot calculate notional cap size.")
+                    max_size_from_notional_cap = 0
 
-                # Ensure the value cap is non-negative
-                max_size_from_value_cap = max(0, max_size_from_value_cap)
+                # Ensure the notional cap size is non-negative
+                max_size_from_notional_cap = max(0, max_size_from_notional_cap)
 
                 # --- End Step 2 ---
 
                 # --- Step 3: Determine Final Order Size ---
-                # Final size is the minimum of the RR-based size and the value-cap size
-                order_size = min(order_size_rr_based, max_size_from_value_cap)
+                # Final size is the minimum of the RR-based size and the notional-cap size
+                order_size = min(order_size_rr_based, max_size_from_notional_cap)
 
                 # --- Step 4: Final Clamp within Absolute Min/Max Volume ---
                 # Ensure the final size is within the absolute min/max bounds,
-                # respecting the min_vol unless the value cap forced it lower/zero.
+                # respecting the min_vol unless the notional cap forced it lower/zero.
                 if order_size > 0:
                     # If size is positive, ensure it's at least min_vol and at most max_vol
                     order_size = max(self.params.min_order_volume, min(order_size, self.params.max_order_volume))
@@ -461,7 +463,8 @@ class Plugin:
                     # If size was capped to zero or less, ensure it's exactly zero
                     order_size = 0
 
-                print(f"[{dt}] DEBUG: Size Calc ({signal}): RR={chosen_rr:.2f} -> RR_Size={order_size_rr_based:.2f}. ValueCapSize={max_size_from_value_cap:.2f}. FinalSize={order_size:.2f}", flush=True)
+                # --- UPDATED Debug Print Variable Name ---
+                print(f"[{dt}] DEBUG: Size Calc ({signal}): RR={chosen_rr:.2f} -> RR_Size={order_size_rr_based:.2f}. NotionalCapSize={max_size_from_notional_cap:.2f}. FinalSize={order_size:.2f}", flush=True)
                 # --- End Step 4 ---
 
 
@@ -488,7 +491,6 @@ class Plugin:
                     self.buy(size=order_size)
                 elif signal == 'short':
                     print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
-                    self.sell(size=order_size)
 
 
             # --- End of Entry Logic ---
