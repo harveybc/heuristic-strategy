@@ -390,11 +390,14 @@ class Plugin:
                 chosen_tp = tp_buy
                 chosen_sl = sl_buy
                 chosen_rr = rr_buy
-            if short_signal and (rr_sell > rr_buy):
+            elif short_signal and (rr_sell > rr_buy):
                 signal = 'short'
                 chosen_tp = tp_sell
                 chosen_sl = sl_sell
                 chosen_rr = rr_sell
+            else:
+                print("[DEBUG] No valid signal found, skipping trade")
+                return
             
             order_size = self.compute_size(chosen_rr)
             if order_size <= 0:
