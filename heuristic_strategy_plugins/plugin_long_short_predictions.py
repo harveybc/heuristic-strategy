@@ -381,7 +381,7 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            future = adjusted_preds_daily
+            future = daily_preds
             # convert price moves into pip‐moves
             future_moves = [(p - current_price)/self.p.pip_cost for p in future]
 
