@@ -54,7 +54,7 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            #("profit_threshold", -300, 300),
+            ("profit_threshold", 0, 300),
             ("tp_multiplier", 0.3, 3.0),
             ("sl_multiplier", 0.5, 6.0),
             ("lower_rr_threshold", -1000.0, 0.0),
@@ -70,8 +70,8 @@ class Plugin:
 
         # Unpack candidate parameters:
         # (profit_threshold, tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold, time_horizon)
-        tp_multiplier, sl_multiplier, lower_rr, upper_rr = individual
-        profit_threshold = self.params['profit_threshold']
+        profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr = individual
+        #profit_threshold = self.params['profit_threshold']
 
         # Check that predictions are available.
         if (hourly_predictions is None or hourly_predictions.empty or 
@@ -422,6 +422,28 @@ class Plugin:
 
             self.current_tp = chosen_tp
             self.current_sl = chosen_sl
+
+            future = adjusted_preds_hourly + adjusted_preds_daily
+            # convert price moves into pip‐moves
+            future_moves = [(p - current_price)/self.p.pip_cost for p in future]
+
+            # find first bar that beats profit_threshold up or down
+            buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
+            sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
+
+            if buy_idx is None and sell_idx is None:
+                return  # no clear signal
+
+            # pick whichever happens sooner
+            if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
+                signal = 'short'
+                chosen_rr = ( -future_moves[sell_idx] )  # positive pips
+            else:
+                signal = 'long'
+                chosen_rr = future_moves[buy_idx]
+
+            # then compute TP/SL around that bar rather than global max/min,
+            # compute order_size and place buy()/sell() as before
 
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
