@@ -258,62 +258,21 @@ class Plugin:
             self.balance_history.append(balance)
             self.date_history.append(dt)
 
-            # --- START: Signal Generation Logic (Moved to the beginning) ---
+            # --- START: Signal Generation Logic (Revised TP/SL Calculation) ---
             signal = None
             chosen_rr = 0
-            # Initialize TP/SL variables used for potential entry
-            tp_buy_entry, sl_buy_entry, tp_sell_entry, sl_sell_entry = None, None, None, None
+            tp_entry, sl_entry = None, None # Generic TP/SL for entry
 
             if dt_hour in self.pred_df.index:
                 row = self.pred_df.loc[dt_hour]
                 try:
-                    # --- Daily Predictions for Entry Signal & TP/SL Calculation ---
                     daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
-                    if not daily_preds or all(pd.isna(p) for p in daily_preds): # Check for NaNs
+                    if not daily_preds or all(pd.isna(p) for p in daily_preds):
                          daily_preds = []
                 except KeyError:
                     daily_preds = []
 
                 if daily_preds: # Only proceed if we have valid daily predictions
-                    # Prepare adjusted daily predictions for TP/SL calculation (using global extremes)
-                    if self.num_daily_uncs > 0:
-                        daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
-                        # Ensure uncertainty list matches prediction list length if needed
-                        if len(daily_uncs) < len(daily_preds): daily_uncs.extend([0]*(len(daily_preds)-len(daily_uncs)))
-                        elif len(daily_uncs) > len(daily_preds): daily_uncs = daily_uncs[:len(daily_preds)]
-                        adjusted_preds_buy = [pred - unc for pred, unc in zip(daily_preds, daily_uncs)]
-                        adjusted_preds_sell = [pred + unc for pred, unc in zip(daily_preds, daily_uncs)]
-                    else:
-                        adjusted_preds_buy = list(daily_preds) # Ensure list copy
-                        adjusted_preds_sell = list(daily_preds)
-
-                    # Calculate potential TP/SL for Buy based on adjusted daily extremes
-                    if adjusted_preds_buy:
-                        profit_pred_buy = max(adjusted_preds_buy)
-                        max_idx_buy = adjusted_preds_buy.index(profit_pred_buy)
-                        min_before_max_buy = min(adjusted_preds_buy[:max_idx_buy+1])
-                        ideal_profit_pips_buy = max(0, (profit_pred_buy - current_price) / self.p.pip_cost) # Ensure non-negative
-                        ideal_drawdown_pips_buy = max(0, (profit_pred_buy - min_before_max_buy) / self.p.pip_cost) # Ensure non-negative
-                        # Keep the check for buy side, as it seems to work
-                        if ideal_drawdown_pips_buy >= self.p.min_drawdown_pips:
-                            tp_buy_entry = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
-                            sl_buy_entry = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
-                        # else: tp_buy_entry, sl_buy_entry remain None
-
-                    # Calculate potential TP/SL for Sell based on adjusted daily extremes
-                    if adjusted_preds_sell:
-                        min_pred_sell = min(adjusted_preds_sell)
-                        min_idx_sell = adjusted_preds_sell.index(min_pred_sell)
-                        max_before_min_sell = max(adjusted_preds_sell[: min_idx_sell + 1])
-                        ideal_profit_pips_sell = max(0, (current_price - min_pred_sell) / self.p.pip_cost) # Ensure non-negative
-                        ideal_drawdown_pips_sell = max(0, (max_before_min_sell - min_pred_sell) / self.p.pip_cost) # Ensure non-negative
-                        # REMOVED check: Calculate TP/SL even if global drawdown is small, signal check handles entry threshold
-                        # Ensure drawdown is not actually zero to avoid zero SL range
-                        if ideal_drawdown_pips_sell > 0:
-                            tp_sell_entry = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
-                            sl_sell_entry = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
-                        # else: tp_sell_entry, sl_sell_entry remain None if drawdown is zero
-
                     # --- Signal Generation based on UNADJUSTED Daily Threshold Crossing ---
                     future = daily_preds # Use raw daily preds for signal
                     future_moves = [(p - current_price)/self.p.pip_cost for p in future]
@@ -321,26 +280,51 @@ class Plugin:
                     buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
                     sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
 
-                    #print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True) # Log potential signal
+                    #print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True)
 
-                    if buy_idx is None and sell_idx is None:
-                        pass # No signal based on threshold crossing
-                    elif sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
-                        # Check if TP/SL for sell were successfully calculated
-                        if tp_sell_entry is not None and sl_sell_entry is not None:
+                    # --- Determine Signal and Calculate TP/SL based on Signal Event ---
+                    if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
+                        # Potential Short Signal - Calculate TP/SL based on sell_idx event
+                        idx = sell_idx
+                        ideal_profit_pips = -future_moves[idx] # Profit is the negative move (positive value)
+                        # Drawdown is max price from current up to idx, relative to the price at idx
+                        max_before_signal = current_price # Start with current price
+                        if idx > 0: # If not the first prediction
+                             max_before_signal = max([current_price] + future[:idx]) # Max including current and up to (not including) idx price
+                        # Price at signal index
+                        price_at_signal = future[idx]
+                        ideal_drawdown_pips = max(0, (max_before_signal - price_at_signal) / self.p.pip_cost)
+
+                        if ideal_drawdown_pips > 0: # Ensure drawdown is positive for valid SL
                             signal = 'short'
-                            chosen_rr = ( -future_moves[sell_idx] ) # Use pip move for RR
+                            chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
+                            tp_entry = current_price - self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
+                            sl_entry = current_price + self.p.sl_multiplier * ideal_drawdown_pips * self.p.pip_cost
+                        # else: TP/SL remain None if drawdown is zero
+
                     elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
-                         # Check if TP/SL for buy were successfully calculated
-                        if tp_buy_entry is not None and sl_buy_entry is not None:
+                        # Potential Long Signal - Calculate TP/SL based on buy_idx event
+                        idx = buy_idx
+                        ideal_profit_pips = future_moves[idx]
+                        # Drawdown is min price from current up to idx, relative to the price at idx
+                        min_before_signal = current_price # Start with current price
+                        if idx > 0: # If not the first prediction
+                            min_before_signal = min([current_price] + future[:idx]) # Min including current and up to (not including) idx price
+                        # Price at signal index
+                        price_at_signal = future[idx]
+                        ideal_drawdown_pips = max(0, (price_at_signal - min_before_signal) / self.p.pip_cost)
+
+                        if ideal_drawdown_pips > 0: # Ensure drawdown is positive for valid SL
                             signal = 'long'
-                            chosen_rr = future_moves[buy_idx] # Use pip move for RR
-                    # else: signal remains None if buy_idx == sell_idx or TP/SL failed
+                            chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
+                            tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
+                            sl_entry = current_price - self.p.sl_multiplier * ideal_drawdown_pips * self.p.pip_cost
+                        # else: TP/SL remain None if drawdown is zero
 
             # --- END: Signal Generation Logic ---
 
 
-            # --- Position Management (Check for Early Close using Hourly Preds) ---
+            # --- Position Management ---
             if self.position:
                 # Update trade high/low
                 if self.trade_low is None or current_price < self.trade_low: self.trade_low = current_price
@@ -412,14 +396,11 @@ class Plugin:
             # --- Place order based on the signal determined earlier ---
             if signal is not None:
                 # Assign the TP/SL calculated during signal generation
-                if signal == 'long':
-                    chosen_tp, chosen_sl = tp_buy_entry, sl_buy_entry
-                else: # signal == 'short'
-                    chosen_tp, chosen_sl = tp_sell_entry, sl_sell_entry
+                chosen_tp, chosen_sl = tp_entry, sl_entry # Use the new TP/SL
 
                 # Final check if TP/SL are valid before proceeding
                 if chosen_tp is None or chosen_sl is None:
-                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed, skipping trade.")
+                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed (drawdown=0?), skipping trade.")
                      return
 
                 order_size = self.compute_size(chosen_rr)
