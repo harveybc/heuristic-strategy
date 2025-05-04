@@ -374,7 +374,7 @@ class Plugin:
                                 should_close, reason = True, f"Hourly Pred Max ({predicted_hourly_max:.5f}) > SL ({self.current_sl:.5f})"
 
                 if should_close:
-                    print(f"[{dt}] Closing position ({self.current_direction}) due to: {reason}")
+                    #print(f"[{dt}] Closing position ({self.current_direction}) due to: {reason}")
                     self.close() # Close position
                     # CRITICAL: Return AFTER closing to prevent immediate re-entry on the same bar
                     return # Exit next() after closing position
@@ -403,7 +403,7 @@ class Plugin:
                 # If the goal is strictly one position at a time, add this check.
                 # If reversals are allowed, remove this check.
                 if self.position:
-                    print(f"[{dt}] Signal '{signal}' generated, but already in position. Skipping entry.")
+                    #print(f"[{dt}] Signal '{signal}' generated, but already in position. Skipping entry.")
                     return
                 # --- END ADD CHECK ---
 
