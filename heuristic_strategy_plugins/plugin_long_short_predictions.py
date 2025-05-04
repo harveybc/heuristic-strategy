@@ -315,60 +315,69 @@ class Plugin:
                     if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
                         # --- Potential Short Signal ---
                         idx = sell_idx
+                        ideal_profit_pips = -future_moves[idx] # Profit is the negative move (positive value)
+                        max_before_signal = current_price
+                        if idx > 0:
+                             max_before_signal = max([current_price] + future[:idx])
+                        price_at_signal = future[idx]
+                        ideal_drawdown_pips = max(0, (max_before_signal - price_at_signal) / self.p.pip_cost)
+
                         signal = 'short'
-                        target_price_at_idx = future[idx]
+                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
 
-                        # --- Calculate SL based on WORST CASE HIGH in prediction window ---
-                        worst_case_high_price = max([current_price] + future[:idx+1]) # Max predicted close up to idx
-                        uncertainty_at_worst_high_idx = 0 # Find uncertainty corresponding to the worst high if needed, or use idx? Let's use idx for simplicity now.
+                        # --- Apply Uncertainty to Profit and Drawdown ---
                         uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
-                        # Place SL beyond the worst predicted high + uncertainty
-                        sl_level_adjusted = worst_case_high_price + uncertainty_at_idx
-                        # Calculate drawdown pips based on this adjusted SL level
-                        adjusted_drawdown_pips = max(self.p.min_drawdown_pips, (sl_level_adjusted - current_price) / self.p.pip_cost)
-                        sl_entry = current_price + self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
-                        # --- End SL Calculation ---
+                        uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
 
-                        # --- Calculate TP based on WORST CASE TARGET at idx ---
-                        # Aim for profit just above target + uncertainty
-                        tp_level_adjusted = target_price_at_idx + uncertainty_at_idx
-                        # Calculate profit pips based on this adjusted TP level
-                        adjusted_profit_pips = max(0, (current_price - tp_level_adjusted) / self.p.pip_cost)
-                        tp_entry = current_price - self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
-                        # --- End TP Calculation ---
+                        # Reduce profit target, increase drawdown target
+                        adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
+                        adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
+                        # --- End Uncertainty Application ---
 
                         chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
 
-                        #print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, worst_high={worst_case_high_price:.5f}, target={target_price_at_idx:.5f}, Unc={uncertainty_at_idx:.5f}, adj_profit_pips={adjusted_profit_pips:.2f}, adj_drawdown_pips={adjusted_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        # --- Use Adjusted Pips for TP/SL ---
+                        tp_entry = current_price - self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                        sl_entry = current_price + self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                        # --- End TP/SL Adjustment ---
+
+                        #print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}(adj:{adjusted_profit_pips:.2f}), eff_drawdown={effective_drawdown_pips:.2f}(adj:{adjusted_drawdown_pips:.2f}), Unc={uncertainty_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
 
                     elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
                         # --- Potential Long Signal ---
                         idx = buy_idx
+                        ideal_profit_pips = future_moves[idx] # Profit is the positive move
+                        min_before_signal = current_price
+                        if idx > 0:
+                             min_before_signal = min([current_price] + future[:idx])
+                        price_at_signal = future[idx]
+                        # --- Corrected Drawdown Calculation for Long ---
+                        # Drawdown is how much price dropped *before* hitting the target price_at_signal
+                        ideal_drawdown_pips = max(0, (current_price - min_before_signal) / self.p.pip_cost)
+                        # --- End Correction ---
+
+
                         signal = 'long'
-                        target_price_at_idx = future[idx]
+                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
 
-                        # --- Calculate SL based on WORST CASE LOW in prediction window ---
-                        worst_case_low_price = min([current_price] + future[:idx+1]) # Min predicted close up to idx
+                        # --- Apply Uncertainty to Profit and Drawdown ---
                         uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
-                        # Place SL beyond the worst predicted low - uncertainty
-                        sl_level_adjusted = worst_case_low_price - uncertainty_at_idx
-                        # Calculate drawdown pips based on this adjusted SL level
-                        adjusted_drawdown_pips = max(self.p.min_drawdown_pips, (current_price - sl_level_adjusted) / self.p.pip_cost)
-                        sl_entry = current_price - self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
-                        # --- End SL Calculation ---
+                        uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
 
-                        # --- Calculate TP based on WORST CASE TARGET at idx ---
-                        # Aim for profit just below target - uncertainty
-                        tp_level_adjusted = target_price_at_idx - uncertainty_at_idx
-                        # Calculate profit pips based on this adjusted TP level
-                        adjusted_profit_pips = max(0, (tp_level_adjusted - current_price) / self.p.pip_cost)
-                        tp_entry = current_price + self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
-                        # --- End TP Calculation ---
+                        # Reduce profit target, increase drawdown target
+                        adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
+                        adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
+                        # --- End Uncertainty Application ---
 
                         chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
 
-                        #print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, worst_low={worst_case_low_price:.5f}, target={target_price_at_idx:.5f}, Unc={uncertainty_at_idx:.5f}, adj_profit_pips={adjusted_profit_pips:.2f}, adj_drawdown_pips={adjusted_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        # --- Use Adjusted Pips for TP/SL ---
+                        tp_entry = current_price + self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                        sl_entry = current_price - self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                        # --- End TP/SL Adjustment ---
+
+                        #print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}(adj:{adjusted_profit_pips:.2f}), eff_drawdown={effective_drawdown_pips:.2f}(adj:{adjusted_drawdown_pips:.2f}), Unc={uncertainty_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
             # --- END: Signal Generation Logic ---
 
