@@ -389,6 +389,9 @@ class Plugin:
             buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
             sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
 
+            # DEBUG: Print indices to see why shorts might not trigger
+            print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True)
+
             if buy_idx is None and sell_idx is None:
                 return  # no clear signal
 
