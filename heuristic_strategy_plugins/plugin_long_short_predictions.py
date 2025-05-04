@@ -59,7 +59,7 @@ class Plugin:
             ("sl_multiplier", 1.5, 6.0),
             ("lower_rr_threshold", -5.0, 0.0),
             ("upper_rr_threshold", 0.1, 5.0),
-            ("time_horizon", 1, 48)
+            #("time_horizon", 1, 48)
         ]
 
     # --- Updated evaluate_candidate method ---
