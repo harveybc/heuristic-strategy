@@ -349,7 +349,9 @@ class Plugin:
 
             ideal_profit_pips_buy = (profit_pred - current_price) / self.p.pip_cost
             ideal_drawdown_pips_buy = (profit_pred - min_before_max) / self.p.pip_cost
-            rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
+            
+            #rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
+            rr_buy = (ideal_profit_pips_buy - ideal_drawdown_pips_buy )/ ideal_profit_pips_buy if ideal_profit_pips_buy > 0 else 0
             #rr_buy = ideal_profit_pips_buy 
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
@@ -374,7 +376,8 @@ class Plugin:
             ideal_drawdown_pips_sell = (max_before_min - min_pred) / self.p.pip_cost
 
 
-            rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
+            #rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
+            rr_sell = (ideal_profit_pips_sell - ideal_drawdown_pips_sell)/ ideal_profit_pips_sell if ideal_profit_pips_sell > 0 else 0
             #rr_sell = ideal_profit_pips_sell
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
