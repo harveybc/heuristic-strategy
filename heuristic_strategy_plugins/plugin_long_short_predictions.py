@@ -419,42 +419,61 @@ class Plugin:
 
             # --- Place order based on the signal determined earlier ---
             if signal is not None:
-                # --- ADD CHECK: Only enter if FLAT ---
-                # If the goal is strictly one position at a time, add this check.
-                # If reversals are allowed, remove this check.
                 if self.position:
-                    #print(f"[{dt}] Signal '{signal}' generated, but already in position. Skipping entry.")
-                    return
-                # --- END ADD CHECK ---
+                    return # Already in position
 
-
-                # Assign the TP/SL calculated during signal generation
-                chosen_tp, chosen_sl = tp_entry, sl_entry # Use the new TP/SL
-
-                # Final check if TP/SL are valid before proceeding
+                chosen_tp, chosen_sl = tp_entry, sl_entry
                 if chosen_tp is None or chosen_sl is None:
-                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed (drawdown=0?), skipping trade.")
+                     print(f"[{dt}] Signal '{signal}' generated, but TP/SL calculation failed, skipping trade.")
                      return
 
-                # --- MODIFIED CALL to compute_size ---
-                # current_price is already available from the top of next()
-                # self.initial_balance is available from __init__/start()
-                order_size = self.compute_size(chosen_rr, current_price, self.initial_balance)
-                # --- End Modification ---
+                # --- Step 1: Calculate size based on RR (using existing compute_size) ---
+                order_size_rr_based = self.compute_size(chosen_rr, current_price, self.initial_balance)
+                # --- End Step 1 ---
 
-                # DEBUG 2: Log details just before order size check, specifically for shorts
-                if signal == 'short':
-                    print(f"[{dt}] DEBUG: Short Entry Check: Size={order_size:.2f}, RR={chosen_rr:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}", flush=True)
+                # --- Step 2: Calculate Max Size based on Value Cap (rel_volume * current_balance) ---
+                current_balance = self.broker.getvalue() # Use current equity/balance
+                max_value_allowed = current_balance * self.params.rel_volume # Max value = 3% of current balance
+                max_size_from_value_cap = 0
+                if current_price > 0:
+                    # Calculate max size whose value is <= max_value_allowed
+                    max_size_from_value_cap = max_value_allowed / current_price
+                else:
+                    print(f"[{dt}] WARNING: Current price is zero. Cannot calculate value cap size.")
+                    max_size_from_value_cap = 0
 
-                # Check Order Size
+                # Ensure the value cap is non-negative
+                max_size_from_value_cap = max(0, max_size_from_value_cap)
+
+                # --- End Step 2 ---
+
+                # --- Step 3: Determine Final Order Size ---
+                # Final size is the minimum of the RR-based size and the value-cap size
+                order_size = min(order_size_rr_based, max_size_from_value_cap)
+
+                # --- Step 4: Final Clamp within Absolute Min/Max Volume ---
+                # Ensure the final size is within the absolute min/max bounds,
+                # respecting the min_vol unless the value cap forced it lower/zero.
+                if order_size > 0:
+                    # If size is positive, ensure it's at least min_vol and at most max_vol
+                    order_size = max(self.params.min_order_volume, min(order_size, self.params.max_order_volume))
+                else:
+                    # If size was capped to zero or less, ensure it's exactly zero
+                    order_size = 0
+
+                print(f"[{dt}] DEBUG: Size Calc ({signal}): RR={chosen_rr:.2f} -> RR_Size={order_size_rr_based:.2f}. ValueCapSize={max_size_from_value_cap:.2f}. FinalSize={order_size:.2f}", flush=True)
+                # --- End Step 4 ---
+
+
+                # Check Final Order Size
                 if order_size <= 0:
-                    print(f"[{dt}] Signal '{signal}' generated, but order size <= 0 ({order_size:.2f}), skipping trade")
+                    print(f"[{dt}] Signal '{signal}' generated, but final order size <= 0 ({order_size:.2f}) after value cap/clamp, skipping trade")
                     return
 
                 # Record entry details BEFORE placing order
                 self.trade_entry_dates.append(dt)
                 self.trade_entry_bar = len(self) # Bar index of entry
-                self.current_volume = order_size
+                self.current_volume = order_size # Use the final capped size
                 self.current_tp = chosen_tp # Store TP/SL for management
                 self.current_sl = chosen_sl
                 self.current_direction = signal # Store direction
@@ -463,16 +482,14 @@ class Plugin:
                 self.trade_low = current_price
                 self.trade_high = current_price
 
-                # DEBUG before placing order
-               # print(f"[{dt}] Attempting to place order: Signal={signal}, Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}, RR={chosen_rr:.2f}")
-
                 # Place the actual order
                 if signal == 'long':
+                    print(f"[{dt}] DEBUG: PLACING LONG ORDER: Size={order_size:.2f}", flush=True)
                     self.buy(size=order_size)
                 elif signal == 'short':
-                    # DEBUG 3: Log just before placing short order
                     print(f"[{dt}] DEBUG: PLACING SHORT ORDER: Size={order_size:.2f}", flush=True)
                     self.sell(size=order_size)
+
 
             # --- End of Entry Logic ---
 
