@@ -145,6 +145,15 @@ class Plugin:
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
 
+        # --- ADDED: Explicitly set broker leverage ---
+        # Use the leverage defined in the plugin's parameters
+        cerebro.broker.setcommission(
+            commission=0.0, # Assuming no commission for now, adjust if needed
+            margin=None,    # Use default margin calculation based on leverage
+            leverage=self.params['leverage'] # Set the leverage explicitly
+        )
+        # --- END ADDED ---
+
         try:
             runresult = cerebro.run()
         except Exception as e:
