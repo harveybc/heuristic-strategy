@@ -55,7 +55,7 @@ DEFAULT_VALUES = {
     "hourly_columns": ["Prediction_H1", "Prediction_H2", "Prediction_H3", "Prediction_H4", "Prediction_H5", "Prediction_H6"],
     "uncertainty_daily_columns": ["Uncertainty_H24", "Uncertainty_H48", "Uncertainty_H72", "Uncertainty_H96", "Uncertainty_H120", "Uncertainty_H144"],
     "uncertainty_hourly_columns": ["Uncertainty_H1", "Uncertainty_H2", "Uncertainty_H3", "Uncertainty_H4", "Uncertainty_H5", "Uncertainty_H6"],
-    "use_first_match": False
+    "use_first_match": True
     
      
 }
