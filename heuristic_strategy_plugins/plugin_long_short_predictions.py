@@ -57,8 +57,8 @@ class Plugin:
             ("profit_threshold", 0.5, 20),
             ("tp_multiplier", 0.5, 1.5),
             ("sl_multiplier", 1.5, 6.0),
-            ("lower_rr_threshold", 0.2, 1.0),
-            ("upper_rr_threshold", 1.3, 6.0),
+            ("lower_rr_threshold", -5.0, 0.0),
+            ("upper_rr_threshold", 0.1, 5.0),
             ("time_horizon", 1, 48)
         ]
 
