@@ -354,7 +354,8 @@ class Plugin:
             #rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
             #rr_buy = ideal_profit_pips_buy 
             
-            rr_buy = ideal_profit_pips_buy / (max_idx+1)
+            #rr_buy = ideal_profit_pips_buy / (max_idx+1)
+            rr_buy =0
 
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
