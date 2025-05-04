@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument('--quiet_mode', action='store_true', help='Suppress output messages.')
     parser.add_argument('--force_date', action='store_true', help='Include date in the output CSV files.')
     parser.add_argument('--headers', action='store_true', help='Indicate if the CSV files have headers.')
+    parser.add_argument('--use_first_match', action='store_true', help='Use first marttching order found  , if false ofr none, uses the best found in the predictions instead of the first suitable one.')
 
     # "feature_extractor_file": "examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_encoder_model.h5.keras",
     # "train_fe" : false

@@ -138,7 +138,10 @@ class Plugin:
             sl_multiplier=sl_multiplier,
             lower_rr_threshold=lower_rr,
             upper_rr_threshold=upper_rr,
-            max_trades_per_5days=config['max_trades_per_5days']
+            max_trades_per_5days=config['max_trades_per_5days'],
+            # --- ADDED: Pass use_first_match from config ---
+            use_first_match=config.get("use_first_match", True) # Default to True if not in config
+            # --- END ADDED ---
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
@@ -225,9 +228,9 @@ class Plugin:
         def __init__(self, pred_df, pip_cost, rel_volume, min_order_volume, max_order_volume,
                      leverage, profit_threshold, min_drawdown_pips,
                      tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                     max_trades_per_5days, *args, **kwargs):
+                     max_trades_per_5days, use_first_match, *args, **kwargs): # Added use_first_match
             super().__init__()
-            self.pred_df = pred_df
+            # ... (copy existing parameter assignments) ...
             self.params.pip_cost = pip_cost
             self.params.rel_volume = rel_volume
             self.params.min_order_volume = min_order_volume
@@ -240,6 +243,9 @@ class Plugin:
             self.params.lower_rr_threshold = lower_rr_threshold
             self.params.upper_rr_threshold = upper_rr_threshold
             self.params.max_trades_per_5days = max_trades_per_5days
+            # --- ADDED: Store use_first_match ---
+            self.params.use_first_match = use_first_match
+            # --- END ADDED ---
 
             self.num_hourly_preds = len([c for c in self.pred_df.columns if c.startswith('Prediction_h_')])
             self.num_daily_preds = len([c for c in self.pred_df.columns if c.startswith('Prediction_d_')])
@@ -304,83 +310,128 @@ class Plugin:
 
 
                 if daily_preds: # Only proceed if we have valid daily predictions
-                    # --- Signal Generation based on UNADJUSTED Daily Threshold Crossing ---
-                    future = daily_preds # Use raw daily preds for signal
+                    future = daily_preds
                     future_moves = [(p - current_price)/self.p.pip_cost for p in future]
 
-                    buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
-                    sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
+                    # --- START: Conditional Signal Logic ---
+                    if self.p.use_first_match:
+                        # --- Existing Logic: Find first match ---
+                        buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
+                        sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
 
-                    # --- Determine Signal and Calculate TP/SL based on Signal Event ---
-                    if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
-                        # --- Potential Short Signal ---
-                        idx = sell_idx
-                        ideal_profit_pips = -future_moves[idx] # Profit is the negative move (positive value)
-                        max_before_signal = current_price
-                        if idx > 0:
-                             max_before_signal = max([current_price] + future[:idx])
-                        price_at_signal = future[idx]
-                        ideal_drawdown_pips = max(0, (max_before_signal - price_at_signal) / self.p.pip_cost)
+                        if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
+                            # --- Potential Short Signal (First Match) ---
+                            idx = sell_idx
+                            # ... (Existing calculation for ideal_profit, ideal_drawdown, adjusted_profit, adjusted_drawdown, chosen_rr, tp_entry, sl_entry for SHORT) ...
+                            # ... existing code ...
+                            signal = 'short'
+                            effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                            uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
+                            uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
+                            adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
+                            adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
+                            chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
+                            tp_entry = current_price - self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                            sl_entry = current_price + self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                            # ... existing code ...
 
-                        signal = 'short'
-                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                        elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
+                            # --- Potential Long Signal (First Match) ---
+                            idx = buy_idx
+                            # ... (Existing calculation for ideal_profit, ideal_drawdown, adjusted_profit, adjusted_drawdown, chosen_rr, tp_entry, sl_entry for LONG) ...
+                            # ... existing code ...
+                            signal = 'long'
+                            effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                            uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
+                            uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
+                            adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
+                            adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
+                            chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
+                            tp_entry = current_price + self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                            sl_entry = current_price - self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                            # ... existing code ...
+                        # --- End Existing Logic ---
 
-                        # --- Apply Uncertainty to Profit and Drawdown ---
-                        uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
-                        uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
+                    else:
+                        # --- New Logic: Find best RR match ---
+                        best_buy_rr = -1.0
+                        best_buy_idx = None
+                        best_buy_adj_profit = 0
+                        best_buy_adj_drawdown = 0
 
-                        # Reduce profit target, increase drawdown target
-                        adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
-                        adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
-                        # --- End Uncertainty Application ---
+                        best_sell_rr = -1.0
+                        best_sell_idx = None
+                        best_sell_adj_profit = 0
+                        best_sell_adj_drawdown = 0
 
-                        chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
+                        for i, move in enumerate(future_moves):
+                            # Check for potential Buy signal at index i
+                            if move >= self.p.profit_threshold:
+                                temp_ideal_profit_pips = move
+                                temp_min_before_signal = current_price
+                                if i > 0: temp_min_before_signal = min([current_price] + future[:i])
+                                temp_ideal_drawdown_pips = max(0, (current_price - temp_min_before_signal) / self.p.pip_cost)
+                                temp_effective_drawdown_pips = max(temp_ideal_drawdown_pips, self.p.min_drawdown_pips)
 
-                        # --- Use Adjusted Pips for TP/SL ---
-                        tp_entry = current_price - self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
-                        sl_entry = current_price + self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
-                        # --- End TP/SL Adjustment ---
+                                temp_uncertainty_at_idx = daily_uncs[i] if i < len(daily_uncs) else 0
+                                temp_uncertainty_pips = temp_uncertainty_at_idx / self.p.pip_cost
+                                temp_adj_profit = max(0, temp_ideal_profit_pips - temp_uncertainty_pips)
+                                temp_adj_drawdown = temp_effective_drawdown_pips + temp_uncertainty_pips
+                                current_rr = temp_adj_profit / temp_adj_drawdown if temp_adj_drawdown > 0 else 0
 
-                        #print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}(adj:{adjusted_profit_pips:.2f}), eff_drawdown={effective_drawdown_pips:.2f}(adj:{adjusted_drawdown_pips:.2f}), Unc={uncertainty_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                                if current_rr > best_buy_rr:
+                                    best_buy_rr = current_rr
+                                    best_buy_idx = i
+                                    best_buy_adj_profit = temp_adj_profit
+                                    best_buy_adj_drawdown = temp_adj_drawdown
 
+                            # Check for potential Sell signal at index i
+                            elif move <= -self.p.profit_threshold:
+                                temp_ideal_profit_pips = -move
+                                temp_max_before_signal = current_price
+                                if i > 0: temp_max_before_signal = max([current_price] + future[:i])
+                                temp_price_at_signal = future[i] # Needed for short drawdown calc
+                                temp_ideal_drawdown_pips = max(0, (temp_max_before_signal - temp_price_at_signal) / self.p.pip_cost)
+                                temp_effective_drawdown_pips = max(temp_ideal_drawdown_pips, self.p.min_drawdown_pips)
 
-                    elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
-                        # --- Potential Long Signal ---
-                        idx = buy_idx
-                        ideal_profit_pips = future_moves[idx] # Profit is the positive move
-                        min_before_signal = current_price
-                        if idx > 0:
-                             min_before_signal = min([current_price] + future[:idx])
-                        price_at_signal = future[idx]
-                        # --- Corrected Drawdown Calculation for Long ---
-                        # Drawdown is how much price dropped *before* hitting the target price_at_signal
-                        ideal_drawdown_pips = max(0, (current_price - min_before_signal) / self.p.pip_cost)
-                        # --- End Correction ---
+                                temp_uncertainty_at_idx = daily_uncs[i] if i < len(daily_uncs) else 0
+                                temp_uncertainty_pips = temp_uncertainty_at_idx / self.p.pip_cost
+                                temp_adj_profit = max(0, temp_ideal_profit_pips - temp_uncertainty_pips)
+                                temp_adj_drawdown = temp_effective_drawdown_pips + temp_uncertainty_pips
+                                current_rr = temp_adj_profit / temp_adj_drawdown if temp_adj_drawdown > 0 else 0
 
+                                if current_rr > best_sell_rr:
+                                    best_sell_rr = current_rr
+                                    best_sell_idx = i
+                                    best_sell_adj_profit = temp_adj_profit
+                                    best_sell_adj_drawdown = temp_adj_drawdown
 
-                        signal = 'long'
-                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                        # Compare best buy and sell signals found
+                        if best_buy_rr > best_sell_rr and best_buy_idx is not None:
+                            signal = 'long'
+                            idx = best_buy_idx
+                            adjusted_profit_pips = best_buy_adj_profit
+                            adjusted_drawdown_pips = best_buy_adj_drawdown
+                            chosen_rr = best_buy_rr
+                            tp_entry = current_price + self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                            sl_entry = current_price - self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                            #print(f"[{dt}] DEBUG: Best RR LONG Signal idx={idx}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
-                        # --- Apply Uncertainty to Profit and Drawdown ---
-                        uncertainty_at_idx = daily_uncs[idx] if idx < len(daily_uncs) else 0
-                        uncertainty_pips = uncertainty_at_idx / self.p.pip_cost
+                        elif best_sell_rr >= best_buy_rr and best_sell_idx is not None: # Use >= to prefer short in case of tie? Or adjust as needed.
+                            signal = 'short'
+                            idx = best_sell_idx
+                            adjusted_profit_pips = best_sell_adj_profit
+                            adjusted_drawdown_pips = best_sell_adj_drawdown
+                            chosen_rr = best_sell_rr
+                            tp_entry = current_price - self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
+                            sl_entry = current_price + self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
+                            #print(f"[{dt}] DEBUG: Best RR SHORT Signal idx={idx}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
 
-                        # Reduce profit target, increase drawdown target
-                        adjusted_profit_pips = max(0, ideal_profit_pips - uncertainty_pips)
-                        adjusted_drawdown_pips = effective_drawdown_pips + uncertainty_pips
-                        # --- End Uncertainty Application ---
-
-                        chosen_rr = adjusted_profit_pips / adjusted_drawdown_pips if adjusted_drawdown_pips > 0 else 0
-
-                        # --- Use Adjusted Pips for TP/SL ---
-                        tp_entry = current_price + self.p.tp_multiplier * adjusted_profit_pips * self.p.pip_cost
-                        sl_entry = current_price - self.p.sl_multiplier * adjusted_drawdown_pips * self.p.pip_cost
-                        # --- End TP/SL Adjustment ---
-
-                        #print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}(adj:{adjusted_profit_pips:.2f}), eff_drawdown={effective_drawdown_pips:.2f}(adj:{adjusted_drawdown_pips:.2f}), Unc={uncertainty_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
-
-            # --- END: Signal Generation Logic ---
-
+                        else:
+                            # No suitable signal found with positive RR
+                            signal = None
+                        # --- End New Logic ---
+                    # --- END: Conditional Signal Logic ---
 
             # --- Position Management ---
             if self.position:
