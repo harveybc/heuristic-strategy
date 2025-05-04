@@ -28,9 +28,9 @@ class Plugin:
 
         # Default uncertainty values used if none are provided:
         #"default_uncertainty_short_term": 0.0005,
-        "default_uncertainty_short_term": 0.000001,
+        "default_uncertainty_short_term": 0,
         #"default_uncertainty_long_term": 0.002,
-        "default_uncertainty_long_term": 0.000001,
+        "default_uncertainty_long_term": 0,
     }
 
     def __init__(self):
@@ -384,7 +384,7 @@ class Plugin:
             #rr_sell = ideal_profit_pips_sell
             rr_sell = ideal_profit_pips_sell / (min_idx +1)
 
-            
+
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
