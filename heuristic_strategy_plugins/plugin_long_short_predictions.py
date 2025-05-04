@@ -294,9 +294,11 @@ class Plugin:
                         min_before_max_buy = min(adjusted_preds_buy[:max_idx_buy+1])
                         ideal_profit_pips_buy = max(0, (profit_pred_buy - current_price) / self.p.pip_cost) # Ensure non-negative
                         ideal_drawdown_pips_buy = max(0, (profit_pred_buy - min_before_max_buy) / self.p.pip_cost) # Ensure non-negative
-                        if ideal_drawdown_pips_buy >= self.p.min_drawdown_pips: # Avoid division by zero or tiny drawdown
+                        # Keep the check for buy side, as it seems to work
+                        if ideal_drawdown_pips_buy >= self.p.min_drawdown_pips:
                             tp_buy_entry = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
                             sl_buy_entry = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
+                        # else: tp_buy_entry, sl_buy_entry remain None
 
                     # Calculate potential TP/SL for Sell based on adjusted daily extremes
                     if adjusted_preds_sell:
@@ -305,9 +307,12 @@ class Plugin:
                         max_before_min_sell = max(adjusted_preds_sell[: min_idx_sell + 1])
                         ideal_profit_pips_sell = max(0, (current_price - min_pred_sell) / self.p.pip_cost) # Ensure non-negative
                         ideal_drawdown_pips_sell = max(0, (max_before_min_sell - min_pred_sell) / self.p.pip_cost) # Ensure non-negative
-                        if ideal_drawdown_pips_sell >= self.p.min_drawdown_pips: # Avoid division by zero or tiny drawdown
+                        # REMOVED check: Calculate TP/SL even if global drawdown is small, signal check handles entry threshold
+                        # Ensure drawdown is not actually zero to avoid zero SL range
+                        if ideal_drawdown_pips_sell > 0:
                             tp_sell_entry = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
                             sl_sell_entry = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
+                        # else: tp_sell_entry, sl_sell_entry remain None if drawdown is zero
 
                     # --- Signal Generation based on UNADJUSTED Daily Threshold Crossing ---
                     future = daily_preds # Use raw daily preds for signal
