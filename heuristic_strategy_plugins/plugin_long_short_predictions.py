@@ -391,12 +391,14 @@ class Plugin:
             long_signal = (ideal_profit_pips_buy >= 0)
             short_signal = (ideal_profit_pips_sell >= 0)
 
-            if long_signal and (rr_buy >= rr_sell):
+            #if long_signal and (rr_buy >= rr_sell):
+            if long_signal and (min_idx >= max_idx):
                 signal = 'long'
                 chosen_tp = tp_buy
                 chosen_sl = sl_buy
                 chosen_rr = rr_buy
-            if short_signal and (rr_sell > rr_buy):
+            #if short_signal and (rr_sell > rr_buy):
+            if short_signal and (max_idx > min_idx):
                 signal = 'short'
                 chosen_tp = tp_sell
                 chosen_sl = sl_sell
