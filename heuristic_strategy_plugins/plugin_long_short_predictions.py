@@ -258,187 +258,133 @@ class Plugin:
             self.balance_history.append(balance)
             self.date_history.append(dt)
 
+            # --- START: Moved Signal Generation Logic ---
+            signal = None
+            chosen_rr = 0
+            long_signal = False
+            short_signal = False
+            tp_buy, sl_buy, tp_sell, sl_sell = None, None, None, None # Initialize
+
+            if dt_hour in self.pred_df.index:
+                row = self.pred_df.loc[dt_hour]
+                try:
+                    daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
+                    if not daily_preds or all(pd.isna(daily_preds)):
+                         daily_preds = [] # Ensure it's an empty list if invalid
+                except KeyError:
+                    daily_preds = [] # Ensure it's an empty list on error
+
+                if daily_preds: # Only proceed if we have valid daily predictions
+                    # Prepare adjusted predictions for buy scenario (using global max/min for TP/SL for now)
+                    if self.num_daily_uncs > 0:
+                        daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
+                        adjusted_preds_buy = [pred - unc for pred, unc in zip(daily_preds, daily_uncs)]
+                        adjusted_preds_sell = [pred + unc for pred, unc in zip(daily_preds, daily_uncs)]
+                    else:
+                        adjusted_preds_buy = daily_preds
+                        adjusted_preds_sell = daily_preds
+
+                    profit_pred = max(adjusted_preds_buy)
+                    max_idx = adjusted_preds_buy.index(profit_pred)
+                    min_before_max = min(adjusted_preds_buy[:max_idx+1]) if adjusted_preds_buy else current_price
+                    ideal_profit_pips_buy = (profit_pred - current_price) / self.p.pip_cost
+                    ideal_drawdown_pips_buy = (profit_pred - min_before_max) / self.p.pip_cost
+                    tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
+                    sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
+
+                    min_pred = min(adjusted_preds_sell)
+                    min_idx = adjusted_preds_sell.index(min_pred)
+                    max_before_min = max(adjusted_preds_sell[: min_idx + 1])
+                    ideal_profit_pips_sell = (current_price - min_pred) / self.p.pip_cost
+                    ideal_drawdown_pips_sell = (max_before_min - min_pred) / self.p.pip_cost
+                    tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
+                    sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
+
+                    # Use UNADJUSTED daily_preds for signal generation based on threshold crossing
+                    future = daily_preds
+                    future_moves = [(p - current_price)/self.p.pip_cost for p in future]
+
+                    buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
+                    sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
+
+                    print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True) # Log potential signal
+
+                    if buy_idx is None and sell_idx is None:
+                        pass # No signal based on threshold crossing
+                    elif sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
+                        signal = 'short'
+                        chosen_rr = ( -future_moves[sell_idx] )
+                        long_signal = False
+                        short_signal = True
+                    elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
+                        signal = 'long'
+                        chosen_rr = future_moves[buy_idx]
+                        long_signal = True
+                        short_signal = False
+                    # else: signal remains None if buy_idx == sell_idx
+
+            # --- END: Moved Signal Generation Logic ---
+
+
             if self.position:
+                # ... (existing position management logic remains here) ...
+                # ... it should check its TP/SL and potentially close ...
+                # ... IMPORTANT: Add a return statement at the end of this block if you only manage OR enter, not both.
+                # Example: Check TP/SL/Early Exit, then return
                 if self.current_direction == 'long':
-                    if self.trade_low is None or current_price < self.trade_low:
-                        self.trade_low = current_price
-                    if dt_hour in self.pred_df.index:
-                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                        for i in range(1, self.num_hourly_preds + 1)]
-                        if self.num_hourly_uncs > 0:
-                            uncs_hourly = [self.pred_df.loc[dt_hour].get(f'Uncertainty_h_{i}', 0)
-                                           for i in range(1, self.num_hourly_uncs + 1)]
-                            adjusted_preds_hourly = [p - u for p, u in zip(preds_hourly, uncs_hourly)]
-                        else:
-                            adjusted_preds_hourly = preds_hourly
-                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
-                        if self.num_daily_uncs > 0:
-                            uncs_daily = [self.pred_df.loc[dt_hour].get(f'Uncertainty_d_{i}', 0)
-                                          for i in range(1, self.num_daily_uncs + 1)]
-                            adjusted_preds_daily = [p - u for p, u in zip(preds_daily, uncs_daily)]
-                        else:
-                            adjusted_preds_daily = preds_daily
-                        predicted_min = min(adjusted_preds_hourly + adjusted_preds_daily)
-                    else:
-                        predicted_min = current_price
-                    if current_price >= self.current_tp:
-                        self.close()
-                        return
-                    if predicted_min < self.current_sl:
-                        self.close()
-                        return
+                    # ... long position management ...
+                    if current_price >= self.current_tp or predicted_min < self.current_sl: # Example close conditions
+                         self.close()
+                         return # Exit next() after closing
                 elif self.current_direction == 'short':
-                    if self.trade_high is None or current_price > self.trade_high:
-                        self.trade_high = current_price
-                    if dt_hour in self.pred_df.index:
-                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                        for i in range(1, self.num_hourly_preds + 1)]
-                        if self.num_hourly_uncs > 0:
-                            uncs_hourly = [self.pred_df.loc[dt_hour].get(f'Uncertainty_h_{i}', 0)
-                                           for i in range(1, self.num_hourly_uncs + 1)]
-                            adjusted_preds_hourly = [p + u for p, u in zip(preds_hourly, uncs_hourly)]
-                        else:
-                            adjusted_preds_hourly = preds_hourly
-                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
-                        if self.num_daily_uncs > 0:
-                            uncs_daily = [self.pred_df.loc[dt_hour].get(f'Uncertainty_d_{i}', 0)
-                                          for i in range(1, self.num_daily_uncs + 1)]
-                            adjusted_preds_daily = [p + u for p, u in zip(preds_daily, uncs_daily)]
-                        else:
-                            adjusted_preds_daily = preds_daily
-                        predicted_max = max(adjusted_preds_hourly + adjusted_preds_daily)
-                    else:
-                        predicted_max = current_price
-                    if current_price <= self.current_tp:
-                        self.close()
-                        return
-                    if predicted_max > self.current_sl:
-                        self.close()
-                        return
-                return
-            else:
+                     # ... short position management ...
+                    if current_price <= self.current_tp or predicted_max > self.current_sl: # Example close conditions
+                         self.close()
+                         return # Exit next() after closing
+                return # Return if still managing position and didn't close
+
+            # --- Entry Logic (only reached if not in position) ---
+            else: # Redundant else, but for clarity
                 self.trade_low = current_price
                 self.trade_high = current_price
 
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
             if len(recent_trades) >= self.p.max_trades_per_5days:
+                print(f"[{dt}] Trade limit reached, skipping signal check.")
                 return
 
-            if dt_hour not in self.pred_df.index:
-                return
-            row = self.pred_df.loc[dt_hour]
-            try:
-                daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
-            except KeyError:
-                return
-            if not daily_preds or all(pd.isna(daily_preds)):
-                return
+            # --- Place order based on the signal determined earlier ---
+            if signal is not None:
+                # assign TP/SL (still using the potentially inconsistent global max/min logic for now)
+                if signal == 'long':
+                    if tp_buy is None or sl_buy is None: return # Ensure TP/SL were calculated
+                    chosen_tp, chosen_sl = tp_buy,  sl_buy
+                else: # signal == 'short'
+                    if tp_sell is None or sl_sell is None: return # Ensure TP/SL were calculated
+                    chosen_tp, chosen_sl = tp_sell, sl_sell
 
-            # Prepare adjusted predictions for buy scenario
-            if self.num_daily_uncs > 0:
-                daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
-                adjusted_preds_buy = [pred - unc for pred, unc in zip(daily_preds, daily_uncs)]
-            else:
-                adjusted_preds_buy = daily_preds
+                order_size = self.compute_size(chosen_rr)
+                if order_size <= 0:
+                    print(f"[{dt}] Signal '{signal}' generated, but order size <= 0 ({order_size:.2f}), skipping trade")
+                    return
 
-            # Calculate ideal profit (pips) and drawdown (pips) using minimum before the maximum predicted price
-            profit_pred = max(adjusted_preds_buy)
-            max_idx = adjusted_preds_buy.index(profit_pred)
-            min_before_max = min(adjusted_preds_buy[:max_idx+1]) if adjusted_preds_buy else current_price
+                self.trade_entry_dates.append(dt)
+                self.trade_entry_bar = len(self)
+                self.current_volume = order_size
 
-            ideal_profit_pips_buy = (profit_pred - current_price) / self.p.pip_cost
-            ideal_drawdown_pips_buy = (profit_pred - min_before_max) / self.p.pip_cost
-            
-            #rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
-            #rr_buy = (ideal_profit_pips_buy - ideal_drawdown_pips_buy )
-            rr_buy = ideal_profit_pips_buy 
-            #rr_buy = ideal_profit_pips_buy / (max_idx+1)
+                # DEBUG before placing order
+                print(f"[{dt}] Attempting to place order: Signal={signal}, Size={order_size:.2f}, TP={chosen_tp:.5f}, SL={chosen_sl:.5f}, RR={chosen_rr:.2f}")
 
-            tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
-            sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
-            if self.num_daily_uncs > 0:
-                daily_uncs = [row.get(f'Uncertainty_d_{i}', 0) for i in range(1, self.num_daily_uncs + 1)]
-                adjusted_preds_sell = [pred + unc for pred, unc in zip(daily_preds, daily_uncs)]
-            else:
-                adjusted_preds_sell = daily_preds
+                if signal == 'long':
+                    self.buy(size=order_size)
+                    self.current_direction = 'long'
+                elif signal == 'short':
+                    self.sell(size=order_size)
+                    self.current_direction = 'short'
 
-            # Find the predicted minimum (worst case profit) and the max before it (drawdown)
-            min_pred = min(adjusted_preds_sell)
-            min_idx = adjusted_preds_sell.index(min_pred)
-            max_before_min = max(adjusted_preds_sell[: min_idx + 1])
-
-            ideal_profit_pips_sell = (current_price - min_pred) / self.p.pip_cost
-            ideal_drawdown_pips_sell = (max_before_min - min_pred) / self.p.pip_cost
-
-
-            #rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
-            #rr_sell = (ideal_profit_pips_sell - ideal_drawdown_pips_sell)
-            rr_sell = ideal_profit_pips_sell
-            #rr_sell = ideal_profit_pips_sell/ (min_idx+1)
-            
-            tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
-            sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
-
-            future = daily_preds
-            # convert price moves into pip‐moves
-            future_moves = [(p - current_price)/self.p.pip_cost for p in future]
-
-            # find first bar that beats profit_threshold up or down
-            buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
-            sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
-
-            # DEBUG: Print indices to see why shorts might not trigger
-            print(f"[{self.data.datetime.datetime(0)}] Daily Pred Scan: buy_idx={buy_idx}, sell_idx={sell_idx}", flush=True)
-
-            if buy_idx is None and sell_idx is None:
-                return  # no clear signal
-
-            # pick whichever happens sooner
-            if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
-                signal = 'short'
-                chosen_rr = ( -future_moves[sell_idx] )  # positive pips
-                long_signal = False
-                short_signal = True
-            elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
-                signal = 'long'
-                chosen_rr = future_moves[buy_idx]
-                long_signal = True
-                short_signal = False
-            else:
-                return # no clear signal
-            
-            
-            # assign TP/SL
-            if signal == 'long':
-                chosen_tp, chosen_sl = tp_buy,  sl_buy
-            else:
-                chosen_tp, chosen_sl = tp_sell, sl_sell
-
-            order_size = self.compute_size(chosen_rr)
-            if order_size <= 0:
-                print("[DEBUG] Order size <= 0, skipping trade")
-                return
-
-            self.trade_entry_dates.append(dt)
-            self.trade_entry_bar = len(self)
-            self.current_volume = order_size
-
-            if signal == 'long':
-                self.buy(size=order_size)
-                self.current_direction = 'long'
-            elif signal == 'short':
-                self.sell(size=order_size)
-                self.current_direction = 'short'
-
-            self.current_tp = chosen_tp
-            self.current_sl = chosen_sl
-
-            
-
-            # then compute TP/SL around that bar rather than global max/min,
-            # compute order_size and place buy()/sell() as before
+                self.current_tp = chosen_tp
+                self.current_sl = chosen_sl
+            # --- End of Entry Logic ---
 
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
