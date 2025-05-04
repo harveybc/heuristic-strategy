@@ -287,39 +287,38 @@ class Plugin:
                         # Potential Short Signal - Calculate TP/SL based on sell_idx event
                         idx = sell_idx
                         ideal_profit_pips = -future_moves[idx] # Profit is the negative move (positive value)
-                        # Drawdown is max price from current up to idx, relative to the price at idx
-                        max_before_signal = current_price # Start with current price
-                        if idx > 0: # If not the first prediction
-                             max_before_signal = max([current_price] + future[:idx]) # Max including current and up to (not including) idx price
-                        # Price at signal index
+                        max_before_signal = current_price
+                        if idx > 0:
+                             max_before_signal = max([current_price] + future[:idx])
                         price_at_signal = future[idx]
                         ideal_drawdown_pips = max(0, (max_before_signal - price_at_signal) / self.p.pip_cost)
 
-                        if ideal_drawdown_pips > 0: # Ensure drawdown is positive for valid SL
-                            signal = 'short'
-                            chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
-                            tp_entry = current_price - self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
-                            sl_entry = current_price + self.p.sl_multiplier * ideal_drawdown_pips * self.p.pip_cost
-                        # else: TP/SL remain None if drawdown is zero
+                        # --- MODIFIED: Always set signal if sell_idx is valid, handle zero drawdown in SL ---
+                        signal = 'short'
+                        chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
+                        tp_entry = current_price - self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
+                        # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
+                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                        sl_entry = current_price + self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
+
 
                     elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
                         # Potential Long Signal - Calculate TP/SL based on buy_idx event
                         idx = buy_idx
                         ideal_profit_pips = future_moves[idx]
-                        # Drawdown is min price from current up to idx, relative to the price at idx
-                        min_before_signal = current_price # Start with current price
-                        if idx > 0: # If not the first prediction
-                            min_before_signal = min([current_price] + future[:idx]) # Min including current and up to (not including) idx price
-                        # Price at signal index
+                        min_before_signal = current_price
+                        if idx > 0:
+                            min_before_signal = min([current_price] + future[:idx])
                         price_at_signal = future[idx]
                         ideal_drawdown_pips = max(0, (price_at_signal - min_before_signal) / self.p.pip_cost)
 
-                        if ideal_drawdown_pips > 0: # Ensure drawdown is positive for valid SL
-                            signal = 'long'
-                            chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
-                            tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
-                            sl_entry = current_price - self.p.sl_multiplier * ideal_drawdown_pips * self.p.pip_cost
-                        # else: TP/SL remain None if drawdown is zero
+                        # --- MODIFIED: Always set signal if buy_idx is valid, handle zero drawdown in SL ---
+                        signal = 'long'
+                        chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
+                        tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
+                        # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
+                        effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+                        sl_entry = current_price - self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
 
             # --- END: Signal Generation Logic ---
 
