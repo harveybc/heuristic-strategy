@@ -381,23 +381,32 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            long_signal  = (ideal_profit_pips_buy  >= self.p.profit_threshold)
-            short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
+            future = adjusted_preds_daily
+            # convert price moves into pip‐moves
+            future_moves = [(p - current_price)/self.p.pip_cost for p in future]
 
-            # Decide direction:
-            if long_signal and short_signal:
-                # both sides valid → pick the higher RR
-                if rr_buy >= rr_sell:
-                    signal, chosen_rr = 'long', rr_buy
-                else:
-                    signal, chosen_rr = 'short', rr_sell
-            elif long_signal:
-                signal, chosen_rr = 'long', rr_buy
-            elif short_signal:
-                signal, chosen_rr = 'short', rr_sell
+            # find first bar that beats profit_threshold up or down
+            buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
+            sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
+
+            if buy_idx is None and sell_idx is None:
+                return  # no clear signal
+
+            # pick whichever happens sooner
+            if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
+                signal = 'short'
+                chosen_rr = ( -future_moves[sell_idx] )  # positive pips
+                long_signal = False
+                short_signal = True
+            elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
+                signal = 'long'
+                chosen_rr = future_moves[buy_idx]
+                long_signal = True
+                short_signal = False
             else:
-                return
-
+                return # no clear signal
+            
+            
             # assign TP/SL
             if signal == 'long':
                 chosen_tp, chosen_sl = tp_buy,  sl_buy
@@ -423,24 +432,7 @@ class Plugin:
             self.current_tp = chosen_tp
             self.current_sl = chosen_sl
 
-            future = adjusted_preds_hourly + adjusted_preds_daily
-            # convert price moves into pip‐moves
-            future_moves = [(p - current_price)/self.p.pip_cost for p in future]
-
-            # find first bar that beats profit_threshold up or down
-            buy_idx  = next((i for i, m in enumerate(future_moves) if m >= self.p.profit_threshold), None)
-            sell_idx = next((i for i, m in enumerate(future_moves) if m <= -self.p.profit_threshold), None)
-
-            if buy_idx is None and sell_idx is None:
-                return  # no clear signal
-
-            # pick whichever happens sooner
-            if sell_idx is not None and (buy_idx is None or sell_idx < buy_idx):
-                signal = 'short'
-                chosen_rr = ( -future_moves[sell_idx] )  # positive pips
-            else:
-                signal = 'long'
-                chosen_rr = future_moves[buy_idx]
+            
 
             # then compute TP/SL around that bar rather than global max/min,
             # compute order_size and place buy()/sell() as before
