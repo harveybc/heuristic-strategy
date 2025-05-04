@@ -396,7 +396,7 @@ class Plugin:
                 chosen_sl = sl_sell
                 chosen_rr = rr_sell
             else:
-                print("[DEBUG] No valid signal found, skipping trade")
+                #print("[DEBUG] No valid signal found, skipping trade")
                 return
             
             order_size = self.compute_size(chosen_rr)
