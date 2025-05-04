@@ -19,7 +19,7 @@ class Plugin:
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 100,
-        'profit_threshold': 50,
+        'profit_threshold': -50,
         'min_drawdown_pips': 10,
         'tp_multiplier': 0.9,
         'sl_multiplier': 2.0,
@@ -54,7 +54,7 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            ("profit_threshold", 5, 300),
+            ("profit_threshold", -300, 300),
             ("tp_multiplier", 0.3, 3.0),
             ("sl_multiplier", 0.5, 6.0),
             ("lower_rr_threshold", -1000.0, 0.0),
@@ -376,8 +376,9 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
-            short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
+            #long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
+            #short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
+            long_signal = rr_buy >= self.p.profit_threshold
 
             if long_signal and (rr_buy >= rr_sell):
                 signal = 'long'
