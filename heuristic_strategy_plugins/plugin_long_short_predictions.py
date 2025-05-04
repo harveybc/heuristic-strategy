@@ -490,7 +490,8 @@ class Plugin:
                     'pnl': profit_usd,
                     'pips': profit_pips,
                     'duration': duration,
-                    'max_dd': intra_dd
+                    'max_dd': intra_dd,
+                    'direction': direction # Store the direction
                 }
                 self.trades.append(trade_record)
                 print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
@@ -507,19 +508,27 @@ class Plugin:
                 self.close()
             min_balance = min(self.balance_history) if self.balance_history else 0
             n_trades = len(self.trades)
+            n_long_trades = 0
+            long_trade_percentage = 0.0
+
             if n_trades > 0:
                 avg_profit_usd = sum(t['pnl'] for t in self.trades) / n_trades
                 avg_profit_pips = sum(t['pips'] for t in self.trades) / n_trades
                 avg_duration = sum(t['duration'] for t in self.trades) / n_trades
                 avg_max_dd = sum(t['max_dd'] for t in self.trades) / n_trades
+                n_long_trades = sum(1 for t in self.trades if t.get('direction') == 'long')
+                long_trade_percentage = (n_long_trades / n_trades) * 100
             else:
                 avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
+
             final_balance = self.broker.getvalue()
             print("\n==== Summary ====")
             print(f"Initial Balance (USD): {self.initial_balance:.2f}")
             print(f"Final Balance (USD):   {final_balance:.2f}")
             print(f"Minimum Balance (USD): {min_balance:.2f}")
             print(f"Number of Trades: {n_trades}")
+            if n_trades > 0:
+                print(f"  Long Trades: {n_long_trades} ({long_trade_percentage:.1f}%)")
             print(f"Average Profit (USD): {avg_profit_usd:.2f}")
             print(f"Average Profit (pips): {avg_profit_pips:.2f}")
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
