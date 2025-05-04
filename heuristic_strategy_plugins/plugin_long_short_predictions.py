@@ -54,7 +54,7 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            ("profit_threshold", 0, 300),
+            ("profit_threshold", 0, 1000),
             ("tp_multiplier", 0.3, 3.0),
             ("sl_multiplier", 0.5, 6.0),
             ("lower_rr_threshold", -1000.0, 0.0),
