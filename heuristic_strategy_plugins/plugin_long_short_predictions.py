@@ -376,25 +376,38 @@ class Plugin:
                 if should_close:
                     print(f"[{dt}] Closing position ({self.current_direction}) due to: {reason}")
                     self.close() # Close position
-                    return # IMPORTANT: Exit next() after closing or managing position
+                    # CRITICAL: Return AFTER closing to prevent immediate re-entry on the same bar
+                    return # Exit next() after closing position
 
-                # If not closing, just return as we are managing the position
-                return
+                # --- REMOVED THE PREMATURE RETURN ---
+                # If not closing, execution will now CONTINUE to the entry logic below,
+                # even if a position is currently held.
+                # return # <<<< REMOVED THIS LINE (Previously around line 380)
 
-            # --- Entry Logic (Only reached if NOT in position) ---
+            # --- Entry Logic (Now reachable even if self.position was true, unless closed above) ---
             else:
-                # Reset trade high/low when not in position
+                # Reset trade high/low when not in position (This part is fine)
                 self.trade_low = None
                 self.trade_high = None
 
-            # Check trade frequency limit (only if not in position)
+            # Check trade frequency limit (only if not in position - This might need adjustment if allowing reversals)
+            # Consider if this check should happen earlier or be modified if reversing positions is intended.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
-            if len(recent_trades) >= self.p.max_trades_per_5days:
-                # print(f"[{dt}] Trade limit reached, skipping entry.") # Optional log
-                return
+            if len(recent_trades) >= self.p.max_trades_per_5days and not self.position: # Apply only if flat?
+                 # print(f"[{dt}] Trade limit reached, skipping entry.") # Optional log
+                 return
 
             # --- Place order based on the signal determined earlier ---
             if signal is not None:
+                # --- ADD CHECK: Only enter if FLAT ---
+                # If the goal is strictly one position at a time, add this check.
+                # If reversals are allowed, remove this check.
+                if self.position:
+                    print(f"[{dt}] Signal '{signal}' generated, but already in position. Skipping entry.")
+                    return
+                # --- END ADD CHECK ---
+
+
                 # Assign the TP/SL calculated during signal generation
                 chosen_tp, chosen_sl = tp_entry, sl_entry # Use the new TP/SL
 
