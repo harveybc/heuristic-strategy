@@ -140,7 +140,7 @@ class Plugin:
             upper_rr_threshold=upper_rr,
             max_trades_per_5days=config['max_trades_per_5days'],
             # --- ADDED: Pass use_first_match from config ---
-            use_first_match=config.get("use_first_match", True) # Default to True
+            use_first_match=config.get("use_first_match", False) # Default to True
             # --- END ADDED ---
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
