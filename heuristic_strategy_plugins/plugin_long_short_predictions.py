@@ -552,27 +552,66 @@ class Plugin:
         def notify_order(self, order):
             dt = self.data0.datetime.datetime(0)
             if order.status in [order.Submitted, order.Accepted]:
-                # Optional: Log submission/acceptance
-                # print(f"[{dt}] NOTIFY ORDER: Ref={order.ref}, Status={order.getstatusname()}, Type={'BUY' if order.isbuy() else 'SELL'}, Size={order.created.size}", flush=True)
-                return
+                #print(f"[{dt}] NOTIFY ORDER ACCEPTED/SUBMITTED: Ref={order.ref}")
+                return # Do nothing for these states
 
             if order.status in [order.Completed]:
-                # Check if this order completion resulted in opening the current position
-                # Check if position exists, matches order size, and entry direction hasn't been set yet
-                if self.position and abs(self.position.size) == abs(order.executed.size) and self.entry_order_direction is None:
-                     self.entry_order_direction = 'long' if order.isbuy() else 'short'
-                     self.order_entry_price = order.executed.price # Store entry price associated with this entry
-                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Entry Detected): Ref={order.ref}, Entry Direction Set To='{self.entry_order_direction}', Entry Price Set To={self.order_entry_price:.5f}", flush=True)
-                else:
-                     # This order might be closing, partial fill, or something else - log for info
-                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Non-Entry or State Already Set): Ref={order.ref}, Type={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
-                return
+                # Check if it's an entry order completion we were expecting
+                is_entry_attempt = (self.entry_order_direction is not None)
 
-            if order.status in [order.Canceled, order.Margin, order.Rejected]:
-                print(f"[{dt}] NOTIFY ORDER FAILED/CANCELLED: Ref={order.ref}, Status={order.getstatusname()}", flush=True)
-                # If an entry order failed, reset the direction flag if it was somehow set
-                # This part needs careful thought depending on desired behavior on failure
-                # self.entry_order_direction = None
+                if is_entry_attempt:
+                    # Check if the completed order matches the expected direction
+                    order_matches_direction = False
+                    if self.entry_order_direction == 'long' and order.isbuy():
+                        order_matches_direction = True
+                    elif self.entry_order_direction == 'short' and order.issell():
+                        order_matches_direction = True
+
+                    if order_matches_direction:
+                         # --- REMOVED FAULTY CHECK ---
+                         # If order_matches_direction is true, this IS the entry confirmation.
+                         # self.position is already updated by Backtrader when this runs.
+                         # if not self.position: # <<< REMOVED THIS LINE
+                         # --- END REMOVED ---
+
+                         # Record the entry price from the first fill notification for this attempt
+                         if self.order_entry_price is None:
+                             self.order_entry_price = order.executed.price
+                             print(f"[{dt}] NOTIFY ORDER COMPLETED (Entry Detected): Ref={order.ref}, Entry Direction Set To='{self.current_direction}', Entry Price Set To={self.order_entry_price:.5f}", flush=True)
+                         else:
+                             # Log subsequent fills if needed (e.g., for partial fills)
+                             print(f"[{dt}] NOTIFY ORDER COMPLETED (Subsequent Fill): Ref={order.ref}, Price={order.executed.price:.5f}, Size={order.executed.size}", flush=True)
+
+                         # Reset the flag indicating we are waiting for an entry confirmation.
+                         self.entry_order_direction = None # Reset flag after processing entry
+
+                    else:
+                         # Order completed, but it didn't match the expected entry direction.
+                         print(f"[{dt}] NOTIFY ORDER COMPLETED (Mismatch/Non-Entry): Ref={order.ref}, Expected='{self.entry_order_direction}', Got={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
+                         # Reset flag if it was somehow still set
+                         self.entry_order_direction = None
+
+                else:
+                     # Order completed, but we weren't expecting an entry (likely a close order)
+                     print(f"[{dt}] NOTIFY ORDER COMPLETED (Close Order?): Ref={order.ref}, Type={'BUY' if order.isbuy() else 'SELL'}, Exec Size={order.executed.size}", flush=True)
+
+
+            elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+                print(f"[{dt}] NOTIFY ORDER FAILED/CANCELLED: Ref={order.ref}, Status={order.getstatusname()}")
+                # Reset entry flag if the failed order was intended as an entry
+                is_entry_attempt = (self.entry_order_direction is not None)
+                if is_entry_attempt:
+                     # Check if the failed order direction matches the expected entry direction
+                     failed_matches_direction = False
+                     if self.entry_order_direction == 'long' and order.isbuy():
+                         failed_matches_direction = True
+                     elif self.entry_order_direction == 'short' and order.issell():
+                         failed_matches_direction = True
+
+                     if failed_matches_direction:
+                         print(f"[{dt}] DEBUG: Resetting entry_order_direction flag due to failed {self.entry_order_direction} order.")
+                         self.entry_order_direction = None
+                         # Do not reset self.current_direction/volume here, wait for next bar or notify_trade
 
         def notify_trade(self, trade):
             dt = self.data0.datetime.datetime(0)
