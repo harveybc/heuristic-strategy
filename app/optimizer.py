@@ -46,7 +46,7 @@ def evaluate_individual(individual):
     # Print the candidate and current epoch information.
     print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
     
-    result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config, _loaded_params=None)
+    result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
     
     # Normalize to (profit, stats)
     if isinstance(result, tuple) and len(result) == 2:
