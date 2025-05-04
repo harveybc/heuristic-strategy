@@ -296,14 +296,20 @@ class Plugin:
 
                         # --- MODIFIED: Always set signal if sell_idx is valid, handle zero drawdown in SL ---
                         signal = 'short'
-                        chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
-                        tp_entry = current_price - self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
                         # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
                         effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+
+                        # --- MODIFIED: Calculate chosen_rr as ratio ---
+                        chosen_rr = ideal_profit_pips / effective_drawdown_pips if effective_drawdown_pips > 0 else 0
+                        # --- End Modification ---
+
+                        tp_entry = current_price - self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
                         sl_entry = current_price + self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
 
                         # DEBUG 1: Log potential short signal details
-                        print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        # Note: The logged RR will now be the ratio
+                        print(f"[{dt}] DEBUG: Potential SHORT Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+
 
                     elif buy_idx is not None and (sell_idx is None or buy_idx < sell_idx):
                         # Potential Long Signal - Calculate TP/SL based on buy_idx event
@@ -317,14 +323,19 @@ class Plugin:
 
                         # --- MODIFIED: Always set signal if buy_idx is valid, handle zero drawdown in SL ---
                         signal = 'long'
-                        chosen_rr = ideal_profit_pips # Use profit pips for RR scaling
-                        tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
                         # If drawdown is zero, use a minimum SL distance based on min_drawdown_pips param
                         effective_drawdown_pips = max(ideal_drawdown_pips, self.p.min_drawdown_pips)
+
+                        # --- MODIFIED: Calculate chosen_rr as ratio ---
+                        chosen_rr = ideal_profit_pips / effective_drawdown_pips if effective_drawdown_pips > 0 else 0
+                        # --- End Modification ---
+
+                        tp_entry = current_price + self.p.tp_multiplier * ideal_profit_pips * self.p.pip_cost
                         sl_entry = current_price - self.p.sl_multiplier * effective_drawdown_pips * self.p.pip_cost
 
                         # --- ADDED: Debug print for potential long signal ---
-                        print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
+                        # Note: The logged RR will now be the ratio
+                        print(f"[{dt}] DEBUG: Potential LONG Signal idx={idx}, profit={ideal_profit_pips:.2f}, eff_drawdown={effective_drawdown_pips:.2f}, RR={chosen_rr:.2f}, TP={tp_entry:.5f}, SL={sl_entry:.5f}", flush=True)
                         # --- End Added print ---
 
             # --- END: Signal Generation Logic ---
