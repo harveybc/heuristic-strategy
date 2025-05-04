@@ -347,10 +347,15 @@ class Plugin:
             max_idx = adjusted_preds_buy.index(profit_pred)
             min_before_max = min(adjusted_preds_buy[:max_idx+1]) if adjusted_preds_buy else current_price
 
+            # calculate the number of ticks (hours bwtween the current price and the predicted max) 
+
             ideal_profit_pips_buy = (profit_pred - current_price) / self.p.pip_cost
             ideal_drawdown_pips_buy = (profit_pred - min_before_max) / self.p.pip_cost
             #rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
-            rr_buy = ideal_profit_pips_buy 
+            #rr_buy = ideal_profit_pips_buy 
+            
+            rr_buy = ideal_profit_pips_buy / (max_idx+1)
+
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
             if self.num_daily_uncs > 0:
@@ -375,7 +380,8 @@ class Plugin:
 
 
             #rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
-            rr_sell = ideal_profit_pips_sell
+            #rr_sell = ideal_profit_pips_sell
+            rr_sell = ideal_profit_pips_sell / (min_idx +1)
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
