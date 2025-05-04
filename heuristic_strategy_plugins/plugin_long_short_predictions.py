@@ -381,10 +381,10 @@ class Plugin:
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            #long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
-            #short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
-            long_signal = rr_buy >= self.p.profit_threshold
-            short_signal = rr_sell >= self.p.profit_threshold
+            long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
+            short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
+            #long_signal = rr_buy >= self.p.profit_threshold
+            #short_signal = rr_sell >= self.p.profit_threshold
 
             if long_signal and (rr_buy >= rr_sell):
                 signal = 'long'
