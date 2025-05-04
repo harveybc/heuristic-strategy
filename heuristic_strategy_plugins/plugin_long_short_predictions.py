@@ -28,9 +28,9 @@ class Plugin:
 
         # Default uncertainty values used if none are provided:
         #"default_uncertainty_short_term": 0.0005,
-        "default_uncertainty_short_term": 0,
+        "default_uncertainty_short_term": 0.000001,
         #"default_uncertainty_long_term": 0.002,
-        "default_uncertainty_long_term": 0,
+        "default_uncertainty_long_term": 0.000001,
     }
 
     def __init__(self):
@@ -347,16 +347,10 @@ class Plugin:
             max_idx = adjusted_preds_buy.index(profit_pred)
             min_before_max = min(adjusted_preds_buy[:max_idx+1]) if adjusted_preds_buy else current_price
 
-            # calculate the number of ticks (hours bwtween the current price and the predicted max) 
-
             ideal_profit_pips_buy = (profit_pred - current_price) / self.p.pip_cost
             ideal_drawdown_pips_buy = (profit_pred - min_before_max) / self.p.pip_cost
             #rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
-            #rr_buy = ideal_profit_pips_buy 
-            
             rr_buy = ideal_profit_pips_buy 
-
-
             tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
             sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
             if self.num_daily_uncs > 0:
@@ -381,15 +375,12 @@ class Plugin:
 
 
             #rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
-            #rr_sell = ideal_profit_pips_sell
-            rr_sell = ideal_profit_pips_sell 
-
-
+            rr_sell = ideal_profit_pips_sell
             tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
             sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
 
-            long_signal = (ideal_profit_pips_buy >= 0)
-            short_signal = (ideal_profit_pips_sell >= 0)
+            long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
+            short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
 
             #if long_signal and (rr_buy >= rr_sell):
             if long_signal and (min_idx >= max_idx):
@@ -397,7 +388,6 @@ class Plugin:
                 chosen_tp = tp_buy
                 chosen_sl = sl_buy
                 chosen_rr = rr_buy
-            #if short_signal and (rr_sell > rr_buy):
             if short_signal and (max_idx > min_idx):
                 signal = 'short'
                 chosen_tp = tp_sell
