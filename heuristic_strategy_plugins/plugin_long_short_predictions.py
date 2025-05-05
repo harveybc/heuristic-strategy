@@ -30,6 +30,13 @@ class Plugin:
         "default_uncertainty_short_term": 0.0005,
         #"default_uncertainty_short_term": 0.000001,
         "default_uncertainty_long_term": 0.009,
+
+        # --- ADDED: Fee Parameters ---
+        'commission_pct': 0.0002, # Example: 0.02% round-turn commission (simulates spread)
+        'slippage_pct': 0.0001, # Example: 0.01% slippage per side
+        'swap_long_annual_pct': -2.0, # Example: -2.0% annual swap rate for long positions
+        'swap_short_annual_pct': -1.0, # Example: -1.0% annual swap rate for short positions
+        # --- END ADDED ---
     }
 
     def __init__(self):
@@ -140,21 +147,35 @@ class Plugin:
             upper_rr_threshold=upper_rr,
             max_trades_per_5days=config['max_trades_per_5days'],
             # --- ADDED: Pass use_first_match from config ---
-            use_first_match=config.get("use_first_match", False) # Default to True
+            use_first_match=config.get("use_first_match", True) # Default to True
             # --- END ADDED ---
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
 
-        # --- ADDED: Explicitly set broker leverage ---
-        # Use the leverage defined in the plugin's parameters
+        # --- MODIFIED: Set Commission, Swap (Interest), Leverage, and Slippage ---
+        # Retrieve fee parameters from self.params
+        commission_pct = self.params.get('commission_pct', 0.0)
+        swap_short_annual_pct = self.params.get('swap_short_annual_pct', 0.0)
+        swap_long_annual_pct = self.params.get('swap_long_annual_pct', 0.0)
+        slippage_pct = self.params.get('slippage_pct', 0.0)
+        leverage = self.params.get('leverage', 100) # Get leverage
+
+        # Set commission (spread simulation) and swap rates (interest)
+        # Note: Backtrader interest rates are annual percentages / 100
         cerebro.broker.setcommission(
-            commission=0.0, # Assuming no commission for now, adjust if needed
-            margin=None,    # Use default margin calculation based on leverage
-            leverage=self.params['leverage'] # Set the leverage explicitly
+            commission=commission_pct, # Commission as a percentage (e.g., 0.0002 for 0.02%)
+            margin=None,              # Use default margin calculation based on leverage
+            leverage=leverage,        # Set leverage
+            interest=swap_short_annual_pct / 100.0,  # Annual interest rate for short positions
+            interest_long=swap_long_annual_pct / 100.0 # Annual interest rate for long positions
         )
-        # --- END ADDED ---
+
+        # Set slippage as a percentage
+        # Note: This applies slippage based on the fill price percentage
+        cerebro.broker.set_slippage_perc(perc=slippage_pct)
+        # --- END MODIFIED ---
 
         try:
             runresult = cerebro.run()
