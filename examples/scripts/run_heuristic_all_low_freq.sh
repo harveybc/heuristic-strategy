@@ -9,10 +9,7 @@ declare -A BASE_DATA_MAP=(
     [phase_2]="examples/data/phase_2_4/base_d3.csv"
     [phase_3_1]="examples/data/phase_3/base_d6.csv"
     [phase_3_2]="examples/data/phase_3/base_d6.csv"
-    #[phase_1]="examples/data/phase_1/phase_1_base_d2.csv"
-    #[phase_2]="examples/data/phase_2_4/base_d2.csv"
-    #[phase_3_1]="examples/data/phase_3/base_d5.csv"
-    #[phase_3_2]="examples/data/phase_3/base_d5.csv"
+
 )
 
 # per‐phase load‐parameters
