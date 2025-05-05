@@ -31,9 +31,9 @@ class Plugin:
         "default_uncertainty_long_term": 0.009,
 
         # --- UPDATED: Pessimistic Fee Parameters ---
-        'commission_pct': 0.0004, # Simulates ~4 pips round-turn spread (0.04%)
-        'slippage_pct': 0.00015, # Simulates ~1.5 pips slippage per side (0.015%)
-        'swap_long_annual_pct': -4.0, # Pessimistic cost for holding long (-4.0%)
+        'commission_pct': 0.0003, # Simulates ~3 pips round-turn spread (0.03%)
+        'slippage_pct': 0.0001, # Simulates ~1 pips slippage per side (0.01%)
+        'swap_long_annual_pct': -3.0, # Pessimistic cost for holding long (-3.0%)
         'swap_short_annual_pct': -1.0, # Pessimistic cost for holding short (-1.0%)
         # --- END UPDATED ---
     }

@@ -6,7 +6,7 @@ PHASES=(phase_1 phase_2 phase_3_1 phase_3_2)
 # per‐phase base datasets
 declare -A BASE_DATA_MAP=(
     [phase_1]="examples/data/phase_1/phase_1_base_d3.csv"
-    [phase_2]="examples/data/phase_2_4/base_d3.csv"
+    [phase_2]="examples/data/phase_2_1/base_d3.csv"
     [phase_3_1]="examples/data/phase_3/base_d6.csv"
     [phase_3_2]="examples/data/phase_3/base_d6.csv"
 )
