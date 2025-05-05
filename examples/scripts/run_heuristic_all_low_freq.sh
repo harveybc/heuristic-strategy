@@ -20,7 +20,7 @@ declare -A LOAD_PARAMS=(
 )
 
 
-PREFIX="_low_freq"
+PREFIX="_low_frequency"
 MAX_TRADES=3
 
 for PH in "${PHASES[@]}"; do
