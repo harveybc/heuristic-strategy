@@ -20,6 +20,7 @@ declare -A LOAD_PARAMS=(
     [phase_3_2]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json"
 )
 
+
 PREFIX="_low_freq"
 MAX_TRADES=3
 
