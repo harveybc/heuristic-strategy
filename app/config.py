@@ -18,7 +18,7 @@ DEFAULT_VALUES = {
     "plugin": "default",
     "time_horizon": 6,
     "population_size": 15,
-    "num_generations": 10,
+    "num_generations": 20,
     "crossover_probability": 0.5,
     "mutation_probability": 0.2,
     "use_hourly": False,
