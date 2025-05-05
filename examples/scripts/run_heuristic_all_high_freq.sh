@@ -9,14 +9,22 @@ declare -A BASE_DATA_MAP=(
     [phase_2]="examples/data/phase_2_4/base_d3.csv"
     [phase_3_1]="examples/data/phase_3/base_d6.csv"
     [phase_3_2]="examples/data/phase_3/base_d6.csv"
+    #[phase_1]="examples/data/phase_1/phase_1_base_d2.csv"
+    #[phase_2]="examples/data/phase_2_4/base_d2.csv"
+    #[phase_3_1]="examples/data/phase_3/base_d5.csv"
+    #[phase_3_2]="examples/data/phase_3/base_d5.csv"
 )
 
 # per‐phase load‐parameters
 declare -A LOAD_PARAMS=(
-    [phase_1]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json"
-    [phase_2]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json"
-    [phase_3_1]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json"
-    [phase_3_2]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json"
+    #[phase_1]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json"
+    #[phase_2]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_high_frequency_parameters.json"
+    #[phase_3_1]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json"
+    #[phase_3_2]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_high_frequency_parameters.json"
+    [phase_1]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json"
+    [phase_2]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json"
+    [phase_3_1]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json"
+    [phase_3_2]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json"
 )
 
 PREFIX="_high_freq"
