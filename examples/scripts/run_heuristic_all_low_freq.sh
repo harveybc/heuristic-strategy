@@ -15,8 +15,8 @@ declare -A BASE_DATA_MAP=(
 declare -A LOAD_PARAMS=(
     [phase_1]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json"
     [phase_2]="examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json"
-    [phase_3_1]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json"
-    [phase_3_2]="examples/results/phase_3_1_daily/phase_3_1_cnn_25200_1d_results_low_frequency_parameters.json"
+    [phase_3_1]="examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_results_low_frequency_parameters.json"
+    [phase_3_2]="examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_results_low_frequency_parameters.json"
 )
 
 
