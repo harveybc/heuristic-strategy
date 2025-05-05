@@ -25,18 +25,17 @@ class Plugin:
         'sl_multiplier': 2.0,
         'lower_rr_threshold': 0.1,
         'upper_rr_threshold': 1.0,
-        
+
         # Default uncertainty values used if none are provided:
         "default_uncertainty_short_term": 0.0005,
-        #"default_uncertainty_short_term": 0.000001,
         "default_uncertainty_long_term": 0.009,
 
-        # --- ADDED: Fee Parameters ---
-        'commission_pct': 0.0002, # Example: 0.02% round-turn commission (simulates spread)
-        'slippage_pct': 0.0001, # Example: 0.01% slippage per side
-        'swap_long_annual_pct': -2.0, # Example: -2.0% annual swap rate for long positions
-        'swap_short_annual_pct': -1.0, # Example: -1.0% annual swap rate for short positions
-        # --- END ADDED ---
+        # --- UPDATED: Pessimistic Fee Parameters ---
+        'commission_pct': 0.0004, # Simulates ~4 pips round-turn spread (0.04%)
+        'slippage_pct': 0.00015, # Simulates ~1.5 pips slippage per side (0.015%)
+        'swap_long_annual_pct': -4.0, # Pessimistic cost for holding long (-4.0%)
+        'swap_short_annual_pct': -1.0, # Pessimistic cost for holding short (-1.0%)
+        # --- END UPDATED ---
     }
 
     def __init__(self):
