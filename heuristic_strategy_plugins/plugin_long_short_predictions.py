@@ -15,9 +15,9 @@ class Plugin:
     # Default plugin parameters (must be present for optimizer integration)
     plugin_params = {
         'pip_cost': 0.00001,
-        'rel_volume': 0.03,  # uses max 3% of balance for each order (default)
+        'rel_volume': 0.02,  # uses max 2% of balance for each order (default)
         'min_order_volume': 1000, # minimum micro lot size of 0.01 lots
-        'max_order_volume': 1000000, # typpical max lot size of 10 lots
+        'max_order_volume': 1000000, # typical max lot size of 10 lots
         'leverage': 100,
         'profit_threshold': 300,
         'min_drawdown_pips': 10,
