@@ -13,5 +13,5 @@
     "trades_csv_file": "examples/results/phase_3_2_daily/phase_3_2_transformer_25200_1d_results_low_frequency_trades.csv",
     "summary_csv_file": "examples/results/phase_3_2_daily/phase_3_2_transformer_25200_1d_results_low_frequency_summary.csv",
     "save_parameters": "examples/results/phase_3_2_daily/phase_3_2_transformer_25200_1d_results_low_frequency_parameters.json",
-    "load_parameters": "examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_results_low_frequency_parameters.json"
+    "load_parameters": "examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_results_high_frequency_parameters.json"
 }

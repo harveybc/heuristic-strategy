@@ -1,8 +1,0 @@
-{
-    "profit_threshold": 14.409134092143836,
-    "tp_multiplier": 0.5061852968794649,
-    "sl_multiplier": 0.8618813222693622,
-    "lower_rr_threshold": 0.24965668664619242,
-    "upper_rr_threshold": 3.555108421669826,
-    "time_horizon": 15.70503256082198
-}
