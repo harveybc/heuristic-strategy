@@ -201,7 +201,7 @@ class Plugin:
         self.trades = trades_list
 
         num_trades = len(trades_list)
-        stats = {"num_trades": num_trades, "win_pct": 0, "max_dd": 0, "sharpe": 0}
+        stats = {"num_trades": num_trades, "win_pct": 0, "max_dd": 0, "sharpe": -1000, "risk": 1000}
         if num_trades > 0:
             wins = sum(1 for tr in trades_list if tr['pnl'] > 0)
             win_pct = (wins / num_trades) * 100
@@ -213,7 +213,9 @@ class Plugin:
             risk_free_return = initial_capital * risk_free_rate
             excess_profit = profit - risk_free_return
             sharpe = excess_profit / std_profit if std_profit > 0 else 0
-            stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
+            risk = std_profit / profit
+            stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe, "risk": risk})
+            
 
         # --- New functionality: Calculate risk as maximum drawdown ratio over balance history ---
         balance_history = strat_instance.balance_history
