@@ -213,7 +213,7 @@ class Plugin:
             risk_free_return = initial_capital * risk_free_rate
             excess_profit = profit - risk_free_return
             sharpe = excess_profit / std_profit if std_profit > 0 else 0
-            risk = std_profit / profit
+            risk = std_profit / profit if profit != 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe, "risk": risk})
             
 
