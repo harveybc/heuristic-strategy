@@ -107,7 +107,8 @@ def process_data(config):
         config["balance_plot_file"] = base_filename + prefix + "_balance_plot.png"
         config["trades_csv_file"] = base_filename + prefix + "_trades.csv"
         config["summary_csv_file"] = base_filename + prefix + "_summary.csv"
-        config["save_parameters"] = base_filename + prefix + "_parameters.json"
+        if config.get("load_parameters"):
+            config["save_parameters"] = base_filename + prefix + "_parameters.json"
 
         
 
@@ -128,7 +129,8 @@ def process_data(config):
         config["balance_plot_file"] = base_filename + prefix + "_balance_plot.png"
         config["trades_csv_file"] = base_filename + prefix + "_trades.csv"
         config["summary_csv_file"] = base_filename + prefix + "_summary.csv"
-        config["save_parameters"] = base_filename + prefix + "_parameters.json"
+        if config.get("load_parameters"):
+            config["save_parameters"] = base_filename + prefix + "_parameters.json"
 
         
 
