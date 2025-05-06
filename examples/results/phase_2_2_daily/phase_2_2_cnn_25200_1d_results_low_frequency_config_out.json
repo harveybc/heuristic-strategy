@@ -1,0 +1,17 @@
+{
+    "hourly_predictions_file": "examples/results/phase_2_2/phase_2_2_cnn_25200_1h_prediction.csv",
+    "daily_predictions_file": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_prediction.csv",
+    "uncertainty_hourly_file": "examples/results/phase_2_2/phase_2_2_cnn_25200_1h_uncertanties.csv",
+    "uncertainty_daily_file": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_uncertanties.csv",
+    "base_dataset_file": "examples/data/phase_2_1/base_d3.csv",
+    "predictor_hourly_config_file": "examples/config/phase_2/phase_2_2_cnn_1h_config.json",
+    "predictor_daily_config_file": "examples/config/phase_2_daily/phase_2_2_cnn_1d_config.json",
+    "prefix": "_low_frequency",
+    "save_config": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_results_low_frequency_config_out.json",
+    "save_log": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_results_low_frequency_debug_log.json",
+    "balance_plot_file": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_results_low_frequency_balance_plot.png",
+    "trades_csv_file": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_results_low_frequency_trades.csv",
+    "summary_csv_file": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_results_low_frequency_summary.csv",
+    "save_parameters": "examples/results/phase_2_2_daily/phase_2_2_cnn_25200_1d_results_low_frequency_parameters.json",
+    "load_parameters": "examples/results/phase_2_1_daily/phase_2_1_ann_25200_1d_results_low_frequency_parameters.json"
+}

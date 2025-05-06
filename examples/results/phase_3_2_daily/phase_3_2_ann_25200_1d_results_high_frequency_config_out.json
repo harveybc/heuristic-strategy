@@ -1,0 +1,18 @@
+{
+    "hourly_predictions_file": "examples/results/phase_3_2/phase_3_2_ann_25200_1h_prediction.csv",
+    "daily_predictions_file": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_prediction.csv",
+    "uncertainty_hourly_file": "examples/results/phase_3_2/phase_3_2_ann_25200_1h_uncertanties.csv",
+    "uncertainty_daily_file": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_uncertanties.csv",
+    "base_dataset_file": "examples/data/phase_3/base_d6.csv",
+    "predictor_hourly_config_file": "examples/config/phase_3_2/phase_3_2_ann_1h_config.json",
+    "predictor_daily_config_file": "examples/config/phase_3_2_daily/phase_3_2_ann_1d_config.json",
+    "prefix": "_high_frequency",
+    "max_trades_per_5days": 20,
+    "save_config": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_results_high_frequency_config_out.json",
+    "save_log": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_results_high_frequency_debug_log.json",
+    "balance_plot_file": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_results_high_frequency_balance_plot.png",
+    "trades_csv_file": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_results_high_frequency_trades.csv",
+    "summary_csv_file": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_results_high_frequency_summary.csv",
+    "save_parameters": "examples/results/phase_3_2_daily/phase_3_2_ann_25200_1d_results_high_frequency_parameters.json",
+    "load_parameters": "examples/results/phase_3_2_daily/phase_3_2_cnn_25200_1d_results_high_frequency_parameters.json"
+}
