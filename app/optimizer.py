@@ -202,10 +202,11 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         name, low, high = param
         return random.uniform(low, high)
 
-    toolbox.register("individual", lambda: creator.Individual([random_attr(p) for p in optimizable_params]))
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-    toolbox.register("evaluate", evaluate_individual)
+        optimizable_params = optimizable_params + pred_params
+        total_params = len(optimizable_params)
+        print(f"Optimizable Parameters ({total_params}):")
+        for name, low, high in optimizable_params:
+            print(f"  {name}: [{low}, {high}]")
     toolbox.register("mate", tools.cxBlend, alpha=0.5)
     toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1.0, indpb=0.2)
     toolbox.register("select", tools.selTournament, tournsize=3)
@@ -299,23 +300,14 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         except Exception as e:
             print(f"Failed to save best parameters to {config['save_config']}: {e}")
 
-    # Evaluate the best individual one more time to extract stats
-    result = _plugin.evaluate_candidate(best_ind, _base_data, _hourly_predictions, _daily_predictions, _config)
-    if isinstance(result, tuple) and len(result) == 2:
-        profit, stats = result
-    else:
-        profit = result[0] if isinstance(result, tuple) else result
-        stats = {}
+    # Evaluate the best individual one more time to extract stats via unified path
+    profit, stats = evaluate_individual(best_ind)
 
     return {
         "best_parameters": best_params,
         "profit": profit,
         "stats": stats,
     }
-
-if __name__ == '__main__':
-    print("Standalone testing of optimizer not supported; run via main pipeline.")
-
 
 if __name__ == '__main__':
     print("Standalone testing of optimizer not supported; run via main pipeline.")
