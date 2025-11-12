@@ -253,6 +253,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     best_ind_overall = None
     best_ind_train_profit = None
     best_ind_val_profit = None
+    best_ind_genome_snapshot = None  # immutable copy of genome at last validation improvement
 
     for gen in range(1, num_generations):
         _current_epoch = gen+1
@@ -310,6 +311,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
                 best_ind_overall = gen_best_ind
                 best_ind_train_profit = gen_best_profit
                 best_ind_val_profit = val_profit
+                # Snapshot genome to ensure immutability even if underlying Individual changes later
+                best_ind_genome_snapshot = list(gen_best_ind)
             else:
                 epochs_without_improve += 1
                 print(f"  No validation improvement. Patience counter: {epochs_without_improve}/{patience}")
@@ -338,8 +341,13 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     if best_ind_overall is None:
         best_ind = tools.selBest(population, 1)[0]
         best_ind_train_profit = best_ind.fitness.values[0]
+        best_ind_genome_snapshot = list(best_ind)
     else:
-        best_ind = best_ind_overall
+        # Rebuild an Individual from snapshot if available to avoid accidental later mutation side-effects
+        if best_ind_genome_snapshot is not None:
+            best_ind = creator.Individual(best_ind_genome_snapshot)
+        else:
+            best_ind = best_ind_overall
     # Build raw params from genome
     best_params_raw = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
 
