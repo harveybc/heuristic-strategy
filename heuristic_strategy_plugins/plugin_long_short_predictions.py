@@ -77,9 +77,7 @@ class Plugin:
         import backtrader as bt
 
         # Unpack candidate parameters:
-        # (profit_threshold, tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold, time_horizon)
         profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr = individual
-        #profit_threshold = self.params['profit_threshold']
 
         # Check that predictions are available.
         if (hourly_predictions is None or hourly_predictions.empty or 
@@ -89,12 +87,19 @@ class Plugin:
 
         # Merge predictions (rename columns for clarity).
         merged_df = pd.DataFrame()
+
+        # IMPORTANT: Assume incoming columns are already sorted by ascending horizon.
+        # Enumerate IN ORDER to preserve horizon ordering.
         renamed_h = {col: f"Prediction_h_{i+1}" for i, col in enumerate(hourly_predictions.columns)}
         hr = hourly_predictions.rename(columns=renamed_h)
         merged_df = hr.copy()
+
         renamed_d = {col: f"Prediction_d_{i+1}" for i, col in enumerate(daily_predictions.columns)}
         dr = daily_predictions.rename(columns=renamed_d)
         merged_df = merged_df.join(dr, how="outer")
+
+        num_h = hr.shape[1]
+        num_d = dr.shape[1]
 
         # --- Merge uncertainties from config (which were preprocessed by the data processor) ---
         # If uncertainties are not provided, create DataFrames using default constant values.
@@ -102,22 +107,27 @@ class Plugin:
         if uncertainty_hourly is None:
             default_val = self.params.get('default_uncertainty_short_term', 0.0)
             uncertainty_hourly = pd.DataFrame(default_val, index=hourly_predictions.index,
-                                               columns=[f"Uncertainty_h_{i+1}" for i in range(hourly_predictions.shape[1])])
+                                               columns=[f"Uncertainty_h_{i+1}" for i in range(num_h)])
         else:
-            # If the file was loaded from file, rename its columns.
-            uncertainty_hourly = uncertainty_hourly.rename(
-                columns=lambda x: f"Uncertainty_h_{x.split('_')[-1]}" if x.startswith("Uncertainty_") and not x.startswith("Uncertainty_h_") else x
-            )
+            # Normalize names to Uncertainty_h_1..N to match next()
+            uh = uncertainty_hourly.copy()
+            uh = uh.iloc[:, :num_h] if uh.shape[1] >= num_h else uh  # truncate if extra cols; padding handled later
+            uh.columns = [f"Uncertainty_h_{i+1}" for i in range(uh.shape[1])]
+            uncertainty_hourly = uh
+
         uncertainty_daily = config.get("uncertainty_daily")
         if uncertainty_daily is None:
             default_val = self.params.get('default_uncertainty_long_term', 0.0)
             uncertainty_daily = pd.DataFrame(default_val, index=daily_predictions.index,
-                                              columns=[f"Uncertainty_d_{i+1}" for i in range(daily_predictions.shape[1])])
+                                              columns=[f"Uncertainty_d_{i+1}" for i in range(num_d)])
         else:
-            uncertainty_daily = uncertainty_daily.rename(
-                columns=lambda x: f"Uncertainty_d_{x.split('_')[-1]}" if x.startswith("Uncertainty_") and not x.startswith("Uncertainty_d_") else x
-            )
+            # Normalize names to Uncertainty_d_1..M to match next()
+            ud = uncertainty_daily.copy()
+            ud = ud.iloc[:, :num_d] if ud.shape[1] >= num_d else ud  # truncate if extra cols; padding handled later
+            ud.columns = [f"Uncertainty_d_{i+1}" for i in range(ud.shape[1])]
+            uncertainty_daily = ud
 
+        # Join normalized uncertainties; distinct prefixes avoid column overlap
         merged_df = merged_df.join(uncertainty_hourly, how="inner")
         merged_df = merged_df.join(uncertainty_daily, how="inner")
 
