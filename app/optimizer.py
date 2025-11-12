@@ -117,8 +117,11 @@ def evaluate_individual(individual):
         import pandas as pd
         unc_h_val = cfg.get("default_uncertainty_short_term", 0.0002)
         unc_d_val = cfg.get("default_uncertainty_long_term", 0.0047)
-        unc_hourly_df = pd.DataFrame(unc_h_val, index=hourly_df.index, columns=hourly_df.columns)
-        unc_daily_df = pd.DataFrame(unc_d_val, index=daily_df.index, columns=daily_df.columns)
+        # Name uncertainty columns to avoid overlap with prediction columns
+        unc_hourly_cols = [f"Uncertainty_h_{i+1}" for i in range(len(hourly_df.columns))]
+        unc_daily_cols = [f"Uncertainty_d_{i+1}" for i in range(len(daily_df.columns))]
+        unc_hourly_df = pd.DataFrame(unc_h_val, index=hourly_df.index, columns=unc_hourly_cols)
+        unc_daily_df = pd.DataFrame(unc_d_val, index=daily_df.index, columns=unc_daily_cols)
         cfg["uncertainty_hourly"] = unc_hourly_df
         cfg["uncertainty_daily"] = unc_daily_df
         cfg["hourly_columns"] = st_cols
