@@ -187,7 +187,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         ("long_term_num_predictions", 24, 144),
     ]
     optimizable_params = optimizable_params + pred_params
-    print(f"Optimizable Parameters ({num_params}):")
+    total_params = len(optimizable_params)
+    print(f"Optimizable Parameters ({total_params}):")
     for name, low, high in optimizable_params:
         print(f"  {name}: [{low}, {high}]")
 
@@ -202,11 +203,10 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         name, low, high = param
         return random.uniform(low, high)
 
-        optimizable_params = optimizable_params + pred_params
-        total_params = len(optimizable_params)
-        print(f"Optimizable Parameters ({total_params}):")
-        for name, low, high in optimizable_params:
-            print(f"  {name}: [{low}, {high}]")
+    # Register GA primitives
+    toolbox.register("individual", lambda: creator.Individual([random_attr(p) for p in optimizable_params]))
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("evaluate", evaluate_individual)
     toolbox.register("mate", tools.cxBlend, alpha=0.5)
     toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1.0, indpb=0.2)
     toolbox.register("select", tools.selTournament, tournsize=3)
