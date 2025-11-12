@@ -1,11 +1,11 @@
 {
-    "profit_threshold": 868.2367900702545,
-    "tp_multiplier": 1.7478599995409967,
-    "sl_multiplier": 5.927408307265511,
-    "lower_rr_threshold": 0.1688117211253944,
-    "upper_rr_threshold": 1.9546982692705643,
-    "short_term_max_horizon": 16.647766153993548,
-    "short_term_num_predictions": 41.58940281675653,
-    "long_term_max_horizon": 52.326922780616556,
-    "long_term_num_predictions": 47.2245915567674
+    "profit_threshold": 857.5956314981063,
+    "tp_multiplier": 1.682621016170601,
+    "sl_multiplier": 0.8755137700603348,
+    "lower_rr_threshold": 0.1,
+    "upper_rr_threshold": 1.0,
+    "short_term_max_horizon": 20,
+    "short_term_num_predictions": 20,
+    "long_term_max_horizon": 50,
+    "long_term_num_predictions": 45
 }
