@@ -601,23 +601,62 @@ def run_processing_pipeline(config, plugin):
             # For optimization, provide supersets so per-candidate selection doesn't require recomputation
             # Short-term superset: H1..H48, Long-term superset: H1..H144 (all in hours)
             try:
-                hourly_superset = _create_predictions_at_offsets(base_data["CLOSE"], list(range(1, 49)))
-                hourly_superset.columns = [f"Prediction_H{i}" for i in range(1, 49)]
-                daily_superset = _create_predictions_at_offsets(base_data["CLOSE"], list(range(1, 145)))
-                daily_superset.columns = [f"Prediction_H{i}" for i in range(1, 145)]
-                # Align to common index with base_data
-                common_idx = base_data.index.intersection(hourly_superset.index).intersection(daily_superset.index)
-                base_for_opt = base_data.loc[common_idx]
-                hourly_superset = hourly_superset.loc[common_idx]
-                daily_superset = daily_superset.loc[common_idx]
+                def build_supersets(base_df):
+                    hs = _create_predictions_at_offsets(base_df["CLOSE"], list(range(1, 49)))
+                    hs.columns = [f"Prediction_H{i}" for i in range(1, 49)]
+                    ds = _create_predictions_at_offsets(base_df["CLOSE"], list(range(1, 145)))
+                    ds.columns = [f"Prediction_H{i}" for i in range(1, 145)]
+                    common_idx = base_df.index.intersection(hs.index).intersection(ds.index)
+                    return base_df.loc[common_idx], hs.loc[common_idx], ds.loc[common_idx]
+
+                # Train supersets
+                base_for_opt, hourly_superset, daily_superset = build_supersets(base_data)
+
+                # Validation supersets (optional)
+                base_val = None; hourly_val = None; daily_val = None
+                if config.get("validation_dataset_file"):
+                    base_val_raw = load_csv(config["validation_dataset_file"], headers=config.get("headers", True))
+                    if not isinstance(base_val_raw.index, pd.DatetimeIndex):
+                        if "DATE_TIME" in base_val_raw.columns:
+                            base_val_raw.index = pd.to_datetime(base_val_raw["DATE_TIME"])
+                        else:
+                            raise ValueError("Validation dataset does not have a DATE_TIME column.")
+                    base_val_raw = base_val_raw.iloc[: config.get("max_steps", len(base_val_raw))]
+                    base_val, hourly_val, daily_val = build_supersets(base_val_raw)
+
+                # Test supersets (optional)
+                base_test = None; hourly_test = None; daily_test = None
+                if config.get("test_dataset_file"):
+                    base_test_raw = load_csv(config["test_dataset_file"], headers=config.get("headers", True))
+                    if not isinstance(base_test_raw.index, pd.DatetimeIndex):
+                        if "DATE_TIME" in base_test_raw.columns:
+                            base_test_raw.index = pd.to_datetime(base_test_raw["DATE_TIME"])
+                        else:
+                            raise ValueError("Test dataset does not have a DATE_TIME column.")
+                    base_test_raw = base_test_raw.iloc[: config.get("max_steps", len(base_test_raw))]
+                    base_test, hourly_test, daily_test = build_supersets(base_test_raw)
             except Exception as e:
                 print(f"Warning: failed to generate prediction supersets for optimization, falling back to current frames: {e}")
                 base_for_opt = base_data
                 hourly_superset = hourly_preds
                 daily_superset = daily_preds
+                base_val = hourly_val = daily_val = None
+                base_test = hourly_test = daily_test = None
 
             # Run optimizer and then flatten the 'stats' dict into top-level keys
-            _raw_info = run_optimizer(plugin, base_for_opt, hourly_superset, daily_superset, config)
+            _raw_info = run_optimizer(
+                plugin,
+                base_for_opt,
+                hourly_superset,
+                daily_superset,
+                config,
+                base_val,
+                hourly_val,
+                daily_val,
+                base_test,
+                hourly_test,
+                daily_test,
+            )
             _stats = _raw_info.pop("stats", {}) or {}
             trading_info = {"initial_capital":10000,**_raw_info, **_stats}
         else:

@@ -153,7 +153,9 @@ def evaluate_individual(individual):
     return profit, stats
 
 
-def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
+def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config,
+                  base_val=None, hourly_val=None, daily_val=None,
+                  base_test=None, hourly_test=None, daily_test=None):
     """
     Runs the optimizer using DEAP to optimize the strategy parameters.
     Displays a TQDM progress bar for the evaluation of individuals in each generation.
@@ -181,8 +183,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     global _plugin_param_count
     _plugin_param_count = num_params
     pred_params = [
-        ("short_term_max_horizon", 2, 24),
-        ("short_term_num_predictions", 2, 24),
+        ("short_term_max_horizon", 2, 48),
+        ("short_term_num_predictions", 2, 48),
         ("long_term_max_horizon", 24, 144),
         ("long_term_num_predictions", 24, 144),
     ]
@@ -244,6 +246,14 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     print(f"  Evaluated {len(population)} individuals initially.")
 
+    # Early stopping state
+    patience = int(config.get("patience", 0) or 0)
+    best_val_profit = None
+    epochs_without_improve = 0
+    best_ind_overall = None
+    best_ind_train_profit = None
+    best_ind_val_profit = None
+
     for gen in range(1, num_generations):
         _current_epoch = gen+1
         offspring = toolbox.select(population, len(population))
@@ -278,10 +288,49 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
+        gen_best_ind = tools.selBest(population, 1)[0]
+        gen_best_profit = gen_best_ind.fitness.values[0]
         print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits) / len(fits):.2f}")
 
+        # Validation evaluation for early stopping
+        if base_val is not None and hourly_val is not None and daily_val is not None:
+            # Evaluate gen_best_ind on validation data through evaluate_individual-like path
+            # Temporarily swap global datasets
+            global _base_data, _hourly_predictions, _daily_predictions
+            prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
+            _base_data, _hourly_predictions, _daily_predictions = base_val, hourly_val, daily_val
+            val_profit, _ = evaluate_individual(gen_best_ind)
+            # Restore originals
+            _base_data, _hourly_predictions, _daily_predictions = prev_base, prev_hourly, prev_daily
+            print(f"  Validation Profit (gen {gen}): {val_profit:.2f}")
+
+            improved = (best_val_profit is None) or (val_profit > best_val_profit)
+            if improved:
+                best_val_profit = val_profit
+                epochs_without_improve = 0
+                best_ind_overall = gen_best_ind
+                best_ind_train_profit = gen_best_profit
+                best_ind_val_profit = val_profit
+            else:
+                epochs_without_improve += 1
+                print(f"  No validation improvement. Patience counter: {epochs_without_improve}/{patience}")
+                if patience > 0 and epochs_without_improve >= patience:
+                    print("Early stopping triggered: validation profit did not improve within patience.")
+                    break
+
+        else:
+            # If no validation set, track best training individual
+            if best_ind_overall is None or gen_best_profit > (best_ind_train_profit or -1e9):
+                best_ind_overall = gen_best_ind
+                best_ind_train_profit = gen_best_profit
+
     from deap import tools
-    best_ind = tools.selBest(population, 1)[0]
+    # Determine final champion (early stop may have set best_ind_overall)
+    if best_ind_overall is None:
+        best_ind = tools.selBest(population, 1)[0]
+        best_ind_train_profit = best_ind.fitness.values[0]
+    else:
+        best_ind = best_ind_overall
     # Build raw params from genome
     best_params_raw = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
 
@@ -339,13 +388,51 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         except Exception as e:
             print(f"Failed to save best parameters to {config['save_config']}: {e}")
 
-    # Evaluate the best individual one more time to extract stats via unified path
-    profit, stats = evaluate_individual(best_ind)
+    # Evaluate champion on train, validation, and test (if provided)
+    # Train (current globals already point to train/base_for_opt)
+    train_profit, train_stats = evaluate_individual(best_ind)
+
+    # Validation
+    val_profit, val_stats = None, {}
+    if base_val is not None and hourly_val is not None and daily_val is not None:
+        global _base_data, _hourly_predictions, _daily_predictions
+        prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
+        _base_data, _hourly_predictions, _daily_predictions = base_val, hourly_val, daily_val
+        val_profit, val_stats = evaluate_individual(best_ind)
+        _base_data, _hourly_predictions, _daily_predictions = prev_base, prev_hourly, prev_daily
+
+    # Test
+    test_profit, test_stats = None, {}
+    if base_test is not None and hourly_test is not None and daily_test is not None:
+        prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
+        _base_data, _hourly_predictions, _daily_predictions = base_test, hourly_test, daily_test
+        test_profit, test_stats = evaluate_individual(best_ind)
+        _base_data, _hourly_predictions, _daily_predictions = prev_base, prev_hourly, prev_daily
+
+    # Print compact summary
+    def fmt_stats(s):
+        if not s:
+            return "-"
+        return (
+            f"Trades={s.get('num_trades', 0)}, Win%={s.get('win_pct', 0):.1f}, "
+            f"MaxDD={s.get('max_dd', 0):.2f}, Sharpe={s.get('sharpe', 0):.2f}"
+        )
+
+    print("\nChampion evaluation summary:")
+    print(f"  Train:       Profit={train_profit:.2f} | {fmt_stats(train_stats)}")
+    if val_profit is not None:
+        print(f"  Validation:  Profit={val_profit:.2f} | {fmt_stats(val_stats)}")
+    if test_profit is not None:
+        print(f"  Test:        Profit={test_profit:.2f} | {fmt_stats(test_stats)}")
 
     return {
         "best_parameters": best_params,
-        "profit": profit,
-        "stats": stats,
+        "profit": train_profit,
+        "stats": train_stats,
+        "validation_profit": val_profit,
+        "validation_stats": val_stats,
+        "test_profit": test_profit,
+        "test_stats": test_stats,
     }
 
 if __name__ == '__main__':
