@@ -21,7 +21,7 @@ DEFAULT_VALUES = {
     "plugin": "default",
     "time_horizon": 6,
     "population_size": 25,
-    "num_generations": 25,
+    "num_generations": 250,
     "crossover_probability": 0.2,
     "mutation_probability": 0.1,
     "use_hourly": False,
@@ -38,7 +38,7 @@ DEFAULT_VALUES = {
     "headers": True,
     "disable_multiprocessing": True,
     # Early stopping patience (epochs without validation improvement before stopping)
-    "patience": 5,
+    "patience": 2,
     #output files for balance plot, trades csv and summary in a csv with all possible statistics
     "balance_plot_file": "balance_plot.png",
     "trades_csv_file": "trades.csv",

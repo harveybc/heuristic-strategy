@@ -313,15 +313,25 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
             else:
                 epochs_without_improve += 1
                 print(f"  No validation improvement. Patience counter: {epochs_without_improve}/{patience}")
-                if patience > 0 and epochs_without_improve >= patience:
-                    print("Early stopping triggered: validation profit did not improve within patience.")
-                    break
+
+            # Per-epoch summary with patience and last best profit (validation)
+            best_pf_str = (f"{best_val_profit:.2f}" if best_val_profit is not None else "N/A")
+            print(f"[Epoch {gen}] LastBestProfit={best_pf_str} | Patience={epochs_without_improve}/{patience}")
+
+            if patience > 0 and epochs_without_improve >= patience and not improved:
+                print("Early stopping triggered: validation profit did not improve within patience.")
+                break
 
         else:
             # If no validation set, track best training individual
             if best_ind_overall is None or gen_best_profit > (best_ind_train_profit or -1e9):
                 best_ind_overall = gen_best_ind
                 best_ind_train_profit = gen_best_profit
+
+            # Per-epoch summary without validation
+            best_train_str = (f"{best_ind_train_profit:.2f}" if best_ind_train_profit is not None else "N/A")
+            # Patience is effectively disabled when no validation set; print 0/patience for clarity
+            print(f"[Epoch {gen}] LastBestProfit={best_train_str} | Patience={0}/{patience}")
 
     from deap import tools
     # Determine final champion (early stop may have set best_ind_overall)
