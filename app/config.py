@@ -23,7 +23,7 @@ DEFAULT_VALUES = {
     "population_size": 25,
     "num_generations": 250,
     # Early stopping patience (epochs without validation improvement before stopping)
-    "patience": 10,
+    "patience": 15,
     "crossover_probability": 0.2,
     "mutation_probability": 0.1,
     "use_hourly": False,
