@@ -15,6 +15,7 @@ _daily_predictions = None
 _config = None
 _current_epoch = 1  # Global variable to hold current epoch number
 _plugin_param_count = 0  # Number of parameters belonging to the strategy plugin
+_base_param_bounds = None  # Bounds for plugin parameters only (name, low, high)
 
 def _compute_uniform_offsets(max_horizon: int, num_predictions: int):
     """
@@ -82,6 +83,25 @@ def evaluate_individual(individual):
     daily_df = _daily_predictions
     base_df = _base_data
     cfg = dict(_config) if _config is not None else {}
+
+    # Clamp plugin parameters to configured bounds if available
+    if _plugin_param_count:
+        try:
+            # Ensure plugin_params is a mutable list slice
+            if not isinstance(plugin_params, list):
+                plugin_params = list(plugin_params)
+            if _base_param_bounds and len(_base_param_bounds) >= _plugin_param_count:
+                for i in range(_plugin_param_count):
+                    name, low, high = _base_param_bounds[i]
+                    v = plugin_params[i]
+                    if v < low:
+                        v = low
+                    elif v > high:
+                        v = high
+                    plugin_params[i] = v
+        except Exception:
+            # Fail-safe: do not crash evaluation if bounds missing/misaligned
+            pass
 
     if _plugin_param_count and len(individual) > _plugin_param_count:
         plugin_params = individual[:_plugin_param_count]
@@ -180,7 +200,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     #  - short_term_num_predictions: [2, 48]
     #  - long_term_max_horizon: [24, 144]
     #  - long_term_num_predictions: [24, 144]
-    global _plugin_param_count
+    global _plugin_param_count, _base_param_bounds
     _plugin_param_count = num_params
     pred_params = [
         ("short_term_max_horizon", 2, 48),
@@ -189,6 +209,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         ("long_term_num_predictions", 24, 144),
     ]
     optimizable_params = optimizable_params + pred_params
+    # Store bounds for base plugin params only
+    _base_param_bounds = list(optimizable_params[:_plugin_param_count])
     total_params = len(optimizable_params)
     print(f"Optimizable Parameters ({total_params}):")
     for name, low, high in optimizable_params:
@@ -391,7 +413,21 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
             print(f"  {name} = {val}")
         else:
             print(f"  {name} = {float(val):.4f}")
-    print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
+    # Determine achieved profit for logging without relying on fitness tuple (may be empty if snapshot)
+    achieved_profit = None
+    if best_ind_val_profit is not None:
+        achieved_profit = best_ind_val_profit
+    elif best_ind_train_profit is not None:
+        achieved_profit = best_ind_train_profit
+    else:
+        try:
+            achieved_profit = best_ind.fitness.values[0]
+        except Exception:
+            achieved_profit = None
+    if achieved_profit is not None:
+        print(f"Achieved Profit: {achieved_profit:.2f}")
+    else:
+        print("Achieved Profit: N/A (will be computed in champion evaluation)")
 
     if not disable_mp:
         pool.close()
