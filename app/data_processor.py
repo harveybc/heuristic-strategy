@@ -67,6 +67,87 @@ def create_daily_predictions(df, horizon):
     daily_idx = series.index[: (nrows - required_rows)]
     return pd.DataFrame(blocks, index=daily_idx)
 
+
+# =============================================================================
+# NEW: Flexible generation at uniform offsets
+# =============================================================================
+def _compute_uniform_offsets(max_horizon: int, num_predictions: int):
+    """
+    Compute uniformly spaced integer offsets between 1 and max_horizon (inclusive).
+    Requires 1 <= num_predictions <= max_horizon. Returns a sorted list of ints.
+    Example: max_horizon=6, num_predictions=3 -> [1, 3, 6]
+    """
+    if max_horizon is None or num_predictions is None:
+        return None
+    if not isinstance(max_horizon, int) or not isinstance(num_predictions, int):
+        raise ValueError("max_horizon and num_predictions must be integers.")
+    if max_horizon < 1:
+        raise ValueError("max_horizon must be >= 1.")
+    if num_predictions < 1:
+        raise ValueError("num_predictions must be >= 1.")
+    if num_predictions > max_horizon:
+        raise ValueError("num_predictions must be <= max_horizon to avoid duplicate offsets.")
+
+    if num_predictions == 1:
+        return [max_horizon]
+
+    # Use linspace to include endpoints 1 and max_horizon
+    offs = np.linspace(1, max_horizon, num=num_predictions)
+    offs = np.round(offs).astype(int).tolist()
+
+    # Ensure strictly increasing and bounded within [1, max_horizon]
+    offs[0] = 1
+    offs[-1] = max_horizon
+    # Deduplicate while preserving order
+    unique_offs = []
+    for o in offs:
+        if 1 <= o <= max_horizon and (not unique_offs or o != unique_offs[-1]):
+            unique_offs.append(o)
+    if len(unique_offs) != num_predictions:
+        # Fallback to deterministic spacing without duplicates
+        step = max(1, max_horizon // (num_predictions - 1))
+        unique_offs = list(range(1, 1 + step * (num_predictions - 1), step))
+        unique_offs[-1] = max_horizon
+    return unique_offs
+
+
+def _create_predictions_at_offsets(df_or_series, offsets):
+    """
+    Build a prediction matrix at specified hour-based offsets relative to each row.
+    Offsets are positive integers (hours ahead). Works with Series or single-col DF.
+    Returns a DataFrame with columns aligned to offsets.
+    """
+    # Normalize to Series of base values
+    if isinstance(df_or_series, pd.DataFrame) and df_or_series.shape[1] == 1:
+        series = df_or_series.iloc[:, 0]
+    elif isinstance(df_or_series, pd.DataFrame):
+        # If a multi-column DF is passed, use CLOSE if available; else first column
+        series = df_or_series["CLOSE"] if "CLOSE" in df_or_series.columns else df_or_series.iloc[:, 0]
+    else:
+        series = df_or_series
+
+    max_off = int(max(offsets))
+    nrows = len(series)
+    if nrows <= max_off:
+        print("Warning: Not enough rows to create predictions at requested offsets. Returning an empty DataFrame.")
+        return pd.DataFrame()
+
+    blocks = []
+    for i in range(nrows - max_off):
+        row_vals = []
+        for off in offsets:
+            idx = i + int(off)
+            val = series.iloc[idx]
+            if isinstance(val, (np.ndarray, pd.Series, list)):
+                row_vals.extend(np.asarray(val).flatten())
+            else:
+                row_vals.append(val)
+        blocks.append(row_vals)
+
+    idx_out = series.index[: nrows - max_off]
+    df_out = pd.DataFrame(blocks, index=idx_out)
+    return df_out
+
 def process_data(config):
     """
     Loads and processes datasets, ensuring alignment and applying max_steps.
@@ -148,26 +229,52 @@ def process_data(config):
 
     # Auto-generate predictions if files are missing
     if hourly_df is None:
-        if "time_horizon" not in config or not config["time_horizon"]:
-            raise ValueError("time_horizon must be provided when auto-generating predictions.")
-        print("Auto-generating hourly predictions...")
-        # only use the CLOSE series so each block is horizon-length, not horizon * ncols
-        hourly_df = create_hourly_predictions(base_df["CLOSE"], config["time_horizon"])
-        if config.get("hourly_columns"):
-            hourly_df.columns = config["hourly_columns"]
+        # New dynamic configuration (optional)
+        st_max = config.get("short_term_max_horizon")
+        st_n = config.get("short_term_num_predictions")
+        if st_max and st_n:
+            print("Auto-generating hourly predictions (dynamic offsets)...")
+            offsets_h = _compute_uniform_offsets(int(st_max), int(st_n))
+            hourly_df = _create_predictions_at_offsets(base_df["CLOSE"], offsets_h)
+            # Generate and persist column names into config for downstream selection
+            hourly_cols = [f"Prediction_H{h}" for h in offsets_h]
+            hourly_df.columns = hourly_cols
+            config["hourly_columns"] = hourly_cols
+            # Prepare matching uncertainty column names for later use
+            config["uncertainty_hourly_columns"] = [f"Uncertainty_H{h}" for h in offsets_h]
         else:
-            hourly_df.columns = [f"Prediction_H{i}" for i in range(1, config["time_horizon"] + 1)]
+            if "time_horizon" not in config or not config["time_horizon"]:
+                raise ValueError("time_horizon must be provided when auto-generating predictions.")
+            print("Auto-generating hourly predictions...")
+            # only use the CLOSE series so each block is horizon-length, not horizon * ncols
+            hourly_df = create_hourly_predictions(base_df["CLOSE"], config["time_horizon"])
+            if config.get("hourly_columns"):
+                hourly_df.columns = config["hourly_columns"]
+            else:
+                hourly_df.columns = [f"Prediction_H{i}" for i in range(1, config["time_horizon"] + 1)]
 
     if daily_df is None:
-        if "time_horizon" not in config or not config["time_horizon"]:
-            raise ValueError("time_horizon must be provided when auto-generating predictions.")
-        print("Auto-generating daily predictions...")
-        # likewise here
-        daily_df = create_daily_predictions(base_df["CLOSE"], config["time_horizon"])
-        if config.get("daily_columns"):
-            daily_df.columns = config["daily_columns"]
+        # New dynamic configuration (optional)
+        lt_max = config.get("long_term_max_horizon")
+        lt_n = config.get("long_term_num_predictions")
+        if lt_max and lt_n:
+            print("Auto-generating daily (long-term) predictions (dynamic offsets)...")
+            offsets_d = _compute_uniform_offsets(int(lt_max), int(lt_n))
+            daily_df = _create_predictions_at_offsets(base_df["CLOSE"], offsets_d)
+            daily_cols = [f"Prediction_H{h}" for h in offsets_d]
+            daily_df.columns = daily_cols
+            config["daily_columns"] = daily_cols
+            config["uncertainty_daily_columns"] = [f"Uncertainty_H{h}" for h in offsets_d]
         else:
-            daily_df.columns = [f"Prediction_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
+            if "time_horizon" not in config or not config["time_horizon"]:
+                raise ValueError("time_horizon must be provided when auto-generating predictions.")
+            print("Auto-generating daily predictions...")
+            # likewise here
+            daily_df = create_daily_predictions(base_df["CLOSE"], config["time_horizon"])
+            if config.get("daily_columns"):
+                daily_df.columns = config["daily_columns"]
+            else:
+                daily_df.columns = [f"Prediction_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
 
     # Load uncertainties if available
     uncertainty_hourly_df = None
@@ -185,6 +292,7 @@ def process_data(config):
             if config.get("uncertainty_hourly_columns"):
                 uncertainty_hourly_df.columns = config["uncertainty_hourly_columns"]
             else:
+                # fallback for legacy hourly: 1..time_horizon
                 uncertainty_hourly_df.columns = [f"Uncertainty_H{i}" for i in range(1, config["time_horizon"] + 1)]
             # assign the same DATE_TIME column to the uncertainty_hourly_df with the same index as the hourly_df
             uncertainty_hourly_df["DATE_TIME"] = hourly_df.index
@@ -203,6 +311,7 @@ def process_data(config):
             if config.get("uncertainty_daily_columns"):
                 uncertainty_daily_df.columns = config["uncertainty_daily_columns"]
             else:
+                # fallback for legacy daily: 24,48,...
                 uncertainty_daily_df.columns = [f"Uncertainty_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
             # assign the same DATE_TIME column to the uncertainty_daily_df with the same index as the daily_df
             uncertainty_daily_df["DATE_TIME"] = daily_df.index
@@ -383,13 +492,22 @@ def run_processing_pipeline(config, plugin):
     config["uncertainty_daily"] = datasets.get("uncertainty_daily")
 
     # Calculate error metrics for hourly predictions
-    n_hourly = hourly_preds.shape[1]
+    # Use offsets parsed from column names (e.g., Prediction_H1, Prediction_H3, ...)
+    import re
+    def _parse_col_offsets(cols):
+        offs = []
+        for i, c in enumerate(cols, start=1):
+            m = re.search(r"H(\d+)$", str(c))
+            offs.append(int(m.group(1)) if m else i)
+        return offs
+
+    hourly_offsets = _parse_col_offsets(hourly_preds.columns)
     hourly_results = []
-    for h in range(1, n_hourly + 1):
-        forecast_times = hourly_preds.index + pd.Timedelta(hours=h)
+    for idx, off in enumerate(hourly_offsets):
+        forecast_times = hourly_preds.index + pd.Timedelta(hours=int(off))
         actual = base_full.reindex(forecast_times)["CLOSE"]
         actual.index = hourly_preds.index
-        pred = hourly_preds.iloc[:, h - 1]
+        pred = hourly_preds.iloc[:, idx]
         valid = actual.notna()
         if valid.sum() == 0:
             mae = None
@@ -397,17 +515,19 @@ def run_processing_pipeline(config, plugin):
         else:
             mae = mean_absolute_error(actual[valid], pred[valid])
             r2 = r2_score(actual[valid], pred[valid])
-        hourly_results.append({"Horizon (hours)": h, "MAE": mae, "R2": r2})
+        hourly_results.append({"Horizon (hours)": int(off), "MAE": mae, "R2": r2})
     df_hourly = pd.DataFrame(hourly_results)
 
     # Calculate error metrics for daily predictions
-    n_daily = daily_preds.shape[1]
+    daily_offsets = _parse_col_offsets(daily_preds.columns)
     daily_results = []
-    for d in range(1, n_daily + 1):
-        forecast_times = daily_preds.index + pd.Timedelta(hours=24 * d)
+    # Determine if classic daily (multiples of 24) or dynamic hours
+    is_classic_daily = all(o % 24 == 0 for o in daily_offsets)
+    for idx, off in enumerate(daily_offsets):
+        forecast_times = daily_preds.index + pd.Timedelta(hours=int(off))
         actual = base_full.reindex(forecast_times)["CLOSE"]
         actual.index = daily_preds.index
-        pred = daily_preds.iloc[:, d - 1]
+        pred = daily_preds.iloc[:, idx]
         valid = actual.notna()
         if valid.sum() == 0:
             mae = None
@@ -415,7 +535,9 @@ def run_processing_pipeline(config, plugin):
         else:
             mae = mean_absolute_error(actual[valid], pred[valid])
             r2 = r2_score(actual[valid], pred[valid])
-        daily_results.append({"Horizon (days)": d, "MAE": mae, "R2": r2})
+        key = "Horizon (days)" if is_classic_daily else "Horizon (hours)"
+        val = (off // 24) if is_classic_daily else off
+        daily_results.append({key: int(val), "MAE": mae, "R2": r2})
     df_daily = pd.DataFrame(daily_results)
 
     print("\nError Metrics for Hourly Predictions:")

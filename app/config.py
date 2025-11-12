@@ -55,6 +55,30 @@ DEFAULT_VALUES = {
     "hourly_columns": ["Prediction_H1", "Prediction_H2", "Prediction_H3", "Prediction_H4", "Prediction_H5", "Prediction_H6"],
     "uncertainty_daily_columns": ["Uncertainty_H24", "Uncertainty_H48", "Uncertainty_H72", "Uncertainty_H96", "Uncertainty_H120", "Uncertainty_H144"],
     "uncertainty_hourly_columns": ["Uncertainty_H1", "Uncertainty_H2", "Uncertainty_H3", "Uncertainty_H4", "Uncertainty_H5", "Uncertainty_H6"],
-    "use_first_match": True    
-     
+    "use_first_match": True,
+    
+    # ---------------------------------------------------------------------
+    # NEW CONFIGURABLE PREDICTION SETTINGS (OPTIONAL)
+    # ---------------------------------------------------------------------
+    # These allow dynamic generation of short-term ("hourly") and long-term
+    # ("daily" but actually multi-hour) prediction horizons.
+    # If any of these are omitted, legacy behaviour is preserved:
+    #   - Short term defaults to using `time_horizon` successive 1h steps.
+    #   - Long term defaults to using `time_horizon` successive 24h steps.
+    # To activate the new logic, provide BOTH max_horizon and num_predictions
+    # for the desired timeframe. Predictions will then be uniformly spaced
+    # (inclusive) between t+1 and t+max_horizon. Column names are generated
+    # accordingly (e.g. max_horizon=6, num_predictions=3 => H1,H3,H6).
+    # These can be made optimizable by the strategy plugin.
+    # ---------------------------------------------------------------------
+    # Short-term (hourly) dynamic settings
+    "short_term_max_horizon": None,        # e.g. 6
+    "short_term_num_predictions": None,   # e.g. 3
+    # Long-term (daily/multi-hour) dynamic settings
+    "long_term_max_horizon": None,        # e.g. 144 (hours)
+    "long_term_num_predictions": None,    # e.g. 6 or 12
+    # NOTE: Periodicity implied by uniform spacing; an explicit periodicity
+    # parameter can be derived as (max_horizon-1)/(num_predictions-1) when
+    # num_predictions > 1. If a future explicit parameter is needed, it can
+    # be added here and handled inside data_processor.
 }
