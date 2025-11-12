@@ -162,7 +162,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     Prints detailed candidate evaluation information including the current epoch.
     Saves the best found parameters as JSON if config['save_config'] is provided.
     """
-    global _current_epoch
+    global _current_epoch, _base_data, _hourly_predictions, _daily_predictions
     from tqdm import tqdm
     import random
     import multiprocessing
@@ -296,7 +296,6 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         if base_val is not None and hourly_val is not None and daily_val is not None:
             # Evaluate gen_best_ind on validation data through evaluate_individual-like path
             # Temporarily swap global datasets
-            global _base_data, _hourly_predictions, _daily_predictions
             prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
             _base_data, _hourly_predictions, _daily_predictions = base_val, hourly_val, daily_val
             val_profit, _ = evaluate_individual(gen_best_ind)
@@ -395,7 +394,6 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     # Validation
     val_profit, val_stats = None, {}
     if base_val is not None and hourly_val is not None and daily_val is not None:
-        global _base_data, _hourly_predictions, _daily_predictions
         prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
         _base_data, _hourly_predictions, _daily_predictions = base_val, hourly_val, daily_val
         val_profit, val_stats = evaluate_individual(best_ind)
