@@ -22,6 +22,7 @@ DEFAULT_VALUES = {
     "time_horizon": 6,
     "population_size": 25,
     "num_generations": 25,
+    "patience": 2,
     "crossover_probability": 0.2,
     "mutation_probability": 0.1,
     "use_hourly": False,
