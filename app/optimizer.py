@@ -14,6 +14,35 @@ _hourly_predictions = None
 _daily_predictions = None
 _config = None
 _current_epoch = 1  # Global variable to hold current epoch number
+_plugin_param_count = 0  # Number of parameters belonging to the strategy plugin
+
+def _compute_uniform_offsets(max_horizon: int, num_predictions: int):
+    """
+    Compute uniformly spaced integer offsets between 1 and max_horizon (inclusive).
+    Returns a sorted list of ints with length == num_predictions.
+    """
+    import numpy as np
+    if max_horizon is None or num_predictions is None:
+        return None
+    max_horizon = int(max_horizon)
+    num_predictions = int(num_predictions)
+    if max_horizon < 1 or num_predictions < 1:
+        return []
+    if num_predictions == 1:
+        return [max_horizon]
+    offs = np.linspace(1, max_horizon, num=num_predictions)
+    offs = np.round(offs).astype(int).tolist()
+    offs[0] = 1
+    offs[-1] = max_horizon
+    uniq = []
+    for o in offs:
+        if 1 <= o <= max_horizon and (not uniq or o != uniq[-1]):
+            uniq.append(o)
+    if len(uniq) != num_predictions:
+        step = max(1, max_horizon // (num_predictions - 1))
+        uniq = list(range(1, 1 + step * (num_predictions - 1), step))
+        uniq[-1] = max_horizon
+    return uniq
 
 def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, config):
     """
@@ -46,7 +75,63 @@ def evaluate_individual(individual):
     # Print the candidate and current epoch information.
     print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
     
-    result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
+    # Split individual's genome into plugin parameters and prediction parameters (if present)
+    global _plugin_param_count
+    plugin_params = individual
+    hourly_df = _hourly_predictions
+    daily_df = _daily_predictions
+    base_df = _base_data
+    cfg = dict(_config) if _config is not None else {}
+
+    if _plugin_param_count and len(individual) > _plugin_param_count:
+        plugin_params = individual[:_plugin_param_count]
+        # Extract prediction config (rounded to int and clamped to supported ranges)
+        st_max = int(round(individual[_plugin_param_count + 0]))
+        st_n   = int(round(individual[_plugin_param_count + 1]))
+        lt_max = int(round(individual[_plugin_param_count + 2]))
+        lt_n   = int(round(individual[_plugin_param_count + 3]))
+
+        # Clamp to supported bounds
+        st_max = max(2, min(48, st_max))
+        st_n   = max(2, min(48, st_n))
+        st_n   = min(st_n, st_max)
+
+        lt_max = max(24, min(144, lt_max))
+        lt_n   = max(24, min(144, lt_n))
+        lt_n   = min(lt_n, lt_max)
+
+        # Compute offsets and select columns from superset predictions
+        st_offsets = _compute_uniform_offsets(st_max, st_n)
+        lt_offsets = _compute_uniform_offsets(lt_max, lt_n)
+
+        # Build column names and filter by availability
+        st_cols = [f"Prediction_H{o}" for o in st_offsets]
+        lt_cols = [f"Prediction_H{o}" for o in lt_offsets]
+        st_cols = [c for c in st_cols if c in hourly_df.columns]
+        lt_cols = [c for c in lt_cols if c in daily_df.columns]
+
+        hourly_df = hourly_df[st_cols]
+        daily_df = daily_df[lt_cols]
+
+        # Construct uncertainties matching shapes using defaults, for consistency
+        import pandas as pd
+        unc_h_val = cfg.get("default_uncertainty_short_term", 0.0002)
+        unc_d_val = cfg.get("default_uncertainty_long_term", 0.0047)
+        unc_hourly_df = pd.DataFrame(unc_h_val, index=hourly_df.index, columns=hourly_df.columns)
+        unc_daily_df = pd.DataFrame(unc_d_val, index=daily_df.index, columns=daily_df.columns)
+        cfg["uncertainty_hourly"] = unc_hourly_df
+        cfg["uncertainty_daily"] = unc_daily_df
+        cfg["hourly_columns"] = st_cols
+        cfg["daily_columns"] = lt_cols
+
+        # Align base and predictions to common index
+        common_idx = base_df.index.intersection(hourly_df.index).intersection(daily_df.index)
+        if not common_idx.empty:
+            base_df = base_df.loc[common_idx]
+            hourly_df = hourly_df.loc[common_idx]
+            daily_df = daily_df.loc[common_idx]
+
+    result = _plugin.evaluate_candidate(plugin_params, base_df, hourly_df, daily_df, cfg)
     
     # Normalize to (profit, stats)
     if isinstance(result, tuple) and len(result) == 2:
@@ -84,6 +169,21 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     optimizable_params = plugin.get_optimizable_params()
     num_params = len(optimizable_params)
+    # Extend with prediction configuration parameters (treated as continuous, rounded later)
+    # Ranges per user requirement:
+    #  - short_term_max_horizon: [2, 48]
+    #  - short_term_num_predictions: [2, 48]
+    #  - long_term_max_horizon: [24, 144]
+    #  - long_term_num_predictions: [24, 144]
+    global _plugin_param_count
+    _plugin_param_count = num_params
+    pred_params = [
+        ("short_term_max_horizon", 2, 48),
+        ("short_term_num_predictions", 2, 48),
+        ("long_term_max_horizon", 24, 144),
+        ("long_term_num_predictions", 24, 144),
+    ]
+    optimizable_params = optimizable_params + pred_params
     print(f"Optimizable Parameters ({num_params}):")
     for name, low, high in optimizable_params:
         print(f"  {name}: [{low}, {high}]")

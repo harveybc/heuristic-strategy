@@ -598,8 +598,26 @@ def run_processing_pipeline(config, plugin):
     else:
         if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
             print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
+            # For optimization, provide supersets so per-candidate selection doesn't require recomputation
+            # Short-term superset: H1..H48, Long-term superset: H1..H144 (all in hours)
+            try:
+                hourly_superset = _create_predictions_at_offsets(base_data["CLOSE"], list(range(1, 49)))
+                hourly_superset.columns = [f"Prediction_H{i}" for i in range(1, 49)]
+                daily_superset = _create_predictions_at_offsets(base_data["CLOSE"], list(range(1, 145)))
+                daily_superset.columns = [f"Prediction_H{i}" for i in range(1, 145)]
+                # Align to common index with base_data
+                common_idx = base_data.index.intersection(hourly_superset.index).intersection(daily_superset.index)
+                base_for_opt = base_data.loc[common_idx]
+                hourly_superset = hourly_superset.loc[common_idx]
+                daily_superset = daily_superset.loc[common_idx]
+            except Exception as e:
+                print(f"Warning: failed to generate prediction supersets for optimization, falling back to current frames: {e}")
+                base_for_opt = base_data
+                hourly_superset = hourly_preds
+                daily_superset = daily_preds
+
             # Run optimizer and then flatten the 'stats' dict into top-level keys
-            _raw_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
+            _raw_info = run_optimizer(plugin, base_for_opt, hourly_superset, daily_superset, config)
             _stats = _raw_info.pop("stats", {}) or {}
             trading_info = {"initial_capital":10000,**_raw_info, **_stats}
         else:
