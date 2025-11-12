@@ -5,7 +5,10 @@ DEFAULT_VALUES = {
     "daily_predictions_file": None,
     "uncertainty_hourly_file":None,
     "uncertainty_daily_file": None,
-    "base_dataset_file": "examples/data/phase_1/phase_1_base_d3.csv",
+    "base_dataset_file": "examples/data/phase_1/phase_1_base_d1.csv",
+    "validation_dataset_file": "examples/data/phase_1/phase_1_base_d2.csv",
+    "test_dataset_file": "examples/data/phase_1/phase_1_base_d3.csv",
+    
     #"hourly_predictions_file": None,
     #"daily_predictions_file": None,
     #"uncertainty_hourly_file":None,

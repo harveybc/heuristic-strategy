@@ -181,8 +181,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     global _plugin_param_count
     _plugin_param_count = num_params
     pred_params = [
-        ("short_term_max_horizon", 2, 48),
-        ("short_term_num_predictions", 2, 48),
+        ("short_term_max_horizon", 2, 24),
+        ("short_term_num_predictions", 2, 24),
         ("long_term_max_horizon", 24, 144),
         ("long_term_num_predictions", 24, 144),
     ]
@@ -282,10 +282,49 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     from deap import tools
     best_ind = tools.selBest(population, 1)[0]
+    # Build raw params from genome
+    best_params_raw = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
+
+    # Sanitize and clamp integer prediction params before printing/saving
+    def _ri(x):
+        try:
+            return int(round(float(x)))
+        except Exception:
+            return int(x)
+
+    best_params = dict(best_params_raw)
+    # Short-term
+    if "short_term_max_horizon" in best_params:
+        st_max = _ri(best_params["short_term_max_horizon"])
+        st_max = max(2, min(48, st_max))
+        best_params["short_term_max_horizon"] = st_max
+    if "short_term_num_predictions" in best_params:
+        st_n = _ri(best_params["short_term_num_predictions"])
+        st_n = max(2, min(48, st_n))
+        # ensure st_n <= st_max (if st_max present)
+        if "short_term_max_horizon" in best_params:
+            st_n = min(st_n, best_params["short_term_max_horizon"])
+        best_params["short_term_num_predictions"] = st_n
+    # Long-term
+    if "long_term_max_horizon" in best_params:
+        lt_max = _ri(best_params["long_term_max_horizon"])
+        lt_max = max(24, min(144, lt_max))
+        best_params["long_term_max_horizon"] = lt_max
+    if "long_term_num_predictions" in best_params:
+        lt_n = _ri(best_params["long_term_num_predictions"])
+        lt_n = max(24, min(144, lt_n))
+        if "long_term_max_horizon" in best_params:
+            lt_n = min(lt_n, best_params["long_term_max_horizon"])
+        best_params["long_term_num_predictions"] = lt_n
+
     print("[OPTIMIZATION] Best parameter set found:")
-    best_params = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
-    for name, value in best_params.items():
-        print(f"  {name} = {value:.4f}")
+    for name in best_params_raw.keys():
+        val = best_params.get(name, best_params_raw[name])
+        # Print ints without decimals; floats with 4 decimals
+        if isinstance(val, int):
+            print(f"  {name} = {val}")
+        else:
+            print(f"  {name} = {float(val):.4f}")
     print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
 
     if not disable_mp:
