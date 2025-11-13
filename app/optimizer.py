@@ -61,6 +61,43 @@ def _aggregate_mae_and_naive(base_df, preds_df, selected_cols):
         return None, None
     return float(np.mean(maes)), float(np.mean(naive_maes))
 
+def _aggregate_mae_and_naive_for_sets(base_df, df_cols_pairs):
+    """
+    Compute MAE and naive MAE across multiple (preds_df, selected_cols) pairs.
+    Each pair is processed independently to avoid column name overlaps.
+    Returns (mae, naive_mae) averaged across all valid columns.
+    """
+    import pandas as pd
+    import numpy as np
+    if base_df is None or base_df.empty:
+        return None, None
+    price = base_df["CLOSE"] if "CLOSE" in base_df.columns else None
+    if price is None:
+        return None, None
+    all_maes = []
+    all_naives = []
+    for preds_df, cols in df_cols_pairs:
+        if preds_df is None or preds_df.empty:
+            continue
+        cols = [c for c in (cols or []) if c in preds_df.columns] or list(preds_df.columns)
+        offsets = _parse_offsets_from_cols(cols)
+        for col, off in zip(cols, offsets):
+            forecast_times = preds_df.index + pd.Timedelta(hours=int(off))
+            actual = price.reindex(forecast_times)
+            actual.index = preds_df.index
+            pred = preds_df[col]
+            valid = actual.notna() & pred.notna()
+            if valid.sum() == 0:
+                continue
+            mae = float(np.mean(np.abs(actual[valid].values - pred[valid].values)))
+            naive = price.reindex(preds_df.index)
+            naive_mae = float(np.mean(np.abs(actual[valid].values - naive[valid].values)))
+            all_maes.append(mae)
+            all_naives.append(naive_mae)
+    if not all_maes:
+        return None, None
+    return float(np.mean(all_maes)), float(np.mean(all_naives))
+
 def _compute_uniform_offsets(max_horizon: int, num_predictions: int):
     """
     Compute uniformly spaced integer offsets between 1 and max_horizon (inclusive).
@@ -531,19 +568,28 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         pass
 
     # Compute MAE / Naive MAE for train (current globals)
-    train_mae, train_naive_mae = _aggregate_mae_and_naive(_base_data, _hourly_predictions.join(_daily_predictions, how="inner"), st_cols_sel + lt_cols_sel)
+    train_mae, train_naive_mae = _aggregate_mae_and_naive_for_sets(
+        _base_data,
+        [(_hourly_predictions, st_cols_sel), (_daily_predictions, lt_cols_sel)],
+    )
     print(f"  Train:       Profit={train_profit:.2f} | {fmt_stats(train_stats)}" + (f" | MAE={train_mae:.6f} | NaiveMAE={train_naive_mae:.6f}" if train_mae is not None else ""))
     if val_profit is not None:
         # Temporarily swap to validation data to compute MAE
         prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
         _base_data, _hourly_predictions, _daily_predictions = base_val, hourly_val, daily_val
-        val_mae, val_naive_mae = _aggregate_mae_and_naive(_base_data, _hourly_predictions.join(_daily_predictions, how="inner"), st_cols_sel + lt_cols_sel)
+        val_mae, val_naive_mae = _aggregate_mae_and_naive_for_sets(
+            _base_data,
+            [(_hourly_predictions, st_cols_sel), (_daily_predictions, lt_cols_sel)],
+        )
         _base_data, _hourly_predictions, _daily_predictions = prev_base, prev_hourly, prev_daily
         print(f"  Validation:  Profit={val_profit:.2f} | {fmt_stats(val_stats)}" + (f" | MAE={val_mae:.6f} | NaiveMAE={val_naive_mae:.6f}" if val_mae is not None else ""))
     if test_profit is not None:
         prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
         _base_data, _hourly_predictions, _daily_predictions = base_test, hourly_test, daily_test
-        test_mae, test_naive_mae = _aggregate_mae_and_naive(_base_data, _hourly_predictions.join(_daily_predictions, how="inner"), st_cols_sel + lt_cols_sel)
+        test_mae, test_naive_mae = _aggregate_mae_and_naive_for_sets(
+            _base_data,
+            [(_hourly_predictions, st_cols_sel), (_daily_predictions, lt_cols_sel)],
+        )
         _base_data, _hourly_predictions, _daily_predictions = prev_base, prev_hourly, prev_daily
         print(f"  Test:        Profit={test_profit:.2f} | {fmt_stats(test_stats)}" + (f" | MAE={test_mae:.6f} | NaiveMAE={test_naive_mae:.6f}" if test_mae is not None else ""))
 
