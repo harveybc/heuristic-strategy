@@ -687,6 +687,19 @@ def run_processing_pipeline(config, plugin):
                     hs.columns = [f"Prediction_H{i}" for i in range(1, 49)]
                     ds = _create_predictions_at_offsets(base_df["CLOSE"], list(range(1, 145)))
                     ds.columns = [f"Prediction_H{i}" for i in range(1, 145)]
+                    # Apply Gaussian noise to supersets if configured
+                    hs = _apply_gaussian_noise(
+                        hs,
+                        config.get("gaussian_noise_mean", 0.0),
+                        config.get("gaussian_noise_stddev", 0.0),
+                        label="superset-hourly",
+                    )
+                    ds = _apply_gaussian_noise(
+                        ds,
+                        config.get("gaussian_noise_mean", 0.0),
+                        config.get("gaussian_noise_stddev", 0.0),
+                        label="superset-daily",
+                    )
                     common_idx = base_df.index.intersection(hs.index).intersection(ds.index)
                     return base_df.loc[common_idx], hs.loc[common_idx], ds.loc[common_idx]
 
