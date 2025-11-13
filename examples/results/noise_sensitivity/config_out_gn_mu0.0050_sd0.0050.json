@@ -1,0 +1,14 @@
+{
+    "base_dataset_file": "examples/data/phase_2_1/base_d1.csv",
+    "prefix": "_high_frequency",
+    "max_trades_per_5days": 20,
+    "gaussian_noise_mean": 0.005,
+    "gaussian_noise_stddev": 0.005,
+    "save_config": "config_out_gn_mu0.0050_sd0.0050.json",
+    "save_log": "debug_log_gn_mu0.0050_sd0.0050.json",
+    "balance_plot_file": "balance_plot_gn_mu0.0050_sd0.0050.png",
+    "trades_csv_file": "trades_gn_mu0.0050_sd0.0050.csv",
+    "summary_csv_file": "summary_gn_mu0.0050_sd0.0050.csv",
+    "save_parameters": "parameters_gn_mu0.0050_sd0.0050.json",
+    "noise_suffix": "_gn_mu0.0050_sd0.0050"
+}
