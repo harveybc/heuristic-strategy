@@ -148,6 +148,28 @@ def _create_predictions_at_offsets(df_or_series, offsets):
     df_out = pd.DataFrame(blocks, index=idx_out)
     return df_out
 
+
+def _apply_gaussian_noise(df: pd.DataFrame, mean: float, std: float, label: str = "") -> pd.DataFrame:
+    """
+    Apply element-wise Gaussian noise to a numeric DataFrame.
+    If both mean and std are 0.0, returns df unchanged.
+    """
+    try:
+        mu = float(mean or 0.0)
+        sd = float(std or 0.0)
+    except Exception:
+        mu, sd = 0.0, 0.0
+    if mu == 0.0 and sd == 0.0:
+        return df
+    if df is None or df.empty:
+        return df
+    noise = np.random.normal(loc=mu, scale=sd, size=df.shape)
+    df_noisy = df.copy()
+    df_noisy[:] = df_noisy.values + noise
+    tag = f" ({label})" if label else ""
+    print(f"Applied Gaussian noise{tag}: mean={mu}, std={sd} to predictions with shape {df.shape}.")
+    return df_noisy
+
 def process_data(config):
     """
     Loads and processes datasets, ensuring alignment and applying max_steps.
@@ -171,6 +193,15 @@ def process_data(config):
     uncertainty_daily_file = None
     base_filename = ""
     prefix = config.get("prefix", "_best_daily")
+    # If Gaussian noise is enabled (non-zero), append parameters to filenames
+    gmu = float(config.get("gaussian_noise_mean", 0.0) or 0.0)
+    gsd = float(config.get("gaussian_noise_stddev", 0.0) or 0.0)
+    noise_suffix = ""
+    if abs(gmu) > 0.0 or abs(gsd) > 0.0:
+        # keep it filename-safe; small rounding for readability
+        noise_suffix = f"_gn_mu{gmu:.4f}_sd{gsd:.4f}"
+        # also store for downstream reference
+        config["noise_suffix"] = noise_suffix
     if config.get("predictor_hourly_config_file"):
         print(f"Loading hourly predictor config from {config['predictor_hourly_config_file']}")
         with open(config["predictor_hourly_config_file"], "r") as f:
@@ -183,13 +214,13 @@ def process_data(config):
         if config.get("use_hourly", False):
             base_filename = predictor_hourly_config.get("results_file")
         base_filename = base_filename.rsplit(".", 1)[0]
-        config["save_config"] = base_filename + prefix + "_config_out.json"
-        config["save_log"] = base_filename + prefix + "_debug_log.json"
-        config["balance_plot_file"] = base_filename + prefix + "_balance_plot.png"
-        config["trades_csv_file"] = base_filename + prefix + "_trades.csv"
-        config["summary_csv_file"] = base_filename + prefix + "_summary.csv"
+        config["save_config"] = base_filename + prefix + noise_suffix + "_config_out.json"
+        config["save_log"] = base_filename + prefix + noise_suffix + "_debug_log.json"
+        config["balance_plot_file"] = base_filename + prefix + noise_suffix + "_balance_plot.png"
+        config["trades_csv_file"] = base_filename + prefix + noise_suffix + "_trades.csv"
+        config["summary_csv_file"] = base_filename + prefix + noise_suffix + "_summary.csv"
         if config.get("load_parameters"):
-            config["save_parameters"] = base_filename + prefix + "_parameters.json"
+            config["save_parameters"] = base_filename + prefix + noise_suffix + "_parameters.json"
 
         
 
@@ -205,13 +236,13 @@ def process_data(config):
         if not(config.get("use_hourly", False)):
             base_filename = predictor_daily_config.get("results_file")
         base_filename = base_filename.rsplit(".", 1)[0]
-        config["save_config"] = base_filename + prefix + "_config_out.json"
-        config["save_log"] = base_filename + prefix + "_debug_log.json"
-        config["balance_plot_file"] = base_filename + prefix + "_balance_plot.png"
-        config["trades_csv_file"] = base_filename + prefix + "_trades.csv"
-        config["summary_csv_file"] = base_filename + prefix + "_summary.csv"
+        config["save_config"] = base_filename + prefix + noise_suffix + "_config_out.json"
+        config["save_log"] = base_filename + prefix + noise_suffix + "_debug_log.json"
+        config["balance_plot_file"] = base_filename + prefix + noise_suffix + "_balance_plot.png"
+        config["trades_csv_file"] = base_filename + prefix + noise_suffix + "_trades.csv"
+        config["summary_csv_file"] = base_filename + prefix + noise_suffix + "_summary.csv"
         if config.get("load_parameters"):
-            config["save_parameters"] = base_filename + prefix + "_parameters.json"
+            config["save_parameters"] = base_filename + prefix + noise_suffix + "_parameters.json"
 
         
 
@@ -220,6 +251,28 @@ def process_data(config):
     daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
     print(f"Base dataset loaded: {base_df.shape}")
+
+    # If no predictor config files set names, append noise suffix to any preconfigured output filenames
+    def _append_suffix_to_filename(path: str, suffix: str) -> str:
+        if not path or not suffix:
+            return path
+        if suffix in path:
+            return path
+        import os
+        base, ext = os.path.splitext(path)
+        return f"{base}{suffix}{ext}"
+
+    if noise_suffix:
+        for k in [
+            "save_config",
+            "save_log",
+            "balance_plot_file",
+            "trades_csv_file",
+            "summary_csv_file",
+            "save_parameters",
+        ]:
+            if config.get(k):
+                config[k] = _append_suffix_to_filename(config[k], noise_suffix)
 
     # Keep a full copy for later evaluation
     base_df_full = base_df.copy()
@@ -242,6 +295,13 @@ def process_data(config):
             config["hourly_columns"] = hourly_cols
             # Prepare matching uncertainty column names for later use
             config["uncertainty_hourly_columns"] = [f"Uncertainty_H{h}" for h in offsets_h]
+            # Apply Gaussian noise if requested
+            hourly_df = _apply_gaussian_noise(
+                hourly_df,
+                config.get("gaussian_noise_mean", 0.0),
+                config.get("gaussian_noise_stddev", 0.0),
+                label="hourly",
+            )
         else:
             if "time_horizon" not in config or not config["time_horizon"]:
                 raise ValueError("time_horizon must be provided when auto-generating predictions.")
@@ -252,6 +312,13 @@ def process_data(config):
                 hourly_df.columns = config["hourly_columns"]
             else:
                 hourly_df.columns = [f"Prediction_H{i}" for i in range(1, config["time_horizon"] + 1)]
+            # Apply Gaussian noise if requested
+            hourly_df = _apply_gaussian_noise(
+                hourly_df,
+                config.get("gaussian_noise_mean", 0.0),
+                config.get("gaussian_noise_stddev", 0.0),
+                label="hourly",
+            )
 
     if daily_df is None:
         # New dynamic configuration (optional)
@@ -265,6 +332,13 @@ def process_data(config):
             daily_df.columns = daily_cols
             config["daily_columns"] = daily_cols
             config["uncertainty_daily_columns"] = [f"Uncertainty_H{h}" for h in offsets_d]
+            # Apply Gaussian noise if requested
+            daily_df = _apply_gaussian_noise(
+                daily_df,
+                config.get("gaussian_noise_mean", 0.0),
+                config.get("gaussian_noise_stddev", 0.0),
+                label="daily",
+            )
         else:
             if "time_horizon" not in config or not config["time_horizon"]:
                 raise ValueError("time_horizon must be provided when auto-generating predictions.")
@@ -275,6 +349,13 @@ def process_data(config):
                 daily_df.columns = config["daily_columns"]
             else:
                 daily_df.columns = [f"Prediction_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
+            # Apply Gaussian noise if requested
+            daily_df = _apply_gaussian_noise(
+                daily_df,
+                config.get("gaussian_noise_mean", 0.0),
+                config.get("gaussian_noise_stddev", 0.0),
+                label="daily",
+            )
 
     # Load uncertainties if available
     uncertainty_hourly_df = None
@@ -695,6 +776,9 @@ def run_processing_pipeline(config, plugin):
         try:
             info = trading_info.copy()
             info.pop("best_parameters", None)
+            # Add Gaussian noise parameters to summary columns
+            info["gaussian_noise_mean"] = config.get("gaussian_noise_mean", 0.0)
+            info["gaussian_noise_stddev"] = config.get("gaussian_noise_stddev", 0.0)
             df = pd.DataFrame([info])
             df.to_csv(summary_csv, index=False)
             print(f"Summary saved to {summary_csv}.")

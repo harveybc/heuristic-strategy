@@ -17,6 +17,50 @@ _current_epoch = 1  # Global variable to hold current epoch number
 _plugin_param_count = 0  # Number of parameters belonging to the strategy plugin
 _base_param_bounds = None  # Bounds for plugin parameters only (name, low, high)
 
+def _parse_offsets_from_cols(cols):
+    import re
+    offs = []
+    for i, c in enumerate(cols, start=1):
+        m = re.search(r"H(\d+)$", str(c))
+        offs.append(int(m.group(1)) if m else i)
+    return offs
+
+def _aggregate_mae_and_naive(base_df, preds_df, selected_cols):
+    """
+    Compute mean MAE across selected prediction columns and mean MAE for a naive baseline (y_hat = y_t).
+    Returns (mae, naive_mae). If no valid comparisons, returns (None, None).
+    """
+    import pandas as pd
+    import numpy as np
+    if preds_df is None or preds_df.empty or base_df is None or base_df.empty:
+        return None, None
+    cols = [c for c in selected_cols if c in preds_df.columns]
+    if not cols:
+        return None, None
+    offsets = _parse_offsets_from_cols(cols)
+    maes = []
+    naive_maes = []
+    price = base_df["CLOSE"] if "CLOSE" in base_df.columns else None
+    if price is None:
+        return None, None
+    for col, off in zip(cols, offsets):
+        forecast_times = preds_df.index + pd.Timedelta(hours=int(off))
+        actual = price.reindex(forecast_times)
+        actual.index = preds_df.index
+        pred = preds_df[col]
+        valid = actual.notna() & pred.notna()
+        if valid.sum() == 0:
+            continue
+        mae = float(np.mean(np.abs(actual[valid].values - pred[valid].values)))
+        # Naive baseline: predict y_{t+off} = y_t
+        naive = price.reindex(preds_df.index)
+        naive_mae = float(np.mean(np.abs(actual[valid].values - naive[valid].values)))
+        maes.append(mae)
+        naive_maes.append(naive_mae)
+    if not maes:
+        return None, None
+    return float(np.mean(maes)), float(np.mean(naive_maes))
+
 def _compute_uniform_offsets(max_horizon: int, num_predictions: int):
     """
     Compute uniformly spaced integer offsets between 1 and max_horizon (inclusive).
@@ -471,13 +515,39 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         )
 
     print("\nChampion evaluation summary:")
-    print(f"  Train:       Profit={train_profit:.2f} | {fmt_stats(train_stats)}")
-    if val_profit is not None:
-        print(f"  Validation:  Profit={val_profit:.2f} | {fmt_stats(val_stats)}")
-    if test_profit is not None:
-        print(f"  Test:        Profit={test_profit:.2f} | {fmt_stats(test_stats)}")
+    # Determine selected columns based on best_params (if present)
+    st_cols_sel = []
+    lt_cols_sel = []
+    try:
+        st_max = int(best_params.get("short_term_max_horizon")) if "short_term_max_horizon" in best_params else None
+        st_n   = int(best_params.get("short_term_num_predictions")) if "short_term_num_predictions" in best_params else None
+        lt_max = int(best_params.get("long_term_max_horizon")) if "long_term_max_horizon" in best_params else None
+        lt_n   = int(best_params.get("long_term_num_predictions")) if "long_term_num_predictions" in best_params else None
+        if st_max and st_n:
+            st_cols_sel = [f"Prediction_H{o}" for o in _compute_uniform_offsets(st_max, st_n)]
+        if lt_max and lt_n:
+            lt_cols_sel = [f"Prediction_H{o}" for o in _compute_uniform_offsets(lt_max, lt_n)]
+    except Exception:
+        pass
 
-    return {
+    # Compute MAE / Naive MAE for train (current globals)
+    train_mae, train_naive_mae = _aggregate_mae_and_naive(_base_data, _hourly_predictions.join(_daily_predictions, how="inner"), st_cols_sel + lt_cols_sel)
+    print(f"  Train:       Profit={train_profit:.2f} | {fmt_stats(train_stats)}" + (f" | MAE={train_mae:.6f} | NaiveMAE={train_naive_mae:.6f}" if train_mae is not None else ""))
+    if val_profit is not None:
+        # Temporarily swap to validation data to compute MAE
+        prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
+        _base_data, _hourly_predictions, _daily_predictions = base_val, hourly_val, daily_val
+        val_mae, val_naive_mae = _aggregate_mae_and_naive(_base_data, _hourly_predictions.join(_daily_predictions, how="inner"), st_cols_sel + lt_cols_sel)
+        _base_data, _hourly_predictions, _daily_predictions = prev_base, prev_hourly, prev_daily
+        print(f"  Validation:  Profit={val_profit:.2f} | {fmt_stats(val_stats)}" + (f" | MAE={val_mae:.6f} | NaiveMAE={val_naive_mae:.6f}" if val_mae is not None else ""))
+    if test_profit is not None:
+        prev_base, prev_hourly, prev_daily = _base_data, _hourly_predictions, _daily_predictions
+        _base_data, _hourly_predictions, _daily_predictions = base_test, hourly_test, daily_test
+        test_mae, test_naive_mae = _aggregate_mae_and_naive(_base_data, _hourly_predictions.join(_daily_predictions, how="inner"), st_cols_sel + lt_cols_sel)
+        _base_data, _hourly_predictions, _daily_predictions = prev_base, prev_hourly, prev_daily
+        print(f"  Test:        Profit={test_profit:.2f} | {fmt_stats(test_stats)}" + (f" | MAE={test_mae:.6f} | NaiveMAE={test_naive_mae:.6f}" if test_mae is not None else ""))
+
+    result_payload = {
         "best_parameters": best_params,
         "profit": train_profit,
         "stats": train_stats,
@@ -486,6 +556,24 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         "test_profit": test_profit,
         "test_stats": test_stats,
     }
+
+    # Attach MAE metrics to payload
+    result_payload.update({
+        "train_mae": train_mae,
+        "train_naive_mae": train_naive_mae,
+    })
+    if val_profit is not None:
+        result_payload.update({
+            "validation_mae": val_mae,
+            "validation_naive_mae": val_naive_mae,
+        })
+    if test_profit is not None:
+        result_payload.update({
+            "test_mae": test_mae,
+            "test_naive_mae": test_naive_mae,
+        })
+
+    return result_payload
 
 if __name__ == '__main__':
     print("Standalone testing of optimizer not supported; run via main pipeline.")
