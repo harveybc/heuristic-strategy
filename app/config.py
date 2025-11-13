@@ -25,8 +25,8 @@ DEFAULT_VALUES = {
     # Early stopping patience (epochs without validation improvement before stopping)
     "patience": 15,
     #Gaussian noise parameters for data augmentation during training
-    "gaussian_noise_mean": 0.002,
-    "gaussian_noise_stddev": 0.002,
+    "gaussian_noise_mean": 0.02,
+    "gaussian_noise_stddev": 0.02,
     "crossover_probability": 0.2,
     "mutation_probability": 0.1,
     "use_hourly": False,
