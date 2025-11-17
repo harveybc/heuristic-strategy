@@ -1,4 +1,4 @@
-#!/usr/bin/env python3  # Specify that this script should be run with Python 3 when executed directly.
+#!/usr/bin/env python3  # Specify Python 3 as the interpreter for this script.
 # -*- coding: utf-8 -*-  # Declare UTF-8 encoding for this source file.
 
 """
@@ -9,39 +9,39 @@ This script:
 - For each summary, loads the associated configuration and parameters JSON files.
 - Inserts or updates records in the `experiments` and `performance` tables.
 
-The script assumes filenames of the form:
+Expected filenames for each experiment:
 - summary_gn_mu0.0020_sd0.0020.csv
 - config_out_gn_mu0.0020_sd0.0020.json
 - parameters_gn_mu0.0020_sd0.0020.json
 """
 
-import os  # Import os to work with file system paths and environment variables.
-import re  # Import re to use regular expressions for parsing mu and sd from filenames.
-import json  # Import json to serialize and deserialize JSON data.
-import ast  # Import ast to safely evaluate literal Python structures from strings.
-from typing import Any, Dict, Optional, Tuple  # Import typing helpers for clarity and type hints.
+import os  # Import os to work with file paths and environment variables.
+import re  # Import re for regular expressions to parse mu and sd from filenames.
+import json  # Import json to handle JSON encoding and decoding.
+import ast  # Import ast to safely evaluate Python literals from strings.
+from typing import Any, Dict, Optional, Tuple  # Import typing helpers for clarity and hints.
 
-import pandas as pd  # Import pandas to read CSV files into DataFrames for convenient handling.
-from sqlalchemy import create_engine, text  # Import SQLAlchemy tools for database connections and SQL execution.
+import pandas as pd  # Import pandas to read CSV files into DataFrames.
+from sqlalchemy import create_engine, text  # Import SQLAlchemy engine and text for executing SQL statements.
 
-# Define the environment variable name that stores the database URL.
+# Name of the environment variable providing the database URL.
 NOISE_OLAP_DB_URL_ENV: str = "NOISE_OLAP_DB_URL"
 
-# Define a default database URL to use if the environment variable is not set.
-# IMPORTANT: Replace 'your_pg_user' and 'your_pg_password' with valid credentials in your environment.
+# Default database URL if NOISE_OLAP_DB_URL is not set.
+# IMPORTANT: Replace with your actual credentials or provide the URL via environment.
 DEFAULT_DB_URL: str = (
     "postgresql+psycopg2://your_pg_user:your_pg_password@localhost:5432/noise_sensitivity_olap"
 )
 
-# Compile a regular expression to extract Gaussian noise parameters from filenames.
-# This pattern:
-# - Looks for "gn_mu" followed by a number with optional decimal part.
-# - Then an underscore "_" or dot ".".
-# - Then "sd" followed by a number with optional decimal part.
-# Critically, it does NOT allow an extra trailing dot, so it will not consume the "." before ".csv".
+# Regular expression to capture Gaussian noise parameters from filenames without consuming extensions.
+# Pattern explanation:
+# - 'gn_mu' literal prefix.
+# - mu: one or more digits, optionally followed by a '.' and more digits.
+# - separator: '_' or '.' between mu and sd.
+# - 'sd' literal prefix, followed by sd: digits with optional decimal part.
 NOISE_PATTERN = re.compile(
-    r"gn_mu(?P<mu>\d+(?:\.\d+)?)[_.]sd(?P<sd>\d+(?:\.\d+)?)",  # Capture groups for mu and sd without trailing extension dot.
-    re.IGNORECASE,  # Ignore case to be tolerant of filename variations.
+    r"gn_mu(?P<mu>\d+(?:\.\d+)?)[_.]sd(?P<sd>\d+(?:\.\d+)?)",
+    re.IGNORECASE,  # Case-insensitive to be robust against filename variations.
 )
 
 
@@ -49,15 +49,13 @@ def get_engine() -> Any:
     """
     Create and return a SQLAlchemy engine for the noise_sensitivity_olap database.
 
-    The function reads the connection string from the NOISE_OLAP_DB_URL environment variable,
-    falling back to DEFAULT_DB_URL if the variable is not defined.
+    The database URL is obtained from the NOISE_OLAP_DB_URL environment variable,
+    falling back to DEFAULT_DB_URL if not set.
     """
-    # Read the database URL from the environment variable or use the default if not set.
+    # Resolve the database URL from the environment variable or use the default.
     db_url: str = os.getenv(NOISE_OLAP_DB_URL_ENV, DEFAULT_DB_URL)
-    # Create a SQLAlchemy engine using the resolved database URL.
-    engine = create_engine(db_url, echo=False, future=True)
-    # Return the created engine to the caller.
-    return engine
+    # Create and return a SQLAlchemy engine with the resolved URL.
+    return create_engine(db_url, echo=False, future=True)
 
 
 def parse_noise_from_filename(filename: str) -> Optional[Tuple[str, str]]:
@@ -65,25 +63,25 @@ def parse_noise_from_filename(filename: str) -> Optional[Tuple[str, str]]:
     Parse the mu and sd components from a filename using the NOISE_PATTERN regex.
 
     Args:
-        filename: Basename of the file (without directory), e.g. 'summary_gn_mu0.0020_sd0.0020.csv'.
+        filename: The basename of the file, e.g. 'summary_gn_mu0.0020_sd0.0020.csv'.
 
     Returns:
         A tuple (mu_str, sd_str) if the pattern is found, otherwise None.
 
-    This function also strips any trailing dots from the captured strings as an extra safety measure.
+    Any trailing dots are stripped from the captured components as a safety measure.
     """
-    # Search the precompiled noise pattern in the provided filename string.
+    # Search for the Gaussian noise pattern in the filename.
     match = NOISE_PATTERN.search(filename)
-    # If there is no match for the noise pattern, return None to indicate failure.
+    # If there is no match, return None to indicate that parsing failed.
     if not match:
         return None
-    # Extract the raw mu component from the 'mu' named group.
+    # Extract the mu component from the named capturing group.
     mu_str: str = match.group("mu")
-    # Extract the raw sd component from the 'sd' named group.
+    # Extract the sd component from the named capturing group.
     sd_str: str = match.group("sd")
-    # Strip any trailing dot characters from mu_str to guard against malformed captures.
+    # Strip any trailing dots from mu_str to avoid issues from malformed filenames.
     mu_str = mu_str.rstrip(".")
-    # Strip any trailing dot characters from sd_str to guard against malformed captures.
+    # Strip any trailing dots from sd_str similarly.
     sd_str = sd_str.rstrip(".")
     # Return the cleaned mu and sd strings as a tuple.
     return mu_str, sd_str
@@ -94,20 +92,20 @@ def load_json_if_exists(path: str) -> Optional[Dict[str, Any]]:
     Load a JSON file from the given path if the file exists.
 
     Args:
-        path: Absolute or relative path to the JSON file.
+        path: Full path to the JSON file.
 
     Returns:
         The parsed JSON object as a dictionary, or None if the file does not exist.
     """
-    # Check if the file exists on the filesystem.
+    # Check whether the specified path refers to an existing file.
     if not os.path.isfile(path):
-        # If the file does not exist, return None to signal that it is missing.
+        # If the file does not exist, return None to signal missing JSON.
         return None
-    # Open the file in read mode with UTF-8 encoding to handle text safely.
+    # Open the JSON file for reading in text mode with UTF-8 encoding.
     with open(path, "r", encoding="utf-8") as f:
-        # Deserialize the JSON content from the file into a Python object.
+        # Parse the JSON content from the file into a Python object.
         data = json.load(f)
-    # Return the parsed JSON object (expected to be a dict).
+    # Return the parsed dictionary.
     return data
 
 
@@ -119,24 +117,24 @@ def safe_parse_stats_column(value: Any) -> Dict[str, Any]:
     This function uses ast.literal_eval to safely convert the string into a dict.
 
     Args:
-        value: The stats column value from the DataFrame row.
+        value: The column value from the DataFrame row.
 
     Returns:
-        A dictionary containing the parsed stats, or an empty dict on failure or if the value is NaN.
+        A dictionary containing the parsed stats, or an empty dict on failure or NaN.
     """
-    # If the value is None or a NaN float from pandas, return an empty dictionary.
+    # If the value is None or a NaN float from pandas, return an empty dict.
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return {}
-    # If the value is already a dictionary, return it unchanged.
+    # If the value is already a dictionary, return it directly.
     if isinstance(value, dict):
         return value
     try:
-        # Use ast.literal_eval to safely evaluate the string into a Python object.
+        # Attempt to parse the string as a Python literal using literal_eval.
         parsed = ast.literal_eval(str(value))
     except (SyntaxError, ValueError):
-        # If parsing fails due to syntax or value errors, return an empty dictionary.
+        # If parsing fails, return an empty dict to avoid interrupting the load.
         return {}
-    # If the parsed object is not a dict, normalize to an empty dictionary for consistency.
+    # Normalize the result to a dict; if not a dict, return an empty one.
     if not isinstance(parsed, dict):
         return {}
     # Return the successfully parsed dictionary.
@@ -155,47 +153,42 @@ def upsert_experiment(
     """
     Insert or update an experiment row and return the experiment ID.
 
-    This function:
-    - Uses the experiment_key to perform an upsert via PostgreSQL's ON CONFLICT.
-    - Persists both explicit numeric fields and raw JSON for config and parameters.
+    Uses the experiment_key to perform an upsert via PostgreSQL's ON CONFLICT.
 
     Args:
         engine: SQLAlchemy engine connected to the target database.
-        experiment_key: Unique key based on noise parameters, e.g. 'gn_mu0.0020_sd0.0020'.
-        mu_str: String representation of the Gaussian noise mean parsed from filename.
-        sd_str: String representation of the Gaussian noise standard deviation parsed from filename.
-        summary_row: Dictionary with metrics from the summary CSV row.
-        config_data: Parsed configuration JSON dictionary, or None if missing.
-        params_data: Parsed parameters JSON dictionary, or None if missing.
+        experiment_key: Unique experiment key, e.g. 'gn_mu0.0020_sd0.0020'.
+        mu_str: Gaussian noise mean as a string parsed from the filename.
+        sd_str: Gaussian noise standard deviation as a string parsed from the filename.
+        summary_row: Dictionary containing metrics from the summary CSV row.
+        config_data: Configuration JSON dictionary, or None if missing.
+        params_data: Parameters JSON dictionary, or None if missing.
 
     Returns:
-        The integer primary key of the experiment row in the experiments table.
+        The integer primary key of the experiment in the experiments table.
     """
     # Read the Gaussian noise mean from the summary row if present.
     mu_val = summary_row.get("gaussian_noise_mean")
-    # If the summary row does not contain the mean, fall back to converting mu_str to float.
+    # If not present, convert mu_str to float as a fallback.
     if mu_val is None:
         mu_val = float(mu_str)
     # Read the Gaussian noise standard deviation from the summary row if present.
     sd_val = summary_row.get("gaussian_noise_stddev")
-    # If the summary row does not contain the stddev, fall back to converting sd_str to float.
+    # If not present, convert sd_str to float as a fallback.
     if sd_val is None:
         sd_val = float(sd_str)
 
-    # Initialize configuration-derived fields with default None values.
+    # Initialize configuration-derived fields with None.
     base_dataset_file = None
     prefix = None
     max_trades_per_5days = None
-    # If a configuration dictionary is available, extract relevant fields.
+    # If configuration data exists, extract relevant fields.
     if config_data is not None:
-        # Extract the base dataset file path from the configuration if it exists.
         base_dataset_file = config_data.get("base_dataset_file")
-        # Extract any prefix field used to differentiate scenarios or datasets.
         prefix = config_data.get("prefix")
-        # Extract the maximum allowed trades per 5-day window if defined.
         max_trades_per_5days = config_data.get("max_trades_per_5days")
 
-    # Initialize parameter-derived fields with default None values.
+    # Initialize parameter-derived fields with None.
     profit_threshold = None
     tp_multiplier = None
     sl_multiplier = None
@@ -206,28 +199,19 @@ def upsert_experiment(
     long_term_max_horizon = None
     long_term_num_predictions = None
 
-    # If a parameters dictionary is available, extract the known strategy parameters.
+    # If parameters data exists, extract known parameter fields.
     if params_data is not None:
-        # Extract the profit threshold parameter if present.
         profit_threshold = params_data.get("profit_threshold")
-        # Extract the take-profit multiplier for trade exits if present.
         tp_multiplier = params_data.get("tp_multiplier")
-        # Extract the stop-loss multiplier for trade exits if present.
         sl_multiplier = params_data.get("sl_multiplier")
-        # Extract the lower risk-reward threshold used in the optimization if present.
         lower_rr_threshold = params_data.get("lower_rr_threshold")
-        # Extract the upper risk-reward threshold used in the optimization if present.
         upper_rr_threshold = params_data.get("upper_rr_threshold")
-        # Extract the maximum horizon for short-term forecasts if present.
         short_term_max_horizon = params_data.get("short_term_max_horizon")
-        # Extract the number of short-term predictions used per decision if present.
         short_term_num_predictions = params_data.get("short_term_num_predictions")
-        # Extract the maximum horizon for long-term forecasts if present.
         long_term_max_horizon = params_data.get("long_term_max_horizon")
-        # Extract the number of long-term predictions used per decision if present.
         long_term_num_predictions = params_data.get("long_term_num_predictions")
 
-    # Define the SQL upsert statement for the experiments table with ON CONFLICT.
+    # Define the upsert SQL statement for the experiments table.
     sql = text(
         """
         INSERT INTO experiments (
@@ -289,14 +273,12 @@ def upsert_experiment(
         """
     )
 
-    # Serialize the configuration dictionary to a JSON string if present.
+    # Serialize configuration and parameters dictionaries as JSON strings.
     config_json_str = json.dumps(config_data) if config_data is not None else None
-    # Serialize the parameters dictionary to a JSON string if present.
     params_json_str = json.dumps(params_data) if params_data is not None else None
 
-    # Execute the upsert inside a transaction to ensure atomic behavior.
+    # Execute the upsert transaction and fetch the experiment ID.
     with engine.begin() as conn:
-        # Execute the SQL statement with the corresponding parameters.
         result = conn.execute(
             sql,
             {
@@ -319,11 +301,8 @@ def upsert_experiment(
                 "long_term_num_predictions": long_term_num_predictions,
             },
         )
-        # Fetch the single row returned by the INSERT ... RETURNING id clause.
         row = result.fetchone()
-    # Convert the returned ID to an integer to ensure consistent typing.
     experiment_id = int(row[0])
-    # Return the experiment ID to the caller.
     return experiment_id
 
 
@@ -335,17 +314,16 @@ def upsert_performance(
     """
     Insert or update a performance row for the given experiment.
 
-    The uniqueness is enforced by the experiment_id column with ON CONFLICT,
-    ensuring exactly one performance record per experiment.
+    Uniqueness is enforced by the experiment_id column with ON CONFLICT.
 
     Args:
         engine: SQLAlchemy engine connected to the target database.
-        experiment_id: Primary key of the corresponding experiment row.
-        summary_row: Dictionary with metrics from the summary CSV row.
+        experiment_id: Primary key of the experiment row.
+        summary_row: Dictionary containing metrics from the summary CSV row.
     """
-    # Safely parse the validation_stats column into a dictionary.
+    # Parse validation_stats safely into a dictionary.
     validation_stats = safe_parse_stats_column(summary_row.get("validation_stats"))
-    # Safely parse the test_stats column into a dictionary.
+    # Parse test_stats safely into a dictionary.
     test_stats = safe_parse_stats_column(summary_row.get("test_stats"))
 
     # Define the upsert SQL statement for the performance table.
@@ -439,40 +417,39 @@ def upsert_performance(
         """
     )
 
-    # Build a parameter dictionary mapping each named placeholder to a value.
+    # Build the parameters mapping from the summary row and parsed stats.
     params = {
-        "experiment_id": experiment_id,  # Use the provided experiment primary key.
-        "initial_capital": summary_row.get("initial_capital"),  # Initial capital from summary.
-        "profit": summary_row.get("profit"),  # Total profit from summary.
-        "validation_profit": summary_row.get("validation_profit"),  # Validation segment profit.
-        "test_profit": summary_row.get("test_profit"),  # Test segment profit.
-        "num_trades_total": summary_row.get("num_trades"),  # Total number of trades.
-        "win_pct_total": summary_row.get("win_pct"),  # Overall win percentage.
-        "max_dd_total": summary_row.get("max_dd"),  # Overall maximum drawdown.
-        "sharpe_total": summary_row.get("sharpe"),  # Overall Sharpe ratio.
-        "risk_total": summary_row.get("risk"),  # Overall risk metric from summary.
-        "train_mae": summary_row.get("train_mae"),  # Training MAE.
-        "train_naive_mae": summary_row.get("train_naive_mae"),  # Training naive MAE.
-        "validation_mae": summary_row.get("validation_mae"),  # Validation MAE.
-        "validation_naive_mae": summary_row.get("validation_naive_mae"),  # Validation naive MAE.
-        "test_mae": summary_row.get("test_mae"),  # Test MAE.
-        "test_naive_mae": summary_row.get("test_naive_mae"),  # Test naive MAE.
-        "validation_num_trades": validation_stats.get("num_trades"),  # Validation trades count.
-        "validation_win_pct": validation_stats.get("win_pct"),  # Validation win percentage.
-        "validation_max_dd": validation_stats.get("max_dd"),  # Validation maximum drawdown.
-        "validation_sharpe": validation_stats.get("sharpe"),  # Validation Sharpe ratio.
-        "validation_risk": validation_stats.get("risk"),  # Validation risk metric.
-        "test_num_trades": test_stats.get("num_trades"),  # Test trades count.
-        "test_win_pct": test_stats.get("win_pct"),  # Test win percentage.
-        "test_max_dd": test_stats.get("max_dd"),  # Test maximum drawdown.
-        "test_sharpe": test_stats.get("sharpe"),  # Test Sharpe ratio.
-        "test_risk": test_stats.get("risk"),  # Test risk metric.
-        "summary_row_json": json.dumps(summary_row),  # Store entire summary row as JSON for extensibility.
+        "experiment_id": experiment_id,
+        "initial_capital": summary_row.get("initial_capital"),
+        "profit": summary_row.get("profit"),
+        "validation_profit": summary_row.get("validation_profit"),
+        "test_profit": summary_row.get("test_profit"),
+        "num_trades_total": summary_row.get("num_trades"),
+        "win_pct_total": summary_row.get("win_pct"),
+        "max_dd_total": summary_row.get("max_dd"),
+        "sharpe_total": summary_row.get("sharpe"),
+        "risk_total": summary_row.get("risk"),
+        "train_mae": summary_row.get("train_mae"),
+        "train_naive_mae": summary_row.get("train_naive_mae"),
+        "validation_mae": summary_row.get("validation_mae"),
+        "validation_naive_mae": summary_row.get("validation_naive_mae"),
+        "test_mae": summary_row.get("test_mae"),
+        "test_naive_mae": summary_row.get("test_naive_mae"),
+        "validation_num_trades": validation_stats.get("num_trades"),
+        "validation_win_pct": validation_stats.get("win_pct"),
+        "validation_max_dd": validation_stats.get("max_dd"),
+        "validation_sharpe": validation_stats.get("sharpe"),
+        "validation_risk": validation_stats.get("risk"),
+        "test_num_trades": test_stats.get("num_trades"),
+        "test_win_pct": test_stats.get("win_pct"),
+        "test_max_dd": test_stats.get("max_dd"),
+        "test_sharpe": test_stats.get("sharpe"),
+        "test_risk": test_stats.get("risk"),
+        "summary_row_json": json.dumps(summary_row),
     }
 
-    # Execute the performance upsert inside a transaction context.
+    # Execute the SQL upsert inside a transaction context.
     with engine.begin() as conn:
-        # Execute the SQL statement with the assembled parameter dictionary.
         conn.execute(sql, params)
 
 
@@ -489,54 +466,60 @@ def process_summary_file(engine: Any, base_dir: str, summary_path: str) -> None:
     Args:
         engine: SQLAlchemy engine connected to the target database.
         base_dir: Directory containing summary/config/parameters files.
-        summary_path: Full path to the summary CSV file to be processed.
+        summary_path: Full path to the summary CSV file being processed.
     """
-    # Extract the basename of the summary file to parse noise-related components.
+    # Extract only the filename part from the full path for parsing.
     filename = os.path.basename(summary_path)
-    # Attempt to parse mu and sd components from the filename.
+    # Try to parse the Gaussian noise parameters (mu and sd) from the filename.
     noise_parts = parse_noise_from_filename(filename)
-    # If the pattern was not found, log a warning and skip this file.
+    # If no valid pattern is found, log a warning and skip this file.
     if noise_parts is None:
         print(f"[WARN] Skipping file without recognized noise pattern: {filename}")
         return
-    # Unpack mu and sd string components from the parsed tuple.
+    # Unpack mu and sd string components.
     mu_str, sd_str = noise_parts
-    # Build a canonical experiment key string from the parsed mu and sd values.
+    # Build a canonical experiment key using the parsed noise components.
     experiment_key = f"gn_mu{mu_str}_sd{sd_str}"
 
-    # Read the summary CSV into a pandas DataFrame.
+    # Read the summary CSV file into a pandas DataFrame.
     df = pd.read_csv(summary_path)
-    # If there are no rows in the summary file, log a warning and skip it.
+    # If the summary file is empty, log a warning and skip processing.
     if df.empty:
         print(f"[WARN] Empty summary file, skipping: {filename}")
         return
-    # Assume there is one summary row per experiment, so take the first row.
+    # Assume there is exactly one experiment per summary file; take the first row.
     row_dict = df.iloc[0].to_dict()
 
-    # Build the common suffix used for the JSON filenames.
+    # Build the suffix part shared by config and parameters JSON filenames.
     suffix = f"gn_mu{mu_str}_sd{sd_str}"
-    # Construct the expected config JSON filename based on the suffix.
+    # Compose the expected config JSON filename.
     config_filename = f"config_out_{suffix}.json"
-    # Construct the expected parameters JSON filename based on the suffix.
+    # Compose the expected parameters JSON filename.
     parameters_filename = f"parameters_{suffix}.json"
 
-    # Compute absolute paths to the config and parameters files in the base directory.
+    # Construct absolute paths to the config and parameters files.
     config_path = os.path.join(base_dir, config_filename)
     parameters_path = os.path.join(base_dir, parameters_filename)
 
-    # Attempt to load the configuration JSON file, if present.
+    # Attempt to load the configuration JSON file from disk.
     config_data = load_json_if_exists(config_path)
-    # If the configuration JSON is missing, log a warning but proceed with partial data.
     if config_data is None:
+        # If config is missing, log a warning.
         print(f"[WARN] Config file not found for {experiment_key}: {config_filename}")
+    else:
+        # If config is loaded successfully, log an informational message.
+        print(f"[INFO] Loaded config JSON for {experiment_key}: {config_filename}")
 
-    # Attempt to load the parameters JSON file, if present.
+    # Attempt to load the parameters JSON file from disk.
     params_data = load_json_if_exists(parameters_path)
-    # If the parameters JSON is missing, log a warning but proceed with partial data.
     if params_data is None:
+        # If parameters file is missing, log a warning.
         print(f"[WARN] Parameters file not found for {experiment_key}: {parameters_filename}")
+    else:
+        # If parameters are loaded successfully, log an informational message.
+        print(f"[INFO] Loaded parameters JSON for {experiment_key}: {parameters_filename}")
 
-    # Upsert the experiment row into the experiments table and obtain its primary key.
+    # Upsert the experiment row into the experiments table and retrieve its ID.
     experiment_id = upsert_experiment(
         engine=engine,
         experiment_key=experiment_key,
@@ -554,7 +537,7 @@ def process_summary_file(engine: Any, base_dir: str, summary_path: str) -> None:
         summary_row=row_dict,
     )
 
-    # Log an informational message declaring that this experiment was loaded successfully.
+    # Log a final informational message summarizing the processed experiment.
     print(f"[INFO] Loaded experiment {experiment_key} (id={experiment_id}) from {filename}")
 
 
@@ -568,36 +551,36 @@ def load_all_experiments(base_dir: str) -> None:
     Args:
         base_dir: Directory containing summary_*.csv, config_out_*.json, parameters_*.json.
     """
-    # Create a SQLAlchemy engine for interaction with the database.
+    # Create a SQLAlchemy engine for interacting with the database.
     engine = get_engine()
 
     # Iterate over all entries in the specified base directory.
     for entry in os.listdir(base_dir):
-        # Process only files that look like summary CSVs with Gaussian noise suffix.
+        # Restrict processing to files matching the expected summary filename pattern.
         if entry.startswith("summary_gn_mu") and entry.endswith(".csv"):
-            # Build the absolute path to the summary CSV file.
+            # Build the full path to the summary CSV file.
             summary_path = os.path.join(base_dir, entry)
-            # Process the identified summary file to load its experiment data.
+            # Process this summary file and load its experiment into the OLAP cube.
             process_summary_file(engine, base_dir, summary_path)
 
 
 if __name__ == "__main__":
-    # If this module is executed as a script, parse command-line arguments.
+    # When this module is executed as a script, parse command-line arguments.
 
-    import argparse  # Import argparse to handle command-line argument parsing.
+    import argparse  # Import argparse to parse command line options.
 
-    # Create an ArgumentParser to specify script usage and options.
+    # Create an ArgumentParser describing the script functionality.
     parser = argparse.ArgumentParser(
         description="Load Gaussian-noise strategy experiments into noise_sensitivity_olap."
     )
-    # Add a positional argument specifying the directory containing the result files.
+    # Add a positional argument specifying the directory containing results and configs.
     parser.add_argument(
         "base_dir",
         help="Directory containing summary_*.csv, config_out_*.json, parameters_*.json files.",
     )
 
-    # Parse the command-line arguments into a Namespace object.
+    # Parse arguments provided on the command line.
     args = parser.parse_args()
 
-    # Invoke the top-level loader function using the provided base directory.
+    # Invoke the bulk loading function using the specified base directory.
     load_all_experiments(args.base_dir)
