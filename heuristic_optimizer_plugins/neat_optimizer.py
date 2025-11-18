@@ -265,11 +265,14 @@ class Plugin:
         return decoded
 
     def _build_neat_config(self, num_inputs: int) -> neat.Config:
+        pop_size = int(self.params.get('population_size', 150))
+
         cfg_text = f"""
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = {self.params.get('fitness_threshold', 2500.0)}
-population_size       = {int(self.params.get('population_size', 150))}
+population_size       = {pop_size}
+pop_size              = {pop_size}
 reset_on_extinction   = False
 
 [DefaultGenome]
