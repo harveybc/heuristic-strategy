@@ -281,6 +281,14 @@ class Plugin:
             df = pd.concat([df, pad_df], axis=1)
             df = df.iloc[:, :expected_cols]
         df.columns = columns
+        if reference_index is not None:
+            try:
+                reference_index = pd.Index(reference_index)
+                df = df.reindex(reference_index)
+            except Exception:
+                df = df.reindex(reference_index, fill_value=default_value)
+            if df.isnull().values.any():
+                df = df.fillna(default_value)
         return df
 
     def _select_prediction_timestamp(self, prediction_index) -> Optional[pd.Timestamp]:
