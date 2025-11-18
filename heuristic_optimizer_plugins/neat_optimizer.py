@@ -32,8 +32,9 @@ class Plugin:
         "stagnation_limit": 15,
         "weight_mutation_power": 2.5,
         "bias_mutation_power": 0.5,
-        "compatibility_threshold": 4.4,
+        "compatibility_threshold": 3.4,
         "activation_default": "identity",
+        "activation_functions": ["identity", "sigmoid", "tanh", "relu"],
         "aggregation_default": "sum",
         "no_fitness_termination": False,
         "single_structural_mutation": True,
@@ -421,9 +422,9 @@ no_fitness_termination = {no_fitness_termination}
 reset_on_extinction   = False
 
 [DefaultGenome]
-activation_default      = {self.params.get('activation_default', 'tanh')}
-activation_mutate_rate  = 0.0
-activation_options      = sigmoid tanh relu
+activation_default      = {self.params.get('activation_default', 'identity')}
+activation_mutate_rate  = 0.1
+activation_options      = identity sigmoid tanh relu
 aggregation_default     = {self.params.get('aggregation_default', 'sum')}
 aggregation_mutate_rate = 0.0
 aggregation_options     = sum mean max
@@ -433,8 +434,8 @@ bias_init_type          = gaussian
 bias_max_value          = 30.0
 bias_min_value          = -30.0
 bias_mutate_power       = {float(self.params.get('bias_mutation_power', 0.5))}
-bias_mutate_rate        = 0.7
-bias_replace_rate       = 0.1
+bias_mutate_rate        = 0.07
+bias_replace_rate       = 0.01
 compatibility_disjoint_coefficient = 1.0
 compatibility_weight_coefficient   = 0.5
 conn_add_prob           = 0.2
@@ -447,7 +448,7 @@ feed_forward            = False
 initial_connection      = fs_neat_hidden
 node_add_prob           = 0.1
 node_delete_prob        = 0.05
-num_hidden              = 100
+num_hidden              = 10
 num_inputs              = {num_inputs}
 num_outputs             = {len(self._optimizable_params)}
 response_init_mean      = 1.0
@@ -464,8 +465,8 @@ weight_init_type        = gaussian
 weight_max_value        = 30.0
 weight_min_value        = -30.0
 weight_mutate_power     = {float(self.params.get('weight_mutation_power', 2.5))}
-weight_mutate_rate      = 0.8
-weight_replace_rate     = 0.1
+weight_mutate_rate      = 0.3
+weight_replace_rate     = 0.01
 single_structural_mutation = {single_structural_mutation}
 structural_mutation_surer = {structural_mutation_surer}
 
