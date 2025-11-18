@@ -39,7 +39,7 @@ class Plugin:
         "no_fitness_termination": False,
         "single_structural_mutation": True,
         "structural_mutation_surer": "default",
-        "patience": 10,
+        "patience": 30,
         "show_progress_bar": True,
         "target_species_count": 0,
         "compatibility_adjust_rate": 0.15,

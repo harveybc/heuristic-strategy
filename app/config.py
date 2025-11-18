@@ -24,7 +24,7 @@ DEFAULT_VALUES = {
     "population_size": 25,
     "max_generations": 250,
     # Early stopping patience (epochs without validation improvement before stopping)
-    "patience": 15,
+    "patience": 30,
     #Gaussian noise parameters for data augmentation during training
     "gaussian_noise_mean": 0.02,
     "gaussian_noise_stddev": 0.02,
