@@ -32,7 +32,7 @@ class Plugin:
         "stagnation_limit": 15,
         "weight_mutation_power": 2.5,
         "bias_mutation_power": 0.5,
-        "compatibility_threshold": 1.1,
+        "compatibility_threshold": 1.6,
         "activation_default": "tanh",
         "aggregation_default": "sum",
         "no_fitness_termination": False,
