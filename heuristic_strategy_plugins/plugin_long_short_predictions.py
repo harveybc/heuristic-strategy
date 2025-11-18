@@ -1,4 +1,5 @@
 import datetime
+import math
 import os
 import backtrader as bt
 import pandas as pd
@@ -78,6 +79,10 @@ class Plugin:
 
         # Unpack candidate parameters:
         profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr = individual
+
+        neat_network = config.get("neat_network")
+        neat_feature_names = config.get("neat_feature_names")
+        neat_param_bounds = config.get("neat_param_bounds")
 
         # Check that predictions are available.
         if (hourly_predictions is None or hourly_predictions.empty or 
@@ -159,6 +164,9 @@ class Plugin:
             use_first_match=config.get("use_first_match", True), # Default to True
             show_trade_logs=config.get("show_trades", False),
             # --- END ADDED ---
+            neat_network=neat_network,
+            neat_feature_names=neat_feature_names,
+            neat_param_bounds=neat_param_bounds,
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
@@ -258,10 +266,29 @@ class Plugin:
         This replicates the original HeuristicStrategy exactly.
         """
         # --- Updated __init__ method of HeuristicStrategy ---
-        def __init__(self, pred_df, pip_cost, rel_volume, min_order_volume, max_order_volume,
-                     leverage, profit_threshold, min_drawdown_pips,
-                     tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                     max_trades_per_5days, use_first_match, show_trade_logs=False, *args, **kwargs): # Added use_first_match
+        def __init__(
+            self,
+            pred_df,
+            pip_cost,
+            rel_volume,
+            min_order_volume,
+            max_order_volume,
+            leverage,
+            profit_threshold,
+            min_drawdown_pips,
+            tp_multiplier,
+            sl_multiplier,
+            lower_rr_threshold,
+            upper_rr_threshold,
+            max_trades_per_5days,
+            use_first_match,
+            show_trade_logs=False,
+            neat_network=None,
+            neat_feature_names=None,
+            neat_param_bounds=None,
+            *args,
+            **kwargs,
+        ):  # Added use_first_match
             super().__init__()
             # --- ADDED: Store use_first_match directly ---
             self.use_first_match = use_first_match
@@ -269,6 +296,18 @@ class Plugin:
             # --- END ADDED ---
 
             self.pred_df = pred_df
+            self.neat_network = neat_network
+            self.neat_feature_names = list(neat_feature_names or [])
+            self.neat_param_bounds = list(neat_param_bounds or [])
+            self._positional_feature_names = ["hour_sin", "hour_cos", "dow_sin", "dow_cos"]
+            if self.neat_network is not None and not self.neat_feature_names and hasattr(self.pred_df, "columns"):
+                self.neat_feature_names = list(self.pred_df.columns) + self._positional_feature_names
+            self.neat_enabled = bool(
+                self.neat_network is not None
+                and self.neat_feature_names
+                and self.neat_param_bounds
+            )
+            self.current_neat_params = {}
             # --- Assuming manual parameter storage based on visible code ---
             # Create a namespace or similar if self.params doesn't exist
             if not hasattr(self, 'params'):
@@ -326,6 +365,81 @@ class Plugin:
                 self.balance_history.append(self.initial_balance)
                 self.date_history.append(dt)
 
+        def _sigmoid(self, x):
+            try:
+                return 1.0 / (1.0 + math.exp(-x))
+            except OverflowError:
+                return 0.0 if x < 0 else 1.0
+
+        def _decode_neat_outputs(self, outputs):
+            if not self.neat_param_bounds:
+                return {}
+            decoded = {}
+            for value, (name, low, high) in zip(outputs, self.neat_param_bounds):
+                span = float(high) - float(low)
+                mapped = float(low) + span * self._sigmoid(value)
+                decoded[name] = mapped
+            lower = decoded.get("lower_rr_threshold")
+            upper = decoded.get("upper_rr_threshold")
+            if lower is not None and upper is not None and upper <= lower:
+                decoded["upper_rr_threshold"] = lower + 0.1
+            return decoded
+
+        def _build_neat_feature_vector(self, row, dt_hour):
+            if not self.neat_feature_names:
+                return []
+            if isinstance(row, pd.DataFrame):
+                row = row.iloc[-1]
+            features = []
+            hour = dt_hour.hour + (dt_hour.minute / 60.0)
+            hour_angle = 2 * math.pi * hour / 24.0
+            dow = dt_hour.weekday()
+            dow_angle = 2 * math.pi * dow / 7.0
+            positional_values = {
+                "hour_sin": math.sin(hour_angle),
+                "hour_cos": math.cos(hour_angle),
+                "dow_sin": math.sin(dow_angle),
+                "dow_cos": math.cos(dow_angle),
+            }
+            for name in self.neat_feature_names:
+                if name in positional_values:
+                    features.append(positional_values[name])
+                    continue
+                raw = 0.0
+                if hasattr(row, "get"):
+                    raw = row.get(name, 0.0)
+                elif isinstance(row, dict):
+                    raw = row.get(name, 0.0)
+                try:
+                    value = float(raw)
+                except Exception:
+                    value = 0.0
+                if pd.isna(value):
+                    value = 0.0
+                features.append(value)
+            return features
+
+        def _update_neat_params(self, dt_hour, row):
+            if not self.neat_enabled or self.neat_network is None:
+                return
+            if row is None or (hasattr(row, "empty") and row.empty):
+                return
+            features = self._build_neat_feature_vector(row, dt_hour)
+            if not features:
+                return
+            try:
+                outputs = self.neat_network.activate(features)
+            except Exception as err:
+                print(f"[NEAT][Strategy] Network activation failed: {err}. Disabling dynamic params.")
+                self.neat_enabled = False
+                return
+            decoded = self._decode_neat_outputs(outputs)
+            if not decoded:
+                return
+            self.current_neat_params = decoded
+            for key, value in decoded.items():
+                setattr(self.params, key, value)
+
         # --- Corrected next() method ---
         def next(self):
             dt = self.data0.datetime.datetime(0)
@@ -344,6 +458,9 @@ class Plugin:
 
             if dt_hour in self.pred_df.index:
                 row = self.pred_df.loc[dt_hour]
+                if isinstance(row, pd.DataFrame):
+                    row = row.iloc[-1]
+                self._update_neat_params(dt_hour, row)
                 try:
                     daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds + 1)]
                     if not daily_preds or all(pd.isna(p) for p in daily_preds):

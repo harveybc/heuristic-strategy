@@ -68,6 +68,10 @@ class Plugin:
         self._current_population_total = 0
         self._use_progress_bar = True
         self._eval_context = "train"
+        self._active_uncertainty_hourly = None
+        self._active_uncertainty_daily = None
+        self._current_candidate_net = None
+        self._neat_config = None
 
     # ------------------------------------------------------------------
     # Shared plugin contract helpers
@@ -104,6 +108,10 @@ class Plugin:
             self._config.get("show_progress_bar", self.params.get("show_progress_bar", True))
         )
         self._eval_context = "train"
+        self._active_uncertainty_hourly = None
+        self._active_uncertainty_daily = None
+        self._current_candidate_net = None
+        self._neat_config = None
 
     def evaluate_individual(self, candidate: List[float]):
         if self._strategy_plugin is None:
@@ -124,6 +132,15 @@ class Plugin:
         )
 
         cfg = dict(self._config)
+        candidate_net = getattr(self, "_current_candidate_net", None)
+        if candidate_net is not None:
+            cfg["neat_network"] = candidate_net
+            cfg["neat_feature_names"] = list(self._feature_names)
+            cfg["neat_param_bounds"] = list(self._optimizable_params)
+        if self._active_uncertainty_hourly is not None:
+            cfg["uncertainty_hourly"] = self._active_uncertainty_hourly
+        if self._active_uncertainty_daily is not None:
+            cfg["uncertainty_daily"] = self._active_uncertainty_daily
         result = self._strategy_plugin.evaluate_candidate(
             candidate,
             self._base_data,
@@ -266,6 +283,8 @@ class Plugin:
 
         merged = merged.sort_index()
         merged = merged[column_order]
+        self._active_uncertainty_hourly = uncertainty_hourly
+        self._active_uncertainty_daily = uncertainty_daily
         return merged, column_order
 
     def _prepare_uncertainty_frame(
@@ -501,9 +520,13 @@ min_species_size   = {min_species_size}
             self._eval_context = "train"
             self._current_population_index = idx
             net = nn.FeedForwardNetwork.create(genome, neat_config)
-            outputs = net.activate(self._feature_vector)
-            candidate = self._decode_output_vector(outputs)
-            profit, stats = self.evaluate_individual(candidate)
+            self._current_candidate_net = net
+            try:
+                outputs = net.activate(self._feature_vector)
+                candidate = self._decode_output_vector(outputs)
+                profit, stats = self.evaluate_individual(candidate)
+            finally:
+                self._current_candidate_net = None
             if progress_bar is not None:
                 progress_bar.set_postfix({"profit": f"{profit:.2f}"}, refresh=False)
             genome.fitness = profit
@@ -512,6 +535,7 @@ min_species_size   = {min_species_size}
                 "train_profit": profit,
                 "train_stats": stats,
                 "genome": genome,
+                "net": net,
             }
             self._last_generation_fitness.append(profit)
             self._last_genome_records[genome_id] = record
@@ -525,7 +549,7 @@ min_species_size   = {min_species_size}
         self._current_population_index = 0
         self._current_population_total = 0
 
-    def _evaluate_on_dataset(self, candidate, dataset_tuple, dataset_label="validation"):
+    def _evaluate_on_dataset(self, candidate, dataset_tuple, dataset_label="validation", genome=None, net=None):
         if dataset_tuple is None:
             return None, {}
         base_df, hourly_df, daily_df = dataset_tuple
@@ -539,6 +563,9 @@ min_species_size   = {min_species_size}
             self._feature_vector,
             self._feature_names,
             getattr(self, "_eval_context", "train"),
+            self._active_uncertainty_hourly,
+            self._active_uncertainty_daily,
+            getattr(self, "_current_candidate_net", None),
         )
 
         self._base_data, self._hourly_predictions, self._daily_predictions = dataset_tuple
@@ -571,6 +598,15 @@ min_species_size   = {min_species_size}
             print("[VALIDATION] show_validation_trades enabled -> printing trades for validation dataset only.")
             self._config["show_trades"] = True
 
+        candidate_net = net
+        if candidate_net is None and genome is not None and self._neat_config is not None:
+            try:
+                candidate_net = nn.FeedForwardNetwork.create(genome, self._neat_config)
+            except Exception as build_err:
+                print(f"[{context_label.upper()}][NEAT] Failed to rebuild network for dataset eval: {build_err}")
+                candidate_net = None
+        self._current_candidate_net = candidate_net
+
         try:
             profit, stats = self.evaluate_individual(candidate)
         finally:
@@ -582,6 +618,9 @@ min_species_size   = {min_species_size}
                 self._feature_names,
             ) = prev[:5]
             self._eval_context = prev[5]
+            self._active_uncertainty_hourly = prev[6]
+            self._active_uncertainty_daily = prev[7]
+            self._current_candidate_net = prev[8]
 
             if validation_trades_requested:
                 if prev_show_trades is prev_show_trades_marker:
@@ -630,7 +669,11 @@ min_species_size   = {min_species_size}
         val_stats = {}
         if self._validation_frames is not None:
             val_profit, val_stats = self._evaluate_on_dataset(
-                record["candidate"], self._validation_frames, dataset_label="validation"
+                record["candidate"],
+                self._validation_frames,
+                dataset_label="validation",
+                genome=record.get("genome"),
+                net=record.get("net"),
             )
             if val_profit is not None:
                 print(f"  Validation Profit (gen {generation}): {val_profit:.2f}")
@@ -717,6 +760,7 @@ min_species_size   = {min_species_size}
             print(f"  {name}: [{low}, {high}]")
 
         neat_config = self._build_neat_config(len(self._feature_vector))
+        self._neat_config = neat_config
         population = neat.Population(neat_config)
 
         max_generations = int(self.params.get("max_generations", 80))
@@ -726,6 +770,7 @@ min_species_size   = {min_species_size}
                 self._current_epoch = gen
                 population.run(self._eval_genomes, 1)
                 self._handle_generation_complete(gen, max_generations)
+                self._log_species_summary(population, gen)
         except _EarlyStopException:
             pass
 
@@ -764,7 +809,11 @@ min_species_size   = {min_species_size}
         test_stats = {}
         if self._test_frames is not None:
             test_profit, test_stats = self._evaluate_on_dataset(
-                best_candidate, self._test_frames, dataset_label="test"
+                best_candidate,
+                self._test_frames,
+                dataset_label="test",
+                genome=self._best_record.get("genome") if self._best_record else None,
+                net=self._best_record.get("net") if self._best_record else None,
             )
             if test_profit is not None:
                 test_profit = float(test_profit)
@@ -860,3 +909,33 @@ min_species_size   = {min_species_size}
             )
 
         return result_payload
+
+    def _log_species_summary(self, population, generation):
+        species_container = getattr(population, "species", None)
+        if species_container is None:
+            return
+        species_dict = getattr(species_container, "species", None)
+        if not species_dict:
+            print(f"[NEAT][Species][Epoch {generation}] No active species")
+            return
+        compat_threshold = None
+        try:
+            compat_threshold = population.config.species_set_config.compatibility_threshold
+        except Exception:
+            compat_threshold = None
+        thresh_str = f"{compat_threshold:.2f}" if compat_threshold is not None else "N/A"
+        print(
+            f"[NEAT][Species][Epoch {generation}] count={len(species_dict)} | compatibility_threshold={thresh_str}"
+        )
+        for species_id, species in species_dict.items():
+            members = getattr(species, "members", {}) or {}
+            size = len(members)
+            best_fitness = None
+            for genome in members.values():
+                fitness = getattr(genome, "fitness", None)
+                if fitness is None:
+                    continue
+                if best_fitness is None or fitness > best_fitness:
+                    best_fitness = fitness
+            best_str = f"{best_fitness:.2f}" if best_fitness is not None else "N/A"
+            print(f"  Species {species_id}: size={size}, best_profit={best_str}")
