@@ -29,10 +29,10 @@ class Plugin:
         "elitism": 2,
         "survival_threshold": 0.2,
         "min_species_size": 2,
-        "stagnation_limit": 15,
+        "stagnation_limit": 5,
         "weight_mutation_power": 2.5,
         "bias_mutation_power": 0.5,
-        "compatibility_threshold": 3.4,
+        "compatibility_threshold": 3.2,
         "activation_default": "identity",
         "activation_functions": ["identity", "sigmoid", "tanh", "relu"],
         "aggregation_default": "sum",
@@ -42,7 +42,7 @@ class Plugin:
         "patience": 30,
         "show_progress_bar": True,
         "target_species_count": 0,
-        "compatibility_adjust_rate": 0.15,
+        "compatibility_adjust_rate": 0.01,
         "enable_neat_default_reporter": True,
         "validation_improvement_epsilon": 1e-9,
     }
@@ -969,6 +969,7 @@ min_species_size   = {min_species_size}
             f"[NEAT][Species][Epoch {generation}] count={species_count} | compatibility_threshold={thresh_str}"
         )
         sizes = []
+        stagnated_species = 0
         for species_id, species in species_dict.items():
             members = getattr(species, "members", {}) or {}
             size = len(members)
@@ -983,6 +984,18 @@ min_species_size   = {min_species_size}
             best_str = f"{best_fitness:.2f}" if best_fitness is not None else "N/A"
             age = getattr(species, "age", "?")
             stag = getattr(species, "last_improved", "?")
+            try:
+                last_improved = int(stag)
+                current_gen = getattr(species, "created", 0) + age
+                stagnation_span = current_gen - last_improved if last_improved is not None else age
+                if (
+                    last_improved is not None
+                    and self.params.get("stagnation_limit") is not None
+                    and stagnation_span >= int(self.params.get("stagnation_limit", 0))
+                ):
+                    stagnated_species += 1
+            except Exception:
+                pass
             print(
                 f"  Species {species_id}: size={size}, best_profit={best_str}, age={age}, last_improved={stag}"
             )
@@ -1017,9 +1030,9 @@ min_species_size   = {min_species_size}
         else:
             print("    Representative distance stats => insufficient data")
 
-        self._maybe_adjust_compatibility(population, species_count)
+        self._maybe_adjust_compatibility(population, species_count, stagnated_species)
 
-    def _maybe_adjust_compatibility(self, population, species_count: int):
+    def _maybe_adjust_compatibility(self, population, species_count: int, stagnated_species: int = 0):
         if population is None or species_count <= 0:
             return
         target = self._config.get(
@@ -1051,12 +1064,18 @@ min_species_size   = {min_species_size}
         upper_bound = target * 1.2
         new_threshold = None
         direction = None
+        reason = None
+
         if species_count < lower_bound:
             new_threshold = max(0.1, threshold * (1 - adjust_rate))
             direction = "decreased"
+            reason = "below target"
         elif species_count > upper_bound:
+            if stagnated_species <= 0:
+                return
             new_threshold = threshold * (1 + adjust_rate)
             direction = "increased"
+            reason = f"above target with {stagnated_species} stagnated"
 
         if new_threshold is None or abs(new_threshold - threshold) < 1e-6:
             return
@@ -1068,5 +1087,5 @@ min_species_size   = {min_species_size}
             pass
         print(
             f"[NEAT][Species] Auto-adjusted compatibility threshold {direction} to {new_threshold:.3f} "
-            f"(target={target:.1f}, actual={species_count})"
+            f"(target={target:.1f}, actual={species_count}, stagnated={stagnated_species}, reason={reason})"
         )
