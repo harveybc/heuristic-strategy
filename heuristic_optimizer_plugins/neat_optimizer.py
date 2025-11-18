@@ -43,7 +43,7 @@ class Plugin:
         "target_species_count": 0,
         "compatibility_adjust_rate": 0.15,
         "enable_neat_default_reporter": True,
-        "validation_improvement_epsilon": 1e-6,
+        "validation_improvement_epsilon": 1e-9,
     }
 
     def __init__(self):
