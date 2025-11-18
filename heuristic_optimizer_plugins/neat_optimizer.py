@@ -262,8 +262,13 @@ class Plugin:
         current_cols = df.shape[1]
         if current_cols < expected_cols:
             pad_count = expected_cols - current_cols
-            for idx in range(pad_count):
-                df[f"__pad_{idx}"] = default_value
+            pad_columns = [f"__pad_{idx}" for idx in range(pad_count)]
+            pad_df = pd.DataFrame(
+                default_value,
+                index=df.index,
+                columns=pad_columns,
+            )
+            df = pd.concat([df, pad_df], axis=1)
             df = df.iloc[:, :expected_cols]
         df.columns = columns
         return df
@@ -554,7 +559,12 @@ min_species_size   = {min_species_size}
                     f"  No validation improvement. Patience counter: {self._epochs_without_improve}/{self._patience}"
                 )
             best_pf_str = f"{self._best_val_profit:.2f}" if self._best_val_profit is not None else "N/A"
-            print(f"[Epoch {generation}] LastBestProfit={best_pf_str} | Patience={self._epochs_without_improve}/{self._patience}")
+            patience_limit = self._patience if self._patience else 0
+            status = "IMPROVED" if improved else "WAITING"
+            print(
+                f"[EarlyStop][Epoch {generation}] Status={status} | ValProfit={val_profit:.2f} | "
+                f"BestValProfit={best_pf_str} | Patience={self._epochs_without_improve}/{patience_limit}"
+            )
             if self._patience > 0 and self._epochs_without_improve >= self._patience and not improved:
                 print("Early stopping triggered: validation profit did not improve within patience.")
                 raise _EarlyStopException()
