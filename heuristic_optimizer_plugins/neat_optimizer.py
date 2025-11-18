@@ -503,10 +503,25 @@ min_species_size   = {min_species_size}
         base_df, hourly_df, daily_df = dataset_tuple
         if base_df is None or hourly_df is None or daily_df is None:
             return None, {}
-        prev = (self._base_data, self._hourly_predictions, self._daily_predictions)
+        prev = (
+            self._base_data,
+            self._hourly_predictions,
+            self._daily_predictions,
+            self._feature_vector,
+            self._feature_names,
+        )
         self._base_data, self._hourly_predictions, self._daily_predictions = dataset_tuple
-        profit, stats = self.evaluate_individual(candidate)
-        self._base_data, self._hourly_predictions, self._daily_predictions = prev
+        self._feature_vector, self._feature_names = self._build_feature_vector()
+        try:
+            profit, stats = self.evaluate_individual(candidate)
+        finally:
+            (
+                self._base_data,
+                self._hourly_predictions,
+                self._daily_predictions,
+                self._feature_vector,
+                self._feature_names,
+            ) = prev
         return profit, stats
 
     def _serialize_genome(self, genome):
