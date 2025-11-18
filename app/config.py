@@ -21,7 +21,7 @@ DEFAULT_VALUES = {
     "plugin": "default",
     "optimizer_plugin": "ga_optimizer",
     "time_horizon": 6,
-    "population_size": 25,
+    "population_size": 5,
     "max_generations": 250,
     # Early stopping patience (epochs without validation improvement before stopping)
     "patience": 15,
