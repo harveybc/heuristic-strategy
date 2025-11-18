@@ -679,11 +679,23 @@ def run_processing_pipeline(config, plugin, optimizer_plugin):
             # For optimization, provide supersets so per-candidate selection doesn't require recomputation
             # Short-term superset: H1..H48, Long-term superset: H1..H144 (all in hours)
             try:
+                hourly_cols = list(hourly_preds.columns)
+                daily_cols = list(daily_preds.columns)
                 def build_supersets(base_df):
-                    hs = _create_predictions_at_offsets(base_df["CLOSE"], list(range(1, 49)))
-                    hs.columns = [f"Prediction_H{i}" for i in range(1, 49)]
-                    ds = _create_predictions_at_offsets(base_df["CLOSE"], list(range(1, 145)))
-                    ds.columns = [f"Prediction_H{i}" for i in range(1, 145)]
+                    hs = _create_predictions_at_offsets(base_df["CLOSE"], hourly_offsets)
+                    if hs.empty:
+                        raise ValueError(
+                            "Validation/Test hourly prediction superset is empty. "
+                            "Ensure the dataset has more rows than the maximum hourly horizon."
+                        )
+                    hs.columns = hourly_cols
+                    ds = _create_predictions_at_offsets(base_df["CLOSE"], daily_offsets)
+                    if ds.empty:
+                        raise ValueError(
+                            "Validation/Test daily prediction superset is empty. "
+                            "Ensure the dataset has more rows than the maximum daily horizon."
+                        )
+                    ds.columns = daily_cols
                     # Apply Gaussian noise to supersets if configured
                     hs = _apply_gaussian_noise(
                         hs,
@@ -698,6 +710,10 @@ def run_processing_pipeline(config, plugin, optimizer_plugin):
                         label="superset-daily",
                     )
                     common_idx = base_df.index.intersection(hs.index).intersection(ds.index)
+                    if common_idx.empty:
+                        raise ValueError(
+                            "Validation/Test supersets have no overlapping timestamps after alignment."
+                        )
                     return base_df.loc[common_idx], hs.loc[common_idx], ds.loc[common_idx]
 
                 # Train supersets
