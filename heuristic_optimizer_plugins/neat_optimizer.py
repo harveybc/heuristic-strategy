@@ -40,6 +40,9 @@ class Plugin:
         "structural_mutation_surer": "default",
         "patience": 10,
         "show_progress_bar": True,
+        "target_species_count": 0,
+        "compatibility_adjust_rate": 0.15,
+        "enable_neat_default_reporter": True,
     }
 
     def __init__(self):
@@ -72,6 +75,8 @@ class Plugin:
         self._active_uncertainty_daily = None
         self._current_candidate_net = None
         self._neat_config = None
+        self._stdout_reporter = None
+        self._stats_reporter = None
 
     # ------------------------------------------------------------------
     # Shared plugin contract helpers
@@ -112,6 +117,8 @@ class Plugin:
         self._active_uncertainty_daily = None
         self._current_candidate_net = None
         self._neat_config = None
+        self._stdout_reporter = None
+        self._stats_reporter = None
 
     def evaluate_individual(self, candidate: List[float]):
         if self._strategy_plugin is None:
@@ -762,6 +769,17 @@ min_species_size   = {min_species_size}
         neat_config = self._build_neat_config(len(self._feature_vector))
         self._neat_config = neat_config
         population = neat.Population(neat_config)
+        if self._config.get("enable_neat_default_reporter", self.params.get("enable_neat_default_reporter", True)):
+            try:
+                self._stdout_reporter = neat.reporting.StdOutReporter(True)
+                population.add_reporter(self._stdout_reporter)
+            except Exception as reporter_err:
+                print(f"[NEAT][Reporter] Failed to attach StdOutReporter: {reporter_err}")
+        try:
+            self._stats_reporter = neat.StatisticsReporter()
+            population.add_reporter(self._stats_reporter)
+        except Exception as stats_err:
+            print(f"[NEAT][Reporter] Failed to attach StatisticsReporter: {stats_err}")
 
         max_generations = int(self.params.get("max_generations", 80))
         self._num_generations = max_generations
@@ -923,13 +941,16 @@ min_species_size   = {min_species_size}
             compat_threshold = population.config.species_set_config.compatibility_threshold
         except Exception:
             compat_threshold = None
+        species_count = len(species_dict)
         thresh_str = f"{compat_threshold:.2f}" if compat_threshold is not None else "N/A"
         print(
-            f"[NEAT][Species][Epoch {generation}] count={len(species_dict)} | compatibility_threshold={thresh_str}"
+            f"[NEAT][Species][Epoch {generation}] count={species_count} | compatibility_threshold={thresh_str}"
         )
+        sizes = []
         for species_id, species in species_dict.items():
             members = getattr(species, "members", {}) or {}
             size = len(members)
+            sizes.append(size)
             best_fitness = None
             for genome in members.values():
                 fitness = getattr(genome, "fitness", None)
@@ -938,4 +959,92 @@ min_species_size   = {min_species_size}
                 if best_fitness is None or fitness > best_fitness:
                     best_fitness = fitness
             best_str = f"{best_fitness:.2f}" if best_fitness is not None else "N/A"
-            print(f"  Species {species_id}: size={size}, best_profit={best_str}")
+            age = getattr(species, "age", "?")
+            stag = getattr(species, "last_improved", "?")
+            print(
+                f"  Species {species_id}: size={size}, best_profit={best_str}, age={age}, last_improved={stag}"
+            )
+
+        if sizes:
+            avg_size = sum(sizes) / len(sizes)
+            print(
+                f"    Size stats => avg={avg_size:.2f}, min={min(sizes)}, max={max(sizes)}, total={sum(sizes)}"
+            )
+
+        genome_config = getattr(population.config, "genome_config", None)
+        rep_distances: List[float] = []
+        if genome_config is not None:
+            representatives = []
+            for species in species_dict.values():
+                rep = getattr(species, "representative", None)
+                if rep is not None:
+                    representatives.append(rep)
+            for idx in range(len(representatives)):
+                for jdx in range(idx + 1, len(representatives)):
+                    try:
+                        dist = representatives[idx].distance(representatives[jdx], genome_config)
+                        rep_distances.append(dist)
+                    except Exception:
+                        continue
+        if rep_distances:
+            avg_dist = sum(rep_distances) / len(rep_distances)
+            print(
+                f"    Representative distance stats => avg={avg_dist:.4f}, min={min(rep_distances):.4f}, "
+                f"max={max(rep_distances):.4f}, samples={len(rep_distances)}"
+            )
+        else:
+            print("    Representative distance stats => insufficient data")
+
+        self._maybe_adjust_compatibility(population, species_count)
+
+    def _maybe_adjust_compatibility(self, population, species_count: int):
+        if population is None or species_count <= 0:
+            return
+        target = self._config.get(
+            "target_species_count",
+            self.params.get("target_species_count", 0),
+        )
+        try:
+            target = float(target)
+        except (TypeError, ValueError):
+            target = 0.0
+        if target <= 0:
+            return
+        adjust_rate = self._config.get(
+            "compatibility_adjust_rate",
+            self.params.get("compatibility_adjust_rate", 0.0),
+        )
+        try:
+            adjust_rate = float(adjust_rate)
+        except (TypeError, ValueError):
+            adjust_rate = 0.0
+        if adjust_rate <= 0:
+            return
+
+        threshold = getattr(population.config.species_set_config, "compatibility_threshold", None)
+        if threshold is None:
+            return
+
+        lower_bound = target * 0.8
+        upper_bound = target * 1.2
+        new_threshold = None
+        direction = None
+        if species_count < lower_bound:
+            new_threshold = max(0.1, threshold * (1 - adjust_rate))
+            direction = "decreased"
+        elif species_count > upper_bound:
+            new_threshold = threshold * (1 + adjust_rate)
+            direction = "increased"
+
+        if new_threshold is None or abs(new_threshold - threshold) < 1e-6:
+            return
+
+        population.config.species_set_config.compatibility_threshold = new_threshold
+        try:
+            population.species.species_set.compatibility_threshold = new_threshold
+        except Exception:
+            pass
+        print(
+            f"[NEAT][Species] Auto-adjusted compatibility threshold {direction} to {new_threshold:.3f} "
+            f"(target={target:.1f}, actual={species_count})"
+        )
