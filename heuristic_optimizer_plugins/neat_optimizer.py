@@ -213,6 +213,7 @@ class Plugin:
         daily_df = daily.rename(columns=renamed_d).copy()
 
         merged = hourly_df.join(daily_df, how="outer")
+        context = getattr(self, "_eval_context", "train").upper()
 
         num_hourly = hourly_df.shape[1]
         num_daily = daily_df.shape[1]
@@ -235,12 +236,26 @@ class Plugin:
             daily_df.index if not daily_df.empty else merged.index,
         )
 
-        if uncertainty_hourly is not None and not uncertainty_hourly.empty:
-            merged = merged.join(uncertainty_hourly, how="inner")
-        if uncertainty_daily is not None and not uncertainty_daily.empty:
-            merged = merged.join(uncertainty_daily, how="inner")
+        def _safe_join(current, extra, label):
+            if extra is None or extra.empty:
+                if context != "TRAIN":
+                    print(f"[{context}][Uncertainty] {label} frame missing or empty; skipping join.")
+                return current
+            before_rows = len(current)
+            joined = current.join(extra, how="left")
+            if joined.empty and before_rows > 0:
+                print(
+                    f"[{context}][Uncertainty] Left-join with {label} dropped all rows. "
+                    "Retrying without this uncertainty frame."
+                )
+                return current
+            return joined
+
+        merged = _safe_join(merged, uncertainty_hourly, "hourly")
+        merged = _safe_join(merged, uncertainty_daily, "daily")
 
         if merged.empty:
+            print(f"[{context}][Features] Prediction frame empty after merging uncertainties.")
             return None, []
 
         column_order: List[str] = list(hourly_df.columns) + list(daily_df.columns)
