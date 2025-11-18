@@ -272,7 +272,6 @@ class Plugin:
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = {self.params.get('fitness_threshold', 2500.0)}
-population_size       = {pop_size}
 pop_size              = {pop_size}
 no_fitness_termination = {str(self.params.get('no_fitness_termination', False)).lower()}
 reset_on_extinction   = False
