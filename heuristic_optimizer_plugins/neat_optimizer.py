@@ -24,7 +24,7 @@ class Plugin:
     plugin_params = {
         "population_size": 25,
         "max_generations": 250,
-        "fitness_threshold": 2500.0,
+        "fitness_threshold": 1e9,
         "elitism": 2,
         "survival_threshold": 0.2,
         "min_species_size": 2,
