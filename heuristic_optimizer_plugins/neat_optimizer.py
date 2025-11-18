@@ -22,8 +22,8 @@ class Plugin:
     """Optimizer plugin that drives the Heuristic Strategy via NEAT."""
 
     plugin_params = {
-        "population_size": 150,
-        "max_generations": 80,
+        "population_size": 25,
+        "max_generations": 250,
         "fitness_threshold": 2500.0,
         "elitism": 2,
         "survival_threshold": 0.2,
