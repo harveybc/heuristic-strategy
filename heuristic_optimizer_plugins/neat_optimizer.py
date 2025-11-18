@@ -152,13 +152,16 @@ class Plugin:
         hourly = self._hourly_predictions
         daily = self._daily_predictions
 
+        st_cols = list(getattr(hourly, "columns", [])) if hourly is not None else []
+        lt_cols = list(getattr(daily, "columns", [])) if daily is not None else []
+
         st_mae, st_naive = _aggregate_mae_and_naive_for_sets(
             base_df,
-            [(hourly, getattr(hourly, "columns", []))],
+            [(hourly, st_cols)],
         )
         lt_mae, lt_naive = _aggregate_mae_and_naive_for_sets(
             base_df,
-            [(daily, getattr(daily, "columns", []))],
+            [(daily, lt_cols)],
         )
 
         def _ratio(a, b):
