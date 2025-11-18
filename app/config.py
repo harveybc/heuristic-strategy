@@ -30,6 +30,8 @@ DEFAULT_VALUES = {
     "gaussian_noise_stddev": 0.02,
     "crossover_probability": 0.2,
     "mutation_probability": 0.1,
+    "target_species_count": 6,
+    "compatibility_adjust_rate": 0.15,
     "use_hourly": False,
     "show_trades": False,
     "show_validation_trades": False,
