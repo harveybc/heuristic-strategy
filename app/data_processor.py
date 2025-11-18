@@ -559,6 +559,32 @@ def run_processing_pipeline(config, plugin, optimizer_plugin):
     strat_name = config.get("strategy_name", "Heuristic Strategy")
     print(f"\n=== Starting Trading Strategy Optimization Pipeline for '{strat_name}' ===")
 
+    def _apply_neat_prediction_defaults(cfg):
+        optimizer_name = str(cfg.get("optimizer_plugin", "")).strip().lower()
+        class_name = getattr(getattr(optimizer_plugin, "__class__", None), "__name__", "").lower()
+        is_neat = "neat" in optimizer_name or "neat" in class_name
+        if not is_neat:
+            return
+
+        overrides = {
+            "short_term_max_horizon": 24,
+            "short_term_num_predictions": 24,
+            "long_term_max_horizon": 120,
+            "long_term_num_predictions": 120,
+        }
+        applied = []
+        for key, value in overrides.items():
+            if cfg.get(key) is None:
+                cfg[key] = value
+                applied.append(f"{key}={value}")
+        if applied:
+            print(
+                "[NEAT][Config] Applied fixed prediction horizons for NEAT optimizer: "
+                + ", ".join(applied)
+            )
+
+    _apply_neat_prediction_defaults(config)
+
     datasets = process_data(config)
     hourly_preds = datasets["hourly"]
     daily_preds = datasets["daily"]

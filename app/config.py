@@ -85,11 +85,11 @@ DEFAULT_VALUES = {
     # These can be made optimizable by the strategy plugin.
     # ---------------------------------------------------------------------
     # Short-term (hourly) dynamic settings
-    "short_term_max_horizon": None,        # e.g. 6
-    "short_term_num_predictions": None,   # e.g. 3
+    "short_term_max_horizon": 24,        # e.g. 6
+    "short_term_num_predictions": 24,   # e.g. 3
     # Long-term (daily/multi-hour) dynamic settings
-    "long_term_max_horizon": None,        # e.g. 144 (hours)
-    "long_term_num_predictions": None,    # e.g. 6 or 12
+    "long_term_max_horizon": 120,        # e.g. 144 (hours)
+    "long_term_num_predictions": 120,    # e.g. 6 or 12
     # NOTE: Periodicity implied by uniform spacing; an explicit periodicity
     # parameter can be derived as (max_horizon-1)/(num_predictions-1) when
     # num_predictions > 1. If a future explicit parameter is needed, it can
