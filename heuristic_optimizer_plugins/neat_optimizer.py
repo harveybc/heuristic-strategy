@@ -216,7 +216,9 @@ class Plugin:
             if not aligned_idx.empty:
                 h_vals = hourly.loc[aligned_idx]
                 d_vals = daily.loc[aligned_idx]
-                prediction_spread = _safe(np.mean(np.abs(h_vals.values - d_vals.values)), 0.0)
+                h_mean = h_vals.mean(axis=1)
+                d_mean = d_vals.mean(axis=1)
+                prediction_spread = _safe(np.mean(np.abs(h_mean.values - d_mean.values)), 0.0)
 
         u_hourly = self._config.get("uncertainty_hourly")
         u_daily = self._config.get("uncertainty_daily")
