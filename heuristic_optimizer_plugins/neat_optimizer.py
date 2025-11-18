@@ -8,6 +8,7 @@ import neat
 from neat import nn
 import numpy as np
 import pandas as pd  # type: ignore
+from tqdm import tqdm  # type: ignore
 
 from app.optimizer import (
     _aggregate_mae_and_naive_for_sets,
@@ -38,6 +39,7 @@ class Plugin:
         "single_structural_mutation": True,
         "structural_mutation_surer": "default",
         "patience": 10,
+        "show_progress_bar": True,
     }
 
     def __init__(self):
@@ -62,6 +64,9 @@ class Plugin:
         self._validation_frames: Optional[Tuple] = None
         self._test_frames: Optional[Tuple] = None
         self._best_genome_snapshot = None
+        self._current_population_index = 0
+        self._current_population_total = 0
+        self._use_progress_bar = True
 
     # ------------------------------------------------------------------
     # Shared plugin contract helpers
@@ -94,14 +99,22 @@ class Plugin:
         self._epochs_without_improve = 0
         self._patience = int(self._config.get("patience", self.params.get("patience", 10)) or 0)
         self._best_genome_snapshot = None
+        self._use_progress_bar = bool(
+            self._config.get("show_progress_bar", self.params.get("show_progress_bar", True))
+        )
 
     def evaluate_individual(self, candidate: List[float]):
         if self._strategy_plugin is None:
             print("[EVALUATE] ERROR: Strategy plugin is not set!")
             return -1e6, {}
 
+        progress_note = ""
+        if self._current_population_total:
+            progress_note = f"[{self._current_population_index}/{self._current_population_total}] "
+
         print(
-            f"[EVALUATE][Epoch {self._current_epoch}/{self._num_generations}] Evaluating candidate (genome): {candidate}"
+            f"[EVALUATE][Epoch {self._current_epoch}/{self._num_generations}] {progress_note}"
+            f"Evaluating candidate (genome): {candidate}"
         )
 
         cfg = dict(self._config)
@@ -424,11 +437,32 @@ min_species_size   = {min_species_size}
         self._last_genome_records = {}
         self._last_generation_best_key = None
 
-        for genome_id, genome in genomes:
+        genome_list = list(genomes)
+        total = len(genome_list)
+        self._current_population_total = total
+        progress_iter = genome_list
+        progress_bar = None
+        if self._use_progress_bar and total > 0:
+            try:
+                progress_bar = tqdm(
+                    genome_list,
+                    total=total,
+                    desc=f"Epoch {self._current_epoch} eval",
+                    unit="genome",
+                    leave=False,
+                )
+                progress_iter = progress_bar
+            except Exception:
+                progress_bar = None
+
+        for idx, (genome_id, genome) in enumerate(progress_iter, 1):
+            self._current_population_index = idx
             net = nn.FeedForwardNetwork.create(genome, neat_config)
             outputs = net.activate(self._feature_vector)
             candidate = self._decode_output_vector(outputs)
             profit, stats = self.evaluate_individual(candidate)
+            if progress_bar is not None:
+                progress_bar.set_postfix({"profit": f"{profit:.2f}"}, refresh=False)
             genome.fitness = profit
             record = {
                 "candidate": candidate,
@@ -442,6 +476,11 @@ min_species_size   = {min_species_size}
                 self._last_generation_best_key
             ]["train_profit"]:
                 self._last_generation_best_key = genome_id
+
+        if progress_bar is not None:
+            progress_bar.close()
+        self._current_population_index = 0
+        self._current_population_total = 0
 
     def _evaluate_on_dataset(self, candidate, dataset_tuple):
         if dataset_tuple is None:
