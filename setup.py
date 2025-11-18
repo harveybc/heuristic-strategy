@@ -12,6 +12,9 @@ setup(
         'heuristic_strategy.plugins': [
             'default=heuristic_strategy_plugins.plugin_long_short_predictions:Plugin',
             'ls_pred_strategy=heuristic_strategy_plugins.plugin_long_short_predictions:Plugin'
+        ],
+        'heuristic_strategy.optimizer_plugins': [
+            'ga_optimizer=app.optimizer:Plugin'
         ]
     },
     install_requires=[

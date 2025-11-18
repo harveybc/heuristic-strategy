@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import time
 from app.data_handler import load_csv
-from app.optimizer import run_optimizer
 from sklearn.metrics import mean_absolute_error, r2_score
 import json
 
@@ -10,8 +9,7 @@ import json
 # DATA PROCESSOR FOR TRADING STRATEGY OPTIMIZATION
 # =============================================================================
 #
-# Processes datasets and runs the optimizer.
-# Calls `run_optimizer()` from `app.optimizer` to optimize the trading strategy.
+# Processes datasets and runs the optimizer plugin provided at runtime.
 # =============================================================================
 
 def create_hourly_predictions(df, horizon):
@@ -543,19 +541,18 @@ def process_data(config):
         "uncertainty_daily": uncertainty_daily_df
     }
 
-def run_processing_pipeline(config, plugin):
+def run_processing_pipeline(config, plugin, optimizer_plugin):
     """
     Executes the trading strategy optimization pipeline.
     
     - Loads and processes datasets.
     - Computes and prints error metrics for each prediction horizon.
     - If config["load_parameters"] is provided, loads candidate parameters and evaluates the strategy once.
-    - Otherwise, runs full optimization via run_optimizer().
+    - Otherwise, runs full optimization via the provided optimizer plugin.
     - Renames the balance plot and saves trades and summary CSV files.
     - Saves best parameters if in optimization mode.
     """
     import json, os, pandas as pd, time
-    from app.optimizer import init_optimizer, evaluate_individual, run_optimizer
     from sklearn.metrics import mean_absolute_error, r2_score
 
     start_time = time.time()
@@ -653,8 +650,8 @@ def run_processing_pipeline(config, plugin):
                 loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"])
             ]
             print(f"Evaluating strategy with loaded parameters: {candidate}")
-            init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
-            result = evaluate_individual(candidate)
+            optimizer_plugin.init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
+            result = optimizer_plugin.evaluate_individual(candidate)
             if isinstance(result, tuple) and len(result) == 2:
                 profit, stats = result
             else:
@@ -738,7 +735,7 @@ def run_processing_pipeline(config, plugin):
                 base_test = hourly_test = daily_test = None
 
             # Run optimizer and then flatten the 'stats' dict into top-level keys
-            _raw_info = run_optimizer(
+            _raw_info = optimizer_plugin.run_optimizer(
                 plugin,
                 base_for_opt,
                 hourly_superset,

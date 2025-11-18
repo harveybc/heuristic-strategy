@@ -19,6 +19,7 @@ DEFAULT_VALUES = {
     "max_trades_per_5days": 3,
     "date_column": "DATE_TIME",
     "plugin": "default",
+    "optimizer_plugin": "ga_optimizer",
     "time_horizon": 6,
     "population_size": 25,
     "num_generations": 250,

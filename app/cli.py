@@ -16,6 +16,7 @@ def parse_args():
     
     # Plugin selection
     parser.add_argument('--plugin', type=str, help='Name of the strategy plugin to use.')
+    parser.add_argument('--optimizer_plugin', type=str, help='Name of the optimizer plugin to use.')
     
     # Optimizer configuration parameters
     parser.add_argument('--max_steps', type=int, help='Max number of ticks (steps)')

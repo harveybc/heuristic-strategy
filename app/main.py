@@ -59,31 +59,45 @@ def main():
     
     
     # --- CARGA DE PLUGINS ---
-    
-    # If no plugin is provided on CLI, use the one defined in configuration.
+
+    # Load strategy plugin
     if not cli_args.get('plugin'):
         cli_args['plugin'] = config.get('plugin', 'default')
 
     plugin_name = cli_args['plugin']
-    print(f"Loading plugin: {plugin_name}")
+    print(f"Loading strategy plugin: {plugin_name}")
     try:
-        # Load the plugin from the 'heuristic_strategy.plugins' namespace.
         plugin_class, _ = load_plugin('heuristic_strategy.plugins', plugin_name)
         plugin = plugin_class()
-        # Set plugin parameters based on merged configuration.
         plugin.set_params(**config)
     except Exception as e:
-        print(f"Failed to load or initialize plugin '{plugin_name}': {e}")
+        print(f"Failed to load or initialize strategy plugin '{plugin_name}': {e}")
+        sys.exit(1)
+
+    # Load optimizer plugin
+    if not cli_args.get('optimizer_plugin'):
+        cli_args['optimizer_plugin'] = config.get('optimizer_plugin', 'ga_optimizer')
+
+    optimizer_plugin_name = cli_args['optimizer_plugin']
+    print(f"Loading optimizer plugin: {optimizer_plugin_name}")
+    try:
+        optimizer_plugin_class, _ = load_plugin('heuristic_strategy.optimizer_plugins', optimizer_plugin_name)
+        optimizer_plugin = optimizer_plugin_class()
+        optimizer_plugin.set_params(**config)
+    except Exception as e:
+        print(f"Failed to load or initialize optimizer plugin '{optimizer_plugin_name}': {e}")
         sys.exit(1)
 
     print("Merging configuration with CLI and unknown args (second pass, with plugin params)...")
-    config = merge_config(config, plugin.plugin_params, {}, file_config, cli_args, unknown_args_dict)
+    config = merge_config(config, plugin.plugin_params, optimizer_plugin.plugin_params, file_config, cli_args, unknown_args_dict)
+    plugin.set_params(**config)
+    optimizer_plugin.set_params(**config)
 
     if config.get('load_model'):
         print("Warning: 'load_model' is not applicable for trading strategy plugins. Ignoring this parameter.")
 
     print("Processing and running optimization pipeline...")
-    trading_info, trades = run_processing_pipeline(config, plugin)
+    trading_info, trades = run_processing_pipeline(config, plugin, optimizer_plugin)
 
     if config.get('save_config'):
         try:
