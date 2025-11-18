@@ -31,6 +31,8 @@ DEFAULT_VALUES = {
     "crossover_probability": 0.2,
     "mutation_probability": 0.1,
     "use_hourly": False,
+    "show_trades": False,
+    "show_validation_trades": True,
     "load_config": None,
     "save_config": "config_out.json",
     "remote_log": None,

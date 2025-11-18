@@ -67,6 +67,7 @@ class Plugin:
         self._current_population_index = 0
         self._current_population_total = 0
         self._use_progress_bar = True
+        self._eval_context = "train"
 
     # ------------------------------------------------------------------
     # Shared plugin contract helpers
@@ -102,6 +103,7 @@ class Plugin:
         self._use_progress_bar = bool(
             self._config.get("show_progress_bar", self.params.get("show_progress_bar", True))
         )
+        self._eval_context = "train"
 
     def evaluate_individual(self, candidate: List[float]):
         if self._strategy_plugin is None:
@@ -113,9 +115,11 @@ class Plugin:
             progress_note = f"[{self._current_population_index}/{self._current_population_total}] "
 
         patience_note = self._format_patience_status()
+        context = getattr(self, "_eval_context", "train") or "train"
+        context_tag = context.upper()
 
         print(
-            f"[EVALUATE][Epoch {self._current_epoch}/{self._num_generations}] {progress_note}"
+            f"[EVALUATE][{context_tag}][Epoch {self._current_epoch}/{self._num_generations}] {progress_note}"
             f"Evaluating candidate (genome): {candidate} | {patience_note}"
         )
 
@@ -137,7 +141,7 @@ class Plugin:
             profit, stats = result, {}
 
         print(
-            f"[EVALUATE][Epoch {self._current_epoch}/{self._num_generations}] Candidate => "
+            f"[EVALUATE][{context_tag}][Epoch {self._current_epoch}/{self._num_generations}] Candidate => "
             f"Profit: {profit:.2f}, "
             f"Trades: {stats.get('num_trades', 0)}, "
             f"Win%: {stats.get('win_pct', 0):.1f}, "
@@ -479,6 +483,7 @@ min_species_size   = {min_species_size}
                 progress_bar = None
 
         for idx, (genome_id, genome) in enumerate(progress_iter, 1):
+            self._eval_context = "train"
             self._current_population_index = idx
             net = nn.FeedForwardNetwork.create(genome, neat_config)
             outputs = net.activate(self._feature_vector)
@@ -505,21 +510,52 @@ min_species_size   = {min_species_size}
         self._current_population_index = 0
         self._current_population_total = 0
 
-    def _evaluate_on_dataset(self, candidate, dataset_tuple):
+    def _evaluate_on_dataset(self, candidate, dataset_tuple, dataset_label="validation"):
         if dataset_tuple is None:
             return None, {}
         base_df, hourly_df, daily_df = dataset_tuple
         if base_df is None or hourly_df is None or daily_df is None:
             return None, {}
+
         prev = (
             self._base_data,
             self._hourly_predictions,
             self._daily_predictions,
             self._feature_vector,
             self._feature_names,
+            getattr(self, "_eval_context", "train"),
         )
+
         self._base_data, self._hourly_predictions, self._daily_predictions = dataset_tuple
         self._feature_vector, self._feature_names = self._build_feature_vector()
+
+        context_label = (dataset_label or "validation").lower()
+        self._eval_context = context_label
+
+        if context_label in {"validation", "test"}:
+            try:
+                print(
+                    f"[{context_label.upper()}][Dataset] base_rows={len(base_df)}, hourly_rows={len(hourly_df)}, "
+                    f"daily_rows={len(daily_df)}, hourly_cols={hourly_df.shape[1]}, daily_cols={daily_df.shape[1]}"
+                )
+                idx_summary = (
+                    f"{hourly_df.index.min()} -> {hourly_df.index.max()}"
+                    if len(hourly_df.index) > 0
+                    else "<empty>"
+                )
+                print(f"[{context_label.upper()}][Dataset] hourly_index_range={idx_summary}")
+            except Exception as diag_err:
+                print(f"[{context_label.upper()}][Dataset] Unable to summarize dataset: {diag_err}")
+
+        validation_trades_requested = bool(
+            context_label == "validation" and self._config.get("show_validation_trades")
+        )
+        prev_show_trades_marker = object()
+        prev_show_trades = self._config.get("show_trades", prev_show_trades_marker)
+        if validation_trades_requested:
+            print("[VALIDATION] show_validation_trades enabled -> printing trades for validation dataset only.")
+            self._config["show_trades"] = True
+
         try:
             profit, stats = self.evaluate_individual(candidate)
         finally:
@@ -529,7 +565,15 @@ min_species_size   = {min_species_size}
                 self._daily_predictions,
                 self._feature_vector,
                 self._feature_names,
-            ) = prev
+            ) = prev[:5]
+            self._eval_context = prev[5]
+
+            if validation_trades_requested:
+                if prev_show_trades is prev_show_trades_marker:
+                    self._config.pop("show_trades", None)
+                else:
+                    self._config["show_trades"] = prev_show_trades
+
         return profit, stats
 
     def _serialize_genome(self, genome):
@@ -570,7 +614,9 @@ min_species_size   = {min_species_size}
         val_profit = None
         val_stats = {}
         if self._validation_frames is not None:
-            val_profit, val_stats = self._evaluate_on_dataset(record["candidate"], self._validation_frames)
+            val_profit, val_stats = self._evaluate_on_dataset(
+                record["candidate"], self._validation_frames, dataset_label="validation"
+            )
             if val_profit is not None:
                 print(f"  Validation Profit (gen {generation}): {val_profit:.2f}")
 
@@ -702,7 +748,9 @@ min_species_size   = {min_species_size}
         test_profit = None
         test_stats = {}
         if self._test_frames is not None:
-            test_profit, test_stats = self._evaluate_on_dataset(best_candidate, self._test_frames)
+            test_profit, test_stats = self._evaluate_on_dataset(
+                best_candidate, self._test_frames, dataset_label="test"
+            )
             if test_profit is not None:
                 test_profit = float(test_profit)
 
