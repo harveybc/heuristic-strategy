@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 import neat
 from neat import nn
 import numpy as np
+import pandas as pd  # type: ignore
 
 from app.optimizer import (
     _aggregate_mae_and_naive_for_sets,
@@ -134,120 +135,165 @@ class Plugin:
     # Feature engineering
     # ------------------------------------------------------------------
     def _build_feature_vector(self) -> Tuple[List[float], List[str]]:
-        names = [
-            "st_mae_ratio",
-            "lt_mae_ratio",
-            "volatility",
-            "trend_slope",
-            "prediction_spread",
-            "uncertainty_ratio",
-            "drawdown_ratio",
-            "momentum_osc",
-            "hour_sin",
-            "hour_cos",
-        ]
+        prediction_frame, column_order = self._build_prediction_frame()
+        features: List[float] = []
+        names: List[str] = []
 
-        def _safe(val, fallback=0.0):
-            if val is None or np.isnan(val):
-                return fallback
-            return float(val)
+        if prediction_frame is not None and column_order:
+            target_idx = self._select_prediction_timestamp(prediction_frame.index)
+            if target_idx is not None and target_idx in prediction_frame.index:
+                row = prediction_frame.loc[target_idx]
+            else:
+                row = prediction_frame.iloc[-1]
+                target_idx = prediction_frame.index[-1]
 
-        base_df = self._base_data
+            for col in column_order:
+                value = row.get(col, 0.0)
+                if value is None:
+                    value = 0.0
+                else:
+                    try:
+                        if np.isnan(value):
+                            value = 0.0
+                    except TypeError:
+                        pass
+                try:
+                    value = float(value)
+                except Exception:
+                    value = 0.0
+                features.append(value)
+                names.append(col)
+
+            print(f"[NEAT][Features] Using prediction snapshot at {target_idx}")
+        else:
+            features = [0.0]
+            names = ["prediction_bias"]
+
+        positional = self._compute_positional_features()
+        features.extend(positional.values())
+        names.extend(positional.keys())
+        return features, names
+
+    def _build_prediction_frame(self) -> Tuple[Optional[pd.DataFrame], List[str]]:
         hourly = self._hourly_predictions
         daily = self._daily_predictions
+        if hourly is None or hourly.empty or daily is None or daily.empty:
+            return None, []
 
-        st_cols = list(getattr(hourly, "columns", [])) if hourly is not None else []
-        lt_cols = list(getattr(daily, "columns", [])) if daily is not None else []
+        renamed_h = {col: f"Prediction_h_{i + 1}" for i, col in enumerate(hourly.columns)}
+        renamed_d = {col: f"Prediction_d_{i + 1}" for i, col in enumerate(daily.columns)}
+        hourly_df = hourly.rename(columns=renamed_h).copy()
+        daily_df = daily.rename(columns=renamed_d).copy()
 
-        st_mae, st_naive = _aggregate_mae_and_naive_for_sets(
-            base_df,
-            [(hourly, st_cols)],
+        merged = hourly_df.join(daily_df, how="outer")
+
+        num_hourly = hourly_df.shape[1]
+        num_daily = daily_df.shape[1]
+        strategy_defaults = getattr(self._strategy_plugin, "params", {}) or {}
+        default_short = strategy_defaults.get("default_uncertainty_short_term", 0.0)
+        default_long = strategy_defaults.get("default_uncertainty_long_term", 0.0)
+
+        uncertainty_hourly = self._prepare_uncertainty_frame(
+            self._config.get("uncertainty_hourly"),
+            num_hourly,
+            "Uncertainty_h",
+            default_short,
+            hourly_df.index if not hourly_df.empty else merged.index,
         )
-        lt_mae, lt_naive = _aggregate_mae_and_naive_for_sets(
-            base_df,
-            [(daily, lt_cols)],
+        uncertainty_daily = self._prepare_uncertainty_frame(
+            self._config.get("uncertainty_daily"),
+            num_daily,
+            "Uncertainty_d",
+            default_long,
+            daily_df.index if not daily_df.empty else merged.index,
         )
 
-        def _ratio(a, b):
-            if a is None or b in (None, 0):
-                return 1.0
-            if b == 0:
-                return 1.0
-            return float(a) / float(b)
+        if uncertainty_hourly is not None and not uncertainty_hourly.empty:
+            merged = merged.join(uncertainty_hourly, how="inner")
+        if uncertainty_daily is not None and not uncertainty_daily.empty:
+            merged = merged.join(uncertainty_daily, how="inner")
 
-        st_ratio = _ratio(st_mae, st_naive)
-        lt_ratio = _ratio(lt_mae, lt_naive)
+        if merged.empty:
+            return None, []
 
-        volatility = 0.0
-        trend_slope = 0.0
-        prediction_spread = 0.0
-        uncertainty_ratio = 1.0
-        drawdown_ratio = 0.0
-        momentum_osc = 0.0
-        hour_sin = 0.0
-        hour_cos = 0.0
+        column_order: List[str] = list(hourly_df.columns) + list(daily_df.columns)
+        if uncertainty_hourly is not None:
+            column_order += list(uncertainty_hourly.columns)
+        if uncertainty_daily is not None:
+            column_order += list(uncertainty_daily.columns)
 
+        merged = merged.sort_index()
+        merged = merged[column_order]
+        return merged, column_order
+
+    def _prepare_uncertainty_frame(
+        self,
+        frame: Optional[pd.DataFrame],
+        expected_cols: int,
+        prefix: str,
+        default_value: float,
+        reference_index,
+    ) -> Optional[pd.DataFrame]:
+        if expected_cols == 0:
+            return None
+
+        columns = [f"{prefix}_{i + 1}" for i in range(expected_cols)]
+        if frame is None or frame.empty:
+            if reference_index is None or len(reference_index) == 0:
+                return None
+            data = np.full((len(reference_index), expected_cols), default_value, dtype=float)
+            return pd.DataFrame(data, index=reference_index, columns=columns)
+
+        df = frame.copy()
+        df = df.iloc[:, :expected_cols]
+        current_cols = df.shape[1]
+        if current_cols < expected_cols:
+            pad_count = expected_cols - current_cols
+            for idx in range(pad_count):
+                df[f"__pad_{idx}"] = default_value
+            df = df.iloc[:, :expected_cols]
+        df.columns = columns
+        return df
+
+    def _select_prediction_timestamp(self, prediction_index) -> Optional[pd.Timestamp]:
+        if prediction_index is None or len(prediction_index) == 0:
+            return None
+
+        base_df = self._base_data
         if base_df is not None and not base_df.empty:
-            close = base_df["CLOSE"] if "CLOSE" in base_df.columns else base_df.iloc[:, 0]
-            pct = close.pct_change().rolling(24).std()
-            volatility = _safe(pct.mean(), 0.0)
-
-            window = close.tail(48)
-            if len(window) >= 2:
-                x = np.arange(len(window))
-                slope, _ = np.polyfit(x, window.values, 1)
-                trend_slope = float(slope)
-
-            recent = close.tail(72)
-            if not recent.empty:
-                max_close = recent.max()
-                min_close = recent.min()
-                drawdown_ratio = _ratio(max_close - min_close, max_close if max_close else 1.0)
-
-            ema_fast = close.ewm(span=12, adjust=False).mean()
-            ema_slow = close.ewm(span=26, adjust=False).mean()
-            momentum = ema_fast - ema_slow
-            momentum_osc = _safe(momentum.tail(1).iloc[0], 0.0)
-
             last_dt = base_df.index[-1]
-            if hasattr(last_dt, "hour"):
-                hour = last_dt.hour
-                hour_sin = math.sin(2 * math.pi * hour / 24.0)
-                hour_cos = math.cos(2 * math.pi * hour / 24.0)
+            if hasattr(last_dt, "to_pydatetime"):
+                last_dt = last_dt.to_pydatetime()
+            target_hour = last_dt.replace(minute=0, second=0, microsecond=0)
+            if target_hour in prediction_index:
+                return target_hour
+            earlier = prediction_index[prediction_index <= target_hour]
+            if len(earlier) > 0:
+                return earlier[-1]
 
-        if hourly is not None and daily is not None and not hourly.empty and not daily.empty:
-            aligned_idx = hourly.index.intersection(daily.index)
-            if not aligned_idx.empty:
-                h_vals = hourly.loc[aligned_idx]
-                d_vals = daily.loc[aligned_idx]
-                h_mean = h_vals.mean(axis=1)
-                d_mean = d_vals.mean(axis=1)
-                prediction_spread = _safe(np.mean(np.abs(h_mean.values - d_mean.values)), 0.0)
+        return prediction_index[-1]
 
-        u_hourly = self._config.get("uncertainty_hourly")
-        u_daily = self._config.get("uncertainty_daily")
-        if u_hourly is not None and not u_hourly.empty and u_daily is not None and not u_daily.empty:
-            uh = np.abs(u_hourly.values).mean()
-            ud = np.abs(u_daily.values).mean()
-            uncertainty_ratio = _ratio(ud, uh if uh else 1.0)
+    def _compute_positional_features(self) -> Dict[str, float]:
+        defaults = {"hour_sin": 0.0, "hour_cos": 1.0, "dow_sin": 0.0, "dow_cos": 1.0}
+        base_df = self._base_data
+        if base_df is None or base_df.empty:
+            return defaults
 
-        vector = [
-            st_ratio,
-            lt_ratio,
-            volatility,
-            trend_slope,
-            prediction_spread,
-            uncertainty_ratio,
-            drawdown_ratio,
-            momentum_osc,
-            hour_sin,
-            hour_cos,
-        ]
-        vector = [0.0 if np.isnan(v) else float(v) for v in vector]
-        if not vector:
-            vector = [0.0]
-            names = ["bias"]
-        return vector, names
+        dt = base_df.index[-1]
+        if hasattr(dt, "to_pydatetime"):
+            dt = dt.to_pydatetime()
+
+        hour = dt.hour + (dt.minute / 60.0)
+        hour_angle = 2 * math.pi * hour / 24.0
+        dow = dt.weekday()
+        dow_angle = 2 * math.pi * dow / 7.0
+
+        return {
+            "hour_sin": math.sin(hour_angle),
+            "hour_cos": math.cos(hour_angle),
+            "dow_sin": math.sin(dow_angle),
+            "dow_cos": math.cos(dow_angle),
+        }
 
     def _sigmoid(self, x: float) -> float:
         try:
