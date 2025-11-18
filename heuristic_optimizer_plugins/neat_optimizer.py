@@ -32,7 +32,8 @@ class Plugin:
         "compatibility_threshold": 3.0,
         "activation_default": "tanh",
         "aggregation_default": "sum",
-    "patience": 10,
+        "no_fitness_termination": False,
+        "patience": 10,
     }
 
     def __init__(self):
@@ -273,6 +274,7 @@ fitness_criterion     = max
 fitness_threshold     = {self.params.get('fitness_threshold', 2500.0)}
 population_size       = {pop_size}
 pop_size              = {pop_size}
+no_fitness_termination = {str(self.params.get('no_fitness_termination', False)).lower()}
 reset_on_extinction   = False
 
 [DefaultGenome]
