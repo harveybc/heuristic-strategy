@@ -156,7 +156,8 @@ class Plugin:
             upper_rr_threshold=upper_rr,
             max_trades_per_5days=config['max_trades_per_5days'],
             # --- ADDED: Pass use_first_match from config ---
-            use_first_match=config.get("use_first_match", True) # Default to True
+            use_first_match=config.get("use_first_match", True), # Default to True
+            show_trade_logs=config.get("show_trades", False),
             # --- END ADDED ---
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
@@ -260,10 +261,11 @@ class Plugin:
         def __init__(self, pred_df, pip_cost, rel_volume, min_order_volume, max_order_volume,
                      leverage, profit_threshold, min_drawdown_pips,
                      tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                     max_trades_per_5days, use_first_match, *args, **kwargs): # Added use_first_match
+                     max_trades_per_5days, use_first_match, show_trade_logs=False, *args, **kwargs): # Added use_first_match
             super().__init__()
             # --- ADDED: Store use_first_match directly ---
             self.use_first_match = use_first_match
+            self.show_trade_logs = bool(show_trade_logs)
             # --- END ADDED ---
 
             self.pred_df = pred_df
@@ -821,9 +823,12 @@ class Plugin:
                     'direction': direction # Use direction from state
                 }
                 self.trades.append(trade_record)
-                print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit=(Implied){exit_price_implied:.5f}, "
-                      f"Volume={trade_record['volume']:.2f}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
-                      f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
+                if self.show_trade_logs:
+                    print(
+                        f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit=(Implied){exit_price_implied:.5f}, "
+                        f"Volume={trade_record['volume']:.2f}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
+                        f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}"
+                    )
 
                 # --- CRITICAL: Reset state variables AFTER logging the closed trade ---
                 self.order_entry_price = None
