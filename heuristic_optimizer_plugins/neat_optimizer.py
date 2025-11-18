@@ -43,6 +43,7 @@ class Plugin:
         "target_species_count": 0,
         "compatibility_adjust_rate": 0.15,
         "enable_neat_default_reporter": True,
+        "validation_improvement_epsilon": 1e-6,
     }
 
     def __init__(self):
@@ -687,7 +688,24 @@ min_species_size   = {min_species_size}
 
         improved = False
         if self._validation_frames is not None and val_profit is not None:
-            improved = (self._best_val_profit is None) or (val_profit > self._best_val_profit)
+            prev_best = self._best_val_profit
+            prev_best_str = f"{prev_best:.2f}" if prev_best is not None else "N/A"
+            epsilon = self._config.get(
+                "validation_improvement_epsilon",
+                self.params.get("validation_improvement_epsilon", 0.0),
+            )
+            try:
+                epsilon = float(epsilon)
+            except (TypeError, ValueError):
+                epsilon = 0.0
+            if epsilon < 0:
+                epsilon = 0.0
+            baseline = prev_best if prev_best is not None else float("-inf")
+            improved = (prev_best is None) or (val_profit > (baseline + epsilon))
+            print(
+                f"[VALIDATION][Epoch {generation}] Profit={val_profit:.2f} | PrevBest={prev_best_str} | "
+                f"Improved={'YES' if improved else 'NO'} | Epsilon={epsilon:.2g}"
+            )
             if improved:
                 self._best_val_profit = val_profit
                 self._epochs_without_improve = 0
@@ -697,6 +715,9 @@ min_species_size   = {min_species_size}
                     "val_stats": val_stats,
                 }
                 self._best_genome_snapshot = self._serialize_genome(record["genome"])
+                print(
+                    f"[VALIDATION][Epoch {generation}] New BestVal={self._best_val_profit:.2f} (patience reset)"
+                )
             else:
                 self._epochs_without_improve += 1
                 print(
