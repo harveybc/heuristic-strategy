@@ -198,7 +198,7 @@ class Plugin:
 
         strat_instance = runresult[0]
         trades_list = getattr(strat_instance, "trades", [])
-        if config.get("show_trades", True):
+        if config.get("show_trades", False):
             if trades_list:
                 print(f"Trades for candidate {individual}:")
                 for i, tr in enumerate(trades_list, 1):
