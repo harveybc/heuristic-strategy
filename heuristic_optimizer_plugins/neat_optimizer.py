@@ -26,6 +26,7 @@ class Plugin:
         "fitness_threshold": 2500.0,
         "elitism": 2,
         "survival_threshold": 0.2,
+        "min_species_size": 2,
         "stagnation_limit": 15,
         "weight_mutation_power": 2.5,
         "bias_mutation_power": 0.5,
@@ -33,6 +34,8 @@ class Plugin:
         "activation_default": "tanh",
         "aggregation_default": "sum",
         "no_fitness_termination": False,
+        "single_structural_mutation": True,
+        "structural_mutation_surer": "default",
         "patience": 10,
     }
 
@@ -267,13 +270,26 @@ class Plugin:
 
     def _build_neat_config(self, num_inputs: int) -> neat.Config:
         pop_size = int(self.params.get('population_size', 150))
+        def _bool_str(value):
+            if isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in {"true", "false"}:
+                    return normalized
+            return "true" if bool(value) else "false"
+
+        no_fitness_termination = _bool_str(self.params.get('no_fitness_termination', False))
+        single_structural_mutation = _bool_str(self.params.get('single_structural_mutation', True))
+        structural_mutation_surer = str(self.params.get('structural_mutation_surer', 'default')).strip().lower()
+        if structural_mutation_surer not in {"true", "false", "default"}:
+            structural_mutation_surer = "default"
+        min_species_size = max(1, int(self.params.get('min_species_size', 2)))
 
         cfg_text = f"""
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = {self.params.get('fitness_threshold', 2500.0)}
 pop_size              = {pop_size}
-no_fitness_termination = {str(self.params.get('no_fitness_termination', False)).lower()}
+no_fitness_termination = {no_fitness_termination}
 reset_on_extinction   = False
 
 [DefaultGenome]
@@ -285,6 +301,7 @@ aggregation_mutate_rate = 0.0
 aggregation_options     = sum mean max
 bias_init_mean          = 0.0
 bias_init_stdev         = {float(self.params.get('bias_mutation_power', 0.5))}
+bias_init_type          = gaussian
 bias_max_value          = 30.0
 bias_min_value          = -30.0
 bias_mutate_power       = {float(self.params.get('bias_mutation_power', 0.5))}
@@ -296,6 +313,8 @@ conn_add_prob           = 0.5
 conn_delete_prob        = 0.5
 enabled_default         = True
 enabled_mutate_rate     = 0.01
+enabled_rate_to_true_add = 0.0
+enabled_rate_to_false_add = 0.0
 feed_forward            = True
 initial_connection      = full_direct
 node_add_prob           = 0.2
@@ -305,6 +324,7 @@ num_inputs              = {num_inputs}
 num_outputs             = {len(self._optimizable_params)}
 response_init_mean      = 1.0
 response_init_stdev     = 0.0
+response_init_type      = gaussian
 response_max_value      = 30.0
 response_min_value      = -30.0
 response_mutate_power   = 0.0
@@ -312,12 +332,14 @@ response_mutate_rate    = 0.0
 response_replace_rate   = 0.0
 weight_init_mean        = 0.0
 weight_init_stdev       = 1.0
+weight_init_type        = gaussian
 weight_max_value        = 30.0
 weight_min_value        = -30.0
 weight_mutate_power     = {float(self.params.get('weight_mutation_power', 2.5))}
 weight_mutate_rate      = 0.8
 weight_replace_rate     = 0.1
-single_structural_mutation = false
+single_structural_mutation = {single_structural_mutation}
+structural_mutation_surer = {structural_mutation_surer}
 
 [DefaultSpeciesSet]
 compatibility_threshold = {float(self.params.get('compatibility_threshold', 3.0))}
@@ -330,6 +352,7 @@ species_elitism      = {int(self.params.get('elitism', 2))}
 [DefaultReproduction]
 elitism            = {int(self.params.get('elitism', 2))}
 survival_threshold = {float(self.params.get('survival_threshold', 0.2))}
+min_species_size   = {min_species_size}
 """
         with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
             tmp.write(cfg_text)
