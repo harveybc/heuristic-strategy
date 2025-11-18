@@ -10,3 +10,4 @@ graphviz
 backtrader
 deap
 tqdm
+neat-python

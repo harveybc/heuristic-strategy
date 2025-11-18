@@ -3,7 +3,11 @@ from setuptools import setup, find_packages
 setup(
     name='heuristic_strategy',
     version='0.1.0',
-    packages=find_packages(where='.', include=['app', 'app.*', 'heuristic_strategy_plugins', 'heuristic_strategy_plugins.*']),
+    packages=find_packages(where='.', include=[
+        'app', 'app.*',
+        'heuristic_strategy_plugins', 'heuristic_strategy_plugins.*',
+        'heuristic_optimizer_plugins', 'heuristic_optimizer_plugins.*'
+    ]),
     package_dir={'': '.'},
     entry_points={
         'console_scripts': [
@@ -14,7 +18,8 @@ setup(
             'ls_pred_strategy=heuristic_strategy_plugins.plugin_long_short_predictions:Plugin'
         ],
         'heuristic_strategy.optimizer_plugins': [
-            'ga_optimizer=app.optimizer:Plugin'
+            'ga_optimizer=app.optimizer:Plugin',
+            'neat_optimizer=heuristic_optimizer_plugins.neat_optimizer:Plugin'
         ]
     },
     install_requires=[
