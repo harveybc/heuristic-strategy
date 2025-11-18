@@ -112,9 +112,11 @@ class Plugin:
         if self._current_population_total:
             progress_note = f"[{self._current_population_index}/{self._current_population_total}] "
 
+        patience_note = self._format_patience_status()
+
         print(
             f"[EVALUATE][Epoch {self._current_epoch}/{self._num_generations}] {progress_note}"
-            f"Evaluating candidate (genome): {candidate}"
+            f"Evaluating candidate (genome): {candidate} | {patience_note}"
         )
 
         cfg = dict(self._config)
@@ -140,9 +142,17 @@ class Plugin:
             f"Trades: {stats.get('num_trades', 0)}, "
             f"Win%: {stats.get('win_pct', 0):.1f}, "
             f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-            f"Sharpe: {stats.get('sharpe', 0):.2f}"
+            f"Sharpe: {stats.get('sharpe', 0):.2f} | {patience_note}"
         )
         return profit, stats
+
+    def _format_patience_status(self) -> str:
+        patience_limit = self._patience if isinstance(self._patience, int) else 0
+        if patience_limit <= 0:
+            return "Patience=off"
+        best_pf = self._best_val_profit
+        best_pf_str = f"{best_pf:.2f}" if best_pf is not None else "N/A"
+        return f"Patience={self._epochs_without_improve}/{patience_limit} | BestVal={best_pf_str}"
 
     # ------------------------------------------------------------------
     # Feature engineering
