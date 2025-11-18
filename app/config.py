@@ -32,7 +32,7 @@ DEFAULT_VALUES = {
     "mutation_probability": 0.1,
     "use_hourly": False,
     "show_trades": False,
-    "show_validation_trades": True,
+    "show_validation_trades": False,
     "load_config": None,
     "save_config": "config_out.json",
     "remote_log": None,
