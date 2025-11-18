@@ -317,6 +317,7 @@ weight_min_value        = -30.0
 weight_mutate_power     = {float(self.params.get('weight_mutation_power', 2.5))}
 weight_mutate_rate      = 0.8
 weight_replace_rate     = 0.1
+single_structural_mutation = false
 
 [DefaultSpeciesSet]
 compatibility_threshold = {float(self.params.get('compatibility_threshold', 3.0))}
