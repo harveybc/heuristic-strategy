@@ -1030,10 +1030,33 @@ min_species_size   = {min_species_size}
         else:
             print("    Representative distance stats => insufficient data")
 
-        self._maybe_adjust_compatibility(population, species_count, stagnated_species)
+        self._maybe_adjust_compatibility(population, species_count, stagnated_species, generation)
 
-    def _maybe_adjust_compatibility(self, population, species_count: int, stagnated_species: int = 0):
+    def _maybe_adjust_compatibility(
+        self,
+        population,
+        species_count: int,
+        stagnated_species: int = 0,
+        generation: Optional[int] = None,
+    ):
         if population is None or species_count <= 0:
+            return
+        if generation is None:
+            generation = getattr(self, "_current_epoch", None)
+        stagnation_limit = self._config.get(
+            "stagnation_limit",
+            self.params.get("stagnation_limit"),
+        )
+        try:
+            stagnation_limit = int(stagnation_limit) if stagnation_limit is not None else None
+        except (TypeError, ValueError):
+            stagnation_limit = None
+        if (
+            stagnation_limit is not None
+            and stagnation_limit > 0
+            and generation is not None
+            and generation < stagnation_limit
+        ):
             return
         target = self._config.get(
             "target_species_count",
@@ -1060,22 +1083,18 @@ min_species_size   = {min_species_size}
         if threshold is None:
             return
 
-        lower_bound = target * 0.8
-        upper_bound = target * 1.2
         new_threshold = None
         direction = None
         reason = None
 
-        if species_count < lower_bound:
-            new_threshold = max(0.1, threshold * (1 - adjust_rate))
+        if species_count < target:
+            new_threshold = max(0.1, threshold - adjust_rate)
             direction = "decreased"
             reason = "below target"
-        elif species_count > upper_bound:
-            if stagnated_species <= 0:
-                return
-            new_threshold = threshold * (1 + adjust_rate)
+        elif species_count > target:
+            new_threshold = threshold + adjust_rate
             direction = "increased"
-            reason = f"above target with {stagnated_species} stagnated"
+            reason = "above target"
 
         if new_threshold is None or abs(new_threshold - threshold) < 1e-6:
             return

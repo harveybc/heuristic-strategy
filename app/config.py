@@ -23,6 +23,7 @@ DEFAULT_VALUES = {
     "time_horizon": 6,
     "population_size": 35,
     "max_generations": 2500,
+    "stagnation_limit": 7,
     # Early stopping patience (epochs without validation improvement before stopping)
     "patience": 30,
     #Gaussian noise parameters for data augmentation during training
