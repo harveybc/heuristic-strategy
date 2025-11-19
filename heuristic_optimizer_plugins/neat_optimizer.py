@@ -29,7 +29,7 @@ class Plugin:
         "elitism": 2,
         "survival_threshold": 0.2,
         "min_species_size": 2,
-        "stagnation_limit": 5,
+        "stagnation_limit": 7,
         "weight_mutation_power": 2.5,
         "bias_mutation_power": 0.5,
         "compatibility_threshold": 3.1,
