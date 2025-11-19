@@ -23,7 +23,7 @@ class Plugin:
     """Optimizer plugin that drives the Heuristic Strategy via NEAT."""
 
     plugin_params = {
-        "population_size": 50,
+        "population_size": 35,
         "max_generations": 2500,
         "fitness_threshold": 1e9,
         "elitism": 2,
@@ -32,7 +32,7 @@ class Plugin:
         "stagnation_limit": 5,
         "weight_mutation_power": 2.5,
         "bias_mutation_power": 0.5,
-        "compatibility_threshold": 3.2,
+        "compatibility_threshold": 3.1,
         "activation_default": "identity",
         "activation_functions": ["identity", "sigmoid", "tanh", "relu"],
         "aggregation_default": "sum",
@@ -42,7 +42,7 @@ class Plugin:
         "patience": 30,
         "show_progress_bar": True,
         "target_species_count": 0,
-        "compatibility_adjust_rate": 0.01,
+        "compatibility_adjust_rate": 0.1,
         "enable_neat_default_reporter": True,
         "validation_improvement_epsilon": 1e-9,
     }
