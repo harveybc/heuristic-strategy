@@ -21,8 +21,8 @@ DEFAULT_VALUES = {
     "plugin": "default",
     "optimizer_plugin": "ga_optimizer",
     "time_horizon": 6,
-    "population_size": 25,
-    "max_generations": 250,
+    "population_size": 50,
+    "max_generations": 2500,
     # Early stopping patience (epochs without validation improvement before stopping)
     "patience": 30,
     #Gaussian noise parameters for data augmentation during training
