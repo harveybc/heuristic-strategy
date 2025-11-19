@@ -1,0 +1,219 @@
+{
+    "profit_threshold": 755.9367513524543,
+    "tp_multiplier": 1.0506201722504938,
+    "sl_multiplier": 1.0455990682454268,
+    "lower_rr_threshold": 0.10003375940860298,
+    "upper_rr_threshold": 1.0,
+    "neat_champion_genome": {
+        "nodes": {
+            "0": {
+                "bias": 1.0306451109574515,
+                "response": 1.0,
+                "activation": "tanh",
+                "aggregation": "sum"
+            },
+            "1": {
+                "bias": -1.5175082315510233,
+                "response": 1.0,
+                "activation": "tanh",
+                "aggregation": "sum"
+            },
+            "2": {
+                "bias": -0.7953761345821502,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "3": {
+                "bias": -2.280970288259801,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "4": {
+                "bias": 0.3946937736498439,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "245": {
+                "bias": -0.8543538732838152,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "246": {
+                "bias": 0.05375633389687502,
+                "response": 1.0,
+                "activation": "relu",
+                "aggregation": "sum"
+            },
+            "248": {
+                "bias": -0.5545337402688959,
+                "response": 1.0,
+                "activation": "relu",
+                "aggregation": "sum"
+            },
+            "249": {
+                "bias": 0.7676919463398729,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "250": {
+                "bias": -1.0904653401429691,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "251": {
+                "bias": -0.8760277609984404,
+                "response": 1.0,
+                "activation": "relu",
+                "aggregation": "sum"
+            },
+            "252": {
+                "bias": -0.9041656727999025,
+                "response": 1.0,
+                "activation": "sigmoid",
+                "aggregation": "sum"
+            },
+            "253": {
+                "bias": 0.5173140323293071,
+                "response": 1.0,
+                "activation": "tanh",
+                "aggregation": "sum"
+            },
+            "254": {
+                "bias": 1.222682648771812,
+                "response": 1.0,
+                "activation": "tanh",
+                "aggregation": "sum"
+            },
+            "373": {
+                "bias": 0.38503934235465115,
+                "response": 1.0,
+                "activation": "tanh",
+                "aggregation": "sum"
+            },
+            "386": {
+                "bias": 0.43234607979149986,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "392": {
+                "bias": 0.14513485290063066,
+                "response": 1.0,
+                "activation": "tanh",
+                "aggregation": "sum"
+            }
+        },
+        "connections": {
+            "-9->386": {
+                "weight": 6.700414086555285,
+                "enabled": true
+            },
+            "386->4": {
+                "weight": -10.316780710289358,
+                "enabled": true
+            },
+            "-66->250": {
+                "weight": 1.6468021522366705,
+                "enabled": true
+            },
+            "-9->392": {
+                "weight": 0.1509685393545757,
+                "enabled": true
+            },
+            "392->248": {
+                "weight": 5.87688830028796,
+                "enabled": false
+            },
+            "-13->250": {
+                "weight": -0.44839713578450974,
+                "enabled": true
+            },
+            "-9->373": {
+                "weight": -0.10687891920164794,
+                "enabled": true
+            },
+            "373->253": {
+                "weight": 6.19484181431733,
+                "enabled": true
+            },
+            "-81->0": {
+                "weight": 0.49418327240698945,
+                "enabled": true
+            },
+            "-9->0": {
+                "weight": -13.560775749243216,
+                "enabled": false
+            },
+            "-9->1": {
+                "weight": 0.6163669547361509,
+                "enabled": true
+            },
+            "-9->2": {
+                "weight": -1.1350809629691458,
+                "enabled": true
+            },
+            "-9->3": {
+                "weight": -6.719651055589243,
+                "enabled": true
+            },
+            "-9->4": {
+                "weight": 11.412765400965807,
+                "enabled": false
+            },
+            "-9->245": {
+                "weight": -4.642109288660414,
+                "enabled": true
+            },
+            "-9->246": {
+                "weight": -10.717958530890154,
+                "enabled": true
+            },
+            "-78->248": {
+                "weight": -0.09811995491943935,
+                "enabled": true
+            },
+            "-9->248": {
+                "weight": 3.4804634294513344,
+                "enabled": false
+            },
+            "-9->249": {
+                "weight": -5.726391250110162,
+                "enabled": true
+            },
+            "-9->250": {
+                "weight": -1.618840540119397,
+                "enabled": true
+            },
+            "-9->251": {
+                "weight": 0.5462747866380286,
+                "enabled": true
+            },
+            "-9->252": {
+                "weight": -2.7847004817118886,
+                "enabled": true
+            },
+            "-9->253": {
+                "weight": 5.807330359468946,
+                "enabled": false
+            },
+            "-9->254": {
+                "weight": 1.416309329753713,
+                "enabled": true
+            },
+            "-68->4": {
+                "weight": -2.677463840890746,
+                "enabled": true
+            },
+            "-101->253": {
+                "weight": 7.781444439626313,
+                "enabled": true
+            }
+        }
+    }
+}

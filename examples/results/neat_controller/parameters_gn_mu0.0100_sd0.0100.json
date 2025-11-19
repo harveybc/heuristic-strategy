@@ -1,0 +1,155 @@
+{
+    "profit_threshold": 106.14485727928911,
+    "tp_multiplier": 1.9616785327891082,
+    "sl_multiplier": 3.25,
+    "lower_rr_threshold": 0.18085857148977807,
+    "upper_rr_threshold": 2.9481720875871895,
+    "neat_champion_genome": {
+        "nodes": {
+            "0": {
+                "bias": -0.12436551184959126,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "1": {
+                "bias": 1.883649714921688,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "2": {
+                "bias": 0.3135021277355166,
+                "response": 1.0,
+                "activation": "relu",
+                "aggregation": "sum"
+            },
+            "3": {
+                "bias": -0.4616237283523386,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "4": {
+                "bias": 0.5808537915350032,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "235": {
+                "bias": -0.38833152938545135,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "236": {
+                "bias": -0.29127085532003216,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "237": {
+                "bias": -0.2240132131591736,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "238": {
+                "bias": -0.09128330393098599,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "239": {
+                "bias": -0.28359126174623545,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "240": {
+                "bias": -0.2419962784390786,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "241": {
+                "bias": 0.7566792327217349,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "242": {
+                "bias": 0.2919592229166583,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "243": {
+                "bias": -0.2877985371149453,
+                "response": 1.0,
+                "activation": "identity",
+                "aggregation": "sum"
+            },
+            "244": {
+                "bias": 0.015099064727698841,
+                "response": 1.0,
+                "activation": "tanh",
+                "aggregation": "sum"
+            }
+        },
+        "connections": {
+            "-14->0": {
+                "weight": -3.893324595450283,
+                "enabled": true
+            },
+            "-14->1": {
+                "weight": -1.1333248136719873,
+                "enabled": true
+            },
+            "-14->3": {
+                "weight": -1.8685880915283195,
+                "enabled": true
+            },
+            "-14->4": {
+                "weight": -0.507311011583226,
+                "enabled": true
+            },
+            "-14->235": {
+                "weight": -3.648403455663244,
+                "enabled": true
+            },
+            "-14->237": {
+                "weight": -0.6329558897497467,
+                "enabled": true
+            },
+            "-14->238": {
+                "weight": 0.9970110582748024,
+                "enabled": true
+            },
+            "-14->239": {
+                "weight": -4.658481203985405,
+                "enabled": true
+            },
+            "-14->240": {
+                "weight": -1.952358334177591,
+                "enabled": true
+            },
+            "-14->241": {
+                "weight": -3.553948628166924,
+                "enabled": true
+            },
+            "-14->242": {
+                "weight": -0.30927526123106724,
+                "enabled": true
+            },
+            "-14->243": {
+                "weight": 4.293624942173335,
+                "enabled": true
+            },
+            "-14->244": {
+                "weight": 0.7110312392492307,
+                "enabled": true
+            }
+        }
+    }
+}
