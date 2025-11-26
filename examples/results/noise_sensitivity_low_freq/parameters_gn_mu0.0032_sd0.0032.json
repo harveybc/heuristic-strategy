@@ -1,0 +1,11 @@
+{
+    "profit_threshold": 1044.07342000599,
+    "tp_multiplier": 0.9275505662269854,
+    "sl_multiplier": 1.5739028632524725,
+    "lower_rr_threshold": 0.026434276032637566,
+    "upper_rr_threshold": 1.1661157904101023,
+    "short_term_max_horizon": 28,
+    "short_term_num_predictions": 17,
+    "long_term_max_horizon": 90,
+    "long_term_num_predictions": 24
+}
