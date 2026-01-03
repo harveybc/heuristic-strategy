@@ -235,6 +235,17 @@ class Plugin:
             risk = std_profit / profit if profit != 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe, "risk": risk})
             
+            # --- ADDED: Exit Stats ---
+            early_pct = (strat_instance.early_close_count / num_trades) * 100
+            tp_pct = (strat_instance.tp_close_count / num_trades) * 100
+            sl_pct = (strat_instance.sl_close_count / num_trades) * 100
+            stats.update({
+                "early_close_pct": early_pct,
+                "tp_close_pct": tp_pct,
+                "sl_close_pct": sl_pct
+            })
+            # --- END ADDED ---
+            
 
         # --- New functionality: Calculate risk as maximum drawdown ratio over balance history ---
         balance_history = strat_instance.balance_history
@@ -253,8 +264,11 @@ class Plugin:
               f"Trades: {stats.get('num_trades', 0)}, "
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-              f"Sharpe: {stats.get('sharpe', 0):.2f}",
-              f"Risk: {stats.get('risk', 0):.2f}")
+              f"Sharpe: {stats.get('sharpe', 0):.2f}, "
+              f"Risk: {stats.get('risk', 0):.2f}, "
+              f"Early%: {stats.get('early_close_pct', 0):.1f}, "
+              f"TP%: {stats.get('tp_close_pct', 0):.1f}, "
+              f"SL%: {stats.get('sl_close_pct', 0):.1f}")
         self.stats = stats
         return (profit, stats)
 
@@ -352,6 +366,14 @@ class Plugin:
             self.trade_entry_bar = None
             self.order_entry_price = None
             self.entry_order_direction = None
+            
+            # --- ADDED: Counters for exit reasons ---
+            self.early_close_count = 0
+            self.tp_close_count = 0
+            self.sl_close_count = 0
+            self.last_exit_reason = None
+            # --- END ADDED ---
+
             # ... existing code ...
             print(f"Strategy Initialized: use_first_match={self.use_first_match}", flush=True) # Use self.use_first_match
 
@@ -670,6 +692,7 @@ class Plugin:
 
                 if should_close:
                     #print(f"[{dt}] Closing position ({self.current_direction}) due to: {reason}")
+                    self.last_exit_reason = reason
                     self.close() # Close position
                     # CRITICAL: Return AFTER closing to prevent immediate re-entry on the same bar
                     return # Exit next() after closing position
@@ -885,6 +908,17 @@ class Plugin:
             dt = self.data0.datetime.datetime(0)
 
             if trade.isclosed:
+                # --- ADDED: Track Exit Reason ---
+                if self.last_exit_reason == "Hard TP":
+                    self.tp_close_count += 1
+                elif self.last_exit_reason == "Hard SL":
+                    self.sl_close_count += 1
+                elif self.last_exit_reason and str(self.last_exit_reason).startswith("Hourly Pred"):
+                    self.early_close_count += 1
+                # Reset reason
+                self.last_exit_reason = None
+                # --- END ADDED ---
+
                 # --- MODIFIED: Use state variables set during entry ---
                 # Use the direction and volume stored when the order was placed in next()
                 direction = self.current_direction # Should be 'long' or 'short'
@@ -988,6 +1022,14 @@ class Plugin:
             if n_trades > 0:
                 print(f"  Long Trades:  {n_long_trades} ({long_trade_percentage:.1f}%)")
                 print(f"  Short Trades: {n_short_trades} ({short_trade_percentage:.1f}%)")
+                # --- ADDED: Exit Reason Stats ---
+                early_pct = (self.early_close_count / n_trades) * 100
+                tp_pct = (self.tp_close_count / n_trades) * 100
+                sl_pct = (self.sl_close_count / n_trades) * 100
+                print(f"  Early Closes: {self.early_close_count} ({early_pct:.1f}%)")
+                print(f"  TP Closes:    {self.tp_close_count} ({tp_pct:.1f}%)")
+                print(f"  SL Closes:    {self.sl_close_count} ({sl_pct:.1f}%)")
+                # --- END ADDED ---
             print(f"Average Profit (USD): {avg_profit_usd:.2f}")
             print(f"Average Profit (pips): {avg_profit_pips:.2f}")
             print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")

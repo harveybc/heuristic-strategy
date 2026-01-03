@@ -270,7 +270,10 @@ class Plugin:
             f"Trades: {stats.get('num_trades', 0)}, "
             f"Win%: {stats.get('win_pct', 0):.1f}, "
             f"MaxDD: {stats.get('max_dd', 0):.2f}, "
-            f"Sharpe: {stats.get('sharpe', 0):.2f}"
+            f"Sharpe: {stats.get('sharpe', 0):.2f}, "
+            f"Early%: {stats.get('early_close_pct', 0):.1f}, "
+            f"TP%: {stats.get('tp_close_pct', 0):.1f}, "
+            f"SL%: {stats.get('sl_close_pct', 0):.1f}"
         )
         return profit, stats
 
@@ -550,7 +553,8 @@ class Plugin:
                 return "-"
             return (
                 f"Trades={stat_dict.get('num_trades', 0)}, Win%={stat_dict.get('win_pct', 0):.1f}, "
-                f"MaxDD={stat_dict.get('max_dd', 0):.2f}, Sharpe={stat_dict.get('sharpe', 0):.2f}"
+                f"MaxDD={stat_dict.get('max_dd', 0):.2f}, Sharpe={stat_dict.get('sharpe', 0):.2f}, "
+                f"Early%={stat_dict.get('early_close_pct', 0):.1f}, TP%={stat_dict.get('tp_close_pct', 0):.1f}, SL%={stat_dict.get('sl_close_pct', 0):.1f}"
             )
 
         print("\nChampion evaluation summary:")
