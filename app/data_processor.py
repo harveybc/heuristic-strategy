@@ -791,6 +791,20 @@ def run_processing_pipeline(config, plugin, optimizer_plugin):
                 daily_test,
             )
             _stats = _raw_info.pop("stats", {}) or {}
+
+            # Flatten validation and test stats if present
+            if "validation_stats" in _raw_info:
+                val_stats = _raw_info.pop("validation_stats")
+                if val_stats:
+                    for k, v in val_stats.items():
+                        _raw_info[f"val_{k}"] = v
+            
+            if "test_stats" in _raw_info:
+                test_stats = _raw_info.pop("test_stats")
+                if test_stats:
+                    for k, v in test_stats.items():
+                        _raw_info[f"test_{k}"] = v
+
             trading_info = {"initial_capital":10000,**_raw_info, **_stats}
         else:
             print("\nPlugin does not support optimization. Exiting.")

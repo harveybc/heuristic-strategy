@@ -220,7 +220,16 @@ class Plugin:
         self.trades = trades_list
 
         num_trades = len(trades_list)
-        stats = {"num_trades": num_trades, "win_pct": 0, "max_dd": 0, "sharpe": -1000, "risk": 1000}
+        stats = {
+            "num_trades": num_trades, 
+            "win_pct": 0, 
+            "max_dd": 0, 
+            "sharpe": -1000, 
+            "risk": 1000,
+            "early_close_pct": 0.0,
+            "tp_close_pct": 0.0,
+            "sl_close_pct": 0.0
+        }
         if num_trades > 0:
             wins = sum(1 for tr in trades_list if tr['pnl'] > 0)
             win_pct = (wins / num_trades) * 100
