@@ -1,0 +1,202 @@
+[
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_12600_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_12600_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_1575_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_1575_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_25200_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_25200_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_3150_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_3150_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_6300_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_ann_6300_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_12600_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_12600_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_1575_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_1575_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_25200_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_25200_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_3150_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_3150_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_6300_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_cnn_6300_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_12600_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_12600_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_1575_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_1575_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_25200_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_25200_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_3150_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_3150_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_6300_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_lstm_6300_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_12600_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_12600_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_1575_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_1575_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_25200_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_25200_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_3150_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_3150_1d_results_low_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_6300_1d_results_high_frequency",
+    "status": "failed rc=1"
+  },
+  {
+    "phase": "phase_1_daily",
+    "name": "phase_1_transformer_6300_1d_results_low_frequency",
+    "status": "failed rc=1"
+  }
+]

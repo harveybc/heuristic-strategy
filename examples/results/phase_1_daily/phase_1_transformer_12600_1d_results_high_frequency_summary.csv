@@ -1,0 +1,2 @@
+profit,num_trades,win_pct,max_dd,sharpe,risk,early_close_pct,tp_close_pct,sl_close_pct,gaussian_noise_mean,gaussian_noise_stddev
+1064.7857659528145,25,44.0,4534.625500000011,0.3619284918415996,0.05381953073720485,0.0,44.0,56.00000000000001,0,0

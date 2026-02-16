@@ -296,8 +296,8 @@ def process_data(config):
             # Apply Gaussian noise if requested
             hourly_df = _apply_gaussian_noise(
                 hourly_df,
-                config.get("gaussian_noise_mean", 0.0),
-                config.get("gaussian_noise_stddev", 0.0),
+                config.get("gaussian_noise_hourly_mean", config.get("gaussian_noise_mean", 0.0)),
+                config.get("gaussian_noise_hourly_stddev", config.get("gaussian_noise_stddev", 0.0)),
                 label="hourly",
             )
         else:
@@ -313,8 +313,8 @@ def process_data(config):
             # Apply Gaussian noise if requested
             hourly_df = _apply_gaussian_noise(
                 hourly_df,
-                config.get("gaussian_noise_mean", 0.0),
-                config.get("gaussian_noise_stddev", 0.0),
+                config.get("gaussian_noise_hourly_mean", config.get("gaussian_noise_mean", 0.0)),
+                config.get("gaussian_noise_hourly_stddev", config.get("gaussian_noise_stddev", 0.0)),
                 label="hourly",
             )
 
@@ -333,8 +333,8 @@ def process_data(config):
             # Apply Gaussian noise if requested
             daily_df = _apply_gaussian_noise(
                 daily_df,
-                config.get("gaussian_noise_mean", 0.0),
-                config.get("gaussian_noise_stddev", 0.0),
+                config.get("gaussian_noise_daily_mean", config.get("gaussian_noise_mean", 0.0)),
+                config.get("gaussian_noise_daily_stddev", config.get("gaussian_noise_stddev", 0.0)),
                 label="daily",
             )
         else:
@@ -350,8 +350,8 @@ def process_data(config):
             # Apply Gaussian noise if requested
             daily_df = _apply_gaussian_noise(
                 daily_df,
-                config.get("gaussian_noise_mean", 0.0),
-                config.get("gaussian_noise_stddev", 0.0),
+                config.get("gaussian_noise_daily_mean", config.get("gaussian_noise_mean", 0.0)),
+                config.get("gaussian_noise_daily_stddev", config.get("gaussian_noise_stddev", 0.0)),
                 label="daily",
             )
 
