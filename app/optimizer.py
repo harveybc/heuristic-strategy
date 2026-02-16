@@ -6,6 +6,8 @@ import time
 from tqdm import tqdm
 import multiprocessing
 import json
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 # Global variables for optimization
 _plugin = None
@@ -26,7 +28,7 @@ def init_optimizer(plugin, base_data, hourly_predictions, daily_predictions, con
     _daily_predictions = daily_predictions
     _config = config
     _num_generations = config.get("num_generations", 10)
-    print("[INIT] Optimizer initialized with strategy plugin.")
+    if not _QUIET: print("[INIT] Optimizer initialized with strategy plugin.")
 
 
 def evaluate_individual(individual):
@@ -45,14 +47,14 @@ def evaluate_individual(individual):
         return (-1e6,)
     
     # Print the candidate and current epoch information.
-    print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
+    if not _QUIET: print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Evaluating candidate (genome): {individual}")
     
     result = _plugin.evaluate_candidate(individual, _base_data, _hourly_predictions, _daily_predictions, _config)
     
     # If the result returns both profit and stats, extract and print them.
     if isinstance(result, tuple) and len(result) == 2:
         profit, stats = result
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {profit:.2f}, "
+        if not _QUIET: print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {profit:.2f}, "
               f"Trades: {stats.get('num_trades', 0)}, "
               f"Win%: {stats.get('win_pct', 0):.1f}, "
               f"MaxDD: {stats.get('max_dd', 0):.2f}, "
@@ -60,11 +62,11 @@ def evaluate_individual(individual):
         return (profit,)
     # If only profit is returned as a single-value tuple, print and return that.
     elif isinstance(result, tuple) and len(result) == 1:
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
+        if not _QUIET: print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result[0]:.2f} (no stats)")
         return result
     else:
         # Fallback: assume result is a single numeric value.
-        print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
+        if not _QUIET: print(f"[EVALUATE][Epoch {_current_epoch}/{_num_generations}] Candidate result => Profit: {result:.2f} (no stats)")
         return (result,)
 
 
@@ -87,9 +89,9 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
     optimizable_params = plugin.get_optimizable_params()
     num_params = len(optimizable_params)
-    print(f"Optimizable Parameters ({num_params}):")
+    if not _QUIET: print(f"Optimizable Parameters ({num_params}):")
     for name, low, high in optimizable_params:
-        print(f"  {name}: [{low}, {high}]")
+        if not _QUIET: print(f"  {name}: [{low}, {high}]")
 
     if not hasattr(creator, "FitnessMax"):
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -116,14 +118,14 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     cxpb = config.get("crossover_probability", 0.5)
     mutpb = config.get("mutation_probability", 0.2)
 
-    print("Starting Genetic Algorithm Optimization")
+    if not _QUIET: print("Starting Genetic Algorithm Optimization")
     disable_mp = config.get("disable_multiprocessing", False)
     if not disable_mp:
         pool = multiprocessing.Pool()
         toolbox.register("map", pool.map)
 
     population = toolbox.population(n=population_size)
-    print("[OPTIMIZATION] Evaluating initial population...")
+    if not _QUIET: print("[OPTIMIZATION] Evaluating initial population...")
     if disable_mp:
         fitnesses = []
         with tqdm(total=len(population), desc="Initial eval", unit="cand") as pbar:
@@ -141,7 +143,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         for ind, f in zip(population, fitnesses):
             ind.fitness.values = f
 
-    print(f"  Evaluated {len(population)} individuals initially.")
+    if not _QUIET: print(f"  Evaluated {len(population)} individuals initially.")
 
     for gen in range(1, num_generations):
         _current_epoch = gen+1
@@ -177,15 +179,15 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
 
         population[:] = offspring
         fits = [ind.fitness.values[0] for ind in population]
-        print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits) / len(fits):.2f}")
+        if not _QUIET: print(f"Generation {gen}: Max Profit = {max(fits):.2f}, Avg Profit = {sum(fits) / len(fits):.2f}")
 
     from deap import tools
     best_ind = tools.selBest(population, 1)[0]
-    print("[OPTIMIZATION] Best parameter set found:")
+    if not _QUIET: print("[OPTIMIZATION] Best parameter set found:")
     best_params = {name: best_ind[i] for i, (name, _, _) in enumerate(optimizable_params)}
     for name, value in best_params.items():
-        print(f"  {name} = {value:.4f}")
-    print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
+        if not _QUIET: print(f"  {name} = {value:.4f}")
+    if not _QUIET: print(f"Achieved Profit: {best_ind.fitness.values[0]:.2f}")
 
     if not disable_mp:
         pool.close()
@@ -195,7 +197,7 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
         try:
             with open(config["save_config"], "w") as f:
                 json.dump(best_params, f, indent=4, default=str)
-            print(f"Best parameters saved to {config['save_config']}.")
+            if not _QUIET: print(f"Best parameters saved to {config['save_config']}.")
         except Exception as e:
             print(f"Failed to save best parameters to {config['save_config']}: {e}")
 
@@ -205,8 +207,8 @@ def run_optimizer(plugin, base_data, hourly_predictions, daily_predictions, conf
     }
 
 if __name__ == '__main__':
-    print("Standalone testing of optimizer not supported; run via main pipeline.")
+    if not _QUIET: print("Standalone testing of optimizer not supported; run via main pipeline.")
 
 
 if __name__ == '__main__':
-    print("Standalone testing of optimizer not supported; run via main pipeline.")
+    if not _QUIET: print("Standalone testing of optimizer not supported; run via main pipeline.")

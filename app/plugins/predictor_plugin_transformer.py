@@ -9,6 +9,8 @@ from tensorflow.keras.regularizers import l2
 from keras.layers import GaussianNoise, MultiHeadAttention, Add
 from keras import backend as K
 from sklearn.metrics import r2_score, mean_absolute_error
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 import logging
 import os
@@ -87,8 +89,8 @@ class Plugin:
         # Final layer => time_horizon units (N, time_horizon) output
         layers.append(time_horizon)
 
-        print(f"ANN Layer sizes: {layers}")
-        print(f"ANN input_shape: {input_shape}")
+        if not _QUIET: print(f"ANN Layer sizes: {layers}")
+        if not _QUIET: print(f"ANN input_shape: {input_shape}")
 
         # Build the model
         model_input = Input(shape=(input_shape,), name="model_input")
@@ -194,7 +196,7 @@ class Plugin:
             metrics=['mse', 'mae']  # Logs multi-step MSE/MAE
         )
         
-        print("Predictor Model Summary:")
+        if not _QUIET: print("Predictor Model Summary:")
         self.model.summary()
 
 
@@ -202,7 +204,7 @@ class Plugin:
         """
         Train the model with shape => x_train(N, input_dim), y_train(N, time_horizon).
         """
-        print(f"Training with data => X: {x_train.shape}, Y: {y_train.shape}")
+        if not _QUIET: print(f"Training with data => X: {x_train.shape}, Y: {y_train.shape}")
         exp_horizon = self.params['time_horizon']
         if y_train.ndim != 2 or y_train.shape[1] != exp_horizon:
             raise ValueError(
@@ -217,7 +219,7 @@ class Plugin:
             verbose=1
         )
         callbacks.append(early_stopping_monitor)
-        print(f"Training CNN model with data shape: {x_train.shape}, target shape: {y_train.shape}")
+        if not _QUIET: print(f"Training CNN model with data shape: {x_train.shape}, target shape: {y_train.shape}")
     
         history = self.model.fit(
             x_train, y_train,
@@ -230,27 +232,27 @@ class Plugin:
             validation_split=0.2
         )
 
-        print("Training completed.")
+        if not _QUIET: print("Training completed.")
         final_loss = history.history['loss'][-1]
-        print(f"Final training loss: {final_loss}")
+        if not _QUIET: print(f"Final training loss: {final_loss}")
 
         if final_loss > threshold_error:
-            print(f"Warning: final_loss={final_loss} > threshold_error={threshold_error}.")
+            if not _QUIET: print(f"Warning: final_loss={final_loss} > threshold_error={threshold_error}.")
 
         # Force the model to run in "training mode"
         preds_training_mode = self.model(x_train, training=True)
         mae_training_mode = np.mean(np.abs(preds_training_mode.numpy() - y_train))
-        print(f"MAE in Training Mode (manual): {mae_training_mode:.6f}")
+        if not _QUIET: print(f"MAE in Training Mode (manual): {mae_training_mode:.6f}")
 
         # Compare with evaluation mode
         preds_eval_mode = self.model(x_train, training=False)
         mae_eval_mode = np.mean(np.abs(preds_eval_mode.numpy() - y_train))
-        print(f"MAE in Evaluation Mode (manual): {mae_eval_mode:.6f}")
+        if not _QUIET: print(f"MAE in Evaluation Mode (manual): {mae_eval_mode:.6f}")
 
         # Evaluate on the full training dataset for consistency
         train_eval_results = self.model.evaluate(x_train, y_train, batch_size=batch_size, verbose=0)
         train_loss, train_mse, train_mae = train_eval_results
-        print(f"Restored Weights - Loss: {train_loss}, MSE: {train_mse}, MAE: {train_mae}")
+        if not _QUIET: print(f"Restored Weights - Loss: {train_loss}, MSE: {train_mse}, MAE: {train_mae}")
         
         if x_val is not None and y_val is not None:
             val_eval_results = self.model.evaluate(x_val, y_val, batch_size=batch_size, verbose=0)
@@ -282,7 +284,7 @@ class Plugin:
         """
         Flatten-based MSE => consistent with multi-step shape (N, time_horizon).
         """
-        print(f"Calculating MSE => y_true={y_true.shape}, y_pred={y_pred.shape}")
+        if not _QUIET: print(f"Calculating MSE => y_true={y_true.shape}, y_pred={y_pred.shape}")
         if y_true.shape != y_pred.shape:
             raise ValueError(
                 f"Mismatch => y_true={y_true.shape}, y_pred={y_pred.shape}"
@@ -290,14 +292,14 @@ class Plugin:
         y_true_f = y_true.reshape(-1)
         y_pred_f = y_pred.reshape(-1)
         mse = np.mean((y_true_f - y_pred_f) ** 2)
-        print(f"Calculated MSE => {mse}")
+        if not _QUIET: print(f"Calculated MSE => {mse}")
         return mse
 
     def calculate_mae(self, y_true, y_pred):
-        print(f"y_true (sample): {y_true.flatten()[:5]}")
-        print(f"y_pred (sample): {y_pred.flatten()[:5]}")
+        if not _QUIET: print(f"y_true (sample): {y_true.flatten()[:5]}")
+        if not _QUIET: print(f"y_pred (sample): {y_pred.flatten()[:5]}")
         mae = np.mean(np.abs(y_true.flatten() - y_pred.flatten()))
-        print(f"Calculated MAE: {mae}")
+        if not _QUIET: print(f"Calculated MAE: {mae}")
         return mae
 
 
@@ -306,11 +308,11 @@ class Plugin:
         Save the trained model to file.
         """
         save_model(self.model, file_path)
-        print(f"Predictor model saved to {file_path}")
+        if not _QUIET: print(f"Predictor model saved to {file_path}")
 
     def load(self, file_path):
         """
         Load a trained model from file.
         """
         self.model = load_model(file_path)
-        print(f"Model loaded from {file_path}")
+        if not _QUIET: print(f"Model loaded from {file_path}")

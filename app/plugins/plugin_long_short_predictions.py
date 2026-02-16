@@ -3,6 +3,8 @@ import os
 import backtrader as bt
 import pandas as pd
 import numpy as np
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 class Plugin:
     """
@@ -76,7 +78,7 @@ class Plugin:
         # If both predictions are missing or empty, auto-generate predictions using the candidate's time_horizon.
 
         if (config['hourly_predictions_file'] is None) and (config['daily_predictions_file'] is None):
-            print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={int(time_horizon)} for candidate {individual}.")
+            if not _QUIET: print(f"[evaluate_candidate] Auto-generating predictions using time_horizon={int(time_horizon)} for candidate {individual}.")
             config["time_horizon"] = int(time_horizon)
             from data_processor import process_data
             processed = process_data(config)
@@ -95,7 +97,7 @@ class Plugin:
             merged_df = dr.copy() if merged_df.empty else merged_df.join(dr, how="outer")
 
         if merged_df.empty:
-            print(f"[evaluate_candidate] => Merged predictions are empty for candidate {individual}. Returning profit=0.0.")
+            if not _QUIET: print(f"[evaluate_candidate] => Merged predictions are empty for candidate {individual}. Returning profit=0.0.")
             return (0.0, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
         # Ensure predictions have a datetime index.
@@ -132,27 +134,27 @@ class Plugin:
         try:
             runresult = cerebro.run()
         except Exception as e:
-            print("Error during backtest:", e)
+            if not _QUIET: print("Error during backtest:", e)
             if os.path.exists(temp_pred_file):
                 os.remove(temp_pred_file)
             return (-1e6, {"num_trades": 0, "win_pct": 0, "max_dd": 0, "sharpe": 0})
 
         final_value = cerebro.broker.getvalue()
         profit = final_value - 10000.0
-        print(f"Evaluated candidate {individual} -> Profit: {profit:.2f}")
+        if not _QUIET: print(f"Evaluated candidate {individual} -> Profit: {profit:.2f}")
 
         # Retrieve trades from the strategy instance.
         strat_instance = runresult[0]
         trades_list = getattr(strat_instance, "trades", [])
         if config.get("show_trades", True):
             if trades_list:
-                print(f"Trades for candidate {individual}:")
+                if not _QUIET: print(f"Trades for candidate {individual}:")
                 for i, tr in enumerate(trades_list, 1):
-                    print(f"  Trade #{i}: OpenDT={tr.get('open_dt', 'N/A')}, ExitDT={tr.get('close_dt', 'N/A')}, "
+                    if not _QUIET: print(f"  Trade #{i}: OpenDT={tr.get('open_dt', 'N/A')}, ExitDT={tr.get('close_dt', 'N/A')}, "
                         f"Volume={tr.get('volume', 0)}, PnL={tr.get('pnl', 0):.2f}, "
                         f"Pips={tr.get('pips', 0):.2f}, MaxDD={tr.get('max_dd', 0):.2f}")
             else:
-                print("  No trades were made for this candidate.")
+                if not _QUIET: print("  No trades were made for this candidate.")
 
         if os.path.exists(temp_pred_file):
             os.remove(temp_pred_file)
@@ -173,7 +175,7 @@ class Plugin:
             sharpe = (profit / std_profit) if std_profit > 0 else 0
             stats.update({"win_pct": win_pct, "max_dd": max_dd, "sharpe": sharpe})
 
-        print(f"[EVALUATE] Candidate result => Profit: {profit:.2f}, "
+        if not _QUIET: print(f"[EVALUATE] Candidate result => Profit: {profit:.2f}, "
             f"Trades: {stats.get('num_trades', 0)}, "
             f"Win%: {stats.get('win_pct', 0):.1f}, "
             f"MaxDD: {stats.get('max_dd', 0):.2f}, "
@@ -363,7 +365,7 @@ class Plugin:
             order_size = self.compute_size(chosen_rr)
             #print(f"[DEBUG]   Computed order size: {order_size:.2f}")
             if order_size <= 0:
-                print("[DEBUG] Order size <= 0, skipping trade")
+                if not _QUIET: print("[DEBUG] Order size <= 0, skipping trade")
                 return
 
             self.trade_entry_dates.append(dt)
@@ -432,7 +434,7 @@ class Plugin:
                     'max_dd': intra_dd
                 }
                 self.trades.append(trade_record)
-                print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+                if not _QUIET: print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
                       f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
                       f"Duration={duration} bars, MaxDD={intra_dd:.2f}, Balance={current_balance:.2f}")
                 self.order_entry_price = None
@@ -455,15 +457,15 @@ class Plugin:
             else:
                 avg_profit_usd = avg_profit_pips = avg_duration = avg_max_dd = 0
             final_balance = self.broker.getvalue()
-            print("\n==== Summary ====")
-            print(f"Initial Balance (USD): {self.initial_balance:.2f}")
-            print(f"Final Balance (USD):   {final_balance:.2f}")
-            print(f"Minimum Balance (USD): {min_balance:.2f}")
-            print(f"Number of Trades: {n_trades}")
-            print(f"Average Profit (USD): {avg_profit_usd:.2f}")
-            print(f"Average Profit (pips): {avg_profit_pips:.2f}")
-            print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
-            print(f"Average Trade Duration (bars): {avg_duration:.2f}")
+            if not _QUIET: print("\n==== Summary ====")
+            if not _QUIET: print(f"Initial Balance (USD): {self.initial_balance:.2f}")
+            if not _QUIET: print(f"Final Balance (USD):   {final_balance:.2f}")
+            if not _QUIET: print(f"Minimum Balance (USD): {min_balance:.2f}")
+            if not _QUIET: print(f"Number of Trades: {n_trades}")
+            if not _QUIET: print(f"Average Profit (USD): {avg_profit_usd:.2f}")
+            if not _QUIET: print(f"Average Profit (pips): {avg_profit_pips:.2f}")
+            if not _QUIET: print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
+            if not _QUIET: print(f"Average Trade Duration (bars): {avg_duration:.2f}")
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 5))
             plt.plot(self.date_history, self.balance_history, label="Balance")
@@ -482,25 +484,25 @@ class Plugin:
         debug_info.update(self.get_debug_info())
 
     def build_model(self, input_shape):
-        print("build_model() not applicable for trading strategy plugin.")
+        if not _QUIET: print("build_model() not applicable for trading strategy plugin.")
 
     def train(self, x_train, y_train, epochs, batch_size, threshold_error, x_val=None, y_val=None):
-        print("train() not applicable for trading strategy plugin.")
+        if not _QUIET: print("train() not applicable for trading strategy plugin.")
 
     def predict(self, data):
-        print("predict() not applicable for trading strategy plugin.")
+        if not _QUIET: print("predict() not applicable for trading strategy plugin.")
         return None
 
     def calculate_mse(self, y_true, y_pred):
-        print("calculate_mse() not applicable for trading strategy plugin.")
+        if not _QUIET: print("calculate_mse() not applicable for trading strategy plugin.")
         return None
 
     def calculate_mae(self, y_true, y_pred):
-        print("calculate_mae() not applicable for trading strategy plugin.")
+        if not _QUIET: print("calculate_mae() not applicable for trading strategy plugin.")
         return None
 
     def save(self, file_path):
-        print("save() not applicable for trading strategy plugin.")
+        if not _QUIET: print("save() not applicable for trading strategy plugin.")
 
     def load(self, file_path):
-        print("load() not applicable for trading strategy plugin.")
+        if not _QUIET: print("load() not applicable for trading strategy plugin.")

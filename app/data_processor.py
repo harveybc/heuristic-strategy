@@ -3,6 +3,8 @@ import numpy as np
 import time
 from app.data_handler import load_csv
 from app.optimizer import run_optimizer
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 # =============================================================================
 # DATA PROCESSOR FOR TRADING STRATEGY OPTIMIZATION
@@ -34,7 +36,7 @@ def create_daily_predictions(df, horizon):
 
     # If the dataset is too short for daily predictions, return empty.
     if nrows < required_rows:
-        print("Warning: Not enough rows to create daily predictions. Returning an empty DataFrame.")
+        if not _QUIET: print("Warning: Not enough rows to create daily predictions. Returning an empty DataFrame.")
         return pd.DataFrame()
 
     blocks = []
@@ -61,7 +63,7 @@ def create_daily_predictions(df, horizon):
 
     if not blocks:
         # No valid blocks were created
-        print("Warning: daily predictions are empty after alignment. Returning an empty DataFrame.")
+        if not _QUIET: print("Warning: daily predictions are empty after alignment. Returning an empty DataFrame.")
         return pd.DataFrame()
 
     # The resulting blocks length = nrows - required_rows
@@ -83,13 +85,13 @@ def process_data(config):
     from app.data_handler import load_csv
 
     headers = config.get("headers", True)
-    print("Loading datasets...")
+    if not _QUIET: print("Loading datasets...")
 
     # Load datasets based on config parameters
     hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
     daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
-    print(f"Base dataset loaded: {base_df.shape}")
+    if not _QUIET: print(f"Base dataset loaded: {base_df.shape}")
 
     # Conserva una copia completa del base dataset para la evaluación
     base_df_full = base_df.copy()
@@ -98,13 +100,13 @@ def process_data(config):
     if hourly_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
-        print("Auto-generating hourly predictions...")
+        if not _QUIET: print("Auto-generating hourly predictions...")
         hourly_df = create_hourly_predictions(base_df, config["time_horizon"])
 
     if daily_df is None:
         if "time_horizon" not in config or not config["time_horizon"]:
             raise ValueError("time_horizon must be provided when auto-generating predictions.")
-        print("Auto-generating daily predictions...")
+        if not _QUIET: print("Auto-generating daily predictions...")
         daily_df = create_daily_predictions(base_df, config["time_horizon"])
 
     # Ensure that hourly and daily predictions have a datetime index based on DATE_TIME column, if not already set.
@@ -141,7 +143,7 @@ def process_data(config):
     # Verify that all datasets have the same number of rows
     if not (len(base_df) == len(hourly_df) == len(daily_df)):
         min_len = min(len(base_df), len(hourly_df), len(daily_df))
-        print("Warning: After alignment, the number of rows differ. Trimming each dataset to the minimum length:", min_len)
+        if not _QUIET: print("Warning: After alignment, the number of rows differ. Trimming each dataset to the minimum length:", min_len)
         base_df = base_df.iloc[:min_len]
         hourly_df = hourly_df.iloc[:min_len]
         daily_df = daily_df.iloc[:min_len]
@@ -149,9 +151,9 @@ def process_data(config):
             raise ValueError("After alignment and trimming, the number of rows in base, hourly, and daily predictions still do not match!")
 
     # Print aligned date ranges
-    print(f"Aligned Base dataset range: {base_df.index.min()} to {base_df.index.max()}")
-    print(f"Aligned Hourly predictions range: {hourly_df.index.min()} to {hourly_df.index.max()}")
-    print(f"Aligned Daily predictions range: {daily_df.index.min()} to {daily_df.index.max()}")
+    if not _QUIET: print(f"Aligned Base dataset range: {base_df.index.min()} to {base_df.index.max()}")
+    if not _QUIET: print(f"Aligned Hourly predictions range: {hourly_df.index.min()} to {hourly_df.index.max()}")
+    if not _QUIET: print(f"Aligned Daily predictions range: {daily_df.index.min()} to {daily_df.index.max()}")
 
     return {"hourly": hourly_df, "daily": daily_df, "base": base_df, "base_full": base_df_full}
 
@@ -173,7 +175,7 @@ def run_processing_pipeline(config, plugin):
 
     start_time = time.time()
     strat_name = config.get("strategy_name", "Heuristic Strategy")
-    print(f"\n=== Starting Trading Strategy Optimization Pipeline for '{strat_name}' ===")
+    if not _QUIET: print(f"\n=== Starting Trading Strategy Optimization Pipeline for '{strat_name}' ===")
 
     datasets = process_data(config)
     hourly_preds = datasets["hourly"]
@@ -225,27 +227,27 @@ def run_processing_pipeline(config, plugin):
     df_daily = pd.DataFrame(daily_results)
 
     # Print the error metrics tables
-    print("\nError Metrics for Hourly Predictions:")
-    print(df_hourly.to_string(index=False))
-    print("\nError Metrics for Daily Predictions:")
-    print(df_daily.to_string(index=False))
+    if not _QUIET: print("\nError Metrics for Hourly Predictions:")
+    if not _QUIET: print(df_hourly.to_string(index=False))
+    if not _QUIET: print("\nError Metrics for Daily Predictions:")
+    if not _QUIET: print(df_daily.to_string(index=False))
 
     # Additional verification: print final aligned date ranges before sending data to the plugin
-    print(f"\nFinal Base dataset date range: {base_data.index.min()} to {base_data.index.max()}")
-    print(f"Final Hourly predictions date range: {hourly_preds.index.min()} to {hourly_preds.index.max()}")
-    print(f"Final Daily predictions date range: {daily_preds.index.min()} to {daily_preds.index.max()}")
+    if not _QUIET: print(f"\nFinal Base dataset date range: {base_data.index.min()} to {base_data.index.max()}")
+    if not _QUIET: print(f"Final Hourly predictions date range: {hourly_preds.index.min()} to {hourly_preds.index.max()}")
+    if not _QUIET: print(f"Final Daily predictions date range: {daily_preds.index.min()} to {daily_preds.index.max()}")
 
-    print("\nProcessed Dataset Shapes:")
-    print(f"  Base dataset:       {base_data.shape}")
-    print(f"  Hourly predictions: {hourly_preds.shape}")
-    print(f"  Daily predictions:  {daily_preds.shape}")
+    if not _QUIET: print("\nProcessed Dataset Shapes:")
+    if not _QUIET: print(f"  Base dataset:       {base_data.shape}")
+    if not _QUIET: print(f"  Hourly predictions: {hourly_preds.shape}")
+    if not _QUIET: print(f"  Daily predictions:  {daily_preds.shape}")
 
     # Proceed with sending data to the plugin (evaluation or optimization)
     if config.get("load_parameters") is not None:
         try:
             with open(config["load_parameters"], "r") as f:
                 loaded_params = json.load(f)
-            print(f"Loaded evaluation parameters from {config['load_parameters']}: {loaded_params}")
+            if not _QUIET: print(f"Loaded evaluation parameters from {config['load_parameters']}: {loaded_params}")
         except Exception as e:
             print(f"Failed to load parameters from {config['load_parameters']}: {e}")
             loaded_params = None
@@ -258,7 +260,7 @@ def run_processing_pipeline(config, plugin):
                 loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"]),
                 int(loaded_params.get("time_horizon", 3))
             ]
-            print(f"Evaluating strategy with loaded parameters: {candidate}")
+            if not _QUIET: print(f"Evaluating strategy with loaded parameters: {candidate}")
             init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
             result = evaluate_individual(candidate)
             trading_info = {"best_parameters": {
@@ -273,15 +275,15 @@ def run_processing_pipeline(config, plugin):
             trading_info = {}
     else:
         if hasattr(plugin, "get_optimizable_params") and hasattr(plugin, "evaluate_candidate"):
-            print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
+            if not _QUIET: print(f"\nPlugin supports optimization. Running optimizer for '{strat_name}'...")
             trading_info = run_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
         else:
-            print("\nPlugin does not support optimization. Exiting.")
+            if not _QUIET: print("\nPlugin does not support optimization. Exiting.")
             trading_info = {}
 
-    print("\n=== Optimization Results ===")
+    if not _QUIET: print("\n=== Optimization Results ===")
     for key, value in trading_info.items():
-        print(f"{key}: {value}")
+        if not _QUIET: print(f"{key}: {value}")
 
     if config.get("balance_plot_file"):
         old_plot = "balance_plot.png"
@@ -289,20 +291,20 @@ def run_processing_pipeline(config, plugin):
         if os.path.exists(old_plot):
             try:
                 os.rename(old_plot, new_plot)
-                print(f"Renamed {old_plot} -> {new_plot}")
+                if not _QUIET: print(f"Renamed {old_plot} -> {new_plot}")
             except Exception as e:
                 print(f"Failed to rename {old_plot} to {new_plot}: {e}")
         else:
-            print(f"Warning: {old_plot} not found; no balance plot to rename.")
+            if not _QUIET: print(f"Warning: {old_plot} not found; no balance plot to rename.")
 
     trades_csv = config.get("trades_csv_file")
     if trades_csv:
         try:
             if hasattr(plugin, "trades") and plugin.trades:
                 pd.DataFrame(plugin.trades).to_csv(trades_csv, index=False)
-                print(f"Trades saved to {trades_csv}.")
+                if not _QUIET: print(f"Trades saved to {trades_csv}.")
             else:
-                print("Warning: plugin.trades not found or empty.")
+                if not _QUIET: print("Warning: plugin.trades not found or empty.")
         except Exception as e:
             print(f"Failed to save trades to {trades_csv}: {e}")
 
@@ -311,7 +313,7 @@ def run_processing_pipeline(config, plugin):
         try:
             df = pd.DataFrame([trading_info])
             df.to_csv(summary_csv, index=False)
-            print(f"Summary saved to {summary_csv}.")
+            if not _QUIET: print(f"Summary saved to {summary_csv}.")
         except Exception as e:
             print(f"Failed to save summary CSV to {summary_csv}: {e}")
 
@@ -319,12 +321,12 @@ def run_processing_pipeline(config, plugin):
         try:
             with open(config["save_parameters"], "w") as f:
                 json.dump(trading_info.get("best_parameters", {}), f, indent=4, default=str)
-            print(f"Best parameters saved to {config['save_parameters']}.")
+            if not _QUIET: print(f"Best parameters saved to {config['save_parameters']}.")
         except Exception as e:
             print(f"Failed to save best parameters to {config['save_parameters']}: {e}")
 
     end_time = time.time()
-    print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
+    if not _QUIET: print(f"\nTotal Execution Time: {end_time - start_time:.2f} seconds")
     return trading_info, getattr(plugin, "trades", None)
 
 if __name__ == "__main__":

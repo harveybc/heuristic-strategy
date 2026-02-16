@@ -1,6 +1,8 @@
 import pandas as pd
 from typing import Optional
 from app.reconstruction import unwindow_data
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 
 import pandas as pd
@@ -50,7 +52,7 @@ def load_csv(file_path: str, headers: bool = False, max_rows: Optional[int] = No
 
         else:
             # 2b) If 'DATE_TIME' is missing, use RangeIndex and log a warning
-            print(f"Warning: No 'DATE_TIME' column found in '{file_path}'. Using RangeIndex.")
+            if not _QUIET: print(f"Warning: No 'DATE_TIME' column found in '{file_path}'. Using RangeIndex.")
             data.index = pd.RangeIndex(start=0, stop=len(data), step=1)
 
         # 3) Rename columns if headers are missing
@@ -62,14 +64,14 @@ def load_csv(file_path: str, headers: bool = False, max_rows: Optional[int] = No
             data[col] = pd.to_numeric(data[col], errors='coerce').fillna(0)
 
         # 5) Debug information
-        print(f"[DEBUG] Loaded CSV '{file_path}' -> shape={data.shape}, index={data.index.dtype}, headers={headers}")
+        if not _QUIET: print(f"[DEBUG] Loaded CSV '{file_path}' -> shape={data.shape}, index={data.index.dtype}, headers={headers}")
 
         # 6) Check for leftover NaNs
         if data.isnull().values.any():
-            print(f"Warning: NaN values found after processing CSV: {file_path}")
+            if not _QUIET: print(f"Warning: NaN values found after processing CSV: {file_path}")
 
     except Exception as e:
-        print(f"An error occurred while loading the CSV: {e}")
+        if not _QUIET: print(f"An error occurred while loading the CSV: {e}")
         raise
 
     return data
@@ -109,5 +111,5 @@ def write_csv(file_path: str, data: pd.DataFrame, include_date: bool = True,
         else:
             data.to_csv(file_path, index=False, header=headers)
     except Exception as e:
-        print(f"An error occurred while writing the CSV: {e}")
+        if not _QUIET: print(f"An error occurred while writing the CSV: {e}")
         raise

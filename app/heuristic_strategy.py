@@ -2,6 +2,8 @@ import backtrader as bt
 import pandas as pd
 import datetime
 import matplotlib.pyplot as plt
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 class HeuristicStrategy(bt.Strategy):
     """
@@ -288,7 +290,7 @@ class HeuristicStrategy(bt.Strategy):
                 'max_dd': intra_dd
             })
 
-            print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
+            if not _QUIET: print(f"TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
                   f"Profit (pips)={profit_pips:.2f}, Profit (USD)={profit_usd:.2f}, "
                   f"Duration={duration} bars, Max DD (pips)={intra_dd:.2f}, Balance={current_balance:.2f}")
 
@@ -304,9 +306,9 @@ class HeuristicStrategy(bt.Strategy):
         # If a TradeAnalyzer was added, print its output.
         if hasattr(self, 'analyzers') and 'tradeanalyzer' in self.analyzers:
             trade_analyzer = self.analyzers.tradeanalyzer.get_analysis()
-            print("\n==== Trade Analyzer Results ====")
+            if not _QUIET: print("\n==== Trade Analyzer Results ====")
             for key, value in trade_analyzer.items():
-                print(f"{key}: {value}")
+                if not _QUIET: print(f"{key}: {value}")
 
         # Compute the minimum balance encountered during the simulation.
         min_balance = min(self.balance_history) if self.balance_history else 0
@@ -321,15 +323,15 @@ class HeuristicStrategy(bt.Strategy):
         else:
             avg_profit_usd = avg_profit_pips = avg_profit_pips_abs = avg_duration = avg_max_dd = 0
         final_balance = self.broker.getvalue()
-        print("\n==== Summary ====")
-        print(f"Initial Balance (USD): {self.initial_balance:.2f}")
-        print(f"Final Balance (USD):   {final_balance:.2f}")
-        print(f"Minimum Balance (USD): {min_balance:.2f}")
-        print(f"Number of Trades: {n_trades}")
-        print(f"Average Profit (USD): {avg_profit_usd:.2f}")
-        print(f"Average Profit (pips): {avg_profit_pips:.2f}")
-        print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
-        print(f"Average Trade Duration (bars): {avg_duration:.2f}")
+        if not _QUIET: print("\n==== Summary ====")
+        if not _QUIET: print(f"Initial Balance (USD): {self.initial_balance:.2f}")
+        if not _QUIET: print(f"Final Balance (USD):   {final_balance:.2f}")
+        if not _QUIET: print(f"Minimum Balance (USD): {min_balance:.2f}")
+        if not _QUIET: print(f"Number of Trades: {n_trades}")
+        if not _QUIET: print(f"Average Profit (USD): {avg_profit_usd:.2f}")
+        if not _QUIET: print(f"Average Profit (pips): {avg_profit_pips:.2f}")
+        if not _QUIET: print(f"Average Max Drawdown (pips): {avg_max_dd:.2f}")
+        if not _QUIET: print(f"Average Trade Duration (bars): {avg_duration:.2f}")
         
         # Plot balance vs. date.
         plt.figure(figsize=(10, 5))
@@ -384,4 +386,4 @@ if __name__ == '__main__':
     cerebro.broker.setcash(10000.0)
     # IMPORTANT: Do NOT add a sizer so that the strategy's computed order size is used.
     cerebro.run()
-    print(f"Final Balance: {cerebro.broker.getvalue():.2f}")
+    if not _QUIET: print(f"Final Balance: {cerebro.broker.getvalue():.2f}")

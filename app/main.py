@@ -2,6 +2,8 @@ import sys
 import json
 import pandas as pd
 from typing import Any, Dict
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 from app.config_handler import (
     load_config,
@@ -29,18 +31,18 @@ def main():
       6. Running the processing pipeline (optimization and trade simulation).
       7. Saving configurations remotely (if specified).
     """
-    print("Parsing initial arguments...")
+    if not _QUIET: print("Parsing initial arguments...")
     args, unknown_args = parse_args()
     cli_args: Dict[str, Any] = vars(args)
 
-    print("Loading default configuration...")
+    if not _QUIET: print("Loading default configuration...")
     config: Dict[str, Any] = DEFAULT_VALUES.copy()
 
     file_config: Dict[str, Any] = {}
     if args.remote_load_config:
         try:
             file_config = remote_load_config(args.remote_load_config, args.username, args.password)
-            print(f"Loaded remote config: {file_config}")
+            if not _QUIET: print(f"Loaded remote config: {file_config}")
         except Exception as e:
             print(f"Failed to load remote configuration: {e}")
             sys.exit(1)
@@ -48,12 +50,12 @@ def main():
     if args.load_config:
         try:
             file_config = load_config(args.load_config)
-            print(f"Loaded local config: {file_config}")
+            if not _QUIET: print(f"Loaded local config: {file_config}")
         except Exception as e:
             print(f"Failed to load local configuration: {e}")
             sys.exit(1)
 
-    print("Merging configuration with CLI and unknown args (first pass, no plugin params)...")
+    if not _QUIET: print("Merging configuration with CLI and unknown args (first pass, no plugin params)...")
     unknown_args_dict = process_unknown_args(unknown_args)
     config = merge_config(config, {}, {}, file_config, cli_args, unknown_args_dict)
 
@@ -62,7 +64,7 @@ def main():
         cli_args['plugin'] = config.get('plugin', 'default')
 
     plugin_name = cli_args['plugin']
-    print(f"Loading plugin: {plugin_name}")
+    if not _QUIET: print(f"Loading plugin: {plugin_name}")
     try:
         # Load the plugin from the 'heuristic_strategy.plugins' namespace.
         plugin_class, _ = load_plugin('heuristic_strategy.plugins', plugin_name)
@@ -73,27 +75,27 @@ def main():
         print(f"Failed to load or initialize plugin '{plugin_name}': {e}")
         sys.exit(1)
 
-    print("Merging configuration with CLI and unknown args (second pass, with plugin params)...")
+    if not _QUIET: print("Merging configuration with CLI and unknown args (second pass, with plugin params)...")
     config = merge_config(config, plugin.plugin_params, {}, file_config, cli_args, unknown_args_dict)
 
     if config.get('load_model'):
-        print("Warning: 'load_model' is not applicable for trading strategy plugins. Ignoring this parameter.")
+        if not _QUIET: print("Warning: 'load_model' is not applicable for trading strategy plugins. Ignoring this parameter.")
 
-    print("Processing and running optimization pipeline...")
+    if not _QUIET: print("Processing and running optimization pipeline...")
     trading_info, trades = run_processing_pipeline(config, plugin)
 
     if config.get('save_config'):
         try:
             save_config(config, config['save_config'])
-            print(f"Configuration saved to {config['save_config']}.")
+            if not _QUIET: print(f"Configuration saved to {config['save_config']}.")
         except Exception as e:
             print(f"Failed to save configuration locally: {e}")
 
     if config.get('remote_save_config'):
-        print(f"Remote saving configuration to {config['remote_save_config']}")
+        if not _QUIET: print(f"Remote saving configuration to {config['remote_save_config']}")
         try:
             remote_save_config(config, config['remote_save_config'], config.get('username'), config.get('password'))
-            print("Remote configuration saved.")
+            if not _QUIET: print("Remote configuration saved.")
         except Exception as e:
             print(f"Failed to save configuration remotely: {e}")
 

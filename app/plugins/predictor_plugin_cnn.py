@@ -7,6 +7,8 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.losses import Huber
 from tensorflow.keras.regularizers import l2
 from sklearn.metrics import r2_score
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 class Plugin:
     """
@@ -72,7 +74,7 @@ class Plugin:
             raise ValueError(f"Invalid input_shape {input_shape}. CNN requires input with shape (window_size, features).")
 
         self.params['input_shape'] = input_shape
-        print(f"CNN input_shape: {input_shape}")
+        if not _QUIET: print(f"CNN input_shape: {input_shape}")
 
         layers = []
         current_size = self.params['initial_layer_size']
@@ -87,7 +89,7 @@ class Plugin:
         layers.append(self.params['time_horizon'])
 
         # Debugging message
-        print(f"CNN Layer sizes: {layers}")
+        if not _QUIET: print(f"CNN Layer sizes: {layers}")
 
         # Define the Input layer
         inputs = Input(shape=input_shape, name="model_input")
@@ -155,7 +157,7 @@ class Plugin:
         )
 
         # Debugging messages to trace the model configuration
-        print("CNN Model Summary:")
+        if not _QUIET: print("CNN Model Summary:")
         self.model.summary()
 
     def train(self, x_train, y_train, epochs, batch_size, threshold_error, x_val=None, y_val=None):
@@ -193,7 +195,7 @@ class Plugin:
         )
         callbacks.append(early_stopping_monitor)
 
-        print(f"Training CNN model with data shape: {x_train.shape}, target shape: {y_train.shape}")
+        if not _QUIET: print(f"Training CNN model with data shape: {x_train.shape}, target shape: {y_train.shape}")
 
         history = self.model.fit(
             x_train,
@@ -204,30 +206,30 @@ class Plugin:
             callbacks=callbacks,
             validation_split = 0.2
         )
-        print("Training completed.")
+        if not _QUIET: print("Training completed.")
         final_loss = history.history['loss'][-1]
-        print(f"Final training loss: {final_loss}")
+        if not _QUIET: print(f"Final training loss: {final_loss}")
 
         if final_loss > threshold_error:
-            print(f"Warning: final_loss={final_loss} > threshold_error={threshold_error}.")
+            if not _QUIET: print(f"Warning: final_loss={final_loss} > threshold_error={threshold_error}.")
 
         # Force the model to run in "training mode"
-        print("Forcing training mode for MAE calculation...")
+        if not _QUIET: print("Forcing training mode for MAE calculation...")
         preds_training_mode = self.model(x_train, training=True).numpy()
         mae_training_mode = np.mean(np.abs(preds_training_mode - y_train[:len(preds_training_mode)]))
-        print(f"MAE in Training Mode (manual): {mae_training_mode:.6f}")
+        if not _QUIET: print(f"MAE in Training Mode (manual): {mae_training_mode:.6f}")
 
         # Compare with evaluation mode
-        print("Forcing evaluation mode for MAE calculation...")
+        if not _QUIET: print("Forcing evaluation mode for MAE calculation...")
         preds_eval_mode = self.model(x_train, training=False).numpy()
         mae_eval_mode = np.mean(np.abs(preds_eval_mode - y_train[:len(preds_training_mode)]))
-        print(f"MAE in Evaluation Mode (manual): {mae_eval_mode:.6f}")
+        if not _QUIET: print(f"MAE in Evaluation Mode (manual): {mae_eval_mode:.6f}")
 
         # Evaluate on the full training dataset for consistency
-        print("Evaluating on the full training dataset...")
+        if not _QUIET: print("Evaluating on the full training dataset...")
         train_eval_results = self.model.evaluate(x_train, y_train[:len(preds_training_mode)], batch_size=batch_size, verbose=0)
         train_loss, train_mse, train_mae = train_eval_results
-        print(f"Restored Weights - Loss: {train_loss}, MSE: {train_mse}, MAE: {train_mae}")
+        if not _QUIET: print(f"Restored Weights - Loss: {train_loss}, MSE: {train_mse}, MAE: {train_mae}")
         
         # Only evaluate validation data if it exists
         if x_val is not None and y_val is not None:
@@ -263,9 +265,9 @@ class Plugin:
         """
         # CNN expects data to be (samples, window_size, features)
 
-        print(f"Predicting data with shape: {data.shape}")
+        if not _QUIET: print(f"Predicting data with shape: {data.shape}")
         predictions = self.model.predict(data)
-        print(f"Predicted data shape: {predictions.shape}")
+        if not _QUIET: print(f"Predicted data shape: {predictions.shape}")
         return predictions
 
 
@@ -283,7 +285,7 @@ class Plugin:
         Raises:
             ValueError: If the shapes of y_true and y_pred do not match.
         """
-        print(f"Calculating MSE for shapes: y_true={y_true.shape}, y_pred={y_pred.shape}")
+        if not _QUIET: print(f"Calculating MSE for shapes: y_true={y_true.shape}, y_pred={y_pred.shape}")
         
         # Ensure both y_true and y_pred have the same shape
         if y_true.shape != y_pred.shape:
@@ -295,11 +297,11 @@ class Plugin:
         y_true_flat = y_true.reshape(-1)
         y_pred_flat = y_pred.reshape(-1)
         
-        print(f"Shapes after flattening: y_true={y_true_flat.shape}, y_pred={y_pred_flat.shape}")
+        if not _QUIET: print(f"Shapes after flattening: y_true={y_true_flat.shape}, y_pred={y_pred_flat.shape}")
         
         # Calculate Mean Squared Error
         mse = np.mean((y_true_flat - y_pred_flat) ** 2)
-        print(f"Calculated MSE: {mse}")
+        if not _QUIET: print(f"Calculated MSE: {mse}")
         return mse
 
     def calculate_mae(self, y_true, y_pred):
@@ -316,7 +318,7 @@ class Plugin:
         Raises:
             ValueError: If the shapes of y_true and y_pred do not match.
         """
-        print(f"Calculating MAE for shapes: y_true={y_true.shape}, y_pred={y_pred.shape}")
+        if not _QUIET: print(f"Calculating MAE for shapes: y_true={y_true.shape}, y_pred={y_pred.shape}")
         
         # Ensure both y_true and y_pred have the same shape
         if y_true.shape != y_pred.shape:
@@ -328,7 +330,7 @@ class Plugin:
         y_true_flat = y_true.reshape(-1)
         y_pred_flat = y_pred.reshape(-1)
         
-        print(f"Shapes after flattening: y_true={y_true_flat.shape}, y_pred={y_pred_flat.shape}")
+        if not _QUIET: print(f"Shapes after flattening: y_true={y_true_flat.shape}, y_pred={y_pred_flat.shape}")
         
         # Calculate Mean Absolute Error
         mae = np.mean(np.abs(y_true_flat - y_pred_flat))
@@ -344,7 +346,7 @@ class Plugin:
             file_path (str): Path to save the model.
         """
         save_model(self.model, file_path)
-        print(f"Predictor model saved to {file_path}")
+        if not _QUIET: print(f"Predictor model saved to {file_path}")
 
     def load(self, file_path):
         """
@@ -354,7 +356,7 @@ class Plugin:
             file_path (str): Path to load the model from.
         """
         self.model = load_model(file_path)
-        print(f"Predictor model loaded from {file_path}")
+        if not _QUIET: print(f"Predictor model loaded from {file_path}")
 
     def calculate_r2(self, y_true, y_pred):
         """
@@ -370,7 +372,7 @@ class Plugin:
         Raises:
             ValueError: If the shapes of y_true and y_pred do not match.
         """
-        print(f"Calculating R² for shapes: y_true={y_true.shape}, y_pred={y_pred.shape}")
+        if not _QUIET: print(f"Calculating R² for shapes: y_true={y_true.shape}, y_pred={y_pred.shape}")
 
         # Ensure both y_true and y_pred have the same shape
         if y_true.shape != y_pred.shape:
@@ -388,7 +390,7 @@ class Plugin:
 
         # Calculate the average R² score
         r2 = np.mean(r2_scores)
-        print(f"Calculated R²: {r2}")
+        if not _QUIET: print(f"Calculated R²: {r2}")
         return r2
 
 
@@ -397,4 +399,4 @@ if __name__ == "__main__":
     plugin = Plugin()
     plugin.build_model(input_shape=(24, 8))  # Example input_shape for CNN
     debug_info = plugin.get_debug_info()
-    print(f"Debug Info: {debug_info}")
+    if not _QUIET: print(f"Debug Info: {debug_info}")

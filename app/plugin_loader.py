@@ -1,13 +1,15 @@
 from importlib.metadata import entry_points, EntryPoint
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 def load_plugin(plugin_group, plugin_name):
-    print(f"Attempting to load plugin: {plugin_name} from group: {plugin_group}")
+    if not _QUIET: print(f"Attempting to load plugin: {plugin_name} from group: {plugin_group}")
     try:
         group_entries = entry_points().get(plugin_group, [])
         entry_point = next(ep for ep in group_entries if ep.name == plugin_name)
         plugin_class = entry_point.load()
         required_params = list(plugin_class.plugin_params.keys())
-        print(f"Successfully loaded plugin: {plugin_name} with params: {plugin_class.plugin_params}")
+        if not _QUIET: print(f"Successfully loaded plugin: {plugin_name} with params: {plugin_class.plugin_params}")
         return plugin_class, required_params
     except StopIteration:
         print(f"Failed to find plugin {plugin_name} in group {plugin_group}")
@@ -17,12 +19,12 @@ def load_plugin(plugin_group, plugin_name):
         raise
 
 def get_plugin_params(plugin_group, plugin_name):
-    print(f"Getting plugin parameters for: {plugin_name} from group: {plugin_group}")
+    if not _QUIET: print(f"Getting plugin parameters for: {plugin_name} from group: {plugin_group}")
     try:
         group_entries = entry_points().get(plugin_group, [])
         entry_point = next(ep for ep in group_entries if ep.name == plugin_name)
         plugin_class = entry_point.load()
-        print(f"Retrieved plugin params: {plugin_class.plugin_params}")
+        if not _QUIET: print(f"Retrieved plugin params: {plugin_class.plugin_params}")
         return plugin_class.plugin_params
     except StopIteration:
         print(f"Failed to find plugin {plugin_name} in group {plugin_group}")

@@ -5,6 +5,8 @@ import sys
 import requests
 from app.config import DEFAULT_VALUES
 from app.plugin_loader import load_plugin
+import os as _os
+_QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 def load_config(file_path):
     with open(file_path, 'r') as f:
@@ -28,7 +30,7 @@ def compose_config(config):
                 config_to_save[k] = v
     
     # prints config_to_save
-    print(f"Actual config_to_save: {config_to_save}")
+    if not _QUIET: print(f"Actual config_to_save: {config_to_save}")
     return config_to_save
 
 def save_config(config, path='config_out.json'):
