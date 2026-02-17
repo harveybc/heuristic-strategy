@@ -66,6 +66,11 @@ class HeuristicStrategy(bt.Strategy):
         ('bars_per_day', 24),
         # Bar compression in minutes: 60 for 1h, 240 for 4h.
         ('bar_compression_minutes', 60),
+        # Prediction update interval in minutes. Controls how often new predictions
+        # are available. E.g., 240 = predictions refresh every 4h even on 1h bars.
+        # New entries only allowed when predictions refresh.
+        # 0 = same as bar_compression_minutes (every bar).
+        ('prediction_interval_minutes', 0),
     )
 
     def __init__(self):
@@ -73,16 +78,19 @@ class HeuristicStrategy(bt.Strategy):
         self.pred_df = pd.read_csv(self.p.pred_file, parse_dates=['DATE_TIME'])
         self.pred_df = self.pred_df[(self.pred_df['DATE_TIME'] >= self.p.date_start) &
                                      (self.pred_df['DATE_TIME'] <= self.p.date_end)]
-        # Floor DATE_TIME to bar boundary (1h or 4h depending on compression).
-        comp_min = self.p.bar_compression_minutes
-        if comp_min <= 60:
+        # Floor DATE_TIME to prediction interval boundary.
+        # Predictions are indexed at their refresh rate (e.g., every 4h),
+        # regardless of bar resolution.
+        pred_min = self.p.prediction_interval_minutes
+        if pred_min <= 0:
+            pred_min = self.p.bar_compression_minutes
+        if pred_min <= 60:
             self.pred_df['DATE_TIME'] = self.pred_df['DATE_TIME'].apply(
                 lambda dt: dt.replace(minute=0, second=0, microsecond=0))
         else:
-            # Floor to N-hour boundaries (e.g., 240 min = 4h → floor to 0,4,8,12,16,20)
-            comp_hours = comp_min // 60
+            pred_hours = pred_min // 60
             self.pred_df['DATE_TIME'] = self.pred_df['DATE_TIME'].apply(
-                lambda dt: dt.replace(hour=(dt.hour // comp_hours) * comp_hours,
+                lambda dt: dt.replace(hour=(dt.hour // pred_hours) * pred_hours,
                                       minute=0, second=0, microsecond=0))
         self.pred_df.set_index('DATE_TIME', inplace=True)
 
@@ -127,9 +135,32 @@ class HeuristicStrategy(bt.Strategy):
         return dt.replace(hour=(dt.hour // comp_hours) * comp_hours,
                           minute=0, second=0, microsecond=0)
 
+    def _floor_dt_prediction(self, dt):
+        """Floor datetime to prediction update boundary.
+        
+        Predictions refresh at prediction_interval_minutes intervals.
+        Between updates, use the last available prediction.
+        """
+        pred_min = self.p.prediction_interval_minutes
+        if pred_min <= 0:
+            pred_min = self.p.bar_compression_minutes
+        if pred_min <= 60:
+            return dt.replace(minute=0, second=0, microsecond=0)
+        pred_hours = pred_min // 60
+        return dt.replace(hour=(dt.hour // pred_hours) * pred_hours,
+                          minute=0, second=0, microsecond=0)
+
+    def _is_prediction_bar(self, dt):
+        """Check if this bar is a prediction update boundary (new entries allowed)."""
+        pred_min = self.p.prediction_interval_minutes
+        if pred_min <= 0:
+            return True  # Every bar is a prediction bar
+        floored = self._floor_dt_prediction(dt)
+        return dt.replace(second=0, microsecond=0) == floored
+
     def next(self):
         dt = self.data0.datetime.datetime(0)
-        dt_hour = self._floor_dt(dt)
+        dt_pred = self._floor_dt_prediction(dt)  # Floor to prediction interval
         current_price = self.data0.close[0]
 
         # Record current balance and date for plotting.
@@ -137,14 +168,16 @@ class HeuristicStrategy(bt.Strategy):
         self.date_history.append(dt)
 
         # --- If a position is open, update intra‐trade extremes and check for exit ---
+        # Exit checks happen on EVERY bar (1h resolution) — TP/SL are price-based.
+        # Prediction-based early exit uses the last available prediction (floored to pred interval).
         if self.position:
             if self.current_direction == 'long':
                 if self.trade_low is None or current_price < self.trade_low:
                     self.trade_low = current_price
-                if dt_hour in self.pred_df.index:
-                    preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                if dt_pred in self.pred_df.index:
+                    preds_hourly = [self.pred_df.loc[dt_pred].get(f'Prediction_h_{i}', current_price)
                                     for i in range(1, self.num_hourly_preds+1)]
-                    preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                    preds_daily = [self.pred_df.loc[dt_pred].get(f'Prediction_d_{i}', current_price)
                                    for i in range(1, self.num_daily_preds+1)]
                     predicted_min = min(preds_hourly + preds_daily)
                 else:
@@ -155,10 +188,10 @@ class HeuristicStrategy(bt.Strategy):
             elif self.current_direction == 'short':
                 if self.trade_high is None or current_price > self.trade_high:
                     self.trade_high = current_price
-                if dt_hour in self.pred_df.index:
-                    preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                if dt_pred in self.pred_df.index:
+                    preds_hourly = [self.pred_df.loc[dt_pred].get(f'Prediction_h_{i}', current_price)
                                     for i in range(1, self.num_hourly_preds+1)]
-                    preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                    preds_daily = [self.pred_df.loc[dt_pred].get(f'Prediction_d_{i}', current_price)
                                    for i in range(1, self.num_daily_preds+1)]
                     predicted_max = max(preds_hourly + preds_daily)
                 else:
@@ -172,15 +205,20 @@ class HeuristicStrategy(bt.Strategy):
             self.trade_low = current_price
             self.trade_high = current_price
 
+        # --- New entries only on prediction update bars ---
+        # Between prediction intervals, no new trades (no fresh signal).
+        if not self._is_prediction_bar(dt):
+            return
+
         # --- Enforce trade frequency: no more than max_trades_per_5days in the last 5 days ---
         recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
         if len(recent_trades) >= self.p.max_trades_per_5days:
             return
 
         # --- Check if prediction data exists for the current bar ---
-        if dt_hour not in self.pred_df.index:
+        if dt_pred not in self.pred_df.index:
             return
-        row = self.pred_df.loc[dt_hour]
+        row = self.pred_df.loc[dt_pred]
         try:
             daily_preds = [row[f'Prediction_d_{i}'] for i in range(1, self.num_daily_preds+1)]
         except KeyError:
