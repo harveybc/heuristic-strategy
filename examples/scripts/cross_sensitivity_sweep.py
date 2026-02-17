@@ -127,6 +127,8 @@ def run_single_backtest(base_data, hourly_preds, daily_preds, params: dict) -> d
         bars_per_day=params.get("bars_per_day", 24),
         bar_compression_minutes=params.get("bar_compression_minutes", 60),
         prediction_interval_minutes=params.get("prediction_interval_minutes", 0),
+        date_start=params.get("date_start", base_data.index.min().to_pydatetime()),
+        date_end=params.get("date_end", base_data.index.max().to_pydatetime()),
     )
 
     data_feed = bt.feeds.PandasData(dataname=base_data)

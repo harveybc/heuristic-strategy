@@ -93,6 +93,8 @@ class HeuristicStrategy(bt.Strategy):
                 lambda dt: dt.replace(hour=(dt.hour // pred_hours) * pred_hours,
                                       minute=0, second=0, microsecond=0))
         self.pred_df.set_index('DATE_TIME', inplace=True)
+        # Remove duplicates from flooring (e.g., 4 × 1h rows → 1 × 4h row)
+        self.pred_df = self.pred_df[~self.pred_df.index.duplicated(keep='first')]
 
         # Dynamically determine how many prediction columns exist.
         self.num_hourly_preds = len([col for col in self.pred_df.columns if col.startswith('Prediction_h_')])
