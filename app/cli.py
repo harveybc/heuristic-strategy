@@ -26,6 +26,8 @@ def parse_args():
     parser.add_argument('--mutation_probability', type=float, help='Mutation probability for the optimizer.')
     #max_trades_per_5days
     parser.add_argument('--max_trades_per_5days', type=int, help='Max number of trades per 5 days.')
+    parser.add_argument('--bars_per_day', type=int, help='Number of bars per day (24 for 1h, 6 for 4h data).')
+    parser.add_argument('--bar_compression_minutes', type=int, help='Bar compression in minutes (60 for 1h, 240 for 4h).')
 
     # Configuration saving and loading
     parser.add_argument('--load_config', type=str, help='Path to load a configuration file.')

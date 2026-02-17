@@ -62,6 +62,10 @@ class HeuristicStrategy(bt.Strategy):
         ('upper_rr_threshold', 2.0),    # RR above which use maximum volume.
         # Maximum trades allowed in any rolling 5-day period.
         ('max_trades_per_5days', 3),
+        # Bar periodicity: bars_per_day=24 for 1h, 6 for 4h.
+        ('bars_per_day', 24),
+        # Bar compression in minutes: 60 for 1h, 240 for 4h.
+        ('bar_compression_minutes', 60),
     )
 
     def __init__(self):
@@ -69,9 +73,17 @@ class HeuristicStrategy(bt.Strategy):
         self.pred_df = pd.read_csv(self.p.pred_file, parse_dates=['DATE_TIME'])
         self.pred_df = self.pred_df[(self.pred_df['DATE_TIME'] >= self.p.date_start) &
                                      (self.pred_df['DATE_TIME'] <= self.p.date_end)]
-        # Floor DATE_TIME to the hour.
-        self.pred_df['DATE_TIME'] = self.pred_df['DATE_TIME'].apply(
-            lambda dt: dt.replace(minute=0, second=0, microsecond=0))
+        # Floor DATE_TIME to bar boundary (1h or 4h depending on compression).
+        comp_min = self.p.bar_compression_minutes
+        if comp_min <= 60:
+            self.pred_df['DATE_TIME'] = self.pred_df['DATE_TIME'].apply(
+                lambda dt: dt.replace(minute=0, second=0, microsecond=0))
+        else:
+            # Floor to N-hour boundaries (e.g., 240 min = 4h → floor to 0,4,8,12,16,20)
+            comp_hours = comp_min // 60
+            self.pred_df['DATE_TIME'] = self.pred_df['DATE_TIME'].apply(
+                lambda dt: dt.replace(hour=(dt.hour // comp_hours) * comp_hours,
+                                      minute=0, second=0, microsecond=0))
         self.pred_df.set_index('DATE_TIME', inplace=True)
 
         # Dynamically determine how many prediction columns exist.
@@ -106,9 +118,18 @@ class HeuristicStrategy(bt.Strategy):
         # For recording trade details.
         self.trades = []
 
+    def _floor_dt(self, dt):
+        """Floor datetime to bar boundary."""
+        comp_min = self.p.bar_compression_minutes
+        if comp_min <= 60:
+            return dt.replace(minute=0, second=0, microsecond=0)
+        comp_hours = comp_min // 60
+        return dt.replace(hour=(dt.hour // comp_hours) * comp_hours,
+                          minute=0, second=0, microsecond=0)
+
     def next(self):
         dt = self.data0.datetime.datetime(0)
-        dt_hour = dt.replace(minute=0, second=0, microsecond=0)
+        dt_hour = self._floor_dt(dt)
         current_price = self.data0.close[0]
 
         # Record current balance and date for plotting.
@@ -375,7 +396,7 @@ if __name__ == '__main__':
         volume=-1,
         openinterest=-1,
         timeframe=bt.TimeFrame.Minutes,
-        compression=60,
+        compression=240,  # 4h bars (use 60 for 1h)
         fromdate=datetime.datetime(2014, 1, 1),
         todate=datetime.datetime(2015, 1, 1)
     )

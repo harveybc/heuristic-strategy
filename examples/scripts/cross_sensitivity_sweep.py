@@ -56,18 +56,22 @@ def create_ideal_hourly_predictions(base_df: pd.DataFrame, horizon: int) -> pd.D
     return pd.DataFrame(blocks, index=close.index[:-horizon], columns=cols)
 
 
-def create_ideal_daily_predictions(base_df: pd.DataFrame, horizon: int) -> pd.DataFrame:
-    """Create ideal (perfect foresight) daily predictions (24h spacing)."""
+def create_ideal_daily_predictions(base_df: pd.DataFrame, horizon: int, bars_per_day: int = 24) -> pd.DataFrame:
+    """Create ideal (perfect foresight) daily predictions (bars_per_day spacing).
+    
+    Args:
+        bars_per_day: 24 for 1h data, 6 for 4h data.
+    """
     close = base_df["CLOSE"] if "CLOSE" in base_df.columns else base_df.iloc[:, -1]
     nrows = len(close)
-    required = horizon * 24
+    required = horizon * bars_per_day
     if nrows < required:
         return pd.DataFrame()
     blocks = []
     for i in range(nrows - required):
         block = []
         for d in range(1, horizon + 1):
-            idx = i + d * 24
+            idx = i + d * bars_per_day
             if idx < nrows:
                 block.append(close.iloc[idx])
         if block:
@@ -120,6 +124,8 @@ def run_single_backtest(base_data, hourly_preds, daily_preds, params: dict) -> d
         lower_rr_threshold=params.get("lower_rr_threshold", 0.5),
         upper_rr_threshold=params.get("upper_rr_threshold", 2.0),
         max_trades_per_5days=params.get("max_trades_per_5days", 20),
+        bars_per_day=params.get("bars_per_day", 24),
+        bar_compression_minutes=params.get("bar_compression_minutes", 60),
     )
 
     data_feed = bt.feeds.PandasData(dataname=base_data)
@@ -158,6 +164,8 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     time_horizon = 6  # Same as config
+    bars_per_day = 6  # 4h data: 6 bars/day (use 24 for 1h data)
+    bar_compression_minutes = 240  # 4h bars (use 60 for 1h)
 
     # Use default strategy params (matching noise sensitivity experiments)
     strategy_params = {
@@ -173,6 +181,8 @@ def main():
         "lower_rr_threshold": 0.5,
         "upper_rr_threshold": 2.0,
         "max_trades_per_5days": 20,
+        "bars_per_day": bars_per_day,
+        "bar_compression_minutes": bar_compression_minutes,
     }
 
     # Load base data
@@ -182,7 +192,7 @@ def main():
     # Generate ideal predictions
     print("Generating ideal predictions...")
     hourly_ideal = create_ideal_hourly_predictions(base_data, time_horizon)
-    daily_ideal = create_ideal_daily_predictions(base_data, time_horizon)
+    daily_ideal = create_ideal_daily_predictions(base_data, time_horizon, bars_per_day=bars_per_day)
 
     # Align
     common = base_data.index.intersection(hourly_ideal.index).intersection(daily_ideal.index)

@@ -22,12 +22,16 @@ def create_hourly_predictions(df, horizon):
         blocks.append(block)
     return pd.DataFrame(blocks, index=df.index[:-horizon])
 
-def create_daily_predictions(df, horizon):
+def create_daily_predictions(df, horizon, bars_per_day=24):
     """
     Auto-compute daily predictions from the base dataset.
 
-    Each row i in 'df' yields a block of predicted values at offsets t+24, t+48, ... t+24*horizon.
+    Each row i in 'df' yields a block of predicted values at offsets
+    t+bars_per_day, t+2*bars_per_day, ... t+horizon*bars_per_day.
     Works on pandas.Series or single-column DataFrame.
+
+    Args:
+        bars_per_day: Number of bars in one day (24 for 1h, 6 for 4h).
     """
     # If someone passed a single-column DataFrame, pull out the Series
     if isinstance(df, pd.DataFrame) and df.shape[1] == 1:
@@ -36,7 +40,7 @@ def create_daily_predictions(df, horizon):
         series = df  # assume it's a Series
 
     nrows = len(series)
-    required_rows = horizon * 24
+    required_rows = horizon * bars_per_day
 
     if nrows < required_rows:
         print("Warning: Not enough rows to create daily predictions. Returning an empty DataFrame.")
@@ -46,7 +50,7 @@ def create_daily_predictions(df, horizon):
     for i in range(nrows - required_rows):
         block_values = []
         for d in range(1, horizon + 1):
-            idx = i + d * 24
+            idx = i + d * bars_per_day
             if idx >= nrows:
                 break
             val = series.iloc[idx]
@@ -342,11 +346,12 @@ def process_data(config):
                 raise ValueError("time_horizon must be provided when auto-generating predictions.")
             print("Auto-generating daily predictions...")
             # likewise here
-            daily_df = create_daily_predictions(base_df["CLOSE"], config["time_horizon"])
+            bpd = config.get("bars_per_day", 24)
+            daily_df = create_daily_predictions(base_df["CLOSE"], config["time_horizon"], bars_per_day=bpd)
             if config.get("daily_columns"):
                 daily_df.columns = config["daily_columns"]
             else:
-                daily_df.columns = [f"Prediction_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
+                daily_df.columns = [f"Prediction_H{bpd*i}" for i in range(1, config["time_horizon"] + 1)]
             # Apply Gaussian noise if requested
             daily_df = _apply_gaussian_noise(
                 daily_df,
@@ -391,7 +396,8 @@ def process_data(config):
                 uncertainty_daily_df.columns = config["uncertainty_daily_columns"]
             else:
                 # fallback for legacy daily: 24,48,...
-                uncertainty_daily_df.columns = [f"Uncertainty_H{24*i}" for i in range(1, config["time_horizon"] + 1)]
+                _bpd = config.get("bars_per_day", 24)
+                uncertainty_daily_df.columns = [f"Uncertainty_H{_bpd*i}" for i in range(1, config["time_horizon"] + 1)]
             # assign the same DATE_TIME column to the uncertainty_daily_df with the same index as the daily_df
             uncertainty_daily_df["DATE_TIME"] = daily_df.index
             uncertainty_daily_df.set_index("DATE_TIME", inplace=True)
@@ -566,11 +572,12 @@ def run_processing_pipeline(config, plugin, optimizer_plugin):
         if not is_neat:
             return
 
+        bpd = cfg.get("bars_per_day", 24)
         overrides = {
-            "short_term_max_horizon": 24,
-            "short_term_num_predictions": 24,
-            "long_term_max_horizon": 120,
-            "long_term_num_predictions": 120,
+            "short_term_max_horizon": bpd,       # 1 day of bars
+            "short_term_num_predictions": bpd,
+            "long_term_max_horizon": bpd * 5,    # 5 days of bars
+            "long_term_num_predictions": bpd * 5,
         }
         applied = []
         for key, value in overrides.items():

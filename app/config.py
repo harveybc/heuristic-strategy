@@ -17,6 +17,8 @@ DEFAULT_VALUES = {
     "predictor_daily_config_file": None,
     "prefix": "best_daily_",
     "max_trades_per_5days": 3,
+    "bars_per_day": 24,  # 24 for 1h data, 6 for 4h data
+    "bar_compression_minutes": 60,  # 60 for 1h, 240 for 4h
     "date_column": "DATE_TIME",
     "plugin": "default",
     "optimizer_plugin": "ga_optimizer",
