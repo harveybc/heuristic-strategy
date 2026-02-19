@@ -15,12 +15,20 @@ class Plugin:
     """
 
     # Default plugin parameters (must be present for optimizer integration)
+    # Exit variant modes:
+    #   A = min(hourly+daily) vs SL (original)
+    #   B = long-term only exit
+    #   C = short-term only exit
+    #   D = both must agree (DEFAULT — best avg profit across noise levels)
+    #   E = weighted 0.6*hourly + 0.4*daily threshold
+    #   F = short-term with buffer (less trigger-happy)
+    #   G = no early close (TP only)
     plugin_params = {
         'pip_cost': 0.00001,
         'rel_volume': 0.02, # uses max 2% of balance for each order (default) 
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
-        'leverage': 1000,
+        'leverage': 100,              # realistic retail leverage (not 1000)
         'profit_threshold': 5,
         'min_drawdown_pips': 10,
         'tp_multiplier': 0.9,
@@ -28,6 +36,12 @@ class Plugin:
         'lower_rr_threshold': 0.5,
         'upper_rr_threshold': 2.0,
         'max_trades_per_5days': 3,
+        'exit_variant': 'E',
+        # Trading costs (worst-case retail EURUSD)
+        'spread_pips': 2.0,           # 2 pip spread per trade
+        'commission_per_lot': 7.0,    # $7 per 100K lot round-trip
+        'slippage_pips': 1.0,         # 1 pip slippage per trade
+        'swap_per_lot_per_day': 10.0, # $10 per 100K lot per night (overnight fee)
     }
 
     def __init__(self):
@@ -124,11 +138,27 @@ class Plugin:
             sl_multiplier=sl_multiplier,
             lower_rr_threshold=lower_rr,
             upper_rr_threshold=upper_rr,
-            max_trades_per_5days=self.params['max_trades_per_5days']
+            max_trades_per_5days=self.params['max_trades_per_5days'],
+            exit_variant=self.params['exit_variant'],
+            swap_per_lot_per_day=self.params['swap_per_lot_per_day']
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
+
+        # Apply realistic trading costs
+        spread_cost = self.params['spread_pips'] * self.params['pip_cost']  # spread in price units
+        slippage_cost = self.params['slippage_pips'] * self.params['pip_cost']  # slippage in price units
+        total_spread = spread_cost + slippage_cost  # total per-trade cost in price units
+        # Commission: $7 per 100K lot round-trip = 0.00007 per unit
+        commission_per_unit = self.params['commission_per_lot'] / 100000.0
+        cerebro.broker.setcommission(
+            commission=commission_per_unit,  # per-unit commission
+            margin=None,
+            mult=1.0,
+        )
+        # Spread + slippage applied via slippage_fixed (total cost per side)
+        cerebro.broker.set_slippage_fixed(total_spread / 2.0, slip_open=True, slip_limit=True)
 
         # Run the backtest.
         try:
@@ -195,7 +225,8 @@ class Plugin:
         def __init__(self, pred_file, pip_cost, rel_volume, min_order_volume, max_order_volume,
                     leverage, profit_threshold, min_drawdown_pips,
                     tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                    max_trades_per_5days, *args, **kwargs):
+                    max_trades_per_5days, exit_variant='D', swap_per_lot_per_day=10.0,
+                    *args, **kwargs):
             super().__init__()
             self.params.pred_file = pred_file
             self.params.pip_cost = pip_cost
@@ -210,6 +241,8 @@ class Plugin:
             self.params.lower_rr_threshold = lower_rr_threshold
             self.params.upper_rr_threshold = upper_rr_threshold
             self.params.max_trades_per_5days = max_trades_per_5days
+            self.exit_variant = exit_variant
+            self.params.swap_per_lot_per_day = swap_per_lot_per_day
 
             # Load predictions from CSV.
             pred_df = pd.read_csv(self.params.pred_file, parse_dates=['DATE_TIME'])
@@ -246,55 +279,51 @@ class Plugin:
 
             # --- If in position, handle exit logic ---
             if self.position:
-                #print(f"[DEBUG]   In position: current_direction={self.current_direction}")
+                v = self.exit_variant
                 if self.current_direction == 'long':
                     if self.trade_low is None or current_price < self.trade_low:
                         self.trade_low = current_price
-                        #print(f"[DEBUG]   (Long) Updated trade_low to: {self.trade_low:.5f}")
-                    if dt_hour in self.pred_df.index:
-                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                        for i in range(1, self.num_hourly_preds + 1)]
-                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
-                        predicted_min = min(preds_hourly + preds_daily)
-                        #print(f"[DEBUG]   (Long) Predicted_min from hourly: {preds_hourly}, daily: {preds_daily} => {predicted_min:.5f}")
-                    else:
-                        predicted_min = current_price
-                        #print(f"[DEBUG]   (Long) dt_hour {dt_hour} not in prediction index")
-                    # Condition 1: current price reaches TP.
+                    # Mandatory: TP hit
                     if current_price >= self.current_tp:
-                        #print(f"[DEBUG]   (Long) Exit condition 1 met: current_price {current_price:.5f} >= TP {self.current_tp:.5f}")
                         self.close()
                         return
-                    # Condition 2: predicted_min below SL.
-                    if predicted_min < self.current_sl:
-                        #print(f"[DEBUG]   (Long) Exit condition 2 met: predicted_min {predicted_min:.5f} < SL {self.current_sl:.5f}")
+                    # Mandatory: SL hit (always enforced, all variants)
+                    if current_price <= self.current_sl:
                         self.close()
                         return
+                    # Optional: prediction-based early close (variant-dependent)
+                    if v != 'G' and dt_hour in self.pred_df.index:
+                        preds_h = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                                   for i in range(1, self.num_hourly_preds + 1)]
+                        preds_d = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                                   for i in range(1, self.num_daily_preds + 1)]
+                        sl = self.current_sl
+                        entry = getattr(self, 'order_entry_price', None)
+                        if self._should_early_close_long(v, preds_h, preds_d, sl, entry):
+                            self.close()
+                            return
                 elif self.current_direction == 'short':
                     if self.trade_high is None or current_price > self.trade_high:
                         self.trade_high = current_price
-                        #print(f"[DEBUG]   (Short) Updated trade_high to: {self.trade_high:.5f}")
-                    if dt_hour in self.pred_df.index:
-                        preds_hourly = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
-                                        for i in range(1, self.num_hourly_preds + 1)]
-                        preds_daily = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
-                                       for i in range(1, self.num_daily_preds + 1)]
-                        predicted_max = max(preds_hourly + preds_daily)
-                        #print(f"[DEBUG]   (Short) Predicted_max from hourly: {preds_hourly}, daily: {preds_daily} => {predicted_max:.5f}")
-                    else:
-                        predicted_max = current_price
-                        #print(f"[DEBUG]   (Short) dt_hour {dt_hour} not in prediction index")
-                    # Condition 1: current price reaches TP.
+                    # Mandatory: TP hit
                     if current_price <= self.current_tp:
-                        #print(f"[DEBUG]   (Short) Exit condition 1 met: current_price {current_price:.5f} <= TP {self.current_tp:.5f}")
                         self.close()
                         return
-                    # Condition 2: predicted_max above SL.
-                    if predicted_max > self.current_sl:
-                        #print(f"[DEBUG]   (Short) Exit condition 2 met: predicted_max {predicted_max:.5f} > SL {self.current_sl:.5f}")
+                    # Mandatory: SL hit (always enforced, all variants)
+                    if current_price >= self.current_sl:
                         self.close()
                         return
+                    # Optional: prediction-based early close (variant-dependent)
+                    if v != 'G' and dt_hour in self.pred_df.index:
+                        preds_h = [self.pred_df.loc[dt_hour].get(f'Prediction_h_{i}', current_price)
+                                   for i in range(1, self.num_hourly_preds + 1)]
+                        preds_d = [self.pred_df.loc[dt_hour].get(f'Prediction_d_{i}', current_price)
+                                   for i in range(1, self.num_daily_preds + 1)]
+                        sl = self.current_sl
+                        entry = getattr(self, 'order_entry_price', None)
+                        if self._should_early_close_short(v, preds_h, preds_d, sl, entry):
+                            self.close()
+                            return
                 return  # Do not attempt new entries if still in a position.
             else:
                 # Not in position: reset trade extremes.
@@ -384,6 +413,60 @@ class Plugin:
             self.current_sl = chosen_sl
             #print(f"[DEBUG]   Set TP: {self.current_tp:.5f}, SL: {self.current_sl:.5f}")
 
+        def _should_early_close_long(self, v, preds_h, preds_d, sl, entry_price):
+            """Check if long position should early-close based on exit variant."""
+            if v == 'A':
+                all_p = preds_h + preds_d
+                return bool(all_p) and min(all_p) < sl
+            elif v == 'B':
+                return bool(preds_d) and min(preds_d) < sl
+            elif v == 'C':
+                return bool(preds_h) and min(preds_h) < sl
+            elif v == 'D':
+                h_trig = bool(preds_h) and min(preds_h) < sl
+                d_trig = bool(preds_d) and min(preds_d) < sl
+                return h_trig and d_trig
+            elif v == 'E':
+                if preds_h and preds_d:
+                    return 0.6 * min(preds_h) + 0.4 * min(preds_d) < sl
+                elif preds_h:
+                    return min(preds_h) < sl
+                elif preds_d:
+                    return min(preds_d) < sl
+            elif v == 'F':
+                buf = 0.5 * abs(sl - entry_price) if entry_price else 0
+                h_trig = bool(preds_h) and min(preds_h) < (sl - buf)
+                d_trig = bool(preds_d) and min(preds_d) < sl
+                return h_trig or d_trig
+            return False
+
+        def _should_early_close_short(self, v, preds_h, preds_d, sl, entry_price):
+            """Check if short position should early-close based on exit variant."""
+            if v == 'A':
+                all_p = preds_h + preds_d
+                return bool(all_p) and max(all_p) > sl
+            elif v == 'B':
+                return bool(preds_d) and max(preds_d) > sl
+            elif v == 'C':
+                return bool(preds_h) and max(preds_h) > sl
+            elif v == 'D':
+                h_trig = bool(preds_h) and max(preds_h) > sl
+                d_trig = bool(preds_d) and max(preds_d) > sl
+                return h_trig and d_trig
+            elif v == 'E':
+                if preds_h and preds_d:
+                    return 0.6 * max(preds_h) + 0.4 * max(preds_d) > sl
+                elif preds_h:
+                    return max(preds_h) > sl
+                elif preds_d:
+                    return max(preds_d) > sl
+            elif v == 'F':
+                buf = 0.5 * abs(sl - entry_price) if entry_price else 0
+                h_trig = bool(preds_h) and max(preds_h) > (sl + buf)
+                d_trig = bool(preds_d) and max(preds_d) > sl
+                return h_trig or d_trig
+            return False
+
         def compute_size(self, rr):
             min_vol = self.params.min_order_volume
             max_vol = self.params.max_order_volume
@@ -412,6 +495,12 @@ class Plugin:
                 entry_price = self.order_entry_price if self.order_entry_price is not None else 0
                 exit_price = trade.price
                 profit_usd = trade.pnlcomm
+                # Deduct swap/overnight costs: duration in 1h bars, swap per lot per day
+                overnight_days = max(0, duration / 24.0)
+                volume = self.current_volume if hasattr(self, "current_volume") and self.current_volume is not None else 0
+                lots = volume / 100000.0  # convert to standard lots
+                swap_cost = overnight_days * lots * self.p.swap_per_lot_per_day if hasattr(self.p, 'swap_per_lot_per_day') else 0
+                profit_usd -= swap_cost
                 direction = self.order_direction
                 if direction == 'long':
                     profit_pips = (exit_price - entry_price) / self.p.pip_cost

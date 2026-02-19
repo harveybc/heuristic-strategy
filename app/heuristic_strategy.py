@@ -53,7 +53,7 @@ class HeuristicStrategy(bt.Strategy):
         ('rel_volume', 0.05),           # Maximum fraction of cash to risk.
         ('min_order_volume', 10000),    # Minimum order volume (currency units).
         ('max_order_volume', 1000000),  # Maximum order volume (currency units).
-        ('leverage', 1000),             # Leverage.
+        ('leverage', 100),              # Leverage (realistic retail).
         ('profit_threshold', 5),        # Minimum ideal profit (in pips) required for entry.
         ('min_drawdown_pips', 10),      # Minimum drawdown (in pips) if predictions are too tight.
         # Multipliers for TP and SL.
