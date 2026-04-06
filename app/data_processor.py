@@ -85,16 +85,30 @@ def process_data(config):
     from app.data_handler import load_csv
 
     headers = config.get("headers", True)
+    prediction_source = config.get("prediction_source", "CSV").upper()
     if not _QUIET: print("Loading datasets...")
 
-    # Load datasets based on config parameters
-    hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
-    daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
     base_df = load_csv(config["base_dataset_file"], headers=headers)
     if not _QUIET: print(f"Base dataset loaded: {base_df.shape}")
 
     # Conserva una copia completa del base dataset para la evaluación
     base_df_full = base_df.copy()
+
+    # --- API mode: predictions are fetched per-tick inside the strategy ---
+    if prediction_source == "API":
+        if not _QUIET: print("Prediction source: API — skipping CSV prediction loading.")
+        # Ensure base_df has a datetime index
+        if not isinstance(base_df.index, pd.DatetimeIndex):
+            if "DATE_TIME" in base_df.columns:
+                base_df.index = pd.to_datetime(base_df["DATE_TIME"])
+            else:
+                raise ValueError("base_df does not have a DATE_TIME column.")
+        return {"hourly": None, "daily": None, "base": base_df, "base_full": base_df_full}
+
+    # --- CSV mode: existing behaviour unchanged ---
+    # Load datasets based on config parameters
+    hourly_df = load_csv(config["hourly_predictions_file"], headers=headers) if config.get("hourly_predictions_file") else None
+    daily_df = load_csv(config["daily_predictions_file"], headers=headers) if config.get("daily_predictions_file") else None
 
     # Auto-generate predictions if files are missing
     if hourly_df is None:
@@ -183,64 +197,69 @@ def run_processing_pipeline(config, plugin):
     base_data = datasets["base"]         # Aligned base (issuance times)
     base_full = datasets["base_full"]      # Full base dataset
 
-    # Calculate error metrics for each prediction horizon
+    prediction_source = config.get("prediction_source", "CSV").upper()
 
-    # For hourly predictions: each column corresponds to the forecast for h hours ahead.
-    n_hourly = hourly_preds.shape[1]
-    hourly_results = []
-    for h in range(1, n_hourly + 1):
-        # For each forecast, the target is CLOSE at (timestamp + h hours)
-        forecast_times = hourly_preds.index + pd.Timedelta(hours=h)
-        actual = base_full.reindex(forecast_times)["CLOSE"]
-        # Reassign index so that actual aligns element-wise with pred
-        actual.index = hourly_preds.index
-        pred = hourly_preds.iloc[:, h - 1]
-        valid = actual.notna()
-        if valid.sum() == 0:
-            mae = None
-            r2 = None
-        else:
-            mae = mean_absolute_error(actual[valid], pred[valid])
-            r2 = r2_score(actual[valid], pred[valid])
-        hourly_results.append({"Horizon (hours)": h, "MAE": mae, "R2": r2})
-    
-    df_hourly = pd.DataFrame(hourly_results)
+    # Calculate error metrics only when CSV predictions are available
+    if prediction_source != "API" and hourly_preds is not None and daily_preds is not None:
+        # For hourly predictions: each column corresponds to the forecast for h hours ahead.
+        n_hourly = hourly_preds.shape[1]
+        hourly_results = []
+        for h in range(1, n_hourly + 1):
+            # For each forecast, the target is CLOSE at (timestamp + h hours)
+            forecast_times = hourly_preds.index + pd.Timedelta(hours=h)
+            actual = base_full.reindex(forecast_times)["CLOSE"]
+            # Reassign index so that actual aligns element-wise with pred
+            actual.index = hourly_preds.index
+            pred = hourly_preds.iloc[:, h - 1]
+            valid = actual.notna()
+            if valid.sum() == 0:
+                mae = None
+                r2 = None
+            else:
+                mae = mean_absolute_error(actual[valid], pred[valid])
+                r2 = r2_score(actual[valid], pred[valid])
+            hourly_results.append({"Horizon (hours)": h, "MAE": mae, "R2": r2})
+        
+        df_hourly = pd.DataFrame(hourly_results)
 
-    # For daily predictions: each column corresponds to the forecast for d days ahead (24*d hours).
-    n_daily = daily_preds.shape[1]
-    daily_results = []
-    for d in range(1, n_daily + 1):
-        forecast_times = daily_preds.index + pd.Timedelta(hours=24 * d)
-        actual = base_full.reindex(forecast_times)["CLOSE"]
-        # Reassign index so that actual aligns with the predictions
-        actual.index = daily_preds.index
-        pred = daily_preds.iloc[:, d - 1]
-        valid = actual.notna()
-        if valid.sum() == 0:
-            mae = None
-            r2 = None
-        else:
-            mae = mean_absolute_error(actual[valid], pred[valid])
-            r2 = r2_score(actual[valid], pred[valid])
-        daily_results.append({"Horizon (days)": d, "MAE": mae, "R2": r2})
-    
-    df_daily = pd.DataFrame(daily_results)
+        # For daily predictions: each column corresponds to the forecast for d days ahead (24*d hours).
+        n_daily = daily_preds.shape[1]
+        daily_results = []
+        for d in range(1, n_daily + 1):
+            forecast_times = daily_preds.index + pd.Timedelta(hours=24 * d)
+            actual = base_full.reindex(forecast_times)["CLOSE"]
+            # Reassign index so that actual aligns with the predictions
+            actual.index = daily_preds.index
+            pred = daily_preds.iloc[:, d - 1]
+            valid = actual.notna()
+            if valid.sum() == 0:
+                mae = None
+                r2 = None
+            else:
+                mae = mean_absolute_error(actual[valid], pred[valid])
+                r2 = r2_score(actual[valid], pred[valid])
+            daily_results.append({"Horizon (days)": d, "MAE": mae, "R2": r2})
+        
+        df_daily = pd.DataFrame(daily_results)
 
-    # Print the error metrics tables
-    if not _QUIET: print("\nError Metrics for Hourly Predictions:")
-    if not _QUIET: print(df_hourly.to_string(index=False))
-    if not _QUIET: print("\nError Metrics for Daily Predictions:")
-    if not _QUIET: print(df_daily.to_string(index=False))
+        # Print the error metrics tables
+        if not _QUIET: print("\nError Metrics for Hourly Predictions:")
+        if not _QUIET: print(df_hourly.to_string(index=False))
+        if not _QUIET: print("\nError Metrics for Daily Predictions:")
+        if not _QUIET: print(df_daily.to_string(index=False))
 
-    # Additional verification: print final aligned date ranges before sending data to the plugin
-    if not _QUIET: print(f"\nFinal Base dataset date range: {base_data.index.min()} to {base_data.index.max()}")
-    if not _QUIET: print(f"Final Hourly predictions date range: {hourly_preds.index.min()} to {hourly_preds.index.max()}")
-    if not _QUIET: print(f"Final Daily predictions date range: {daily_preds.index.min()} to {daily_preds.index.max()}")
+        # Additional verification: print final aligned date ranges before sending data to the plugin
+        if not _QUIET: print(f"\nFinal Base dataset date range: {base_data.index.min()} to {base_data.index.max()}")
+        if not _QUIET: print(f"Final Hourly predictions date range: {hourly_preds.index.min()} to {hourly_preds.index.max()}")
+        if not _QUIET: print(f"Final Daily predictions date range: {daily_preds.index.min()} to {daily_preds.index.max()}")
 
-    if not _QUIET: print("\nProcessed Dataset Shapes:")
-    if not _QUIET: print(f"  Base dataset:       {base_data.shape}")
-    if not _QUIET: print(f"  Hourly predictions: {hourly_preds.shape}")
-    if not _QUIET: print(f"  Daily predictions:  {daily_preds.shape}")
+        if not _QUIET: print("\nProcessed Dataset Shapes:")
+        if not _QUIET: print(f"  Base dataset:       {base_data.shape}")
+        if not _QUIET: print(f"  Hourly predictions: {hourly_preds.shape}")
+        if not _QUIET: print(f"  Daily predictions:  {daily_preds.shape}")
+    else:
+        if not _QUIET: print(f"\nBase dataset date range: {base_data.index.min()} to {base_data.index.max()}")
+        if not _QUIET: print(f"  Base dataset shape: {base_data.shape}")
 
     # Proceed with sending data to the plugin (evaluation or optimization)
     if config.get("load_parameters") is not None:

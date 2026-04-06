@@ -30,6 +30,11 @@ def parse_args():
     parser.add_argument('--password', type=str, help='Password for the API endpoint.')
     parser.add_argument('--save_log', type=str, help='Path to save the current debug information.')
     
+    # Prediction source selection
+    parser.add_argument('--prediction_source', type=str, help='Prediction source: "CSV" (default) or "API".')
+    parser.add_argument('--pp_api_url', type=str, help='Prediction Provider API endpoint URL.')
+    parser.add_argument('--pp_timeout', type=float, help='Prediction Provider request timeout in seconds.')
+
     # Miscellaneous flags
     parser.add_argument('--quiet_mode', action='store_true', help='Suppress output messages.')
     parser.add_argument('--force_date', action='store_true', help='Include date in the output CSV files.')

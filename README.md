@@ -4,6 +4,52 @@
 
 The **Heuristic Strategy Optimizer** is a comprehensive tool for optimizing and testing heuristic-based trading strategies. It leverages **Backtrader** for historical data simulation, **DEAP** for genetic algorithm-based optimization, and a flexible **plugin-based system** for extensibility. The optimizer supports external plugins using Python's built-in plugin system, allowing users to integrate custom trading strategies and optimizers seamlessly.
 
+## Plugin System
+
+Plugins are loaded via Python entry points defined in `setup.py`. Available strategy plugins:
+
+| Plugin Name | Module | Description |
+|---|---|---|
+| `default` / `ls_pred_strategy` | `plugin_long_short_predictions` | CSV-based long/short prediction strategy (uses hourly + daily CSV prediction files) |
+| `api_predictions` | `plugin_api_predictions` | API-based prediction strategy (queries Prediction Provider entry/exit endpoints per tick) |
+
+### API Predictions Mode
+
+The `api_predictions` plugin integrates with the [Prediction Provider](https://github.com/harveybc/prediction_provider) to fetch binary directional predictions via HTTP on every tick.
+
+**Architecture**:
+- **Entry**: When no position is open, calls `POST /api/v1/predict/entry` → receives `buy_entry_binary` and `sell_entry_binary` signals
+- **Exit**: When a position is open, calls `POST /api/v1/predict/exit` → receives `exit_binary` (1=keep open, 0=close early)
+- **Info**: Queries `GET /api/v1/model/info` for model metadata (window_size, etc.)
+
+**Usage**:
+```bash
+# 1. Start the Prediction Provider with sync_core + oracle
+cd prediction_provider
+PREDICTION_PROVIDER_QUIET=1 PYTHONPATH=./:$PYTHONPATH python app/main.py \
+  --core_plugin sync_core \
+  --predictor_plugin binary_ideal_oracle \
+  --csv_file path/to/ohlc_data.csv \
+  --quiet_mode
+
+# 2. Run the optimizer with API plugin
+cd heuristic-strategy
+PYTHONPATH=app:$PYTHONPATH python -m app.main \
+  --plugin api_predictions \
+  --prediction_source API \
+  --pp_api_url http://127.0.0.1:8000 \
+  --base_dataset_file path/to/ohlc_data.csv \
+  --population_size 20 \
+  --num_generations 30
+```
+
+**Configuration** (in `config.py` or via CLI):
+| Parameter | Default | Description |
+|---|---|---|
+| `prediction_source` | `"CSV"` | `"CSV"` for file-based, `"API"` for Prediction Provider |
+| `pp_api_url` | `"http://127.0.0.1:8000"` | Base URL of the Prediction Provider |
+| `pp_timeout` | `5.0` | HTTP request timeout in seconds |
+
 ## Installation Instructions
 
 To install and set up the heuristic strategy optimizer, follow these steps:
@@ -117,13 +163,12 @@ heuristic-strategy/
 │   ├── data_processor.py                 # Core data processing pipeline
 │   ├── main.py                           # Application entry point
 │   ├── plugin_loader.py                  # Dynamic plugin loading system
+│   ├── prediction_client.py               # CSV and API prediction source adapters
 │   ├── backtester.py                      # Backtesting utilities
 │   ├── optimizer.py                      # Optimization logic using DEAP
 │   └── plugins/                          # Plugin directory
-│       ├── strategy_plugin_basic.py      # Basic trading strategy
-│       ├── strategy_plugin_moving_avg.py # Moving Average trading strategy
-│       ├── strategy_plugin_rsi.py        # RSI-based trading strategy
-│       └── strategy_plugin_custom.py     # Custom trading strategy template
+│       ├── plugin_long_short_predictions.py  # CSV-based long/short prediction strategy (default)
+│       └── plugin_api_predictions.py         # API-based strategy (Prediction Provider integration)
 │
 ├── tests/                               # Test suite directory
 │   ├── __init__.py                     # Test package initialization

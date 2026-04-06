@@ -10,7 +10,8 @@ setup(
         ],
         'heuristic_strategy.plugins': [
             'default=app.plugins.plugin_long_short_predictions:Plugin',
-            'ls_pred_strategy=app.plugins.plugin_long_short_predictions:Plugin'
+            'ls_pred_strategy=app.plugins.plugin_long_short_predictions:Plugin',
+            'api_predictions=app.plugins.plugin_api_predictions:Plugin'
         ]
     },
     install_requires=[

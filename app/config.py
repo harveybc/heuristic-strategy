@@ -44,6 +44,9 @@ DEFAULT_VALUES = {
     "save_parameters": "parameters.json",
     "load_parameters": None,
     #"use_normalization_json": "tests\\data\\phase_1_normalizer_debug_out.json",
-    "use_normalization_json": None
-     
+    "use_normalization_json": None,
+    # Prediction source: "CSV" (default) or "API" (Prediction Provider)
+    "prediction_source": "CSV",
+    "pp_api_url": "http://127.0.0.1:8000",
+    "pp_timeout": 5.0
 }
