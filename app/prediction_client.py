@@ -24,20 +24,25 @@ def _no_prediction():
     return {"available": False}
 
 
-def _entry_prediction(buy_binary, sell_binary):
+def _entry_prediction(buy_binary, sell_binary, bars_remaining=0,
+                      buy_confidence=1.0, sell_confidence=1.0):
     """Wrap entry signals."""
     return {
         "available": True,
         "buy_entry_binary": buy_binary,
         "sell_entry_binary": sell_binary,
+        "bars_remaining": bars_remaining,
+        "buy_confidence": buy_confidence,
+        "sell_confidence": sell_confidence,
     }
 
 
-def _exit_prediction(exit_binary):
+def _exit_prediction(exit_binary, exit_confidence=1.0):
     """Wrap exit signal."""
     return {
         "available": True,
         "exit_binary": exit_binary,
+        "exit_confidence": exit_confidence,
     }
 
 
@@ -115,9 +120,13 @@ class ApiPredictionSource:
     def _fmt_ts(self, dt_hour):
         return dt_hour.strftime("%d.%m.%Y %H:%M:%S.000")
 
-    def get_entry_prediction(self, dt_hour, tp_pips, sl_pips):
+    def get_entry_prediction(self, dt_hour, tp_pips, sl_pips,
+                             spread_pips=0.0, commission_per_lot=0.0,
+                             slippage_pips=0.0):
         """
         Ask PP: "should I open a buy or sell order at this tick?"
+
+        Sends trading costs so the oracle can make a fully-informed decision.
 
         Returns dict with keys: available, buy_entry_binary, sell_entry_binary.
         """
@@ -127,6 +136,9 @@ class ApiPredictionSource:
             "datetime": ts,
             "tp": float(tp_pips),
             "sl": float(sl_pips),
+            "spread_pips": float(spread_pips),
+            "commission_per_lot": float(commission_per_lot),
+            "slippage_pips": float(slippage_pips),
         }
         try:
             resp = self._session.post(self._entry_url, json=payload,
@@ -151,7 +163,11 @@ class ApiPredictionSource:
         if buy_bin is None and sell_bin is None:
             return _no_prediction()
 
-        return _entry_prediction(buy_bin, sell_bin)
+        bars_remaining = data.get("bars_remaining", 0)
+        buy_confidence = data.get("buy_confidence", 1.0)
+        sell_confidence = data.get("sell_confidence", 1.0)
+        return _entry_prediction(buy_bin, sell_bin, bars_remaining,
+                                 buy_confidence, sell_confidence)
 
     def get_exit_prediction(self, dt_hour, direction, tp_price, sl_price):
         """
@@ -198,7 +214,8 @@ class ApiPredictionSource:
         if exit_bin is None:
             return _no_prediction()
 
-        return _exit_prediction(exit_bin)
+        exit_confidence = data.get("exit_confidence", 1.0)
+        return _exit_prediction(exit_bin, exit_confidence)
 
     def get_model_info(self):
         """Fetch predictor metadata (window_size, etc.)."""

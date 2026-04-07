@@ -38,23 +38,27 @@ class Plugin:
 
     plugin_params = {
         'pip_cost': 0.00001,
-        'rel_volume': 0.02,
+        'rel_volume': 0.10,
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 100,
-        'profit_threshold': 5,
+        # DEAP-optimized defaults (worst-case costs, pop=10 gen=10)
+        'profit_threshold': 25.50,
         'min_drawdown_pips': 10,
-        'tp_multiplier': 0.9,
-        'sl_multiplier': 2.0,
-        'lower_rr_threshold': 0.5,
-        'upper_rr_threshold': 2.0,
-        'max_trades_per_5days': 3,
+        'tp_multiplier': 5.15,
+        'sl_multiplier': 3.66,
+        'lower_rr_threshold': 2.67,
+        'upper_rr_threshold': 4.46,
+        'max_trades_per_5days': 5,
         'exit_variant': 'E',
-        # Trading costs
-        'spread_pips': 2.0,
-        'commission_per_lot': 7.0,
-        'slippage_pips': 1.0,
-        'swap_per_lot_per_day': 10.0,
+        # Early-stopping exit predictions (Model B)
+        'exit_enabled': True,
+        # Trading costs (in pipettes, 1 real pip = 10 pipettes)
+        # WORST-CASE scenario — "train on hard"
+        'spread_pips': 30.0,        # 3.0 real pips — covers news spikes / illiquid sessions
+        'commission_per_lot': 10.0,  # $10 per standard lot (100K) — high-end retail ECN
+        'slippage_pips': 10.0,       # 1.0 real pips — adverse execution
+        'swap_per_lot_per_day': 15.0, # $15/lot/day — punishes overnight holds
     }
 
     def __init__(self):
@@ -77,11 +81,11 @@ class Plugin:
     def get_optimizable_params(self):
         """Return parameters that can be optimized along with their bounds."""
         return [
-            ("profit_threshold", 0.5, 20),
-            ("tp_multiplier", 0.5, 1.5),
-            ("sl_multiplier", 1.5, 6.0),
-            ("lower_rr_threshold", 0.2, 1.0),
-            ("upper_rr_threshold", 1.3, 6.0),
+            ("profit_threshold", 5, 30),
+            ("tp_multiplier", 0.5, 2.0),
+            ("sl_multiplier", 2.0, 6.0),
+            ("lower_rr_threshold", 0.2, 2.0),
+            ("upper_rr_threshold", 2.0, 8.0),
         ]
 
     def evaluate_candidate(self, individual, base_data, hourly_predictions, daily_predictions, config):
@@ -111,14 +115,21 @@ class Plugin:
             upper_rr_threshold=upper_rr,
             max_trades_per_5days=self.params['max_trades_per_5days'],
             exit_variant=self.params['exit_variant'],
+            exit_enabled=self.params['exit_enabled'],
             swap_per_lot_per_day=self.params['swap_per_lot_per_day'],
             pp_api_url=config.get("pp_api_url", "http://127.0.0.1:8000"),
             pp_timeout=float(config.get("pp_timeout", 5.0)),
+            spread_pips=self.params['spread_pips'],
+            commission_per_lot=self.params['commission_per_lot'],
+            slippage_pips=self.params['slippage_pips'],
         )
 
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
+        # Cheat-on-close: fill market orders at the current bar's close
+        # so entry price matches what the oracle sees (close[0]).
+        cerebro.broker.set_coc(True)
 
         # Apply realistic trading costs
         spread_cost = self.params['spread_pips'] * self.params['pip_cost']
@@ -173,27 +184,34 @@ class Plugin:
 
         - When NO position: calls /predict/entry → buy_entry_binary,
           sell_entry_binary → decides to buy, sell, or skip.
-        - When IN position: first checks hard TP/SL levels, then calls
-          /predict/exit → exit_binary → decides to keep or close early.
+        - When IN position: checks TP/SL using intra-bar high/low
+          (matching the oracle's scanning logic). No exit predictions —
+          the entry oracle already verified TP will be hit.
+        - Uses cheat-on-close so entry price = close[0], matching oracle.
         """
 
         params = dict(
             pip_cost=0.00001,
-            rel_volume=0.02,
+            rel_volume=0.10,
             min_order_volume=10000,
             max_order_volume=1000000,
             leverage=100,
-            profit_threshold=5,
+            profit_threshold=25.50,
             min_drawdown_pips=10,
-            tp_multiplier=0.9,
-            sl_multiplier=2.0,
-            lower_rr_threshold=0.5,
-            upper_rr_threshold=2.0,
-            max_trades_per_5days=3,
+            tp_multiplier=5.15,
+            sl_multiplier=3.66,
+            lower_rr_threshold=2.67,
+            upper_rr_threshold=4.46,
+            max_trades_per_5days=5,
             exit_variant='E',
-            swap_per_lot_per_day=10.0,
+            exit_enabled=True,
+            swap_per_lot_per_day=15.0,
             pp_api_url='http://127.0.0.1:8000',
             pp_timeout=5.0,
+            # Trading costs — sent to PP so oracle can account for them
+            spread_pips=30.0,
+            commission_per_lot=10.0,
+            slippage_pips=10.0,
         )
 
         def __init__(self):
@@ -229,48 +247,64 @@ class Plugin:
             self.balance_history.append(balance)
             self.date_history.append(dt)
 
-            # ── IN POSITION: check TP/SL then ask PP for early exit ──
+            # ── IN POSITION: check TP/SL ──
+            # TP uses CLOSE (matching oracle's close-based scan) so that
+            # self.close() with CoC fills at close >= TP, guaranteeing profit.
+            # SL uses intra-bar LOW/HIGH to catch worst-case stop-outs.
             if self.position:
+                # Force-close before weekend (Friday 20:00) to avoid gap risk
+                if dt.weekday() == 4 and dt.hour >= 20:
+                    self.close()
+                    return
+
+                bar_high = self.data0.high[0]
+                bar_low = self.data0.low[0]
+                bar_close = self.data0.close[0]
                 if self.current_direction == 'buy':
-                    if self.trade_low is None or current_price < self.trade_low:
-                        self.trade_low = current_price
-                    # Hard TP hit
-                    if current_price >= self.current_tp:
+                    if self.trade_low is None or bar_low < self.trade_low:
+                        self.trade_low = bar_low
+                    if bar_low <= self.current_sl:
                         self.close()
                         return
-                    # Hard SL hit
-                    if current_price <= self.current_sl:
+                    if bar_close >= self.current_tp:
                         self.close()
                         return
                 elif self.current_direction == 'sell':
-                    if self.trade_high is None or current_price > self.trade_high:
-                        self.trade_high = current_price
-                    # Hard TP hit
-                    if current_price <= self.current_tp:
+                    if self.trade_high is None or bar_high > self.trade_high:
+                        self.trade_high = bar_high
+                    if bar_high >= self.current_sl:
                         self.close()
                         return
-                    # Hard SL hit
-                    if current_price >= self.current_sl:
+                    if bar_close <= self.current_tp:
                         self.close()
                         return
 
-                # Ask PP: should I close early?
-                exit_pred = self._pred_source.get_exit_prediction(
-                    dt_hour,
-                    direction=self.current_direction,
-                    tp_price=self.current_tp,
-                    sl_price=self.current_sl,
-                )
-                if exit_pred["available"]:
-                    exit_bin = exit_pred.get("exit_binary", 1)
-                    if exit_bin == 0:
-                        # PP says TP unlikely → close early
+                # ── EARLY-STOPPING via exit prediction (Model B) ──
+                # Ask PP: "is SL predicted to hit before TP in the short term?"
+                # exit_binary=1 → keep open (TP still likely)
+                # exit_binary=0 → close early (SL danger detected)
+                if self.p.exit_enabled:
+                    exit_pred = self._pred_source.get_exit_prediction(
+                        dt_hour,
+                        direction=self.current_direction,
+                        tp_price=self.current_tp,
+                        sl_price=self.current_sl,
+                    )
+                    if exit_pred["available"] and exit_pred.get("exit_binary", 1) == 0:
+                        if not _QUIET:
+                            print(f"[EARLY_STOP] {dt} — exit model predicts SL danger, closing {self.current_direction}")
                         self.close()
+                        return
+
                 return
 
             # ── NO POSITION: initialise tracking ──
             self.trade_low = current_price
             self.trade_high = current_price
+
+            # No new entries on Friday (oracle horizon is nearly zero)
+            if dt.weekday() == 4:
+                return
 
             # Enforce trade frequency.
             recent_trades = [d for d in self.trade_entry_dates if (dt - d).days < 5]
@@ -283,8 +317,12 @@ class Plugin:
             sl_pips = self.p.sl_multiplier * self.p.profit_threshold
 
             # Ask PP: should I open a buy or sell?
+            # Send trading costs so oracle can make a fully-informed decision
             entry_pred = self._pred_source.get_entry_prediction(
                 dt_hour, tp_pips=tp_pips, sl_pips=sl_pips,
+                spread_pips=self.p.spread_pips,
+                commission_per_lot=self.p.commission_per_lot,
+                slippage_pips=self.p.slippage_pips,
             )
             if not entry_pred["available"]:
                 return
@@ -310,14 +348,21 @@ class Plugin:
                 chosen_tp = current_price - self.p.tp_multiplier * default_pip_margin
                 chosen_sl = current_price + self.p.sl_multiplier * default_pip_margin
 
-            chosen_rr = 1.0  # neutral RR for API mode
-            order_size = self._compute_size(chosen_rr)
+            # Use bars_remaining from oracle for position sizing
+            # Confidence from Bayesian models modulates size (oracle=1.0 → no change)
+            bars_remaining = entry_pred.get("bars_remaining", 0)
+            confidence = entry_pred.get(
+                "buy_confidence" if signal == 'buy' else "sell_confidence", 1.0
+            )
+            order_size = self._compute_size(bars_remaining, confidence)
             if order_size <= 0:
                 return
 
             self.trade_entry_dates.append(dt)
             self.trade_entry_bar = len(self)
             self.current_volume = order_size
+            self.current_tp = chosen_tp
+            self.current_sl = chosen_sl
 
             if signal == 'buy':
                 self.buy(size=order_size)
@@ -326,23 +371,47 @@ class Plugin:
                 self.sell(size=order_size)
                 self.current_direction = 'sell'
 
-            self.current_tp = chosen_tp
-            self.current_sl = chosen_sl
-
         # -----------------------------------------------------------------
-        def _compute_size(self, rr):
+        def _compute_size(self, bars_remaining, confidence=1.0):
+            """Position sizing based on bars remaining and model confidence.
+
+            Fewer bars remaining means the oracle expects TP to be hit
+            quickly → higher confidence → larger position.
+
+            bars_remaining ~ 1-10  → near max_order_volume  (high confidence)
+            bars_remaining ~ 100+  → near min_order_volume  (low confidence)
+
+            The upper/lower RR thresholds are repurposed as bar-count
+            boundaries:
+              - <= lower_rr_threshold * 24  → max size
+              - >= upper_rr_threshold * 24  → min size
+            Linear interpolation between those boundaries.
+
+            Bayesian models supply confidence in [0, 1] to further modulate
+            size.  Oracle always sends 1.0 (no effect).
+            """
             min_vol = self.p.min_order_volume
             max_vol = self.p.max_order_volume
-            if rr >= self.p.upper_rr_threshold:
+            # Convert RR thresholds to bar-count boundaries (hours in a day)
+            fast_bars = self.p.lower_rr_threshold * 24   # e.g. 0.5 * 24 = 12
+            slow_bars = self.p.upper_rr_threshold * 24   # e.g. 2.0 * 24 = 48
+
+            if bars_remaining <= fast_bars:
                 size = max_vol
-            elif rr <= self.p.lower_rr_threshold:
+            elif bars_remaining >= slow_bars:
                 size = min_vol
             else:
-                size = min_vol + ((rr - self.p.lower_rr_threshold) /
-                                  (self.p.upper_rr_threshold - self.p.lower_rr_threshold)) * (max_vol - min_vol)
+                # Linear: fewer bars → bigger size
+                frac = (bars_remaining - fast_bars) / (slow_bars - fast_bars)
+                size = max_vol - frac * (max_vol - min_vol)
+
             cash = self.broker.getcash()
             max_from_cash = cash * self.p.rel_volume * self.p.leverage
-            return min(size, max_from_cash)
+            size = min(size, max_from_cash)
+
+            # Modulate by model confidence (oracle=1.0 → no change)
+            size *= max(0.0, min(1.0, confidence))
+            return size
 
         def notify_order(self, order):
             if order.status in [order.Completed]:

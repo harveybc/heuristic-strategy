@@ -1,0 +1,8 @@
+{
+    "hourly_predictions_file": "tests/data/phase_2_3_cnn_1h_prediction_d3.csv",
+    "daily_predictions_file": "tests/data/phase_2_3_cnn_1d_prediction_d3.csv",
+    "base_dataset_file": "tests/data/phase_2_3_base_d3.csv",
+    "plugin": "api_predictions",
+    "load_parameters": "parameters_api.json",
+    "prediction_source": "API"
+}

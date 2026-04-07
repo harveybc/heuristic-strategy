@@ -1,0 +1,9 @@
+{
+    "base_dataset_file": "tests/data/phase_2_3_base_d3_last_year.csv",
+    "plugin": "api_predictions",
+    "population_size": 1,
+    "num_generations": 1,
+    "save_config": "config_out_api_sim.json",
+    "save_log": "debug_log_api_sim.json",
+    "prediction_source": "API"
+}

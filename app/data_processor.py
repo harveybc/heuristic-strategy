@@ -277,7 +277,6 @@ def run_processing_pipeline(config, plugin):
                 loaded_params.get("sl_multiplier", plugin.params["sl_multiplier"]),
                 loaded_params.get("lower_rr_threshold", plugin.params["lower_rr_threshold"]),
                 loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"]),
-                int(loaded_params.get("time_horizon", 3))
             ]
             if not _QUIET: print(f"Evaluating strategy with loaded parameters: {candidate}")
             init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
@@ -288,7 +287,6 @@ def run_processing_pipeline(config, plugin):
                 "sl_multiplier": candidate[2],
                 "lower_rr_threshold": candidate[3],
                 "upper_rr_threshold": candidate[4],
-                "time_horizon": candidate[5]
             }, "profit": result[0]}
         else:
             trading_info = {}
