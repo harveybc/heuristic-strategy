@@ -431,7 +431,7 @@ class Plugin:
                 lots = volume / 100000.0
                 swap_cost = overnight_days * lots * self.p.swap_per_lot_per_day
                 profit_usd -= swap_cost
-                direction = self.order_direction
+                direction = self.current_direction
                 if direction == 'buy':
                     profit_pips = (exit_price - entry_price) / self.p.pip_cost
                     intra_dd = (entry_price - self.trade_low) / self.p.pip_cost if self.trade_low is not None else 0

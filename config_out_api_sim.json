@@ -3,7 +3,9 @@
     "plugin": "api_predictions",
     "population_size": 1,
     "num_generations": 1,
+    "load_config": "config_out_api_sim.json",
     "save_config": "config_out_api_sim.json",
     "save_log": "debug_log_api_sim.json",
+    "load_parameters": "parameters_api.json",
     "prediction_source": "API"
 }
