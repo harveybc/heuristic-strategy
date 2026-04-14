@@ -1,0 +1,19 @@
+{
+    "base_dataset_file": "tests/data/phase_2_3_base_d3.csv",
+    "plugin": "direction_atr",
+    "population_size": 1,
+    "num_generations": 1,
+    "load_config": "config_direction_atr_ideal.json",
+    "save_config": "config_direction_atr_ideal_out.json",
+    "save_log": "debug_log_direction_atr_ideal.json",
+    "prediction_source": "API",
+    "pp_api_url": "http://127.0.0.1:8000",
+    "pp_timeout": 10.0,
+    "atr_period": 14,
+    "atr_tp_multiplier": 2.0,
+    "atr_sl_multiplier": 1.5,
+    "spread_pips": 15.0,
+    "commission_per_lot": 7.0,
+    "slippage_pips": 5.0,
+    "swap_per_lot_per_day": 10.0
+}

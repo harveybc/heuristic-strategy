@@ -136,7 +136,9 @@ class Plugin:
         slippage_cost = self.params['slippage_pips'] * self.params['pip_cost']
         total_spread = spread_cost + slippage_cost
         commission_per_unit = self.params['commission_per_lot'] / 100000.0
-        cerebro.broker.setcommission(commission=commission_per_unit, margin=None, mult=1.0)
+        # Forex margin: 1/leverage per unit (e.g. 100:1 → $0.01 per unit)
+        forex_margin = 1.0 / self.params['leverage']
+        cerebro.broker.setcommission(commission=commission_per_unit, margin=forex_margin, mult=1.0)
         cerebro.broker.set_slippage_fixed(total_spread / 2.0, slip_open=True, slip_limit=True)
 
         try:
