@@ -59,7 +59,7 @@ class Plugin:
         'rsi_oversold': 40.0,
         # Per-regime action toggles (1=active, 0=skip)
         'regime_1_active': 1,   # HIGH_VOL_BEARISH_FADING → buy
-        'regime_2_active': 1,   # STRONG_DOWNTREND → sell
+        'regime_2_active': 0,   # STRONG_DOWNTREND → sell (disabled: losing regime)
         'regime_3_active': 0,   # STRONG_UPTREND → sell (disabled by default: weak edge)
         'regime_4_active': 0,   # MILD_RANGE → flat
         'regime_5_active': 1,   # LOW_VOL_BEARISH_PULLBACK → buy
