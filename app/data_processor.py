@@ -271,23 +271,37 @@ def run_processing_pipeline(config, plugin):
             print(f"Failed to load parameters from {config['load_parameters']}: {e}")
             loaded_params = None
         if loaded_params is not None:
-            candidate = [
-                loaded_params.get("profit_threshold", plugin.params["profit_threshold"]),
-                loaded_params.get("tp_multiplier", plugin.params["tp_multiplier"]),
-                loaded_params.get("sl_multiplier", plugin.params["sl_multiplier"]),
-                loaded_params.get("lower_rr_threshold", plugin.params["lower_rr_threshold"]),
-                loaded_params.get("upper_rr_threshold", plugin.params["upper_rr_threshold"]),
-            ]
+            # Build candidate array from plugin's optimizable params
+            if hasattr(plugin, "get_optimizable_params"):
+                opt_params = plugin.get_optimizable_params()
+                candidate = [
+                    loaded_params.get(name, (lo + hi) / 2.0)
+                    for name, lo, hi in opt_params
+                ]
+            else:
+                candidate = [
+                    loaded_params.get("profit_threshold", plugin.params.get("profit_threshold", 0)),
+                    loaded_params.get("tp_multiplier", plugin.params.get("tp_multiplier", 1)),
+                    loaded_params.get("sl_multiplier", plugin.params.get("sl_multiplier", 1)),
+                    loaded_params.get("lower_rr_threshold", plugin.params.get("lower_rr_threshold", 0)),
+                    loaded_params.get("upper_rr_threshold", plugin.params.get("upper_rr_threshold", 1)),
+                ]
             if not _QUIET: print(f"Evaluating strategy with loaded parameters: {candidate}")
             init_optimizer(plugin, base_data, hourly_preds, daily_preds, config)
             result = evaluate_individual(candidate)
-            trading_info = {"best_parameters": {
-                "profit_threshold": candidate[0],
-                "tp_multiplier": candidate[1],
-                "sl_multiplier": candidate[2],
-                "lower_rr_threshold": candidate[3],
-                "upper_rr_threshold": candidate[4],
-            }, "profit": result[0]}
+            # Build trading_info from opt_params names
+            if hasattr(plugin, "get_optimizable_params"):
+                opt_params = plugin.get_optimizable_params()
+                param_dict = {name: candidate[i] for i, (name, lo, hi) in enumerate(opt_params)}
+            else:
+                param_dict = {
+                    "profit_threshold": candidate[0],
+                    "tp_multiplier": candidate[1],
+                    "sl_multiplier": candidate[2],
+                    "lower_rr_threshold": candidate[3],
+                    "upper_rr_threshold": candidate[4],
+                }
+            trading_info = {"best_parameters": param_dict, "profit": result[0]}
         else:
             trading_info = {}
     else:

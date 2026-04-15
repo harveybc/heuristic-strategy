@@ -12,7 +12,8 @@ setup(
             'default=app.plugins.plugin_long_short_predictions:Plugin',
             'ls_pred_strategy=app.plugins.plugin_long_short_predictions:Plugin',
             'api_predictions=app.plugins.plugin_api_predictions:Plugin',
-            'direction_atr=app.plugins.plugin_direction_atr:Plugin'
+            'direction_atr=app.plugins.plugin_direction_atr:Plugin',
+            'regime_adaptive=app.plugins.plugin_regime_adaptive:Plugin'
         ]
     },
     install_requires=[
