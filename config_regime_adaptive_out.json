@@ -1,8 +1,10 @@
 {
     "base_dataset_file": "tests/data/phase_1c_direction_test_ohlc.csv",
     "plugin": "regime_adaptive",
-    "num_generations": 15,
+    "population_size": 1,
+    "num_generations": 1,
     "load_config": "config_regime_adaptive.json",
     "save_config": "config_regime_adaptive_out.json",
+    "load_parameters": "parameters.json",
     "prediction_source": "API"
 }

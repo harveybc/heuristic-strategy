@@ -1,16 +1,19 @@
 """
-Plugin for Regime-Adaptive Heuristic Trading Strategy.
+Plugin for Regime-Adaptive Heuristic Trading Strategy (V2 — Causal Evidence).
 
-Classifies each bar into a market regime using technical indicators
-(ADX, DI, ATR percentile, BB width, RSI, EMA alignment) then applies
-the appropriate strategy for that regime:
+Classifies each bar into a market regime using causally-validated features:
+  - bb_position (CORE, causal score=5, invariant across all regimes)
+  - atr_ratio   (CORE, causal score=4, robust ATE=+0.020)
+  - ema_alignment (LEADING, only feature with positive Transfer Entropy)
 
-  Regime 1 (HIGH_VOL_BEARISH_FADING) → buy_reversal  (oversold bounce)
-  Regime 2 (STRONG_DOWNTREND)        → sell_trend     (follow the trend)
-  Regime 3 (STRONG_UPTREND)          → sell_exhaustion (take profit / short)
-  Regime 4 (MILD_RANGE)              → flat           (no trade)
-  Regime 5 (LOW_VOL_BEARISH_PULLBACK)→ buy_meanrevert (dip buy in uptrend)
-  Regime 6 (LOW_VOL_BULLISH_DRIFT)   → buy_trend      (ride the drift)
+Previous V1 used adx/di_spread which scored as NOISE in causal analysis.
+
+  Regime 1 (VOLATILE_OVERSOLD)       → buy_reversal  (BB low + high vol)
+  Regime 2 (BEARISH_CONTINUATION)    → flat           (BB low + bearish EMA)
+  Regime 3 (VOLATILE_OVERBOUGHT)     → flat           (BB high + high vol)
+  Regime 4 (NEUTRAL)                 → flat           (BB mid / no signal)
+  Regime 5 (PULLBACK_IN_UPTREND)     → buy_meanrevert (BB low + bullish EMA)
+  Regime 6 (BULLISH_DRIFT)           → buy_trend      (BB high + bullish EMA)
 
 All thresholds are optimizable via NEAT or genetic algorithm.
 No ML predictions needed — purely reactive to current market state.
@@ -26,12 +29,12 @@ _QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 
 REGIME_NAMES = {
-    1: "HIGH_VOL_BEARISH_FADING",
-    2: "STRONG_DOWNTREND",
-    3: "STRONG_UPTREND",
-    4: "MILD_RANGE",
-    5: "LOW_VOL_BEARISH_PULLBACK",
-    6: "LOW_VOL_BULLISH_DRIFT",
+    1: "VOLATILE_OVERSOLD",
+    2: "BEARISH_CONTINUATION",
+    3: "VOLATILE_OVERBOUGHT",
+    4: "NEUTRAL",
+    5: "PULLBACK_IN_UPTREND",
+    6: "BULLISH_DRIFT",
 }
 
 
@@ -48,28 +51,24 @@ class Plugin:
         'atr_period': 14,
         'atr_tp_multiplier': 2.5,
         'atr_sl_multiplier': 1.5,
-        # Regime detection thresholds
-        'adx_strong': 35.0,
-        'adx_mild': 25.0,
-        'di_strong': 15.0,
-        'di_mild': 5.0,
-        'atr_pct_high': 0.65,
-        'atr_pct_low': 0.35,
-        'rsi_overbought': 65.0,
-        'rsi_oversold': 40.0,
+        # Causal-evidence regime thresholds (V2)
+        'bb_low': 0.25,            # bb_position below this → lower BB zone
+        'bb_high': 0.75,           # bb_position above this → upper BB zone
+        'atr_ratio_high': 1.2,     # atr_14/atr_60 above this → high volatility
+        'ema_align_thresh': 0.0,   # ema_alignment above this → bullish
         # Per-regime action toggles (1=active, 0=skip)
-        'regime_1_active': 1,   # HIGH_VOL_BEARISH_FADING → buy
-        'regime_2_active': 0,   # STRONG_DOWNTREND → sell (disabled: losing regime)
-        'regime_3_active': 0,   # STRONG_UPTREND → sell (disabled by default: weak edge)
-        'regime_4_active': 0,   # MILD_RANGE → flat
-        'regime_5_active': 1,   # LOW_VOL_BEARISH_PULLBACK → buy
-        'regime_6_active': 1,   # LOW_VOL_BULLISH_DRIFT → buy
+        'regime_1_active': 1,   # VOLATILE_OVERSOLD → buy reversal
+        'regime_2_active': 0,   # BEARISH_CONTINUATION → flat (sell edge weak)
+        'regime_3_active': 0,   # VOLATILE_OVERBOUGHT → flat
+        'regime_4_active': 0,   # NEUTRAL → flat
+        'regime_5_active': 1,   # PULLBACK_IN_UPTREND → buy
+        'regime_6_active': 1,   # BULLISH_DRIFT → buy
         # Entry filters
         'entry_on_transition_only': True,   # Only enter when regime CHANGES
         'transition_window': 8,             # hourly bars after regime change to allow entry
         'cooldown_bars': 12,                # min hourly bars between trades
         'rsi_confirm': True,                # require RSI confirmation
-        'bb_confirm': True,                 # require BB position confirmation
+        'stoch_confirm': True,              # require Stochastic K confirmation
         # Trade management
         'max_trades_per_5days': 3,
         'exit_on_regime_change': True,
@@ -95,20 +94,18 @@ class Plugin:
     def get_optimizable_params(self):
         return [
             ("atr_period", 7, 28),
-            ("atr_tp_multiplier", 1.5, 5.0),
-            ("atr_sl_multiplier", 0.8, 3.0),
-            ("adx_strong", 25.0, 50.0),
-            ("di_strong", 8.0, 25.0),
-            ("di_mild", 2.0, 12.0),
-            ("atr_pct_high", 0.5, 0.85),
-            ("atr_pct_low", 0.15, 0.45),
+            ("atr_tp_multiplier", 1.0, 5.0),
+            ("atr_sl_multiplier", 0.5, 3.0),
+            ("bb_low", 0.10, 0.45),
+            ("bb_high", 0.55, 0.90),
+            ("atr_ratio_high", 0.8, 2.0),
+            ("ema_align_thresh", -1.0, 1.0),
         ]
 
     def evaluate_candidate(self, individual, base_data, hourly_predictions,
                            daily_predictions, config):
         (atr_period, atr_tp_mult, atr_sl_mult,
-         adx_strong, di_strong, di_mild,
-         atr_pct_high, atr_pct_low) = individual
+         bb_low, bb_high, atr_ratio_high, ema_align_thresh) = individual
 
         cerebro = bt.Cerebro()
         cerebro.addstrategy(
@@ -121,14 +118,10 @@ class Plugin:
             atr_period=int(atr_period),
             atr_tp_multiplier=atr_tp_mult,
             atr_sl_multiplier=atr_sl_mult,
-            adx_strong=adx_strong,
-            adx_mild=self.params['adx_mild'],
-            di_strong=di_strong,
-            di_mild=di_mild,
-            atr_pct_high=atr_pct_high,
-            atr_pct_low=atr_pct_low,
-            rsi_overbought=self.params['rsi_overbought'],
-            rsi_oversold=self.params['rsi_oversold'],
+            bb_low=bb_low,
+            bb_high=bb_high,
+            atr_ratio_high=atr_ratio_high,
+            ema_align_thresh=ema_align_thresh,
             regime_1_active=self.params['regime_1_active'],
             regime_2_active=self.params['regime_2_active'],
             regime_3_active=self.params['regime_3_active'],
@@ -139,7 +132,7 @@ class Plugin:
             transition_window=self.params['transition_window'],
             cooldown_bars=self.params['cooldown_bars'],
             rsi_confirm=self.params['rsi_confirm'],
-            bb_confirm=self.params['bb_confirm'],
+            stoch_confirm=self.params['stoch_confirm'],
             max_trades_per_5days=self.params['max_trades_per_5days'],
             exit_on_regime_change=self.params['exit_on_regime_change'],
             swap_per_lot_per_day=self.params['swap_per_lot_per_day'],
@@ -204,12 +197,11 @@ class Plugin:
     # =====================================================================
     class RegimeAdaptiveStrategy(bt.Strategy):
         """
-        Forex strategy that adapts to detected market regime.
+        Forex strategy that adapts to detected market regime (V2 — Causal Evidence).
         
         No predictions needed — purely reactive to current indicator state.
-        Each regime maps to a specific trading action:
-          - buy_reversal, sell_trend, sell_exhaustion, flat,
-            buy_meanrevert, buy_trend
+        Regime classification uses causally-validated features:
+          bb_position (CORE), atr_ratio (CORE), ema_alignment (LEADING).
         """
 
         params = dict(
@@ -221,18 +213,14 @@ class Plugin:
             atr_period=14,
             atr_tp_multiplier=2.5,
             atr_sl_multiplier=1.5,
-            # Regime thresholds
-            adx_strong=35.0,
-            adx_mild=25.0,
-            di_strong=15.0,
-            di_mild=5.0,
-            atr_pct_high=0.65,
-            atr_pct_low=0.35,
-            rsi_overbought=65.0,
-            rsi_oversold=40.0,
+            # Causal-evidence regime thresholds
+            bb_low=0.25,
+            bb_high=0.75,
+            atr_ratio_high=1.2,
+            ema_align_thresh=0.0,
             # Per-regime toggles
             regime_1_active=1,
-            regime_2_active=1,
+            regime_2_active=0,
             regime_3_active=0,
             regime_4_active=0,
             regime_5_active=1,
@@ -242,7 +230,7 @@ class Plugin:
             transition_window=8,
             cooldown_bars=12,
             rsi_confirm=True,
-            bb_confirm=True,
+            stoch_confirm=True,
             # Trade management
             max_trades_per_5days=3,
             exit_on_regime_change=True,
@@ -290,9 +278,12 @@ class Plugin:
             self._high_history = []
             self._low_history = []
             self._bar_count = 0
-            # Cache for RSI/BB used in confirmation
+            # Cache for RSI/Stoch/BB used in confirmation and classification
             self._current_rsi = 50.0
             self._current_bb_position = 0.5
+            self._current_atr_ratio = 1.0
+            self._current_ema_alignment = 0.0
+            self._current_stoch_k = 50.0
 
         def _append_4h_bar(self):
             """Accumulate hourly bars and create 4h bars."""
@@ -317,27 +308,59 @@ class Plugin:
         # --- Regime detection (computed from accumulating history) ---
 
         def _compute_regime(self):
-            """Classify current bar into a regime. Also updates RSI/BB cache."""
+            """Classify current bar into a regime using causal-evidence features.
+            
+            V2: Uses bb_position (CORE), atr_ratio (CORE), ema_alignment (LEADING).
+            Also computes RSI + Stochastic K for confirmation filters.
+            """
             if len(self._close_history) < 200:
-                return 4  # default: MILD_RANGE until warmup
+                return 4  # default: NEUTRAL until warmup
 
             c = np.array(self._close_history)
             h = np.array(self._high_history)
             l = np.array(self._low_history)
 
-            # ADX + DI (EMA-based, 14-period)
-            span = 14
+            # --- Bollinger Band Position (CORE causal feature, score=5) ---
+            close_s = pd.Series(c[-30:])
+            bb_mid = close_s.rolling(20).mean()
+            bb_std = close_s.rolling(20).std()
+            if bb_std.iloc[-1] > 1e-10:
+                bb_upper = bb_mid.iloc[-1] + 2 * bb_std.iloc[-1]
+                bb_lower = bb_mid.iloc[-1] - 2 * bb_std.iloc[-1]
+                bb_position = (c[-1] - bb_lower) / (bb_upper - bb_lower + 1e-10)
+            else:
+                bb_position = 0.5
+            self._current_bb_position = bb_position
+
+            # --- ATR ratio (CORE causal feature, score=4) ---
             tr = np.maximum(h[1:] - l[1:],
                             np.maximum(np.abs(h[1:] - c[:-1]),
                                        np.abs(l[1:] - c[:-1])))
-            
-            plus_dm = np.maximum(h[1:] - h[:-1], 0.0)
-            minus_dm = np.maximum(l[:-1] - l[1:], 0.0)
-            mask = plus_dm > minus_dm
-            plus_dm = np.where(mask, plus_dm, 0.0)
-            minus_dm = np.where(~mask, minus_dm, 0.0)
+            atr_14 = tr[-14:].mean() if len(tr) >= 14 else tr.mean()
+            atr_60 = tr[-60:].mean() if len(tr) >= 60 else tr.mean()
+            atr_ratio = atr_14 / (atr_60 + 1e-10)
+            self._current_atr_ratio = atr_ratio
 
-            def ema(arr, sp):
+            # --- EMA alignment (LEADING causal feature, only positive TE) ---
+            def ema_val(arr, span):
+                a = 2.0 / (span + 1)
+                out = arr[0]
+                for i in range(1, len(arr)):
+                    out = a * arr[i] + (1 - a) * out
+                return out
+
+            ema50 = ema_val(c, 50)
+            ema200 = ema_val(c, 200)
+            ema_alignment = (ema50 - ema200) / (atr_14 + 1e-10)
+            self._current_ema_alignment = ema_alignment
+
+            # --- RSI (for confirmation, causal score=3) ---
+            span = 14
+            delta = np.diff(c)
+            gain = np.maximum(delta, 0)
+            loss_arr = np.maximum(-delta, 0)
+
+            def ema_arr(arr, sp):
                 a = 2.0 / (sp + 1)
                 out = np.zeros(len(arr))
                 out[0] = arr[0]
@@ -345,61 +368,40 @@ class Plugin:
                     out[i] = a * arr[i] + (1 - a) * out[i - 1]
                 return out
 
-            atr_s = ema(tr, span)
-            plus_di = 100 * ema(plus_dm, span) / (atr_s + 1e-10)
-            minus_di = 100 * ema(minus_dm, span) / (atr_s + 1e-10)
-            dx = 100 * np.abs(plus_di - minus_di) / (plus_di + minus_di + 1e-10)
-            adx = ema(dx, span)
-
-            current_adx = adx[-1]
-            di_spread = plus_di[-1] - minus_di[-1]
-
-            # ATR percentile (last 120 bars)
-            atr_14_window = 14
-            recent_tr = tr[-120:]
-            atr_vals = pd.Series(recent_tr).rolling(atr_14_window).mean().dropna().values
-            if len(atr_vals) > 1:
-                current_atr_val = atr_vals[-1]
-                atr_pct = np.sum(atr_vals <= current_atr_val) / len(atr_vals)
-            else:
-                atr_pct = 0.5
-
-            # RSI (14-period, EMA) — cache for confirmation
-            delta = np.diff(c)
-            gain = np.maximum(delta, 0)
-            loss_arr = np.maximum(-delta, 0)
-            avg_gain = ema(gain[-span*3:], span)
-            avg_loss = ema(loss_arr[-span*3:], span)
+            avg_gain = ema_arr(gain[-span*3:], span)
+            avg_loss = ema_arr(loss_arr[-span*3:], span)
             if avg_loss[-1] > 1e-10:
                 self._current_rsi = 100 - 100 / (1 + avg_gain[-1] / avg_loss[-1])
             else:
                 self._current_rsi = 100.0
 
-            # BB position — cache for confirmation
-            close_s = pd.Series(c[-30:])
-            bb_mid = close_s.rolling(20).mean()
-            bb_std = close_s.rolling(20).std()
-            if bb_std.iloc[-1] > 1e-10:
-                bb_upper = bb_mid.iloc[-1] + 2 * bb_std.iloc[-1]
-                bb_lower = bb_mid.iloc[-1] - 2 * bb_std.iloc[-1]
-                self._current_bb_position = (c[-1] - bb_lower) / (bb_upper - bb_lower + 1e-10)
-            else:
-                self._current_bb_position = 0.5
+            # --- Stochastic K (for confirmation, causal score=3) ---
+            low14 = np.min(l[-14:])
+            high14 = np.max(h[-14:])
+            self._current_stoch_k = 100 * (c[-1] - low14) / (high14 - low14 + 1e-10)
 
-            # Classify using thresholds
-            regime = 4  # default MILD_RANGE
+            # === CAUSAL-EVIDENCE REGIME CLASSIFICATION ===
+            # Primary: bb_position (invariant across all regimes)
+            # Secondary: atr_ratio (robust ATE)
+            # Tertiary: ema_alignment (leading indicator)
 
-            if current_adx >= self.p.adx_strong and di_spread > self.p.di_strong:
-                regime = 3  # STRONG_UPTREND
-            elif current_adx >= self.p.adx_strong and di_spread < -self.p.di_strong:
-                regime = 2  # STRONG_DOWNTREND
-            elif atr_pct >= self.p.atr_pct_high and di_spread < -self.p.di_mild:
-                regime = 1  # HIGH_VOL_BEARISH_FADING
-            elif atr_pct <= self.p.atr_pct_low:
-                if di_spread < -self.p.di_mild:
-                    regime = 5  # LOW_VOL_BEARISH_PULLBACK
-                elif di_spread > self.p.di_mild:
-                    regime = 6  # LOW_VOL_BULLISH_DRIFT
+            regime = 4  # default NEUTRAL
+
+            if bb_position < self.p.bb_low:
+                # Price near lower Bollinger Band — potential buy zone
+                if atr_ratio > self.p.atr_ratio_high:
+                    regime = 1  # VOLATILE_OVERSOLD → buy reversal
+                elif ema_alignment > self.p.ema_align_thresh:
+                    regime = 5  # PULLBACK_IN_UPTREND → buy mean-revert
+                else:
+                    regime = 2  # BEARISH_CONTINUATION → flat/sell
+            elif bb_position > self.p.bb_high:
+                # Price near upper Bollinger Band
+                if atr_ratio > self.p.atr_ratio_high:
+                    regime = 3  # VOLATILE_OVERBOUGHT → flat
+                elif ema_alignment > self.p.ema_align_thresh:
+                    regime = 6  # BULLISH_DRIFT → buy trend
+                # else stays 4 NEUTRAL
 
             return regime
 
@@ -416,26 +418,28 @@ class Plugin:
             return actions.get(regime, None)
 
         def _confirm_entry(self, regime, signal):
-            """Apply RSI and BB confirmation filters."""
+            """Apply RSI and Stochastic K confirmation filters.
+            
+            Uses RSI (causal score=3) and Stochastic K (causal score=3)
+            for entry confirmation. BB position is now used for classification,
+            not confirmation.
+            """
             rsi = self._current_rsi
-            bb_pos = self._current_bb_position
+            stoch_k = self._current_stoch_k
 
             if self.p.rsi_confirm:
-                if signal == 'buy' and rsi > self.p.rsi_overbought:
+                if signal == 'buy' and rsi > 70:
                     return False  # Don't buy when overbought
-                if signal == 'sell' and rsi < self.p.rsi_oversold:
+                if signal == 'sell' and rsi < 30:
                     return False  # Don't sell when oversold
 
-            if self.p.bb_confirm:
-                # Mean-revert regimes (1, 5): price should be near lower BB
-                if regime in (1, 5) and bb_pos > 0.5:
-                    return False  # Not low enough for mean-revert buy
-                # Trend-follow sell (2): price should be near upper BB or mid
-                if regime == 2 and bb_pos < 0.3:
-                    return False  # Already at bottom, don't sell more
-                # Bullish drift (6): price shouldn't be at extreme top
-                if regime == 6 and bb_pos > 0.9:
-                    return False  # Too stretched
+            if self.p.stoch_confirm:
+                # Mean-revert regimes (1, 5): stoch_k should be low
+                if regime in (1, 5) and stoch_k > 60:
+                    return False  # Not oversold enough for mean-revert buy
+                # Trend buy (6): stoch_k shouldn't be at extreme
+                if regime == 6 and stoch_k > 85:
+                    return False  # Too stretched for trend entry
 
             return True
 
@@ -462,7 +466,9 @@ class Plugin:
                         print(f"[REGIME_CHANGE] {dt} "
                               f"{REGIME_NAMES.get(self.prev_regime, '?')} → "
                               f"{REGIME_NAMES.get(regime, '?')} "
-                              f"RSI={self._current_rsi:.1f} BB={self._current_bb_position:.2f}")
+                              f"BB={self._current_bb_position:.2f} "
+                              f"ATR_r={self._current_atr_ratio:.2f} "
+                              f"EMA_a={self._current_ema_alignment:.1f}")
                     self.prev_regime = regime
 
             current_bar = len(self)
@@ -589,7 +595,10 @@ class Plugin:
                       f" regime={regime} ({REGIME_NAMES.get(regime, '?')})"
                       f" TP={chosen_tp:.5f} SL={chosen_sl:.5f}"
                       f" ATR={current_atr:.5f}"
-                      f" RSI={self._current_rsi:.1f} BB={self._current_bb_position:.2f}")
+                      f" BB={self._current_bb_position:.2f}"
+                      f" ATR_r={self._current_atr_ratio:.2f}"
+                      f" RSI={self._current_rsi:.1f}"
+                      f" StochK={self._current_stoch_k:.1f}")
 
         def _compute_size(self):
             cash = self.broker.getcash()
