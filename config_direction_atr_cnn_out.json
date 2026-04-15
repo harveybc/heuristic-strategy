@@ -1,0 +1,15 @@
+{
+    "base_dataset_file": "tests/data/phase_1c_direction_test_ohlc.csv",
+    "plugin": "direction_atr",
+    "population_size": 1,
+    "num_generations": 1,
+    "load_config": "config_direction_atr_cnn.json",
+    "save_config": "config_direction_atr_cnn_out.json",
+    "save_log": "debug_log_direction_atr_cnn.json",
+    "prediction_source": "API",
+    "pp_timeout": 10.0,
+    "spread_pips": 15.0,
+    "commission_per_lot": 7.0,
+    "slippage_pips": 5.0,
+    "swap_per_lot_per_day": 10.0
+}
