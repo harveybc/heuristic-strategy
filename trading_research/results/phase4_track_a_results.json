@@ -1,0 +1,296 @@
+{
+  "track": "A",
+  "cells": {
+    "EUR/USD_daily": {
+      "parameter_audit": {
+        "baseline": {
+          "sharpe": 0.1579,
+          "bh_sharpe": -0.0563,
+          "edge_sharpe": 0.2142,
+          "regime_robustness": 0.3,
+          "worst_window_sharpe": -1.1365,
+          "max_drawdown": 0.2708,
+          "n_trades": 428,
+          "win_rate": 0.6425,
+          "avg_win": 0.010477,
+          "avg_loss": -0.01604,
+          "avg_hold_bars": 6.4,
+          "trades_per_year": 19.8,
+          "n_bars": 5445
+        },
+        "plateau_analysis": {
+          "n_combos": 75,
+          "sharpe_mean": 0.2233,
+          "sharpe_std": 0.1278,
+          "sharpe_max": 0.5493,
+          "sharpe_min": 0.0264,
+          "pct_positive": 100.0,
+          "pct_above_half_max": 33.3,
+          "is_plateau": "False"
+        },
+        "sweeps_summary": {
+          "lookback": [
+            {
+              "value": 10,
+              "sharpe": 0.4961,
+              "edge_sharpe": 0.5524
+            },
+            {
+              "value": 15,
+              "sharpe": 0.2687,
+              "edge_sharpe": 0.325
+            },
+            {
+              "value": 20,
+              "sharpe": 0.1579,
+              "edge_sharpe": 0.2142
+            },
+            {
+              "value": 25,
+              "sharpe": 0.0866,
+              "edge_sharpe": 0.1429
+            },
+            {
+              "value": 30,
+              "sharpe": 0.1838,
+              "edge_sharpe": 0.24
+            }
+          ],
+          "z_entry": [
+            {
+              "value": 0.75,
+              "sharpe": 0.2433,
+              "edge_sharpe": 0.2996
+            },
+            {
+              "value": 1.125,
+              "sharpe": 0.0776,
+              "edge_sharpe": 0.1338
+            },
+            {
+              "value": 1.5,
+              "sharpe": 0.1579,
+              "edge_sharpe": 0.2142
+            },
+            {
+              "value": 1.875,
+              "sharpe": 0.3776,
+              "edge_sharpe": 0.4338
+            },
+            {
+              "value": 2.25,
+              "sharpe": 0.0507,
+              "edge_sharpe": 0.1069
+            }
+          ],
+          "z_exit": [
+            {
+              "value": 0.25,
+              "sharpe": 0.1494,
+              "edge_sharpe": 0.2056
+            },
+            {
+              "value": 0.375,
+              "sharpe": 0.1678,
+              "edge_sharpe": 0.224
+            },
+            {
+              "value": 0.5,
+              "sharpe": 0.1579,
+              "edge_sharpe": 0.2142
+            },
+            {
+              "value": 0.625,
+              "sharpe": 0.137,
+              "edge_sharpe": 0.1933
+            },
+            {
+              "value": 0.75,
+              "sharpe": 0.1983,
+              "edge_sharpe": 0.2546
+            }
+          ]
+        },
+        "grid_size": 75
+      },
+      "position_sizing": {
+        "asset": "EUR/USD/daily",
+        "account_size_usd": 10000,
+        "max_account_dd_target": 0.15,
+        "historical_max_dd": 0.2708,
+        "worst_2y_sharpe": -1.1365,
+        "computed_leverage": 0.5539,
+        "position_size_usd": 5539.0,
+        "risk_per_trade_pct": 0.55,
+        "expected_trades_per_year": 19.8
+      },
+      "monitoring_protocol": {
+        "asset": "EUR/USD/daily",
+        "review_schedule": {
+          "weekly": "trades executed vs backtest distribution",
+          "monthly": "Sharpe, drawdown, trade stats vs backtest"
+        },
+        "alert_criteria": {
+          "max_drawdown_pause": 0.4062,
+          "consecutive_losing_trades_pause": 10,
+          "slippage_threshold_bps": 3.0,
+          "slippage_breach_count": 10
+        },
+        "backtest_reference": {
+          "expected_sharpe": 0.1579,
+          "expected_trades_per_year": 19.8,
+          "expected_win_rate": 0.6425,
+          "expected_max_dd": 0.2708
+        }
+      }
+    },
+    "USD/JPY_daily": {
+      "parameter_audit": {
+        "baseline": {
+          "sharpe": 0.1424,
+          "bh_sharpe": 0.1664,
+          "edge_sharpe": -0.0241,
+          "regime_robustness": 0.35,
+          "worst_window_sharpe": -1.571,
+          "max_drawdown": 0.2909,
+          "n_trades": 439,
+          "win_rate": 0.6333,
+          "avg_win": 0.011071,
+          "avg_loss": -0.01652,
+          "avg_hold_bars": 6.0,
+          "trades_per_year": 20.3,
+          "n_bars": 5445
+        },
+        "plateau_analysis": {
+          "n_combos": 75,
+          "sharpe_mean": 0.133,
+          "sharpe_std": 0.1751,
+          "sharpe_max": 0.5876,
+          "sharpe_min": -0.3064,
+          "pct_positive": 80.0,
+          "pct_above_half_max": 20.0,
+          "is_plateau": "False"
+        },
+        "sweeps_summary": {
+          "lookback": [
+            {
+              "value": 10,
+              "sharpe": 0.1795,
+              "edge_sharpe": 0.0131
+            },
+            {
+              "value": 15,
+              "sharpe": 0.1105,
+              "edge_sharpe": -0.0559
+            },
+            {
+              "value": 20,
+              "sharpe": 0.1424,
+              "edge_sharpe": -0.0241
+            },
+            {
+              "value": 25,
+              "sharpe": 0.1735,
+              "edge_sharpe": 0.007
+            },
+            {
+              "value": 30,
+              "sharpe": 0.0644,
+              "edge_sharpe": -0.102
+            }
+          ],
+          "z_entry": [
+            {
+              "value": 0.75,
+              "sharpe": -0.0517,
+              "edge_sharpe": -0.2181
+            },
+            {
+              "value": 1.125,
+              "sharpe": -0.0206,
+              "edge_sharpe": -0.1871
+            },
+            {
+              "value": 1.5,
+              "sharpe": 0.1424,
+              "edge_sharpe": -0.0241
+            },
+            {
+              "value": 1.875,
+              "sharpe": 0.3546,
+              "edge_sharpe": 0.1882
+            },
+            {
+              "value": 2.25,
+              "sharpe": 0.4507,
+              "edge_sharpe": 0.2843
+            }
+          ],
+          "z_exit": [
+            {
+              "value": 0.25,
+              "sharpe": 0.0115,
+              "edge_sharpe": -0.155
+            },
+            {
+              "value": 0.375,
+              "sharpe": 0.0929,
+              "edge_sharpe": -0.0735
+            },
+            {
+              "value": 0.5,
+              "sharpe": 0.1424,
+              "edge_sharpe": -0.0241
+            },
+            {
+              "value": 0.625,
+              "sharpe": 0.1752,
+              "edge_sharpe": 0.0087
+            },
+            {
+              "value": 0.75,
+              "sharpe": 0.1665,
+              "edge_sharpe": 0.0001
+            }
+          ]
+        },
+        "grid_size": 75
+      },
+      "position_sizing": {
+        "asset": "USD/JPY/daily",
+        "account_size_usd": 10000,
+        "max_account_dd_target": 0.15,
+        "historical_max_dd": 0.2909,
+        "worst_2y_sharpe": -1.571,
+        "computed_leverage": 0.5156,
+        "position_size_usd": 5156.0,
+        "risk_per_trade_pct": 0.52,
+        "expected_trades_per_year": 20.3
+      },
+      "monitoring_protocol": {
+        "asset": "USD/JPY/daily",
+        "review_schedule": {
+          "weekly": "trades executed vs backtest distribution",
+          "monthly": "Sharpe, drawdown, trade stats vs backtest"
+        },
+        "alert_criteria": {
+          "max_drawdown_pause": 0.4364,
+          "consecutive_losing_trades_pause": 10,
+          "slippage_threshold_bps": 3.0,
+          "slippage_breach_count": 10
+        },
+        "backtest_reference": {
+          "expected_sharpe": 0.1424,
+          "expected_trades_per_year": 20.3,
+          "expected_win_rate": 0.6333,
+          "expected_max_dd": 0.2909
+        }
+      }
+    }
+  },
+  "decision": {
+    "plateau_valid": false,
+    "deployable": false,
+    "notes": "One or more cells have narrow spike \u2014 deployment NOT recommended"
+  }
+}

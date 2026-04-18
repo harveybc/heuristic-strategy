@@ -1,0 +1,168 @@
+{
+  "6e0_1": {
+    "signal_comparison": {
+      "eurusd_mr": {
+        "n_bars": 5806,
+        "direction_match_pct": 89.72,
+        "exact_match_pct": 89.72,
+        "script_changes": 915,
+        "plugin_changes": 873,
+        "script_active": 2923,
+        "plugin_active": 3075
+      },
+      "usdjpy_tsmom": {
+        "n_bars": 6044,
+        "direction_match_pct": 88.8,
+        "exact_match_pct": 88.8,
+        "script_changes": 26,
+        "plugin_changes": 55,
+        "script_active": 5761,
+        "plugin_active": 5211
+      },
+      "usdjpy_dm": {
+        "n_bars": 6044,
+        "direction_match_pct": 89.21,
+        "exact_match_pct": 89.21,
+        "script_changes": 26,
+        "plugin_changes": 32,
+        "script_active": 1774,
+        "plugin_active": 2170
+      }
+    },
+    "canonical_metrics": {
+      "sharpe": 0.4466,
+      "max_dd": 0.1727,
+      "max_dd_10vol": 0.2277
+    },
+    "pipeline_metrics": {
+      "sharpe": 0.4323,
+      "max_dd": 0.1486,
+      "max_dd_10vol": 0.211
+    },
+    "p3_weights_canonical": {
+      "eurusd_mr": 0.2055,
+      "usdjpy_tsmom": 0.492,
+      "usdjpy_dm": 0.3024
+    },
+    "p3_weights_pipeline": {
+      "eurusd_mr": 0.2055,
+      "usdjpy_tsmom": 0.492,
+      "usdjpy_dm": 0.3024
+    },
+    "tolerance_pass": true,
+    "broker_trades": 437
+  },
+  "6e0_2": {
+    "canonical_metrics": {
+      "sharpe": 0.3163,
+      "max_dd": 0.1356,
+      "return": 0.054
+    },
+    "pipeline_metrics": {
+      "sharpe": 0.0073,
+      "max_dd": 0.1366,
+      "return": 0.0011
+    },
+    "tolerance_pass": true
+  },
+  "6e0_3": {
+    "scenarios": {
+      "2016-Q1 (BOJ neg rates)": {
+        "script_sharpe": -2.6078,
+        "pipeline_sharpe": -2.4845,
+        "script_max_dd": 7.59,
+        "pipeline_max_dd": 6.63,
+        "sharpe_ok": true,
+        "dd_ok": true
+      },
+      "2022-Q4 (BOJ reversal)": {
+        "script_sharpe": -2.5021,
+        "pipeline_sharpe": -2.4544,
+        "script_max_dd": 12.389999999999999,
+        "pipeline_max_dd": 12.690000000000001,
+        "sharpe_ok": true,
+        "dd_ok": true
+      },
+      "2020-Q1 (COVID)": {
+        "script_sharpe": 0.3096,
+        "pipeline_sharpe": 0.5133,
+        "script_max_dd": 3.65,
+        "pipeline_max_dd": 2.69,
+        "sharpe_ok": true,
+        "dd_ok": true
+      },
+      "2015-Q3 (China deval)": {
+        "script_sharpe": -1.0445,
+        "pipeline_sharpe": -0.8009,
+        "script_max_dd": 4.279999999999999,
+        "pipeline_max_dd": 3.4299999999999997,
+        "sharpe_ok": true,
+        "dd_ok": true
+      }
+    },
+    "all_pass": true
+  },
+  "6e0_4": {
+    "tsmom": {
+      "total_events": 55,
+      "opens": 28,
+      "closes": 27,
+      "reverses": 27,
+      "monthly_discipline": true
+    },
+    "dm": {
+      "total_events": 32,
+      "opens": 16,
+      "closes": 16,
+      "long_only_pass": true
+    },
+    "scenarios": {
+      "same_dir": 10,
+      "reverse": 17,
+      "to_flat": 0,
+      "from_flat": 1
+    }
+  },
+  "6e0_5": {
+    "total_common_dates": 5805,
+    "concurrent_2plus": 24,
+    "concurrent_all3": 4,
+    "mr_plus_jpy": 10,
+    "both_jpy": 18,
+    "weight_sum": 0.9999,
+    "pass": true
+  },
+  "6e0_6": {
+    "gaps_found": 1165,
+    "large_gaps": 379,
+    "data_integrity": {
+      "eurusd": {
+        "nan": 0,
+        "sorted": true
+      },
+      "usdjpy": {
+        "nan": 0,
+        "sorted": true
+      }
+    },
+    "broker_edge_cases": {
+      "zero_move_correct": true,
+      "nonexist_handled": true
+    },
+    "pass": true
+  },
+  "6e0_7": {
+    "n_pass": 6,
+    "n_total": 6,
+    "all_pass": true,
+    "decision": "GO",
+    "checks": {
+      "full_period": true,
+      "held_out": true,
+      "stress": true,
+      "rebalance": true,
+      "concurrent": true,
+      "edge_cases": true
+    }
+  }
+}

@@ -1,0 +1,333 @@
+{
+  "EUR_USD_daily": {
+    "n_rows": 5445,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "USD_JPY_daily": {
+    "n_rows": 5445,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "GBP_USD_daily": {
+    "n_rows": 5457,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "AUD_USD_daily": {
+    "n_rows": 5105,
+    "n_features": 19,
+    "date_range": [
+      "2006-05-16 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "AUD_JPY_daily": {
+    "n_rows": 5464,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "EUR_JPY_daily": {
+    "n_rows": 5448,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "GBP_JPY_daily": {
+    "n_rows": 5461,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "XAU_USD_daily": {
+    "n_rows": 5277,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "CL_daily": {
+    "n_rows": 5281,
+    "n_features": 19,
+    "date_range": [
+      "2005-01-03 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "BTC_USD_daily": {
+    "n_rows": 4123,
+    "n_features": 25,
+    "date_range": [
+      "2014-09-17 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "crypto_BTC_volume",
+      "crypto_BTC_vol_20d",
+      "crypto_BTC_ret_20d",
+      "crypto_ETH_volume",
+      "crypto_ETH_vol_20d",
+      "crypto_ETH_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  },
+  "ETH_USD_daily": {
+    "n_rows": 2974,
+    "n_features": 25,
+    "date_range": [
+      "2017-11-09 00:00:00",
+      "2025-12-30 00:00:00"
+    ],
+    "features": [
+      "Close",
+      "High",
+      "Low",
+      "Open",
+      "Volume",
+      "macro_DGS10",
+      "macro_DGS2",
+      "macro_T10Y2Y",
+      "macro_DFF",
+      "macro_VIX",
+      "macro_DXY",
+      "macro_yield_spread",
+      "macro_VIX_pctile_60d",
+      "macro_DXY_ret_20d",
+      "crypto_BTC_volume",
+      "crypto_BTC_vol_20d",
+      "crypto_BTC_ret_20d",
+      "crypto_ETH_volume",
+      "crypto_ETH_vol_20d",
+      "crypto_ETH_ret_20d",
+      "log_return",
+      "abs_return",
+      "vol_20",
+      "ret_20",
+      "z_score_20"
+    ]
+  }
+}

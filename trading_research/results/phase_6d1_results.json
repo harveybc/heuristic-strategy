@@ -1,0 +1,93 @@
+{
+  "phase": "6.D.1",
+  "status": "COMPLETE",
+  "bug_fixed": "double_vol_scaling_and_cumprod",
+  "tests_rerun": {
+    "6c0_held_out": {
+      "result": "PASS",
+      "machine": "omega",
+      "sharpe": 0.3163,
+      "max_dd_realized": 0.1356,
+      "max_dd_10pct_vol": 0.1623,
+      "vol": 0.0823,
+      "return": 0.054,
+      "n_weeks": 105
+    },
+    "6c1_jpy_reversal": {
+      "result": "PASS",
+      "machine": "gamma",
+      "median_sharpe": 0.0,
+      "pct_25_sharpe": -0.1873,
+      "n_paths": 500
+    },
+    "6c2_mc_regimes": {
+      "result": "PASS",
+      "machine": "dragon",
+      "regimes": {
+        "A_inflation": {
+          "median_sr": 0.0738,
+          "pct_75_dd": 0.1203
+        },
+        "B_qe": {
+          "median_sr": 0.0217,
+          "pct_75_dd": 0.1168
+        },
+        "C_crisis": {
+          "median_sr": 0.0239,
+          "pct_75_dd": 0.0907
+        }
+      },
+      "n_paths_per_regime": 3000
+    },
+    "6c3_cost_sensitivity": {
+      "result": "PASS",
+      "machine": "omega",
+      "at_1x": {
+        "sharpe": 0.4466,
+        "max_dd_realized": 0.1727,
+        "max_dd_10pct_vol": 0.2277,
+        "vol": 0.0734,
+        "worst_2y": -0.7243
+      },
+      "at_2x": {
+        "sharpe": 0.4057,
+        "worst_2y": -0.7645
+      },
+      "at_1_5x_worst_2y": -0.7446,
+      "breakeven_sharpe": ">3.0x",
+      "breakeven_worst_2y": ">3.0x"
+    },
+    "6c4_walk_forward": {
+      "result": "PASS",
+      "machine": "omega",
+      "n_quarters": 52,
+      "pct_positive": 0.558,
+      "median_q_sharpe": 0.2651,
+      "max_losing_streak": 3
+    },
+    "6c5_param_sensitivity": {
+      "result": "FAIL",
+      "machine": "gamma",
+      "plateau_fractions": {
+        "eurusd_mr": 0.57,
+        "usdjpy_tsmom": 0.43,
+        "usdjpy_dm": 0.29
+      },
+      "threshold": 0.6
+    }
+  },
+  "week_count_resolution": {
+    "phase55_weeks": 977,
+    "phase6c_weeks": 1168,
+    "explanation": "Phase 5.5 uses valid>=2 filter (drops 191 single-cell weeks). Both yield 977 with same filter."
+  },
+  "canonical_metrics": {
+    "sharpe": 0.4466,
+    "max_dd_realized_vol": 0.1727,
+    "realized_vol": 0.0734,
+    "max_dd_10pct_vol": 0.2277,
+    "worst_2y": -0.7243
+  },
+  "pass_fail_flips": 0,
+  "terminal_decision": "DEPLOY (unchanged)"
+}

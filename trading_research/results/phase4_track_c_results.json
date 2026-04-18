@@ -1,0 +1,223 @@
+{
+  "track": "C",
+  "strategy_1_tsmom": {
+    "EUR/USD": {
+      "sharpe": -0.2746,
+      "bh_sharpe": -0.0064,
+      "edge_sharpe": -0.2681,
+      "regime_robustness": 0.1905,
+      "worst_window_sharpe": -1.7967,
+      "max_drawdown": 0.5641,
+      "trades_per_year": 11.1,
+      "n_bars": 5729
+    },
+    "USD/JPY": {
+      "sharpe": 0.2913,
+      "bh_sharpe": 0.1012,
+      "edge_sharpe": 0.1901,
+      "regime_robustness": 0.3636,
+      "worst_window_sharpe": -0.5979,
+      "max_drawdown": 0.2773,
+      "trades_per_year": 11.1,
+      "n_bars": 5967
+    },
+    "GBP/USD": {
+      "sharpe": -0.0717,
+      "bh_sharpe": -0.1134,
+      "edge_sharpe": 0.0417,
+      "regime_robustness": 0.3571,
+      "worst_window_sharpe": -1.6448,
+      "max_drawdown": 0.5638,
+      "trades_per_year": 11.1,
+      "n_bars": 5741
+    },
+    "AUD/USD": {
+      "sharpe": -0.0885,
+      "bh_sharpe": -0.0542,
+      "edge_sharpe": -0.0343,
+      "regime_robustness": 0.2162,
+      "worst_window_sharpe": -1.2214,
+      "max_drawdown": 0.3742,
+      "trades_per_year": 11.0,
+      "n_bars": 5105
+    },
+    "XAU/USD": {
+      "sharpe": 0.4186,
+      "bh_sharpe": 0.6309,
+      "edge_sharpe": -0.2123,
+      "regime_robustness": 0.5319,
+      "worst_window_sharpe": -1.5153,
+      "max_drawdown": 0.4617,
+      "trades_per_year": 11.3,
+      "n_bars": 6357
+    },
+    "BTC/USD": {
+      "sharpe": 0.2283,
+      "bh_sharpe": 0.5725,
+      "edge_sharpe": -0.3442,
+      "regime_robustness": 0.4828,
+      "worst_window_sharpe": -1.5329,
+      "max_drawdown": 0.3938,
+      "trades_per_year": 7.5,
+      "n_bars": 4123
+    },
+    "ETH/USD": {
+      "sharpe": -0.2288,
+      "bh_sharpe": 0.2615,
+      "edge_sharpe": -0.4902,
+      "regime_robustness": 0.2,
+      "worst_window_sharpe": -1.2817,
+      "max_drawdown": 0.3561,
+      "trades_per_year": 7.2,
+      "n_bars": 2974
+    },
+    "XAG/USD": {
+      "sharpe": 0.0706,
+      "bh_sharpe": 0.3454,
+      "edge_sharpe": -0.2748,
+      "regime_robustness": 0.3617,
+      "worst_window_sharpe": -1.5592,
+      "max_drawdown": 0.6195,
+      "trades_per_year": 11.3,
+      "n_bars": 6359
+    },
+    "CL": {
+      "sharpe": NaN,
+      "bh_sharpe": NaN,
+      "edge_sharpe": NaN,
+      "regime_robustness": 0.2766,
+      "worst_window_sharpe": -0.8611,
+      "max_drawdown": NaN,
+      "trades_per_year": 11.2,
+      "n_bars": 6366
+    },
+    "_portfolio_summary": {
+      "n_assets": 9,
+      "avg_sharpe": NaN,
+      "avg_worst_window": -1.3346,
+      "n_positive_sharpe": 4
+    }
+  },
+  "strategy_2_dual_momentum": {
+    "EUR/USD": {
+      "sharpe": -0.2163,
+      "bh_sharpe": -0.0064,
+      "edge_sharpe": -0.2099,
+      "regime_robustness": 0.1429,
+      "worst_window_sharpe": -1.674,
+      "max_drawdown": 0.2073,
+      "trades_per_year": 0.7,
+      "n_bars": 5729
+    },
+    "USD/JPY": {
+      "sharpe": 0.4081,
+      "bh_sharpe": 0.1012,
+      "edge_sharpe": 0.3069,
+      "regime_robustness": 0.3182,
+      "worst_window_sharpe": -0.9727,
+      "max_drawdown": 0.1496,
+      "trades_per_year": 1.1,
+      "n_bars": 5967
+    },
+    "GBP/USD": {
+      "sharpe": 0.0012,
+      "bh_sharpe": -0.1134,
+      "edge_sharpe": 0.1146,
+      "regime_robustness": 0.1667,
+      "worst_window_sharpe": -1.1023,
+      "max_drawdown": 0.1069,
+      "trades_per_year": 0.8,
+      "n_bars": 5741
+    },
+    "AUD/USD": {
+      "sharpe": 0.2064,
+      "bh_sharpe": -0.0542,
+      "edge_sharpe": 0.2606,
+      "regime_robustness": 0.3514,
+      "worst_window_sharpe": -1.0075,
+      "max_drawdown": 0.1443,
+      "trades_per_year": 1.0,
+      "n_bars": 5105
+    }
+  },
+  "strategy_3_xsec_fx": {
+    "EUR/USD": {
+      "sharpe": 0.1156,
+      "bh_sharpe": -0.0064,
+      "edge_sharpe": 0.1221,
+      "regime_robustness": 0.4762,
+      "worst_window_sharpe": -1.2661
+    },
+    "USD/JPY": {
+      "sharpe": 0.2014,
+      "bh_sharpe": 0.1012,
+      "edge_sharpe": 0.1002,
+      "regime_robustness": 0.3864,
+      "worst_window_sharpe": -0.7383
+    },
+    "GBP/USD": {
+      "sharpe": -0.192,
+      "bh_sharpe": -0.1134,
+      "edge_sharpe": -0.0786,
+      "regime_robustness": 0.2143,
+      "worst_window_sharpe": -1.4596
+    },
+    "AUD/USD": {
+      "sharpe": -0.1755,
+      "bh_sharpe": -0.0542,
+      "edge_sharpe": -0.1213,
+      "regime_robustness": 0.3243,
+      "worst_window_sharpe": -2.0302
+    },
+    "_portfolio": {
+      "sharpe": -0.0687,
+      "regime_robustness": 0.3243,
+      "worst_window_sharpe": -1.7557,
+      "max_drawdown": 0.5035
+    }
+  },
+  "kill_criteria_summary": {
+    "strategy_1_tsmom": {
+      "survive_at_0.5": {
+        "alive": 0,
+        "dead": 9
+      },
+      "survive_at_0.75": {
+        "alive": 1,
+        "dead": 8
+      },
+      "survive_at_1.0": {
+        "alive": 2,
+        "dead": 7
+      }
+    },
+    "strategy_2_dual_momentum": {
+      "survive_at_0.5": {
+        "alive": 0,
+        "dead": 4
+      },
+      "survive_at_0.75": {
+        "alive": 0,
+        "dead": 4
+      },
+      "survive_at_1.0": {
+        "alive": 1,
+        "dead": 3
+      }
+    },
+    "strategy_3_xsec_fx": {
+      "survive_at_0.5": {
+        "alive": 0,
+        "dead": 4
+      },
+      "survive_at_0.75": {
+        "alive": 1,
+        "dead": 3
+      },
+      "survive_at_1.0": {
+        "alive": 1,
+        "dead": 3
+      }
+    }
+  }
+}

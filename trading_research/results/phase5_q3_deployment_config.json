@@ -1,0 +1,65 @@
+{
+  "strategy": {
+    "name": "EurUsdMrStrategy",
+    "plugin_path": "/home/harveybc/Documents/GitHub/lts/plugins_strategy/eurusd_mr_strategy.py",
+    "params": {
+      "lookback": 20,
+      "z_entry": 1.5,
+      "z_exit": 0.5,
+      "max_holding_bars": 30,
+      "sl_atr_multiple": 3.0,
+      "tp_z_exit": true,
+      "atr_lookback": 20
+    }
+  },
+  "broker": {
+    "plugin": "OandaBroker",
+    "environment": "practice",
+    "instrument": "EUR_USD",
+    "note": "Set OANDA_ACCOUNT_ID and OANDA_ACCESS_TOKEN environment variables"
+  },
+  "position_sizing": {
+    "target_sharpe_range": [
+      0.2,
+      0.4
+    ],
+    "max_drawdown_pct": 0.15,
+    "risk_per_trade_pct": 0.005,
+    "max_leverage": 2.0,
+    "initial_capital": 10000,
+    "currency": "USD",
+    "instrument": "EUR_USD",
+    "min_units": 100
+  },
+  "auto_pause": {
+    "max_drawdown_pct": 0.15,
+    "max_consecutive_losses": 10,
+    "max_slippage_multiple": 2.0,
+    "max_divergence_sigma": 2.0,
+    "review_period_days": 7,
+    "min_observation_days": 90
+  },
+  "schedule": {
+    "frequency": "daily",
+    "check_time_utc": "21:00",
+    "note": "Signal generated once per day at market close"
+  },
+  "monitoring": {
+    "log_dir": "/home/harveybc/Documents/GitHub/heuristic-strategy/trading_research/results/q3_deployment_logs",
+    "trade_log_file": "trades.jsonl",
+    "weekly_report_file": "weekly_reports.jsonl",
+    "metrics_tracked": [
+      "cumulative_pnl",
+      "current_drawdown",
+      "consecutive_losses",
+      "sharpe_rolling_30d",
+      "avg_slippage",
+      "trade_count"
+    ]
+  },
+  "observation_period": {
+    "start_date": "2026-04-17",
+    "min_days": 90,
+    "end_date": "2026-07-16"
+  }
+}

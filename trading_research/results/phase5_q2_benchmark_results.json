@@ -1,0 +1,149 @@
+{
+  "question": "Q2",
+  "benchmarks": {
+    "DBMF": {
+      "ticker": "DBMF",
+      "full_period_sharpe": 0.6931,
+      "annual_vol": 0.1249,
+      "n_days": 1745,
+      "start": "2019-05-08",
+      "end": "2026-04-17",
+      "worst_2y_sharpe": -0.5135,
+      "median_2y_sharpe": 0.4657,
+      "best_2y_sharpe": 1.5957,
+      "pct_negative": 9.3,
+      "pct_below_05": 0.2,
+      "n_windows": 1241
+    },
+    "SPY": {
+      "ticker": "SPY",
+      "full_period_sharpe": 0.5726,
+      "annual_vol": 0.1863,
+      "n_days": 5859,
+      "start": "2003-01-02",
+      "end": "2026-04-17",
+      "worst_2y_sharpe": -1.0375,
+      "median_2y_sharpe": 0.758,
+      "best_2y_sharpe": 2.4145,
+      "pct_negative": 10.4,
+      "pct_below_05": 3.9,
+      "n_windows": 5355
+    },
+    "GLD": {
+      "ticker": "GLD",
+      "full_period_sharpe": 0.5954,
+      "annual_vol": 0.1814,
+      "n_days": 5385,
+      "start": "2004-11-18",
+      "end": "2026-04-17",
+      "worst_2y_sharpe": -1.1698,
+      "median_2y_sharpe": 0.5535,
+      "best_2y_sharpe": 2.6821,
+      "pct_negative": 22.9,
+      "pct_below_05": 12.4,
+      "n_windows": 4881
+    },
+    "TLT": {
+      "ticker": "TLT",
+      "full_period_sharpe": 0.2391,
+      "annual_vol": 0.1435,
+      "n_days": 5859,
+      "start": "2003-01-02",
+      "end": "2026-04-17",
+      "worst_2y_sharpe": -1.5474,
+      "median_2y_sharpe": 0.4018,
+      "best_2y_sharpe": 1.7857,
+      "pct_negative": 28.8,
+      "pct_below_05": 10.8,
+      "n_windows": 5355
+    },
+    "DBA": {
+      "ticker": "DBA",
+      "full_period_sharpe": 0.08,
+      "annual_vol": 0.1673,
+      "n_days": 4850,
+      "start": "2007-01-05",
+      "end": "2026-04-17",
+      "worst_2y_sharpe": -1.562,
+      "median_2y_sharpe": -0.1816,
+      "best_2y_sharpe": 1.9256,
+      "pct_negative": 54.6,
+      "pct_below_05": 39.4,
+      "n_windows": 4346
+    },
+    "USO": {
+      "ticker": "USO",
+      "full_period_sharpe": -0.2078,
+      "annual_vol": 0.3721,
+      "n_days": 5036,
+      "start": "2006-04-10",
+      "end": "2026-04-17",
+      "worst_2y_sharpe": -2.0474,
+      "median_2y_sharpe": -0.1112,
+      "best_2y_sharpe": 1.9823,
+      "pct_negative": 58.4,
+      "pct_below_05": 33.3,
+      "n_windows": 4532
+    }
+  },
+  "moskowitz_tsmom": {
+    "description": "Moskowitz et al. 2012 TSMOM (12-1 month) diversified across 58 instruments",
+    "in_sample": {
+      "period": "1985-2009",
+      "sharpe": 1.03,
+      "annual_return_pct": 12.3,
+      "annual_vol_pct": 11.9
+    },
+    "post_publication": {
+      "period": "2010-2023",
+      "estimated_sharpe": 0.3,
+      "note": "Well-documented post-publication alpha decay in managed futures"
+    },
+    "worst_2y_sharpe_synthetic": -1.2956,
+    "median_2y_sharpe_synthetic": 0.9146,
+    "pct_negative_synthetic": 13.5,
+    "in_sample_worst_2y": -0.4982,
+    "post_pub_worst_2y": -1.2956
+  },
+  "our_cells_summary": {
+    "n_cells": 0,
+    "cells": {}
+  },
+  "recalibration": {
+    "current_threshold": -0.5,
+    "recommended_threshold": -1.56,
+    "evidence": "Most benchmarks fail at -0.5; 25th percentile worst2Y = -1.56",
+    "case_determination": "Case A: threshold too strict",
+    "benchmark_worst_2y_values": {
+      "DBMF": -0.5135,
+      "SPY": -1.0375,
+      "GLD": -1.1698,
+      "TLT": -1.5474,
+      "DBA": -1.562,
+      "USO": -2.0474
+    },
+    "moskowitz_in_sample_worst_2y": -0.4982,
+    "moskowitz_post_pub_worst_2y": -1.2956,
+    "median_benchmark_worst_2y": -1.3586,
+    "interpretation": {
+      "case_a_threshold_too_strict": {
+        "condition": "Most (>50%) tradeable benchmarks have worst 2Y < -0.5",
+        "benchmarks_failing": 6,
+        "total_benchmarks": 6,
+        "pct_failing": 100.0,
+        "verdict": true
+      },
+      "case_b_threshold_correct": {
+        "condition": "Industry strategies maintain worst 2Y > -0.5, confirming our bar is realistic",
+        "spy_worst_2y": -1.0375,
+        "gld_worst_2y": -1.1698,
+        "moskowitz_insample_worst_2y": -0.4982,
+        "verdict": true
+      },
+      "case_c_variable": {
+        "condition": "Threshold should vary by asset class (crypto vs FX vs commodities)",
+        "note": "Different asset classes have structurally different volatility regimes"
+      }
+    }
+  }
+}

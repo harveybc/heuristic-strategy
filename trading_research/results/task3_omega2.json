@@ -1,0 +1,74 @@
+{
+  "n_cells": 2,
+  "n_survived": 0,
+  "n_killed": 1,
+  "results": [
+    {
+      "error": "no data",
+      "asset": "GBP/USD",
+      "timeframe": "4h",
+      "strategy": "vol_regime_switch"
+    },
+    {
+      "asset": "AUD/USD",
+      "timeframe": "weekly",
+      "strategy": "vol_regime_switch",
+      "extended_metrics": {
+        "oracle_sharpe": 0.4535,
+        "bh_sharpe": -0.0504,
+        "edge_sharpe": 0.5038,
+        "noise_budget": 0.75,
+        "regime_robustness": 0.4722,
+        "worst_window_sharpe": -1.9327,
+        "max_drawdown": 0.4352,
+        "n_bars": 1025,
+        "n_windows": 36
+      },
+      "regime_analysis": {
+        "regimes": {
+          "pre_gfc": {
+            "n_bars": 85,
+            "oracle_sharpe": 1.0149,
+            "bh_sharpe": 0.8542,
+            "edge_sharpe": 0.1607,
+            "years": "2000-2007"
+          },
+          "gfc_euro_crisis": {
+            "n_bars": 261,
+            "oracle_sharpe": 1.6566,
+            "bh_sharpe": 0.2159,
+            "edge_sharpe": 1.4407,
+            "years": "2008-2012"
+          },
+          "post_crisis_qe": {
+            "n_bars": 365,
+            "oracle_sharpe": -0.448,
+            "bh_sharpe": -0.6428,
+            "edge_sharpe": 0.1948,
+            "years": "2013-2019"
+          },
+          "covid_stimulus": {
+            "n_bars": 104,
+            "oracle_sharpe": 0.336,
+            "bh_sharpe": 0.1442,
+            "edge_sharpe": 0.1919,
+            "years": "2020-2021"
+          },
+          "inflation_hikes": {
+            "n_bars": 209,
+            "oracle_sharpe": -0.5406,
+            "bh_sharpe": -0.1864,
+            "edge_sharpe": -0.3542,
+            "years": "2022-2025"
+          }
+        },
+        "n_regimes_positive_edge": 4,
+        "n_regimes_total": 5
+      },
+      "killed": true,
+      "kill_reasons": [
+        "worst window Sharpe = -1.933 (threshold: -0.5)"
+      ]
+    }
+  ]
+}
