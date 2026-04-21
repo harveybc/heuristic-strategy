@@ -1,0 +1,6 @@
+{
+    "atr_period": 14,
+    "atr_tp_multiplier": 2.5,
+    "atr_sl_multiplier": 1.5,
+    "cluster_confidence": 1.5
+}

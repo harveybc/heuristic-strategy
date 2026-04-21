@@ -1,0 +1,74 @@
+{
+  "total_oos_profit": -4864.31998868062,
+  "total_oos_trades": 108,
+  "total_win_pct": 32.407407407407405,
+  "aggregate_sharpe": -0.16342839981459364,
+  "max_drawdown_usd": 7251.084767229447,
+  "final_equity": 4474.822341999015,
+  "total_time_sec": 2912.6584339141846,
+  "fold_results": [
+    {
+      "test_year": 2017,
+      "train_range": "2014-2016",
+      "train_bars": 18520,
+      "test_bars": 6155,
+      "best_params": {
+        "atr_period": 12.619222544833807,
+        "atr_tp_multiplier": 2.311396856152152,
+        "atr_sl_multiplier": 0.9875490152477189,
+        "bb_low": -0.08395688913994682,
+        "bb_high": 0.4189042688879975,
+        "atr_ratio_high": 2.4184219604849373,
+        "ema_align_thresh": 0.035602406375543724
+      },
+      "train_fitness": 0.8769571553731005,
+      "oos_profit": -870.6293774173537,
+      "oos_trades": 42,
+      "oos_win_pct": 28.57142857142857,
+      "oos_sharpe": -0.08892749349362748,
+      "fold_time_sec": 973.5832235813141
+    },
+    {
+      "test_year": 2018,
+      "train_range": "2015-2017",
+      "train_bars": 18465,
+      "test_bars": 6168,
+      "best_params": {
+        "atr_period": 6.284713233731761,
+        "atr_tp_multiplier": 4.480652589609575,
+        "atr_sl_multiplier": 2.6579355831657807,
+        "bb_low": 0.1505997596520089,
+        "bb_high": 0.5889576884492598,
+        "atr_ratio_high": 0.9272648922736456,
+        "ema_align_thresh": -2.078852882874313
+      },
+      "train_fitness": 1.0022150273839328,
+      "oos_profit": -4090.690611263264,
+      "oos_trades": 65,
+      "oos_win_pct": 33.84615384615385,
+      "oos_sharpe": -0.2130570748931308,
+      "fold_time_sec": 973.0814192295074
+    },
+    {
+      "test_year": 2019,
+      "train_range": "2016-2018",
+      "train_bars": 18432,
+      "test_bars": 6188,
+      "best_params": {
+        "atr_period": 10.27027895205481,
+        "atr_tp_multiplier": 5.14829992178792,
+        "atr_sl_multiplier": 2.9759263393614432,
+        "bb_low": 0.20709262018409016,
+        "bb_high": 0.19815400998898236,
+        "atr_ratio_high": 1.2843478853308707,
+        "ema_align_thresh": 4.543780316583619
+      },
+      "train_fitness": 2.0079070947864714,
+      "oos_profit": 96.99999999999818,
+      "oos_trades": 1,
+      "oos_win_pct": 100.0,
+      "oos_sharpe": 0,
+      "fold_time_sec": 965.9936027526855
+    }
+  ]
+}

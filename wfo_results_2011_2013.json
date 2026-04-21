@@ -1,0 +1,74 @@
+{
+  "total_oos_profit": 3160.765648328538,
+  "total_oos_trades": 80,
+  "total_win_pct": 45.0,
+  "aggregate_sharpe": 0.04645078492475129,
+  "max_drawdown_usd": 4526.57321866689,
+  "final_equity": 12290.432299198983,
+  "total_time_sec": 5257.226830244064,
+  "fold_results": [
+    {
+      "test_year": 2011,
+      "train_range": "2008-2010",
+      "train_bars": 18728,
+      "test_bars": 6240,
+      "best_params": {
+        "atr_period": 16.86743222221329,
+        "atr_tp_multiplier": 2.235053727408616,
+        "atr_sl_multiplier": 1.5864947568271033,
+        "bb_low": 0.9661700995095956,
+        "bb_high": 0.6817671711146314,
+        "atr_ratio_high": 2.215150037180934,
+        "ema_align_thresh": 1.1365635777473009
+      },
+      "train_fitness": 1.7342125999184397,
+      "oos_profit": -2624.972314531121,
+      "oos_trades": 6,
+      "oos_win_pct": 16.666666666666664,
+      "oos_sharpe": -0.7547859826577752,
+      "fold_time_sec": 1721.389699459076
+    },
+    {
+      "test_year": 2012,
+      "train_range": "2009-2011",
+      "train_bars": 18712,
+      "test_bars": 6219,
+      "best_params": {
+        "atr_period": 12.097789610413404,
+        "atr_tp_multiplier": 2.1575518544084287,
+        "atr_sl_multiplier": 1.467625293159123,
+        "bb_low": -1.7629306419463437,
+        "bb_high": 0.12805636873510876,
+        "atr_ratio_high": 1.3968633797210135,
+        "ema_align_thresh": 0.24209209230660245
+      },
+      "train_fitness": 1.9174598472604842,
+      "oos_profit": 1622.3527745451975,
+      "oos_trades": 30,
+      "oos_win_pct": 53.333333333333336,
+      "oos_sharpe": 0.12866893837940263,
+      "fold_time_sec": 1717.2807760238647
+    },
+    {
+      "test_year": 2013,
+      "train_range": "2010-2012",
+      "train_bars": 18699,
+      "test_bars": 6203,
+      "best_params": {
+        "atr_period": 18.815802936847927,
+        "atr_tp_multiplier": 4.834138562240383,
+        "atr_sl_multiplier": 2.31466489567028,
+        "bb_low": 0.16918330359924993,
+        "bb_high": -0.6887833654182105,
+        "atr_ratio_high": 0.5428814610001691,
+        "ema_align_thresh": 1.8680393684164849
+      },
+      "train_fitness": 1.054954564930709,
+      "oos_profit": 4163.385188314462,
+      "oos_trades": 44,
+      "oos_win_pct": 43.18181818181818,
+      "oos_sharpe": 0.11087313839027632,
+      "fold_time_sec": 1818.5560216903687
+    }
+  ]
+}

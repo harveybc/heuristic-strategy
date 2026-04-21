@@ -1,0 +1,234 @@
+{
+  "task": "II-7-fix.2",
+  "timestamp": "2026-04-21T09:41:21.182223+00:00",
+  "parameters": {
+    "tau_max": 10,
+    "pc_alpha": 0.01,
+    "alpha_level": 0.05,
+    "max_samples": 5000,
+    "features": [
+      "adx",
+      "di_spread",
+      "atr_pct",
+      "atr_ratio",
+      "bb_width_pct",
+      "bb_position",
+      "rsi",
+      "roc_12",
+      "price_vs_ema50",
+      "ema_alignment",
+      "stoch_k",
+      "macd_hist"
+    ],
+    "target": "target_fwd_6",
+    "min_bars_threshold": 2000
+  },
+  "sub_period_results": [
+    {
+      "asset": "BTC",
+      "sub_period": "2017-H2",
+      "start": "2017-08-17",
+      "end": "2017-12-31",
+      "samples_used": 3117,
+      "all_lagged_links": [],
+      "macd_hist_tau1_present": false,
+      "macd_hist_tau1_MCI": null,
+      "macd_hist_tau1_p": null,
+      "classification": "\u03b3",
+      "skip_reason": null
+    },
+    {
+      "asset": "BTC",
+      "sub_period": "2018-H1",
+      "start": "2018-01-01",
+      "end": "2018-06-30",
+      "samples_used": 4138,
+      "all_lagged_links": [
+        {
+          "feature": "rsi",
+          "tau": 1,
+          "MCI": 0.041167051017732534,
+          "p_value": 0.008373834025467831,
+          "link": "-->"
+        },
+        {
+          "feature": "roc_12",
+          "tau": 2,
+          "MCI": 0.08167916056317084,
+          "p_value": 1.624891799602049e-07,
+          "link": "-->"
+        }
+      ],
+      "macd_hist_tau1_present": false,
+      "macd_hist_tau1_MCI": null,
+      "macd_hist_tau1_p": null,
+      "classification": "\u03b2",
+      "skip_reason": null
+    },
+    {
+      "asset": "BTC",
+      "sub_period": "2018-H2",
+      "start": "2018-07-01",
+      "end": "2018-12-31",
+      "samples_used": 4238,
+      "all_lagged_links": [],
+      "macd_hist_tau1_present": false,
+      "macd_hist_tau1_MCI": null,
+      "macd_hist_tau1_p": null,
+      "classification": "\u03b3",
+      "skip_reason": null
+    },
+    {
+      "asset": "BTC",
+      "sub_period": "2019-H1",
+      "start": "2019-01-01",
+      "end": "2019-06-30",
+      "samples_used": 4167,
+      "all_lagged_links": [
+        {
+          "feature": "macd_hist",
+          "tau": 1,
+          "MCI": 0.27771975781036556,
+          "p_value": 6.142331320392298e-74,
+          "link": "-->"
+        }
+      ],
+      "macd_hist_tau1_present": true,
+      "macd_hist_tau1_MCI": 0.27771975781036556,
+      "macd_hist_tau1_p": 6.142331320392298e-74,
+      "classification": "\u03b1",
+      "skip_reason": null
+    },
+    {
+      "asset": "BTC",
+      "sub_period": "2019-H2",
+      "start": "2019-07-01",
+      "end": "2019-12-31",
+      "samples_used": 4243,
+      "all_lagged_links": [],
+      "macd_hist_tau1_present": false,
+      "macd_hist_tau1_MCI": null,
+      "macd_hist_tau1_p": null,
+      "classification": "\u03b3",
+      "skip_reason": null
+    },
+    {
+      "asset": "ETH",
+      "sub_period": "2017-H2",
+      "start": "2017-08-17",
+      "end": "2017-12-31",
+      "samples_used": 3117,
+      "all_lagged_links": [
+        {
+          "feature": "macd_hist",
+          "tau": 1,
+          "MCI": 0.11768809148225627,
+          "p_value": 5.734984558255594e-11,
+          "link": "-->"
+        },
+        {
+          "feature": "macd_hist",
+          "tau": 2,
+          "MCI": -0.13602443929009805,
+          "p_value": 3.5550091392380216e-14,
+          "link": "-->"
+        }
+      ],
+      "macd_hist_tau1_present": true,
+      "macd_hist_tau1_MCI": 0.11768809148225627,
+      "macd_hist_tau1_p": 5.734984558255594e-11,
+      "classification": "\u03b1",
+      "skip_reason": null
+    },
+    {
+      "asset": "ETH",
+      "sub_period": "2018-H1",
+      "start": "2018-01-01",
+      "end": "2018-06-30",
+      "samples_used": 4138,
+      "all_lagged_links": [
+        {
+          "feature": "rsi",
+          "tau": 1,
+          "MCI": 0.05037695199985111,
+          "p_value": 0.0012554368274247717,
+          "link": "-->"
+        }
+      ],
+      "macd_hist_tau1_present": false,
+      "macd_hist_tau1_MCI": null,
+      "macd_hist_tau1_p": null,
+      "classification": "\u03b2",
+      "skip_reason": null
+    },
+    {
+      "asset": "ETH",
+      "sub_period": "2018-H2",
+      "start": "2018-07-01",
+      "end": "2018-12-31",
+      "samples_used": 4238,
+      "all_lagged_links": [],
+      "macd_hist_tau1_present": false,
+      "macd_hist_tau1_MCI": null,
+      "macd_hist_tau1_p": null,
+      "classification": "\u03b3",
+      "skip_reason": null
+    },
+    {
+      "asset": "ETH",
+      "sub_period": "2019-H1",
+      "start": "2019-01-01",
+      "end": "2019-06-30",
+      "samples_used": 4167,
+      "all_lagged_links": [
+        {
+          "feature": "macd_hist",
+          "tau": 1,
+          "MCI": 0.26155581225117774,
+          "p_value": 1.8271609090786466e-65,
+          "link": "-->"
+        }
+      ],
+      "macd_hist_tau1_present": true,
+      "macd_hist_tau1_MCI": 0.26155581225117774,
+      "macd_hist_tau1_p": 1.8271609090786466e-65,
+      "classification": "\u03b1",
+      "skip_reason": null
+    },
+    {
+      "asset": "ETH",
+      "sub_period": "2019-H2",
+      "start": "2019-07-01",
+      "end": "2019-12-31",
+      "samples_used": 4243,
+      "all_lagged_links": [],
+      "macd_hist_tau1_present": false,
+      "macd_hist_tau1_MCI": null,
+      "macd_hist_tau1_p": null,
+      "classification": "\u03b3",
+      "skip_reason": null
+    }
+  ],
+  "stability_summary": {
+    "BTC": {
+      "n_runs_completed": 5,
+      "n_runs_skipped": 0,
+      "n_macd_hist_tau1_present": 1,
+      "sign_consistent": true,
+      "stability_classification": "REGIME_SPECIFIC"
+    },
+    "ETH": {
+      "n_runs_completed": 5,
+      "n_runs_skipped": 0,
+      "n_macd_hist_tau1_present": 2,
+      "sign_consistent": true,
+      "stability_classification": "PARTIALLY_STABLE"
+    }
+  },
+  "stable_links_3plus_periods": [
+    {
+      "key": "macd_hist_tau1",
+      "n_periods": 3
+    }
+  ]
+}

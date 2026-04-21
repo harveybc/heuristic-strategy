@@ -1,0 +1,170 @@
+{
+    "use_normalization_json": "/home/harveybc/Documents/GitHub/predictor/examples/data_downsampled/phase_1_c/normalization_config_c.json",
+    "x_train_file": "/home/harveybc/Documents/GitHub/predictor/examples/data_downsampled/phase_1_c/normalized_d4.csv",
+    "y_train_file": "/home/harveybc/Documents/GitHub/predictor/examples/data_downsampled/phase_1_c/normalized_d4.csv",
+    "x_validation_file": "/home/harveybc/Documents/GitHub/predictor/examples/data_downsampled/phase_1_c/normalized_d5.csv",
+    "y_validation_file": "/home/harveybc/Documents/GitHub/predictor/examples/data_downsampled/phase_1_c/normalized_d5.csv",
+    "x_test_file": "/home/harveybc/Documents/GitHub/predictor/examples/data_downsampled/phase_1_c/normalized_d6.csv",
+    "y_test_file": "/home/harveybc/Documents/GitHub/predictor/examples/data_downsampled/phase_1_c/normalized_d6.csv",
+    "target_plugin": "direction_target",
+    "pipeline_plugin": "direction_pipeline",
+    "preprocessor_plugin": "stl_preprocessor",
+    "use_daily": false,
+    "max_steps_train": 7643,
+    "max_steps_val": 1876,
+    "max_steps_test": 2089,
+    "mc_samples": 10,
+    "batch_size": 32,
+    "plot_color_predicted": "red",
+    "plot_color_true": "blue",
+    "plot_color_uncertainty": "green",
+    "plot_color_target": "orange",
+    "uncertainty_color_alpha": 0.01,
+    "plot_points": 1728,
+    "min_delta": 1e-08,
+    "epochs": 2000,
+    "predicted_horizons": [
+        1
+    ],
+    "plotted_horizon": 1,
+    "use_strategy": false,
+    "stl_period": 24,
+    "use_stl": false,
+    "use_wavelets": false,
+    "use_multi_tapper": false,
+    "use_predicted_decompositions": false,
+    "use_real_decompositions": false,
+    "use_ideal_predictions": false,
+    "quiet_mode": true,
+    "output_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_prediction.csv",
+    "results_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_results.csv",
+    "loss_plot_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_loss_plot.png",
+    "model_plot_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_model_plot.png",
+    "uncertainties_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_uncertainties.csv",
+    "predictions_plot_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_predictions_plot.png",
+    "optimization_statistics": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_optimization_stats.json",
+    "optimization_parameters_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_optimization_parameters.json",
+    "predictor_plugin": "direction_ann",
+    "plugin": "direction_ann",
+    "signal_type": "direction_long",
+    "memory_log_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_rss.csv",
+    "optimization_resume_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_optimization_resume.json",
+    "optimizer_plugin": "neat_optimizer",
+    "use_optimizer": true,
+    "optimization_resume": false,
+    "optimization_pause_on_resume": false,
+    "neat_initial_params": null,
+    "neat_add_param_prob": 0.35,
+    "neat_remove_param_prob": 0.05,
+    "neat_compatibility_threshold": 2.0,
+    "neat_min_params": 6,
+    "neat_survival_rate": 0.5,
+    "neat_interspecies_mate_rate": 0.01,
+    "neat_elitism": 1,
+    "deterministic_training": true,
+    "random_seed": 42,
+    "population_size": 15,
+    "n_generations": 20,
+    "optimization_patience": 5,
+    "mutpb": 0.2,
+    "optimization_stages": [
+        {
+            "name": "features",
+            "params": [
+                "window_size",
+                "use_log1p_features",
+                "positional_encoding"
+            ],
+            "generations": 5
+        },
+        {
+            "name": "architecture",
+            "params": [
+                "hidden_units",
+                "num_hidden_layers",
+                "dropout_rate"
+            ],
+            "generations": 5
+        },
+        {
+            "name": "training",
+            "params": [
+                "learning_rate",
+                "batch_size",
+                "l2_reg",
+                "min_delta"
+            ],
+            "generations": 5
+        },
+        {
+            "name": "refinement",
+            "params": "all",
+            "generations": 5
+        }
+    ],
+    "hyperparameter_bounds": {
+        "window_size": [
+            48,
+            160
+        ],
+        "positional_encoding": [
+            0,
+            1
+        ],
+        "learning_rate": [
+            1e-05,
+            0.01
+        ],
+        "batch_size": [
+            16,
+            64
+        ],
+        "l2_reg": [
+            1e-07,
+            0.001
+        ],
+        "min_delta": [
+            1e-10,
+            1e-06
+        ],
+        "use_log1p_features": [
+            0,
+            1
+        ],
+        "hidden_units": [
+            64,
+            256
+        ],
+        "num_hidden_layers": [
+            1,
+            4
+        ],
+        "dropout_rate": [
+            0.0,
+            0.3
+        ]
+    },
+    "hidden_units": 128,
+    "num_hidden_layers": 2,
+    "dropout_rate": 0.1,
+    "activation": "elu",
+    "learning_rate": 0.001,
+    "l2_reg": 1e-06,
+    "window_size": 72,
+    "early_patience": 40,
+    "start_from_epoch": 15,
+    "positional_encoding": true,
+    "use_log1p_features": [],
+    "metric_type": "binary",
+    "excluded_columns": [
+        "direction_long_label",
+        "direction_short_label",
+        "bars_to_friday"
+    ],
+    "use_temporal_features": false,
+    "target_column": "ATR",
+    "anti_naive_lock_enabled": false,
+    "optimization_candidate_history": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_optimization_candidate_history.csv",
+    "model_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_model.keras",
+    "model_metadata_file": "/home/harveybc/Documents/GitHub/predictor/examples/results/phase_1c_direction/phase_d/phase_d_ann_direction_long_model_metadata.json"
+}

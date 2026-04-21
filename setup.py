@@ -13,7 +13,9 @@ setup(
             'ls_pred_strategy=app.plugins.plugin_long_short_predictions:Plugin',
             'api_predictions=app.plugins.plugin_api_predictions:Plugin',
             'direction_atr=app.plugins.plugin_direction_atr:Plugin',
-            'regime_adaptive=app.plugins.plugin_regime_adaptive:Plugin'
+            'regime_adaptive=app.plugins.plugin_regime_adaptive:Plugin',
+            'regime_wfo=app.plugins.plugin_regime_wfo:Plugin',
+            'btc_momentum=app.plugins.plugin_btc_momentum:Plugin'
         ]
     },
     install_requires=[

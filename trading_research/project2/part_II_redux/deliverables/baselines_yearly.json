@@ -1,0 +1,50 @@
+{
+  "experiment": "baselines",
+  "asset": "btcusd_4h",
+  "trigger": "yearly",
+  "generated": "2026-04-19T19:12:46.374196",
+  "windows": [
+    {
+      "window_id": 1,
+      "test_start": "2018-07-01",
+      "test_end": "2018-12-31",
+      "test_bars": 1102,
+      "buy_and_hold": {
+        "sharpe": -1.6957,
+        "max_dd": 0.6494,
+        "return_pct": -41.64
+      },
+      "random": {
+        "mean_sharpe": 0.12,
+        "std_sharpe": 1.3922
+      },
+      "zero": {
+        "sharpe": 0.0
+      }
+    },
+    {
+      "window_id": 2,
+      "test_start": "2019-07-01",
+      "test_end": "2019-12-31",
+      "test_bars": 1103,
+      "buy_and_hold": {
+        "sharpe": -1.278,
+        "max_dd": 0.5373,
+        "return_pct": -35.43
+      },
+      "random": {
+        "mean_sharpe": -0.0609,
+        "std_sharpe": 1.308
+      },
+      "zero": {
+        "sharpe": 0.0
+      }
+    }
+  ],
+  "summary": {
+    "mean_bh_sharpe": -1.4868,
+    "mean_random_sharpe": 0.0295,
+    "zero_sharpe": 0.0,
+    "num_windows": 2
+  }
+}

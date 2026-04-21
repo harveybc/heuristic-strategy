@@ -1,0 +1,112 @@
+{
+  "task": "II-7-fix.4",
+  "timestamp": "2026-04-21T09:52:45.149403+00:00",
+  "parameters": {
+    "train_start": "2019-01-01",
+    "train_end": "2019-06-30",
+    "val_start": "2019-07-01",
+    "val_end": "2019-12-31",
+    "held_out_boundary": "2020-01-01",
+    "total_timesteps": 100000,
+    "seed": 42,
+    "algorithms_run_this_machine": [
+      "PPO"
+    ]
+  },
+  "pilot_results": [
+    {
+      "config_id": "btc_1h_technical",
+      "algorithm": "PPO",
+      "asset": "BTC",
+      "train_period": [
+        "2019-01-01",
+        "2019-06-30"
+      ],
+      "val_period": [
+        "2019-07-01",
+        "2019-12-31"
+      ],
+      "held_out_boundary": "2020-01-01",
+      "status": "success",
+      "error": null,
+      "train_n_rows": 4285,
+      "val_n_rows": 4361,
+      "action_space_type": "discrete",
+      "training_elapsed_sec": 68.8,
+      "training_loss_final": null,
+      "val_return": -0.023427,
+      "val_sharpe": 0.2525,
+      "val_max_dd": 0.3386,
+      "val_calmar": -0.0692,
+      "val_n_steps": 2029,
+      "val_num_trades": 327,
+      "val_actions_distribution": {
+        "hold_pct": 51.26,
+        "buy_pct": 39.28,
+        "sell_pct": 9.46
+      },
+      "first_10_actions": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0,
+        0.0
+      ],
+      "equity_curve_final": 0.976573306027673,
+      "equity_curve_length": 2030,
+      "learnability_verdict": "LEARNABLE"
+    },
+    {
+      "config_id": "eth_1h_technical",
+      "algorithm": "PPO",
+      "asset": "ETH",
+      "train_period": [
+        "2019-01-01",
+        "2019-06-30"
+      ],
+      "val_period": [
+        "2019-07-01",
+        "2019-12-31"
+      ],
+      "held_out_boundary": "2020-01-01",
+      "status": "success",
+      "error": null,
+      "train_n_rows": 4285,
+      "val_n_rows": 4361,
+      "action_space_type": "discrete",
+      "training_elapsed_sec": 68.3,
+      "training_loss_final": null,
+      "val_return": -0.306819,
+      "val_sharpe": -7.3434,
+      "val_max_dd": 0.3223,
+      "val_calmar": -0.952,
+      "val_n_steps": 356,
+      "val_num_trades": 74,
+      "val_actions_distribution": {
+        "hold_pct": 42.7,
+        "buy_pct": 37.08,
+        "sell_pct": 20.22
+      },
+      "first_10_actions": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "equity_curve_final": 0.6931810802043578,
+      "equity_curve_length": 357,
+      "learnability_verdict": "NOT_LEARNABLE"
+    }
+  ]
+}

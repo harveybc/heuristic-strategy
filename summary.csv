@@ -1,2 +1,2 @@
 best_parameters,profit
-"{'atr_period': 20.35715536405801, 'atr_tp_multiplier': 1.7939700219048762, 'atr_sl_multiplier': 0.317448529340402, 'bb_low': -0.01992352157623819, 'bb_high': 0.8029067817135016, 'atr_ratio_high': 1.1974514552666562, 'ema_align_thresh': 0.5182560618856651}",3671.3563014350857
+"{'atr_period': 19.823394289238227, 'atr_tp_multiplier': 0.8536560854728983, 'atr_sl_multiplier': 1.3337499505935873, 'cluster_confidence': 0.09501636832486388}",107.00000000001819

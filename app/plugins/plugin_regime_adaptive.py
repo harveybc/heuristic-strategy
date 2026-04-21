@@ -1,21 +1,23 @@
 """
-Plugin for Regime-Adaptive Heuristic Trading Strategy (V2 — Causal Evidence).
+Plugin for Regime-Adaptive Heuristic Trading Strategy (V3 — GMM Clusters).
 
-Classifies each bar into a market regime using causally-validated features:
-  - bb_position (CORE, causal score=5, invariant across all regimes)
-  - atr_ratio   (CORE, causal score=4, robust ATE=+0.020)
-  - ema_alignment (LEADING, only feature with positive Transfer Entropy)
+Classifies each bar using GMM cluster centroids learned from 15yr EURUSD.
+Uses the 3 causally-validated features:
+  - bb_position  (CORE, causal score=5, invariant across regimes)
+  - atr_ratio    (CORE, causal score=4, robust ATE=+0.020)
+  - ema_alignment (LEADING, only positive Transfer Entropy)
 
-Previous V1 used adx/di_spread which scored as NOISE in causal analysis.
+K=9 GMM clusters mapped to 6 tradeable regimes.
+Regime boundaries are data-driven (unsupervised) not GA-optimised → less overfitting.
+Only TP/SL and entry filter params are optimised by GA.
 
-  Regime 1 (VOLATILE_OVERSOLD)       → buy_reversal  (BB low + high vol)
-  Regime 2 (BEARISH_CONTINUATION)    → flat           (BB low + bearish EMA)
-  Regime 3 (VOLATILE_OVERBOUGHT)     → flat           (BB high + high vol)
-  Regime 4 (NEUTRAL)                 → flat           (BB mid / no signal)
-  Regime 5 (PULLBACK_IN_UPTREND)     → buy_meanrevert (BB low + bullish EMA)
-  Regime 6 (BULLISH_DRIFT)           → buy_trend      (BB high + bullish EMA)
+  Regime 1 (VOLATILE_OVERSOLD)       → buy_reversal  (best cluster: Sharpe=0.085)
+  Regime 2 (BEARISH_CONTINUATION)    → flat
+  Regime 3 (VOLATILE_OVERBOUGHT)     → flat
+  Regime 4 (NEUTRAL)                 → flat
+  Regime 5 (PULLBACK_IN_UPTREND)     → buy_meanrevert
+  Regime 6 (BULLISH_DRIFT)           → buy_trend
 
-All thresholds are optimizable via NEAT or genetic algorithm.
 No ML predictions needed — purely reactive to current market state.
 """
 
@@ -51,14 +53,11 @@ class Plugin:
         'atr_period': 14,
         'atr_tp_multiplier': 2.5,
         'atr_sl_multiplier': 1.5,
-        # Causal-evidence regime thresholds (V2)
-        'bb_low': 0.25,            # bb_position below this → lower BB zone
-        'bb_high': 0.75,           # bb_position above this → upper BB zone
-        'atr_ratio_high': 1.2,     # atr_14/atr_60 above this → high volatility
-        'ema_align_thresh': 0.0,   # ema_alignment above this → bullish
+        # V3: GMM centroids are fixed; cluster_confidence controls selectivity
+        'cluster_confidence': 1.5,  # max scaled distance to centroid to accept regime
         # Per-regime action toggles (1=active, 0=skip)
-        'regime_1_active': 1,   # VOLATILE_OVERSOLD → buy reversal
-        'regime_2_active': 0,   # BEARISH_CONTINUATION → flat (sell edge weak)
+        'regime_1_active': 1,   # VOLATILE_OVERSOLD → buy reversal (best cluster)
+        'regime_2_active': 0,   # BEARISH_CONTINUATION → flat
         'regime_3_active': 0,   # VOLATILE_OVERBOUGHT → flat
         'regime_4_active': 0,   # NEUTRAL → flat
         'regime_5_active': 1,   # PULLBACK_IN_UPTREND → buy
@@ -96,16 +95,12 @@ class Plugin:
             ("atr_period", 7, 28),
             ("atr_tp_multiplier", 1.0, 5.0),
             ("atr_sl_multiplier", 0.5, 3.0),
-            ("bb_low", 0.10, 0.45),
-            ("bb_high", 0.55, 0.90),
-            ("atr_ratio_high", 0.8, 2.0),
-            ("ema_align_thresh", -1.0, 1.0),
+            ("cluster_confidence", 0.5, 3.0),
         ]
 
     def evaluate_candidate(self, individual, base_data, hourly_predictions,
                            daily_predictions, config):
-        (atr_period, atr_tp_mult, atr_sl_mult,
-         bb_low, bb_high, atr_ratio_high, ema_align_thresh) = individual
+        (atr_period, atr_tp_mult, atr_sl_mult, cluster_confidence) = individual
 
         cerebro = bt.Cerebro()
         cerebro.addstrategy(
@@ -118,10 +113,7 @@ class Plugin:
             atr_period=int(atr_period),
             atr_tp_multiplier=atr_tp_mult,
             atr_sl_multiplier=atr_sl_mult,
-            bb_low=bb_low,
-            bb_high=bb_high,
-            atr_ratio_high=atr_ratio_high,
-            ema_align_thresh=ema_align_thresh,
+            cluster_confidence=cluster_confidence,
             regime_1_active=self.params['regime_1_active'],
             regime_2_active=self.params['regime_2_active'],
             regime_3_active=self.params['regime_3_active'],
@@ -197,12 +189,32 @@ class Plugin:
     # =====================================================================
     class RegimeAdaptiveStrategy(bt.Strategy):
         """
-        Forex strategy that adapts to detected market regime (V2 — Causal Evidence).
+        Forex strategy using GMM cluster-based regime detection (V3).
         
         No predictions needed — purely reactive to current indicator state.
-        Regime classification uses causally-validated features:
-          bb_position (CORE), atr_ratio (CORE), ema_alignment (LEADING).
+        Regime boundaries are data-driven from K=9 GMM on 15yr EURUSD.
+        Uses nearest-centroid in scaled feature space (bb_position, atr_ratio,
+        ema_alignment) then maps clusters → 6 tradeable regimes.
         """
+
+        # GMM centroids (raw, unscaled) from 15yr EURUSD clustering
+        _GMM_CENTROIDS = np.array([
+            [0.784, 0.996, 3.494],   # C0
+            [0.224, 0.937, -1.501],  # C1
+            [0.757, 0.846, -0.736],  # C2
+            [0.797, 1.079, -1.564],  # C3
+            [0.381, 0.872, -5.722],  # C4
+            [0.160, 1.133, 1.921],   # C5
+            [0.823, 1.363, 1.323],   # C6
+            [0.238, 1.230, -3.610],  # C7 ← best buy cluster
+            [0.277, 0.877, 3.004],   # C8
+        ])
+        _GMM_SCALER_MEAN = np.array([0.4920, 1.0196, 0.0049])
+        _GMM_SCALER_SCALE = np.array([0.2780, 0.1823, 2.9037])
+        _CLUSTER_TO_REGIME = {
+            0: 4, 1: 2, 2: 4, 3: 3, 4: 4,
+            5: 5, 6: 3, 7: 1, 8: 6,
+        }
 
         params = dict(
             pip_cost=0.00001,
@@ -213,11 +225,7 @@ class Plugin:
             atr_period=14,
             atr_tp_multiplier=2.5,
             atr_sl_multiplier=1.5,
-            # Causal-evidence regime thresholds
-            bb_low=0.25,
-            bb_high=0.75,
-            atr_ratio_high=1.2,
-            ema_align_thresh=0.0,
+            cluster_confidence=1.5,  # max scaled distance to centroid
             # Per-regime toggles
             regime_1_active=1,
             regime_2_active=0,
@@ -308,9 +316,10 @@ class Plugin:
         # --- Regime detection (computed from accumulating history) ---
 
         def _compute_regime(self):
-            """Classify current bar into a regime using causal-evidence features.
+            """Classify current bar using GMM nearest-centroid (V3).
             
-            V2: Uses bb_position (CORE), atr_ratio (CORE), ema_alignment (LEADING).
+            Computes bb_position, atr_ratio, ema_alignment from accumulated
+            4h bar history, then finds nearest GMM centroid in scaled space.
             Also computes RSI + Stochastic K for confirmation filters.
             """
             if len(self._close_history) < 200:
@@ -380,28 +389,19 @@ class Plugin:
             high14 = np.max(h[-14:])
             self._current_stoch_k = 100 * (c[-1] - low14) / (high14 - low14 + 1e-10)
 
-            # === CAUSAL-EVIDENCE REGIME CLASSIFICATION ===
-            # Primary: bb_position (invariant across all regimes)
-            # Secondary: atr_ratio (robust ATE)
-            # Tertiary: ema_alignment (leading indicator)
+            # === GMM NEAREST-CENTROID CLASSIFICATION ===
+            x = np.array([bb_position, atr_ratio, ema_alignment])
+            x_scaled = (x - self._GMM_SCALER_MEAN) / (self._GMM_SCALER_SCALE + 1e-10)
+            centroids_scaled = (self._GMM_CENTROIDS - self._GMM_SCALER_MEAN) / (self._GMM_SCALER_SCALE + 1e-10)
+            dists = np.sqrt(((x_scaled - centroids_scaled) ** 2).sum(axis=1))
+            cluster = int(dists.argmin())
+            min_dist = dists[cluster]
 
-            regime = 4  # default NEUTRAL
+            # Confidence filter: if too far from nearest centroid → NEUTRAL
+            if min_dist > self.p.cluster_confidence:
+                return 4  # NEUTRAL — low confidence assignment
 
-            if bb_position < self.p.bb_low:
-                # Price near lower Bollinger Band — potential buy zone
-                if atr_ratio > self.p.atr_ratio_high:
-                    regime = 1  # VOLATILE_OVERSOLD → buy reversal
-                elif ema_alignment > self.p.ema_align_thresh:
-                    regime = 5  # PULLBACK_IN_UPTREND → buy mean-revert
-                else:
-                    regime = 2  # BEARISH_CONTINUATION → flat/sell
-            elif bb_position > self.p.bb_high:
-                # Price near upper Bollinger Band
-                if atr_ratio > self.p.atr_ratio_high:
-                    regime = 3  # VOLATILE_OVERBOUGHT → flat
-                elif ema_alignment > self.p.ema_align_thresh:
-                    regime = 6  # BULLISH_DRIFT → buy trend
-                # else stays 4 NEUTRAL
+            regime = self._CLUSTER_TO_REGIME[cluster]
 
             return regime
 

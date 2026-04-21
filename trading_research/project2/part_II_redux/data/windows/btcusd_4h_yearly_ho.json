@@ -1,0 +1,85 @@
+{
+  "asset": "btcusd_4h",
+  "trigger": "yearly",
+  "ho_start": "2020-01-01",
+  "ho_end": "2025-12-31",
+  "is_start": "2017-08-17",
+  "is_end": "2019-12-31",
+  "min_train_bars": 500,
+  "total_windows": 6,
+  "generated": "2026-04-20T01:09:46.127589",
+  "windows": [
+    {
+      "id": 1,
+      "train_start": "2017-08-17",
+      "train_end": "2019-12-31",
+      "val_start": "2020-01-01",
+      "val_end": "2020-06-30",
+      "test_start": "2020-07-01",
+      "test_end": "2020-12-31",
+      "train_bars": 5186,
+      "val_bars": 1091,
+      "test_bars": 1104
+    },
+    {
+      "id": 2,
+      "train_start": "2017-08-17",
+      "train_end": "2020-12-31",
+      "val_start": "2021-01-01",
+      "val_end": "2021-06-30",
+      "test_start": "2021-07-01",
+      "test_end": "2021-12-31",
+      "train_bars": 7381,
+      "val_bars": 1086,
+      "test_bars": 1104
+    },
+    {
+      "id": 3,
+      "train_start": "2017-08-17",
+      "train_end": "2021-12-31",
+      "val_start": "2022-01-01",
+      "val_end": "2022-06-30",
+      "test_start": "2022-07-01",
+      "test_end": "2022-12-31",
+      "train_bars": 9571,
+      "val_bars": 1086,
+      "test_bars": 1104
+    },
+    {
+      "id": 4,
+      "train_start": "2017-08-17",
+      "train_end": "2022-12-31",
+      "val_start": "2023-01-01",
+      "val_end": "2023-06-30",
+      "test_start": "2023-07-01",
+      "test_end": "2023-12-31",
+      "train_bars": 11761,
+      "val_bars": 1086,
+      "test_bars": 1104
+    },
+    {
+      "id": 5,
+      "train_start": "2017-08-17",
+      "train_end": "2023-12-31",
+      "val_start": "2024-01-01",
+      "val_end": "2024-06-30",
+      "test_start": "2024-07-01",
+      "test_end": "2024-12-31",
+      "train_bars": 13951,
+      "val_bars": 1092,
+      "test_bars": 1104
+    },
+    {
+      "id": 6,
+      "train_start": "2017-08-17",
+      "train_end": "2024-12-31",
+      "val_start": "2025-01-01",
+      "val_end": "2025-06-30",
+      "test_start": "2025-07-01",
+      "test_end": "2025-12-31",
+      "train_bars": 16147,
+      "val_bars": 1086,
+      "test_bars": 1099
+    }
+  ]
+}

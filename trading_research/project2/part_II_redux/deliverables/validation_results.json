@@ -1,0 +1,755 @@
+[
+  {
+    "asset_tf": "btcusd_4h",
+    "bars": 18332,
+    "date_range": "2017-08-17 04:00:00 to 2025-12-31 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 18000,
+        "actual": 18332,
+        "tolerance": "\u00b110%",
+        "range": "[16200, 19800]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "passed": true,
+        "note": "Crypto exempt (24/7)"
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 23.43,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1233,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.04604,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "btcusd_daily",
+    "bars": 3059,
+    "date_range": "2017-08-17 00:00:00 to 2025-12-31 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 3000,
+        "actual": 3059,
+        "tolerance": "\u00b110%",
+        "range": "[2700, 3300]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "passed": true,
+        "note": "Crypto exempt (24/7)"
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 18.6,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1025,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.050992,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 1e-05,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "btcusd_weekly",
+    "bars": 438,
+    "date_range": "2017-08-18 00:00:00 to 2026-01-02 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 450,
+        "actual": 438,
+        "tolerance": "\u00b110%",
+        "range": "[405, 495]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "passed": true,
+        "note": "Crypto exempt (24/7)"
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 6.09,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.0725,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": 0.072856,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.000491,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.733586,
+          "reject": "False"
+        },
+        "rejections": "2",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "eurusd_1h",
+    "bars": 129782,
+    "date_range": "2005-01-03 01:00:00 to 2025-12-31 16:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 130000,
+        "actual": 129782,
+        "tolerance": "\u00b110%",
+        "range": "[117000, 143000]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "saturday_bars": 0,
+        "sunday_bars": 7629,
+        "note": "FX: Saturday=closed, Sunday=legitimate session",
+        "passed": true
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 18.16,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1402,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.011159,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "eurusd_4h",
+    "bars": 33730,
+    "date_range": "2005-01-03 00:00:00 to 2025-12-31 16:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 33000,
+        "actual": 33730,
+        "tolerance": "\u00b110%",
+        "range": "[29700, 36300]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "saturday_bars": 0,
+        "sunday_bars": 2189,
+        "note": "FX: Saturday=closed, Sunday=legitimate session",
+        "passed": true
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 14.6,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.124,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.002049,
+        "threshold": "|ACF|>0.005",
+        "passed": "False"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": false
+  },
+  {
+    "asset_tf": "eurusd_daily",
+    "bars": 6550,
+    "date_range": "2005-01-03 00:00:00 to 2025-12-31 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 6500,
+        "actual": 6550,
+        "tolerance": "\u00b110%",
+        "range": "[5850, 7150]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "saturday_bars": 0,
+        "sunday_bars": 1084,
+        "note": "FX: Saturday=closed, Sunday=legitimate session",
+        "passed": true
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 6.92,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.2136,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": 0.019475,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.239602,
+          "reject": "False"
+        },
+        "rejections": "2",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "eurusd_weekly",
+    "bars": 1096,
+    "date_range": "2005-01-07 00:00:00 to 2026-01-02 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 1100,
+        "actual": 1096,
+        "tolerance": "\u00b110%",
+        "range": "[990, 1210]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "passed": true,
+        "note": "Weekly exempt (anchor day)"
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 4.95,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1594,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.010661,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.051174,
+          "reject": "False"
+        },
+        "rejections": "2",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "spy_daily",
+    "bars": 8287,
+    "date_range": "1993-01-29 00:00:00 to 2025-12-30 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 8000,
+        "actual": 8287,
+        "tolerance": "\u00b110%",
+        "range": "[7200, 8800]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "weekend_bars": 0,
+        "passed": true
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 14.4,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.263,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.080904,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.035664,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "spy_weekly",
+    "bars": 1719,
+    "date_range": "1993-01-29 00:00:00 to 2026-01-02 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 1700,
+        "actual": 1719,
+        "tolerance": "\u00b110%",
+        "range": "[1530, 1870]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "passed": true,
+        "note": "Weekly exempt (anchor day)"
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 11.09,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.2742,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.089625,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.00607,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "usdjpy_1h",
+    "bars": 129761,
+    "date_range": "2005-01-03 01:00:00 to 2025-12-31 16:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 130000,
+        "actual": 129761,
+        "tolerance": "\u00b110%",
+        "range": "[117000, 143000]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "saturday_bars": 0,
+        "sunday_bars": 7630,
+        "note": "FX: Saturday=closed, Sunday=legitimate session",
+        "passed": true
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 37.98,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1421,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.005588,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "usdjpy_4h",
+    "bars": 33725,
+    "date_range": "2005-01-03 00:00:00 to 2025-12-31 16:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 33000,
+        "actual": 33725,
+        "tolerance": "\u00b110%",
+        "range": "[29700, 36300]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "saturday_bars": 0,
+        "sunday_bars": 2190,
+        "note": "FX: Saturday=closed, Sunday=legitimate session",
+        "passed": true
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 22.88,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1446,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.014095,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "rejections": "3",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  },
+  {
+    "asset_tf": "usdjpy_daily",
+    "bars": 6550,
+    "date_range": "2005-01-03 00:00:00 to 2025-12-31 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 6500,
+        "actual": 6550,
+        "tolerance": "\u00b110%",
+        "range": "[5850, 7150]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "saturday_bars": 0,
+        "sunday_bars": 1084,
+        "note": "FX: Saturday=closed, Sunday=legitimate session",
+        "passed": true
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 8.17,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1688,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.003442,
+        "threshold": "|ACF|>0.005",
+        "passed": "False"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.355008,
+          "reject": "False"
+        },
+        "rejections": "2",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": false
+  },
+  {
+    "asset_tf": "usdjpy_weekly",
+    "bars": 1096,
+    "date_range": "2005-01-07 00:00:00 to 2026-01-02 00:00:00",
+    "tests": [
+      {
+        "test": "bar_count",
+        "expected": 1100,
+        "actual": 1096,
+        "tolerance": "\u00b110%",
+        "range": "[990, 1210]",
+        "passed": true
+      },
+      {
+        "test": "weekend_gap",
+        "passed": true,
+        "note": "Weekly exempt (anchor day)"
+      },
+      {
+        "test": "fat_tail_kurtosis",
+        "kurtosis": 4.69,
+        "threshold": ">4 (GBM\u22483)",
+        "passed": "True"
+      },
+      {
+        "test": "volatility_clustering",
+        "acf1_r_squared": 0.1295,
+        "threshold": ">0.05",
+        "passed": "True"
+      },
+      {
+        "test": "return_autocorrelation",
+        "acf1_returns": -0.056644,
+        "threshold": "|ACF|>0.005",
+        "passed": "True"
+      },
+      {
+        "test": "no_gbm_fingerprint",
+        "ljung_box_r2": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "jarque_bera": {
+          "p": 0.0,
+          "reject": "True"
+        },
+        "runs_test": {
+          "p": 0.100936,
+          "reject": "False"
+        },
+        "rejections": "2",
+        "threshold": "\u22652 of 3",
+        "passed": "True"
+      }
+    ],
+    "all_passed": true
+  }
+]

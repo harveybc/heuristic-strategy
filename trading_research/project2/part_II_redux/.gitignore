@@ -1,0 +1,7 @@
+.env
+data/raw/**
+!data/raw/.gitkeep
+logs/
+__pycache__/
+*.pyc
+Project2_part2redux.md

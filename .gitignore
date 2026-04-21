@@ -144,3 +144,11 @@ credentials.ini
 *.db-shm
 *.keras
 node_modules/
+trading_research/project2/Project2_part2redux.md
+
+# Large raw/processed market data files (re-downloadable)
+*.parquet
+trading_research/project2/*/data/raw/
+trading_research/project2/*/data/processed/
+trading_research/project2/part_II_invalidated/data/
+timeseries-gan/

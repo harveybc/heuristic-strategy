@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-04-21T03:47:06.540363+00:00",
+  "is_start": "2019-01-01",
+  "is_end": "2019-12-31",
+  "tau_max": 10,
+  "pc_alpha": 0.01,
+  "alpha_level": 0.05,
+  "max_samples": 5000,
+  "results": [
+    {
+      "run_id": 8,
+      "label": "run_8_btc_15m_technical+funding",
+      "classification": "gamma",
+      "n_samples": 5000,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "15m",
+        "feature_set": "technical+funding"
+      }
+    }
+  ]
+}

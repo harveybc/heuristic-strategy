@@ -1,0 +1,86 @@
+[
+  {
+    "noise_std": 0.0,
+    "oracle_accuracy": 1.0,
+    "oracle_f1": 1.0,
+    "oracle_precision": 1.0,
+    "oracle_recall": 1.0,
+    "profit": 759384.8445686467,
+    "trades": 1232,
+    "win_pct": 100.0,
+    "sharpe": 0.4389881000865868,
+    "elapsed": 25.518303632736206
+  },
+  {
+    "noise_std": 0.1,
+    "oracle_accuracy": 1.0,
+    "oracle_f1": 1.0,
+    "oracle_precision": 1.0,
+    "oracle_recall": 1.0,
+    "profit": 759384.8445686467,
+    "trades": 1232,
+    "win_pct": 100.0,
+    "sharpe": 0.4389881000865868,
+    "elapsed": 25.637115716934204
+  },
+  {
+    "noise_std": 0.2,
+    "oracle_accuracy": 0.993307,
+    "oracle_f1": 0.992079,
+    "oracle_precision": 0.990332,
+    "oracle_recall": 0.993833,
+    "profit": 581870.3279650857,
+    "trades": 1258,
+    "win_pct": 90.69952305246423,
+    "sharpe": 0.3409385821330128,
+    "elapsed": 23.615549564361572
+  },
+  {
+    "noise_std": 0.3,
+    "oracle_accuracy": 0.950547,
+    "oracle_f1": 0.909474,
+    "oracle_precision": 0.872654,
+    "oracle_recall": 0.949539,
+    "profit": 113897.3067607238,
+    "trades": 1299,
+    "win_pct": 56.7359507313318,
+    "sharpe": 0.08088674657604852,
+    "elapsed": 14.923996925354004
+  },
+  {
+    "noise_std": 0.5,
+    "oracle_accuracy": 0.846364,
+    "oracle_f1": 0.448252,
+    "oracle_precision": 0.303504,
+    "oracle_recall": 0.856952,
+    "profit": -8730.05983885433,
+    "trades": 1300,
+    "win_pct": 30.615384615384617,
+    "sharpe": -0.0942423894099734,
+    "elapsed": 8.269554376602173
+  },
+  {
+    "noise_std": 0.7,
+    "oracle_accuracy": 0.765844,
+    "oracle_f1": 0.182313,
+    "oracle_precision": 0.103289,
+    "oracle_recall": 0.776062,
+    "profit": -9813.348227413362,
+    "trades": 1300,
+    "win_pct": 27.846153846153847,
+    "sharpe": -0.1121375123982779,
+    "elapsed": 7.236980438232422
+  },
+  {
+    "noise_std": 1.0,
+    "oracle_accuracy": 0.698939,
+    "oracle_f1": 0.129527,
+    "oracle_precision": 0.071028,
+    "oracle_recall": 0.7343,
+    "profit": -9927.018350941402,
+    "trades": 1300,
+    "win_pct": 27.846153846153847,
+    "sharpe": -0.14385968214836892,
+    "elapsed": 6.926309585571289
+  }
+]

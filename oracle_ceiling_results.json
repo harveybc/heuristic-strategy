@@ -1,0 +1,166 @@
+{
+  "phase": "A1_oracle_ceiling",
+  "total_profit": 1714396.4470476338,
+  "total_trades": 3452,
+  "total_win_pct": 100.0,
+  "aggregate_sharpe": 0.3660225505498663,
+  "max_drawdown_usd": 0,
+  "final_equity": 1708555.702912972,
+  "profitable_folds": 14,
+  "total_folds": 14,
+  "fold_results": [
+    {
+      "year": 2006,
+      "profit": 103228.1508451386,
+      "trades": 248,
+      "win_pct": 100.0,
+      "sharpe": 0.5066508369896405,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.389266729354858
+    },
+    {
+      "year": 2007,
+      "profit": 67651.92610621214,
+      "trades": 247,
+      "win_pct": 100.0,
+      "sharpe": 0.4381493897320208,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.031597137451172
+    },
+    {
+      "year": 2008,
+      "profit": 295628.80192409846,
+      "trades": 252,
+      "win_pct": 100.0,
+      "sharpe": 0.4149246295684889,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.39952278137207
+    },
+    {
+      "year": 2009,
+      "profit": 216561.81007837135,
+      "trades": 250,
+      "win_pct": 100.0,
+      "sharpe": 0.4677922012744344,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.136714220046997
+    },
+    {
+      "year": 2010,
+      "profit": 176561.36601876008,
+      "trades": 253,
+      "win_pct": 100.0,
+      "sharpe": 0.43581309979808136,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 4.438700437545776
+    },
+    {
+      "year": 2011,
+      "profit": 219278.2353116352,
+      "trades": 256,
+      "win_pct": 100.0,
+      "sharpe": 0.44694893592487617,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 4.954946041107178
+    },
+    {
+      "year": 2012,
+      "profit": 107682.34456864076,
+      "trades": 253,
+      "win_pct": 100.0,
+      "sharpe": 0.4779918039547077,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 4.93693208694458
+    },
+    {
+      "year": 2013,
+      "profit": 80827.00581224819,
+      "trades": 240,
+      "win_pct": 100.0,
+      "sharpe": 0.4736109644668602,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.06813645362854
+    },
+    {
+      "year": 2014,
+      "profit": 79659.51060838855,
+      "trades": 241,
+      "win_pct": 100.0,
+      "sharpe": 0.49129751713704056,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.480554819107056
+    },
+    {
+      "year": 2015,
+      "profit": 158680.19732701968,
+      "trades": 253,
+      "win_pct": 100.0,
+      "sharpe": 0.391462778105149,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 4.610268592834473
+    },
+    {
+      "year": 2016,
+      "profit": 63331.2013062232,
+      "trades": 238,
+      "win_pct": 100.0,
+      "sharpe": 0.43891517701752475,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.008106231689453
+    },
+    {
+      "year": 2017,
+      "profit": 54322.49438160248,
+      "trades": 244,
+      "win_pct": 100.0,
+      "sharpe": 0.4619055848059058,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 4.939707040786743
+    },
+    {
+      "year": 2018,
+      "profit": 52076.257567367706,
+      "trades": 244,
+      "win_pct": 100.0,
+      "sharpe": 0.48947435080100804,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.017836093902588
+    },
+    {
+      "year": 2019,
+      "profit": 38907.14519192748,
+      "trades": 233,
+      "win_pct": 100.0,
+      "sharpe": 0.48964481887095684,
+      "oracle_accuracy": 1.0,
+      "oracle_f1": 1.0,
+      "elapsed": 5.638226747512817
+    }
+  ],
+  "config": {
+    "prediction_source": "API",
+    "pp_api_url": "http://offline",
+    "pp_timeout": 999,
+    "headers": true,
+    "disable_multiprocessing": true,
+    "atr_period": 14,
+    "atr_tp_multiplier": 2.0,
+    "atr_sl_multiplier": 1.5,
+    "spread_pips": 15.0,
+    "commission_per_lot": 7.0,
+    "slippage_pips": 5.0
+  }
+}

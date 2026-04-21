@@ -1,0 +1,466 @@
+{
+  "stage": "II-0.5",
+  "timestamp": "2026-04-19T18:54:09.627720",
+  "is_period": "2005-01-01 to 2019-12-31",
+  "completed_runs": 7,
+  "total_runs": 14,
+  "runs": {
+    "usdjpy_4h": {
+      "label": "USDJPY_4H",
+      "n_variables": 13,
+      "n_samples": 5000,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 36.7,
+      "causal_links": {
+        "roc_12": [
+          {
+            "lag": 0,
+            "mci_value": -0.134048,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "roc_12": {
+          "lag": 0,
+          "mci_value": -0.134048,
+          "p_value": 0.0,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.386138,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 1,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "usdjpy_4h",
+      "asset": "usdjpy",
+      "timeframe": "4h",
+      "has_macro": false
+    },
+    "usdjpy_daily": {
+      "label": "USDJPY_DAILY",
+      "n_variables": 13,
+      "n_samples": 4530,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 184.0,
+      "causal_links": {
+        "bb_position": [
+          {
+            "lag": 0,
+            "mci_value": -0.299842,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.241377,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "bb_position": {
+          "lag": 0,
+          "mci_value": -0.299842,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.241377,
+          "p_value": 0.0,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.704827,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 2,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "usdjpy_daily",
+      "asset": "usdjpy",
+      "timeframe": "daily",
+      "has_macro": false
+    },
+    "usdjpy_daily_macro": {
+      "run": "usdjpy_daily_macro",
+      "error": "cannot reindex on an axis with duplicate labels",
+      "classification": "ERROR"
+    },
+    "usdjpy_weekly": {
+      "label": "USDJPY_WEEKLY",
+      "n_variables": 13,
+      "n_samples": 638,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 16.7,
+      "causal_links": {
+        "di_spread": [
+          {
+            "lag": 0,
+            "mci_value": -0.110871,
+            "p_value": 0.00624974,
+            "link_type": "-->"
+          }
+        ],
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.29719,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "macd_hist": [
+          {
+            "lag": 0,
+            "mci_value": -0.125162,
+            "p_value": 0.00200515,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "di_spread": {
+          "lag": 0,
+          "mci_value": -0.110871,
+          "p_value": 0.00624974,
+          "link_type": "-->"
+        },
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.29719,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "macd_hist": {
+          "lag": 0,
+          "mci_value": -0.125162,
+          "p_value": 0.00200515,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.693212,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 3,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "usdjpy_weekly",
+      "asset": "usdjpy",
+      "timeframe": "weekly",
+      "has_macro": false
+    },
+    "spy_daily": {
+      "label": "SPY_DAILY",
+      "n_variables": 13,
+      "n_samples": 3631,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 223.4,
+      "causal_links": {
+        "bb_position": [
+          {
+            "lag": 0,
+            "mci_value": -0.183388,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.202461,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "roc_12": [
+          {
+            "lag": 0,
+            "mci_value": -0.158049,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "stoch_k": [
+          {
+            "lag": 0,
+            "mci_value": -0.162705,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "macd_hist": [
+          {
+            "lag": 0,
+            "mci_value": -0.102827,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "bb_position": {
+          "lag": 0,
+          "mci_value": -0.183388,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.202461,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "roc_12": {
+          "lag": 0,
+          "mci_value": -0.158049,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "stoch_k": {
+          "lag": 0,
+          "mci_value": -0.162705,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "macd_hist": {
+          "lag": 0,
+          "mci_value": -0.102827,
+          "p_value": 0.0,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.684416,
+          "p_value": 0.0
+        },
+        {
+          "lag": 3,
+          "mci_value": 0.11199,
+          "p_value": 0.0
+        },
+        {
+          "lag": 6,
+          "mci_value": -0.085837,
+          "p_value": 2.5e-07
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 5,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "spy_daily",
+      "asset": "spy",
+      "timeframe": "daily",
+      "has_macro": false
+    },
+    "spy_daily_macro": {
+      "label": "SPY_DAILY_MACRO",
+      "n_variables": 16,
+      "n_samples": 3517,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 1920.2,
+      "causal_links": {
+        "bb_position": [
+          {
+            "lag": 0,
+            "mci_value": -0.178625,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.19668,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "roc_12": [
+          {
+            "lag": 0,
+            "mci_value": -0.155979,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "stoch_k": [
+          {
+            "lag": 0,
+            "mci_value": -0.146493,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "macd_hist": [
+          {
+            "lag": 0,
+            "mci_value": -0.100699,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "vix": [
+          {
+            "lag": 0,
+            "mci_value": 0.139657,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "bb_position": {
+          "lag": 0,
+          "mci_value": -0.178625,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.19668,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "roc_12": {
+          "lag": 0,
+          "mci_value": -0.155979,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "stoch_k": {
+          "lag": 0,
+          "mci_value": -0.146493,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "macd_hist": {
+          "lag": 0,
+          "mci_value": -0.100699,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "vix": {
+          "lag": 0,
+          "mci_value": 0.139657,
+          "p_value": 0.0,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.684177,
+          "p_value": 0.0
+        },
+        {
+          "lag": 3,
+          "mci_value": 0.11121,
+          "p_value": 0.0
+        },
+        {
+          "lag": 6,
+          "mci_value": -0.084584,
+          "p_value": 5.6e-07
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 6,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "spy_daily_macro",
+      "asset": "spy",
+      "timeframe": "daily",
+      "has_macro": true
+    },
+    "spy_weekly": {
+      "label": "SPY_WEEKLY",
+      "n_variables": 13,
+      "n_samples": 638,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 38.8,
+      "causal_links": {
+        "roc_12": [
+          {
+            "lag": 0,
+            "mci_value": -0.211896,
+            "p_value": 1.4e-07,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "roc_12": {
+          "lag": 0,
+          "mci_value": -0.211896,
+          "p_value": 1.4e-07,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.626357,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 1,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "spy_weekly",
+      "asset": "spy",
+      "timeframe": "weekly",
+      "has_macro": false
+    }
+  }
+}

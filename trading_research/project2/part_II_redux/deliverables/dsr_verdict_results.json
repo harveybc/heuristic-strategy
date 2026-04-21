@@ -1,0 +1,171 @@
+{
+  "HO_A1_btc_momentum_yearly": {
+    "agg_ho_sharpe": -0.013442026661313883,
+    "is_sharpe": 0.155,
+    "dsr_pvalue": 0.0,
+    "dsr_zscore": -37.9734010158888,
+    "kill_pass": false,
+    "verdict": "HELD_OUT_FAILED",
+    "kill_details": {
+      "K1_agg_sharpe": {
+        "value": -0.013442026661313883,
+        "threshold": "> 0",
+        "pass": "False"
+      },
+      "K2_worst_2yr_sharpe": {
+        "value": -0.08556313513146391,
+        "threshold": "> -0.9",
+        "pass": "True"
+      },
+      "K3_cost_ratio": {
+        "value": -0.3397035799270163,
+        "threshold": ">= 2.0",
+        "pass": false
+      },
+      "K5_consistency": {
+        "value": 0.5,
+        "detail": "3/6",
+        "threshold": ">= 60%",
+        "pass": "False"
+      },
+      "overall_pass": false
+    },
+    "dsr_details": {
+      "dsr_pvalue": 0.0,
+      "dsr_zscore": -37.9734010158888,
+      "expected_max_sr": 1.9191967177646077,
+      "sr_stderr": 0.05089453914378827,
+      "observed_sr": -0.013442026661313883,
+      "n_obs": 386,
+      "n_strategies": 17
+    }
+  },
+  "HO_A2_btc_momentum_monthly": {
+    "agg_ho_sharpe": 0.08295941308837392,
+    "is_sharpe": 0.156,
+    "dsr_pvalue": 0.0,
+    "dsr_zscore": -52.25431966992944,
+    "kill_pass": false,
+    "verdict": "HELD_OUT_FAILED",
+    "kill_details": {
+      "K1_agg_sharpe": {
+        "value": 0.08295941308837392,
+        "threshold": "> 0",
+        "pass": "True"
+      },
+      "K2_worst_2yr_sharpe": {
+        "value": -0.49361022120743997,
+        "threshold": "> -0.9",
+        "pass": "True"
+      },
+      "K3_cost_ratio": {
+        "value": 0.5677246758199321,
+        "threshold": ">= 2.0",
+        "pass": false
+      },
+      "K5_consistency": {
+        "value": 0.5416666666666666,
+        "detail": "39/72",
+        "threshold": ">= 60%",
+        "pass": "False"
+      },
+      "overall_pass": false
+    },
+    "dsr_details": {
+      "dsr_pvalue": 0.0,
+      "dsr_zscore": -52.25431966992944,
+      "expected_max_sr": 1.9191967177646077,
+      "sr_stderr": 0.03514039253166136,
+      "observed_sr": 0.08295941308837392,
+      "n_obs": 699,
+      "n_strategies": 17
+    }
+  },
+  "HO_A6_btc_momentum_hpo": {
+    "agg_ho_sharpe": 0.0418529937007919,
+    "is_sharpe": 0.142,
+    "dsr_pvalue": 0.0,
+    "dsr_zscore": -38.87945156007052,
+    "kill_pass": false,
+    "verdict": "HELD_OUT_FAILED",
+    "kill_details": {
+      "K1_agg_sharpe": {
+        "value": 0.0418529937007919,
+        "threshold": "> 0",
+        "pass": "True"
+      },
+      "K2_worst_2yr_sharpe": {
+        "value": -0.0313859820434542,
+        "threshold": "> -0.9",
+        "pass": "True"
+      },
+      "K3_cost_ratio": {
+        "value": 0.6802403924591066,
+        "threshold": ">= 2.0",
+        "pass": false
+      },
+      "K5_consistency": {
+        "value": 0.6666666666666666,
+        "detail": "4/6",
+        "threshold": ">= 60%",
+        "pass": "True"
+      },
+      "overall_pass": false
+    },
+    "dsr_details": {
+      "dsr_pvalue": 0.0,
+      "dsr_zscore": -38.87945156007052,
+      "expected_max_sr": 1.9191967177646077,
+      "sr_stderr": 0.04828627073515259,
+      "observed_sr": 0.0418529937007919,
+      "n_obs": 412,
+      "n_strategies": 17
+    }
+  },
+  "HO_B3_tft_yearly": {
+    "agg_ho_sharpe": -0.006090493580351949,
+    "is_sharpe": 0.024,
+    "dsr_pvalue": 2.272845177949767e-163,
+    "dsr_zscore": -27.21309813215485,
+    "kill_pass": false,
+    "verdict": "HELD_OUT_FAILED",
+    "kill_details": {
+      "K1_agg_sharpe": {
+        "value": -0.006090493580351949,
+        "threshold": "> 0",
+        "pass": "False"
+      },
+      "K2_worst_2yr_sharpe": {
+        "value": -0.0360338326670903,
+        "threshold": "> -0.9",
+        "pass": "True"
+      },
+      "K3_cost_ratio": {
+        "value": -1.0104746792882313,
+        "threshold": ">= 2.0",
+        "pass": false
+      },
+      "K5_consistency": {
+        "value": 0.3333333333333333,
+        "detail": "2/6",
+        "threshold": ">= 60%",
+        "pass": "False"
+      },
+      "K6_mae_ratio": {
+        "value": 1.0,
+        "threshold": "> 50% windows with ratio < 3x",
+        "pass": "True"
+      },
+      "overall_pass": false
+    },
+    "dsr_details": {
+      "dsr_pvalue": 2.272845177949767e-163,
+      "dsr_zscore": -27.21309813215485,
+      "expected_max_sr": 1.9191967177646077,
+      "sr_stderr": 0.07074854917272541,
+      "observed_sr": -0.006090493580351949,
+      "n_obs": 202,
+      "n_strategies": 17
+    }
+  }
+}

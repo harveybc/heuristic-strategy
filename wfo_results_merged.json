@@ -1,0 +1,233 @@
+{
+  "total_oos_profit": -13077.480156448242,
+  "total_oos_trades": 396,
+  "total_win_pct": 32.07070707070707,
+  "aggregate_sharpe": -0.06916204750825379,
+  "max_drawdown_usd": 15377.830156448239,
+  "final_equity": -3077.4801564482414,
+  "fold_results": [
+    {
+      "test_year": 2009,
+      "best_params": {
+        "atr_period": 19.9681,
+        "atr_tp_multiplier": 1.7618,
+        "atr_sl_multiplier": 2.5072,
+        "bb_low": -1.052,
+        "bb_high": 0.8838,
+        "atr_ratio_high": 1.851,
+        "ema_align_thresh": 1.2649
+      },
+      "train_fitness": 2.109,
+      "oos_profit": 2203.35,
+      "oos_trades": 9,
+      "oos_win_pct": 66.7,
+      "oos_sharpe": 0.38
+    },
+    {
+      "test_year": 2010,
+      "best_params": {
+        "atr_period": 22.0893,
+        "atr_tp_multiplier": 4.7678,
+        "atr_sl_multiplier": 1.5238,
+        "bb_low": 0.4626,
+        "bb_high": -0.6125,
+        "atr_ratio_high": 0.544,
+        "ema_align_thresh": -0.799
+      },
+      "train_fitness": 0.643,
+      "oos_profit": -7175.09,
+      "oos_trades": 50,
+      "oos_win_pct": 16.0,
+      "oos_sharpe": -0.44
+    },
+    {
+      "test_year": 2011,
+      "train_range": "2008-2010",
+      "train_bars": 18728,
+      "test_bars": 6240,
+      "best_params": {
+        "atr_period": 16.86743222221329,
+        "atr_tp_multiplier": 2.235053727408616,
+        "atr_sl_multiplier": 1.5864947568271033,
+        "bb_low": 0.9661700995095956,
+        "bb_high": 0.6817671711146314,
+        "atr_ratio_high": 2.215150037180934,
+        "ema_align_thresh": 1.1365635777473009
+      },
+      "train_fitness": 1.7342125999184397,
+      "oos_profit": -2624.972314531121,
+      "oos_trades": 6,
+      "oos_win_pct": 16.666666666666664,
+      "oos_sharpe": -0.7547859826577752,
+      "fold_time_sec": 1721.389699459076
+    },
+    {
+      "test_year": 2012,
+      "train_range": "2009-2011",
+      "train_bars": 18712,
+      "test_bars": 6219,
+      "best_params": {
+        "atr_period": 12.097789610413404,
+        "atr_tp_multiplier": 2.1575518544084287,
+        "atr_sl_multiplier": 1.467625293159123,
+        "bb_low": -1.7629306419463437,
+        "bb_high": 0.12805636873510876,
+        "atr_ratio_high": 1.3968633797210135,
+        "ema_align_thresh": 0.24209209230660245
+      },
+      "train_fitness": 1.9174598472604842,
+      "oos_profit": 1622.3527745451975,
+      "oos_trades": 30,
+      "oos_win_pct": 53.333333333333336,
+      "oos_sharpe": 0.12866893837940263,
+      "fold_time_sec": 1717.2807760238647
+    },
+    {
+      "test_year": 2013,
+      "train_range": "2010-2012",
+      "train_bars": 18699,
+      "test_bars": 6203,
+      "best_params": {
+        "atr_period": 18.815802936847927,
+        "atr_tp_multiplier": 4.834138562240383,
+        "atr_sl_multiplier": 2.31466489567028,
+        "bb_low": 0.16918330359924993,
+        "bb_high": -0.6887833654182105,
+        "atr_ratio_high": 0.5428814610001691,
+        "ema_align_thresh": 1.8680393684164849
+      },
+      "train_fitness": 1.054954564930709,
+      "oos_profit": 4163.385188314462,
+      "oos_trades": 44,
+      "oos_win_pct": 43.18181818181818,
+      "oos_sharpe": 0.11087313839027632,
+      "fold_time_sec": 1818.5560216903687
+    },
+    {
+      "test_year": 2014,
+      "train_range": "2011-2013",
+      "train_bars": 18662,
+      "test_bars": 6210,
+      "best_params": {
+        "atr_period": 14.754418739464244,
+        "atr_tp_multiplier": 2.8783988169948382,
+        "atr_sl_multiplier": 1.1519653255376328,
+        "bb_low": 0.20453032166643223,
+        "bb_high": 0.9101437866500843,
+        "atr_ratio_high": 0.9892771190734986,
+        "ema_align_thresh": -0.18469801094923455
+      },
+      "train_fitness": 2.2459636537083596,
+      "oos_profit": -1080.0639621314185,
+      "oos_trades": 56,
+      "oos_win_pct": 30.357142857142854,
+      "oos_sharpe": -0.07517750685474991,
+      "fold_time_sec": 904.5905382633209
+    },
+    {
+      "test_year": 2015,
+      "train_range": "2012-2014",
+      "train_bars": 18632,
+      "test_bars": 6201,
+      "best_params": {
+        "atr_period": 13.166477771682894,
+        "atr_tp_multiplier": 2.4807238684675306,
+        "atr_sl_multiplier": 1.8901311865892882,
+        "bb_low": 0.19344223771718969,
+        "bb_high": 1.4568668300480365,
+        "atr_ratio_high": 3.192446368152122,
+        "ema_align_thresh": 0.21415823040211723
+      },
+      "train_fitness": 0.8995485050155418,
+      "oos_profit": -1365.4583642503912,
+      "oos_trades": 23,
+      "oos_win_pct": 43.47826086956522,
+      "oos_sharpe": -0.08522369845549055,
+      "fold_time_sec": 899.3865830898285
+    },
+    {
+      "test_year": 2016,
+      "train_range": "2013-2015",
+      "train_bars": 18614,
+      "test_bars": 6109,
+      "best_params": {
+        "atr_period": 20.647573193369986,
+        "atr_tp_multiplier": 3.1797659224128667,
+        "atr_sl_multiplier": 1.0334253939305136,
+        "bb_low": 0.306242989356568,
+        "bb_high": 0.8389473189477035,
+        "atr_ratio_high": 0.8077985116136732,
+        "ema_align_thresh": 3.088885365073557
+      },
+      "train_fitness": 0.6348470532256756,
+      "oos_profit": -3956.6634897143504,
+      "oos_trades": 70,
+      "oos_win_pct": 21.428571428571427,
+      "oos_sharpe": -0.23632671123942864,
+      "fold_time_sec": 903.2878603935242
+    },
+    {
+      "test_year": 2017,
+      "train_range": "2014-2016",
+      "train_bars": 18520,
+      "test_bars": 6155,
+      "best_params": {
+        "atr_period": 12.619222544833807,
+        "atr_tp_multiplier": 2.311396856152152,
+        "atr_sl_multiplier": 0.9875490152477189,
+        "bb_low": -0.08395688913994682,
+        "bb_high": 0.4189042688879975,
+        "atr_ratio_high": 2.4184219604849373,
+        "ema_align_thresh": 0.035602406375543724
+      },
+      "train_fitness": 0.8769571553731005,
+      "oos_profit": -870.6293774173537,
+      "oos_trades": 42,
+      "oos_win_pct": 28.57142857142857,
+      "oos_sharpe": -0.08892749349362748,
+      "fold_time_sec": 973.5832235813141
+    },
+    {
+      "test_year": 2018,
+      "train_range": "2015-2017",
+      "train_bars": 18465,
+      "test_bars": 6168,
+      "best_params": {
+        "atr_period": 6.284713233731761,
+        "atr_tp_multiplier": 4.480652589609575,
+        "atr_sl_multiplier": 2.6579355831657807,
+        "bb_low": 0.1505997596520089,
+        "bb_high": 0.5889576884492598,
+        "atr_ratio_high": 0.9272648922736456,
+        "ema_align_thresh": -2.078852882874313
+      },
+      "train_fitness": 1.0022150273839328,
+      "oos_profit": -4090.690611263264,
+      "oos_trades": 65,
+      "oos_win_pct": 33.84615384615385,
+      "oos_sharpe": -0.2130570748931308,
+      "fold_time_sec": 973.0814192295074
+    },
+    {
+      "test_year": 2019,
+      "train_range": "2016-2018",
+      "train_bars": 18432,
+      "test_bars": 6188,
+      "best_params": {
+        "atr_period": 10.27027895205481,
+        "atr_tp_multiplier": 5.14829992178792,
+        "atr_sl_multiplier": 2.9759263393614432,
+        "bb_low": 0.20709262018409016,
+        "bb_high": 0.19815400998898236,
+        "atr_ratio_high": 1.2843478853308707,
+        "ema_align_thresh": 4.543780316583619
+      },
+      "train_fitness": 2.0079070947864714,
+      "oos_profit": 96.99999999999818,
+      "oos_trades": 1,
+      "oos_win_pct": 100.0,
+      "oos_sharpe": 0,
+      "fold_time_sec": 965.9936027526855
+    }
+  ]
+}

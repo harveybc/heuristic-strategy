@@ -1,0 +1,419 @@
+{
+  "stage": "II-0.5",
+  "timestamp": "2026-04-19T18:19:10.634641",
+  "is_period": "2005-01-01 to 2019-12-31",
+  "completed_runs": 7,
+  "total_runs": 14,
+  "runs": {
+    "eurusd_4h": {
+      "label": "EURUSD_4H",
+      "n_variables": 13,
+      "n_samples": 5000,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 22.8,
+      "causal_links": {
+        "di_spread": [
+          {
+            "lag": 0,
+            "mci_value": -0.082155,
+            "p_value": 1e-08,
+            "link_type": "-->"
+          }
+        ],
+        "bb_position": [
+          {
+            "lag": 0,
+            "mci_value": -0.040041,
+            "p_value": 0.00474603,
+            "link_type": "-->"
+          }
+        ],
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.037967,
+            "p_value": 0.00743094,
+            "link_type": "-->"
+          }
+        ],
+        "price_vs_ema50": [
+          {
+            "lag": 0,
+            "mci_value": -0.176821,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "di_spread": {
+          "lag": 0,
+          "mci_value": -0.082155,
+          "p_value": 1e-08,
+          "link_type": "-->"
+        },
+        "bb_position": {
+          "lag": 0,
+          "mci_value": -0.040041,
+          "p_value": 0.00474603,
+          "link_type": "-->"
+        },
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.037967,
+          "p_value": 0.00743094,
+          "link_type": "-->"
+        },
+        "price_vs_ema50": {
+          "lag": 0,
+          "mci_value": -0.176821,
+          "p_value": 0.0,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.395456,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 4,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "eurusd_4h",
+      "asset": "eurusd",
+      "timeframe": "4h",
+      "has_macro": false
+    },
+    "eurusd_daily": {
+      "label": "EURUSD_DAILY",
+      "n_variables": 13,
+      "n_samples": 4530,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 74.8,
+      "causal_links": {
+        "di_spread": [
+          {
+            "lag": 0,
+            "mci_value": -0.169271,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "bb_position": [
+          {
+            "lag": 0,
+            "mci_value": -0.080455,
+            "p_value": 7e-08,
+            "link_type": "-->"
+          }
+        ],
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.223983,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "stoch_k": [
+          {
+            "lag": 0,
+            "mci_value": -0.152882,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "di_spread": {
+          "lag": 0,
+          "mci_value": -0.169271,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "bb_position": {
+          "lag": 0,
+          "mci_value": -0.080455,
+          "p_value": 7e-08,
+          "link_type": "-->"
+        },
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.223983,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "stoch_k": {
+          "lag": 0,
+          "mci_value": -0.152882,
+          "p_value": 0.0,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.676824,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 4,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "eurusd_daily",
+      "asset": "eurusd",
+      "timeframe": "daily",
+      "has_macro": false
+    },
+    "eurusd_daily_macro": {
+      "run": "eurusd_daily_macro",
+      "error": "cannot reindex on an axis with duplicate labels",
+      "classification": "ERROR",
+      "note": "CFTC duplicate index error on Omega. Re-run on Gamma with dedup fix."
+    },
+    "eurusd_weekly": {
+      "label": "EURUSD_WEEKLY",
+      "n_variables": 13,
+      "n_samples": 638,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 22.5,
+      "causal_links": {
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.241898,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "roc_12": [
+          {
+            "lag": 0,
+            "mci_value": -0.24504,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "macd_hist": [
+          {
+            "lag": 0,
+            "mci_value": -0.230549,
+            "p_value": 1e-08,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.241898,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "roc_12": {
+          "lag": 0,
+          "mci_value": -0.24504,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "macd_hist": {
+          "lag": 0,
+          "mci_value": -0.230549,
+          "p_value": 1e-08,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.656846,
+          "p_value": 0.0
+        },
+        {
+          "lag": 5,
+          "mci_value": -0.12236,
+          "p_value": 0.0024882
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 3,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "eurusd_weekly",
+      "asset": "eurusd",
+      "timeframe": "weekly",
+      "has_macro": false
+    },
+    "btcusd_4h": {
+      "label": "BTCUSD_4H",
+      "n_variables": 13,
+      "n_samples": 5000,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 191.3,
+      "causal_links": {
+        "di_spread": [
+          {
+            "lag": 0,
+            "mci_value": -0.186531,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "rsi": [
+          {
+            "lag": 0,
+            "mci_value": -0.190124,
+            "p_value": 0.0,
+            "link_type": "-->"
+          },
+          {
+            "lag": 6,
+            "mci_value": -0.245914,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ],
+        "macd_hist": [
+          {
+            "lag": 0,
+            "mci_value": -0.144449,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {
+        "rsi": [
+          {
+            "lag": 6,
+            "mci_value": -0.245914,
+            "p_value": 0.0,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "contemporaneous_links": {
+        "di_spread": {
+          "lag": 0,
+          "mci_value": -0.186531,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "rsi": {
+          "lag": 0,
+          "mci_value": -0.190124,
+          "p_value": 0.0,
+          "link_type": "-->"
+        },
+        "macd_hist": {
+          "lag": 0,
+          "mci_value": -0.144449,
+          "p_value": 0.0,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.729198,
+          "p_value": 0.0
+        },
+        {
+          "lag": 4,
+          "mci_value": 0.13059,
+          "p_value": 0.0
+        },
+        {
+          "lag": 6,
+          "mci_value": -0.124879,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 1,
+      "n_contemporaneous_links": 3,
+      "has_lagged_causal_structure": true,
+      "strongest_lagged_link": {
+        "lag": 6,
+        "mci_value": -0.245914,
+        "p_value": 0.0,
+        "link_type": "-->",
+        "feature": "rsi"
+      },
+      "classification": "\u03b1",
+      "run": "btcusd_4h",
+      "asset": "btcusd",
+      "timeframe": "4h",
+      "has_macro": false
+    },
+    "btcusd_daily": {
+      "label": "BTCUSD_DAILY",
+      "n_variables": 13,
+      "n_samples": 723,
+      "tau_max": 10,
+      "pc_alpha": 0.01,
+      "alpha_level": 0.05,
+      "elapsed_seconds": 20.3,
+      "causal_links": {
+        "di_spread": [
+          {
+            "lag": 0,
+            "mci_value": -0.126462,
+            "p_value": 0.00084108,
+            "link_type": "-->"
+          }
+        ]
+      },
+      "lagged_links": {},
+      "contemporaneous_links": {
+        "di_spread": {
+          "lag": 0,
+          "mci_value": -0.126462,
+          "p_value": 0.00084108,
+          "link_type": "-->"
+        }
+      },
+      "autodependency": [
+        {
+          "lag": 1,
+          "mci_value": 0.632162,
+          "p_value": 0.0
+        }
+      ],
+      "n_lagged_links": 0,
+      "n_contemporaneous_links": 1,
+      "has_lagged_causal_structure": false,
+      "strongest_lagged_link": null,
+      "classification": "\u03b3",
+      "run": "btcusd_daily",
+      "asset": "btcusd",
+      "timeframe": "daily",
+      "has_macro": false
+    },
+    "btcusd_weekly": {
+      "run": "btcusd_weekly",
+      "classification": "INSUFFICIENT_DATA",
+      "error": "BTC weekly has only 124 IS bars (2017-08 to 2019-12). atr_pct/bb_width_pct require 134+ bar warmup (120-bar rolling percentile). With reduced features (10/12), only 65 clean bars \u2014 below 200 minimum for reliable PCMCI+.",
+      "is_bars": 124,
+      "max_clean_bars_10feat": 65,
+      "note": "BTC weekly insufficient history for causal analysis. Use btcusd_4h (alpha) and btcusd_daily (gamma) instead."
+    }
+  }
+}

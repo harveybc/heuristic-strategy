@@ -1,0 +1,291 @@
+{
+  "generated_at": "2026-04-21T04:02:19.071373+00:00",
+  "is_start": "2019-01-01",
+  "is_end": "2019-12-31",
+  "tau_max": 10,
+  "pc_alpha": 0.01,
+  "alpha_level": 0.05,
+  "max_samples": 5000,
+  "results": [
+    {
+      "run_id": 1,
+      "label": "run_1_btc_5m_technical",
+      "classification": "gamma",
+      "n_samples": 5000,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "5m",
+        "feature_set": "technical"
+      }
+    },
+    {
+      "run_id": 2,
+      "label": "run_2_btc_15m_technical",
+      "classification": "gamma",
+      "n_samples": 5000,
+      "n_lagged_links": 1,
+      "strongest_lagged_link": {
+        "feature": "macd_hist",
+        "tau": 4,
+        "mci": -0.04865883534628298,
+        "p_value": 0.0006017142481799259,
+        "link": "-->"
+      },
+      "lagged_links": [
+        {
+          "feature": "macd_hist",
+          "tau": 4,
+          "mci": -0.04865883534628298,
+          "p_value": 0.0006017142481799259,
+          "link": "-->"
+        }
+      ],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "15m",
+        "feature_set": "technical"
+      }
+    },
+    {
+      "run_id": 3,
+      "label": "run_3_btc_1h_technical",
+      "classification": "alpha",
+      "n_samples": 5000,
+      "n_lagged_links": 1,
+      "strongest_lagged_link": {
+        "feature": "macd_hist",
+        "tau": 1,
+        "mci": 0.1911003881106147,
+        "p_value": 4.40968032863223e-42,
+        "link": "-->"
+      },
+      "lagged_links": [
+        {
+          "feature": "macd_hist",
+          "tau": 1,
+          "mci": 0.1911003881106147,
+          "p_value": 4.40968032863223e-42,
+          "link": "-->"
+        }
+      ],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "1h",
+        "feature_set": "technical"
+      }
+    },
+    {
+      "run_id": 4,
+      "label": "run_4_btc_4h_technical+funding",
+      "classification": "gamma",
+      "n_samples": 665,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "4h",
+        "feature_set": "technical+funding"
+      }
+    },
+    {
+      "run_id": 5,
+      "label": "run_5_btc_4h_technical+onchain",
+      "classification": "gamma",
+      "n_samples": 2043,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "4h",
+        "feature_set": "technical+onchain"
+      }
+    },
+    {
+      "run_id": 6,
+      "label": "run_6_btc_4h_technical+funding+onchain",
+      "classification": "gamma",
+      "n_samples": 665,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "4h",
+        "feature_set": "technical+funding+onchain"
+      }
+    },
+    {
+      "run_id": 7,
+      "label": "run_7_btc_1h_technical+funding",
+      "classification": "gamma",
+      "n_samples": 2671,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "1h",
+        "feature_set": "technical+funding"
+      }
+    },
+    {
+      "run_id": 8,
+      "label": "run_8_btc_15m_technical+funding",
+      "classification": "gamma",
+      "n_samples": 5000,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "btc",
+        "timeframe": "15m",
+        "feature_set": "technical+funding"
+      }
+    },
+    {
+      "run_id": 9,
+      "label": "run_9_eth_5m_technical",
+      "classification": "gamma",
+      "n_samples": 5000,
+      "n_lagged_links": 3,
+      "strongest_lagged_link": {
+        "feature": "macd_hist",
+        "tau": 10,
+        "mci": 0.04587038394107802,
+        "p_value": 0.001219223774581185,
+        "link": "-->"
+      },
+      "lagged_links": [
+        {
+          "feature": "stoch_k",
+          "tau": 2,
+          "mci": -0.03723560888726115,
+          "p_value": 0.008637271305995295,
+          "link": "-->"
+        },
+        {
+          "feature": "stoch_k",
+          "tau": 5,
+          "mci": 0.042235486579567806,
+          "p_value": 0.00288902504704913,
+          "link": "-->"
+        },
+        {
+          "feature": "macd_hist",
+          "tau": 10,
+          "mci": 0.04587038394107802,
+          "p_value": 0.001219223774581185,
+          "link": "-->"
+        }
+      ],
+      "error": null,
+      "config": {
+        "asset": "eth",
+        "timeframe": "5m",
+        "feature_set": "technical"
+      }
+    },
+    {
+      "run_id": 10,
+      "label": "run_10_eth_15m_technical",
+      "classification": "gamma",
+      "n_samples": 5000,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "eth",
+        "timeframe": "15m",
+        "feature_set": "technical"
+      }
+    },
+    {
+      "run_id": 11,
+      "label": "run_11_eth_1h_technical",
+      "classification": "alpha",
+      "n_samples": 5000,
+      "n_lagged_links": 1,
+      "strongest_lagged_link": {
+        "feature": "macd_hist",
+        "tau": 1,
+        "mci": 0.1778673796785254,
+        "p_value": 1.3402782510905256e-36,
+        "link": "-->"
+      },
+      "lagged_links": [
+        {
+          "feature": "macd_hist",
+          "tau": 1,
+          "mci": 0.1778673796785254,
+          "p_value": 1.3402782510905256e-36,
+          "link": "-->"
+        }
+      ],
+      "error": null,
+      "config": {
+        "asset": "eth",
+        "timeframe": "1h",
+        "feature_set": "technical"
+      }
+    },
+    {
+      "run_id": 12,
+      "label": "run_12_eth_4h_technical",
+      "classification": "gamma",
+      "n_samples": 2043,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "eth",
+        "timeframe": "4h",
+        "feature_set": "technical"
+      }
+    },
+    {
+      "run_id": 13,
+      "label": "run_13_eth_4h_technical+funding",
+      "classification": "gamma",
+      "n_samples": 197,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "eth",
+        "timeframe": "4h",
+        "feature_set": "technical+funding"
+      }
+    },
+    {
+      "run_id": 14,
+      "label": "run_14_eth_4h_technical+onchain",
+      "classification": "gamma",
+      "n_samples": 2043,
+      "n_lagged_links": 0,
+      "strongest_lagged_link": null,
+      "lagged_links": [],
+      "error": null,
+      "config": {
+        "asset": "eth",
+        "timeframe": "4h",
+        "feature_set": "technical+onchain"
+      }
+    }
+  ]
+}
