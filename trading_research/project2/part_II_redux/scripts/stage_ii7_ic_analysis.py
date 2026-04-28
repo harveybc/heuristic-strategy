@@ -18,16 +18,11 @@ Outputs: deliverables/ic_results_II7.json
 
 import argparse
 import json
-import os
-import sys
 from pathlib import Path
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
-
-
 ROOT = Path(__file__).resolve().parents[1]
 DATA_BINANCE = ROOT / "data" / "raw" / "binance"
 
@@ -36,9 +31,6 @@ DATA_BINANCE = ROOT / "data" / "raw" / "binance"
 
 def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     close = df["Close"]
-    high  = df["High"]
-    low   = df["Low"]
-    vol   = df["Volume"]
     high  = df["High"]
     low   = df["Low"]
     vol   = df["Volume"]
@@ -106,6 +98,9 @@ def load_1h(asset: str) -> pd.DataFrame:
     else:
         fp = DATA_BINANCE / "ethusdt_1h_2019_2025.parquet"
     df = pd.read_parquet(fp)
+    # Handle DateTime column or index
+    if "DateTime" in df.columns:
+        df = df.set_index("DateTime")
     df.index = pd.to_datetime(df.index, utc=True)
     df.sort_index(inplace=True)
     return df
@@ -114,22 +109,34 @@ def load_1h(asset: str) -> pd.DataFrame:
 # ── IC computation ────────────────────────────────────────────────────────────
 
 def rolling_ic(feature: pd.Series, fwd_ret: pd.Series, window: int = 252) -> pd.Series:
-    """Rolling Spearman IC with given window."""
+    """Rolling Spearman IC using rank-transform + rolling Pearson corr."""
     combined = pd.concat([feature, fwd_ret], axis=1).dropna()
+    if combined.empty or len(combined) < window:
+        return pd.Series(dtype=float, name="rolling_ic")
+
     col_f = combined.columns[0]
     col_r = combined.columns[1]
-    result = []
-    dates  = []
-    for i in range(window, len(combined) + 1):
-        chunk = combined.iloc[i - window:i]
-        ic, _ = spearmanr(chunk[col_f], chunk[col_r])
-        result.append(ic)
-        dates.append(combined.index[i - 1])
-    return pd.Series(result, index=dates, name="rolling_ic")
+
+    # Spearman = Pearson correlation over rank-transformed variables.
+    rank_f = combined[col_f].rank(method="average")
+    rank_r = combined[col_r].rank(method="average")
+
+    ric = rank_f.rolling(window=window, min_periods=window).corr(rank_r)
+    return ric.dropna().rename("rolling_ic")
 
 
 def compute_ic_stats(feature: pd.Series, fwd_ret: pd.Series, window: int = 252):
     ric = rolling_ic(feature, fwd_ret, window=window)
+    if ric.empty:
+        return {
+            "ic_mean": 0.0,
+            "ic_std": 0.0,
+            "icir": 0.0,
+            "n_windows": 0,
+            "pct_positive": 0.0,
+            "pass_threshold": False,
+        }
+
     ic_mean = float(ric.mean())
     ic_std  = float(ric.std())
     icir    = ic_mean / ic_std if ic_std > 1e-9 else 0.0
@@ -155,8 +162,8 @@ FEATURES   = [
     "volume_ratio", "ema_cross", "atr_norm", "obv_delta",
     "momentum_5", "momentum_20", "volatility_20"
 ]
-WINDOW     = 252   # 252 hourly bars ≈ 10.5 days  (use larger below for full dataset)
-FULL_WINDOW = 720  # ~30 days rolling window for IC stability check
+WINDOW      = 252
+FULL_WINDOW = 8760  # 1-year rolling window on 1h bars
 
 
 def run_ic_analysis(configs=None, horizons=None, window=FULL_WINDOW):
@@ -347,7 +354,7 @@ def write_markdown(results, out_path):
 def main():
     parser = argparse.ArgumentParser(description="Stage II-7.3 IC Analysis")
     parser.add_argument("--window", type=int, default=FULL_WINDOW,
-                        help="Rolling IC window in bars (default: 720)")
+                        help="Rolling IC window in bars (default: 8760, ~1 year at 1h)")
     parser.add_argument("--output_json", type=str,
                         default=str(ROOT / "deliverables" / "ic_results_II7.json"))
     parser.add_argument("--output_md", type=str,

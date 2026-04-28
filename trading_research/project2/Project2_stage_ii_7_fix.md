@@ -820,4 +820,4 @@ END (user decides whether to proceed to Part III)
 7. Document everything.
 8. Use SSH conda activation pattern always.
 9. Write to specified file paths exactly.
-10. When in doubt, halt and ask.
+10. When in doubt, halt and ask.what is required for 

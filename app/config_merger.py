@@ -5,6 +5,11 @@ from app.config import DEFAULT_VALUES
 import os as _os
 _QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
+
+def process_unknown_args2(unknown_args):
+    return {unknown_args[i].lstrip('--'): unknown_args[i + 1] for i in range(0, len(unknown_args), 2)}
+
+
 def process_unknown_args(unknown_args):
     return {unknown_args[i].lstrip('--'): unknown_args[i + 1] for i in range(0, len(unknown_args), 2)}
 
