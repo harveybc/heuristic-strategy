@@ -1,0 +1,54 @@
+{
+  "fixture_version": "prediction_entry_exit_backtrader_replay.v1",
+  "legacy_source_commit": "51d4a0fda973314e29e81ff664cfcdf27139f4e4",
+  "purpose": "Freeze requested Backtrader actions across pure-policy extraction; fill and PnL parity are intentionally out of scope.",
+  "parameters": {
+    "pip_cost": 0.0001,
+    "rel_volume": 0.001,
+    "min_order_volume": 1.0,
+    "max_order_volume": 10.0,
+    "leverage": 1.0,
+    "profit_threshold": 5.0,
+    "min_drawdown_pips": 10.0,
+    "tp_multiplier": 0.9,
+    "sl_multiplier": 2.0,
+    "lower_rr_threshold": 0.5,
+    "upper_rr_threshold": 2.0,
+    "max_trades_per_5days": 3,
+    "exit_variant": "E",
+    "swap_per_lot_per_day": 0.0
+  },
+  "bars": [
+    {"timestamp": "2026-01-05T00:00:00", "open": 1.1, "high": 1.101, "low": 1.099, "close": 1.1},
+    {"timestamp": "2026-01-05T01:00:00", "open": 1.101, "high": 1.106, "low": 1.1, "close": 1.105},
+    {"timestamp": "2026-01-05T02:00:00", "open": 1.104, "high": 1.106, "low": 1.103, "close": 1.104},
+    {"timestamp": "2026-01-05T03:00:00", "open": 1.1, "high": 1.101, "low": 1.099, "close": 1.1},
+    {"timestamp": "2026-01-05T04:00:00", "open": 1.101, "high": 1.12, "low": 1.1, "close": 1.119},
+    {"timestamp": "2026-01-05T05:00:00", "open": 1.118, "high": 1.119, "low": 1.117, "close": 1.118},
+    {"timestamp": "2026-01-05T06:00:00", "open": 1.1, "high": 1.101, "low": 1.099, "close": 1.1},
+    {"timestamp": "2026-01-05T07:00:00", "open": 1.099, "high": 1.1, "low": 1.071, "close": 1.072},
+    {"timestamp": "2026-01-05T08:00:00", "open": 1.073, "high": 1.075, "low": 1.072, "close": 1.074}
+  ],
+  "predictions": [
+    {"timestamp": "2026-01-05T00:00:00", "hourly": [1.101, 1.102], "daily": [1.09, 1.12]},
+    {"timestamp": "2026-01-05T01:00:00", "hourly": [1.07, 1.07], "daily": [1.07, 1.07]},
+    {"timestamp": "2026-01-05T02:00:00", "hourly": [1.104, 1.104], "daily": [1.104, 1.104]},
+    {"timestamp": "2026-01-05T03:00:00", "hourly": [1.101, 1.102], "daily": [1.09, 1.12]},
+    {"timestamp": "2026-01-05T04:00:00", "hourly": [1.119, 1.119], "daily": [1.1, 1.12]},
+    {"timestamp": "2026-01-05T05:00:00", "hourly": [1.118, 1.118], "daily": [1.118, 1.118]},
+    {"timestamp": "2026-01-05T06:00:00", "hourly": [1.099, 1.098], "daily": [1.07, 1.105]},
+    {"timestamp": "2026-01-05T07:00:00", "hourly": [1.072, 1.072], "daily": [1.07, 1.09]},
+    {"timestamp": "2026-01-05T08:00:00", "hourly": [1.074, 1.074], "daily": [1.074, 1.074]}
+  ],
+  "expected_events": [
+    {"timestamp": "2026-01-05T00:00:00", "close": 1.1, "position_before": 0.0, "request": "buy", "size": 10.0, "direction_after": "long", "take_profit_after": 1.118, "stop_loss_after": 1.08},
+    {"timestamp": "2026-01-05T01:00:00", "close": 1.105, "position_before": 10.0, "request": "close", "size": 10.0, "direction_after": "long", "take_profit_after": 1.118, "stop_loss_after": 1.08},
+    {"timestamp": "2026-01-05T02:00:00", "close": 1.104, "position_before": 0.0, "request": "none", "size": null, "direction_after": null, "take_profit_after": null, "stop_loss_after": null},
+    {"timestamp": "2026-01-05T03:00:00", "close": 1.1, "position_before": 0.0, "request": "buy", "size": 10.0, "direction_after": "long", "take_profit_after": 1.118, "stop_loss_after": 1.08},
+    {"timestamp": "2026-01-05T04:00:00", "close": 1.119, "position_before": 10.0, "request": "close", "size": 10.0, "direction_after": "long", "take_profit_after": 1.118, "stop_loss_after": 1.08},
+    {"timestamp": "2026-01-05T05:00:00", "close": 1.118, "position_before": 0.0, "request": "none", "size": null, "direction_after": null, "take_profit_after": null, "stop_loss_after": null},
+    {"timestamp": "2026-01-05T06:00:00", "close": 1.1, "position_before": 0.0, "request": "sell", "size": 10.0, "direction_after": "short", "take_profit_after": 1.073, "stop_loss_after": 1.11},
+    {"timestamp": "2026-01-05T07:00:00", "close": 1.072, "position_before": -10.0, "request": "close", "size": 10.0, "direction_after": "short", "take_profit_after": 1.073, "stop_loss_after": 1.11},
+    {"timestamp": "2026-01-05T08:00:00", "close": 1.074, "position_before": 0.0, "request": "none", "size": null, "direction_after": null, "take_profit_after": null, "stop_loss_after": null}
+  ]
+}

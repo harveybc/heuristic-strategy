@@ -16,10 +16,13 @@ setup(
             'regime_adaptive=app.plugins.plugin_regime_adaptive:Plugin',
             'regime_wfo=app.plugins.plugin_regime_wfo:Plugin',
             'btc_momentum=app.plugins.plugin_btc_momentum:Plugin'
+        ],
+        'trade_lifecycle_policy.plugins': [
+            'prediction_entry_exit_v1=app.policies.prediction_entry_exit:PredictionEntryExitPolicy'
         ]
     },
     install_requires=[
-        
+        'trading-contracts>=0.1.0',
     ],
     author='Harvey Bastidas',
     author_email='your.email@example.com',

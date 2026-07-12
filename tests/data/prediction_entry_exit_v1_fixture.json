@@ -1,0 +1,70 @@
+{
+  "entry_cases": [
+    {
+      "name": "long_path",
+      "current_price": 1.1,
+      "predictions": [1.09, 1.12],
+      "expected": {
+        "direction": "long",
+        "take_profit_price": 1.118,
+        "stop_loss_price": 1.08,
+        "reward_risk_ratio": 2.0
+      }
+    },
+    {
+      "name": "short_path",
+      "current_price": 1.1,
+      "predictions": [1.07, 1.105],
+      "expected": {
+        "direction": "short",
+        "take_profit_price": 1.073,
+        "stop_loss_price": 1.11,
+        "reward_risk_ratio": 6.0
+      }
+    }
+  ],
+  "early_close_cases": [
+    {
+      "direction": "long",
+      "variant": "D",
+      "short": [0.98],
+      "long": [0.97],
+      "stop": 0.99,
+      "entry": 1.0,
+      "expected": true
+    },
+    {
+      "direction": "long",
+      "variant": "D",
+      "short": [0.98],
+      "long": [1.01],
+      "stop": 0.99,
+      "entry": 1.0,
+      "expected": false
+    },
+    {
+      "direction": "short",
+      "variant": "E",
+      "short": [1.03],
+      "long": [1.01],
+      "stop": 1.015,
+      "entry": 1.0,
+      "expected": true
+    },
+    {
+      "direction": "short",
+      "variant": "G",
+      "short": [1.5],
+      "long": [1.5],
+      "stop": 1.01,
+      "entry": 1.0,
+      "expected": false
+    }
+  ],
+  "size_cases": [
+    {"rr": 0.5, "cash": 10000.0, "expected": 10000.0},
+    {"rr": 1.25, "cash": 10000.0, "expected": 20000.0},
+    {"rr": 2.0, "cash": 10000.0, "expected": 20000.0},
+    {"rr": 1.0, "cash": -100.0, "expected": -200.0}
+  ]
+}

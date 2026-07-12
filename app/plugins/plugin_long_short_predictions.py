@@ -4,6 +4,12 @@ import backtrader as bt
 import pandas as pd
 import numpy as np
 import os as _os
+from app.policies.prediction_entry_exit import (
+    PredictionEntryExitParameters,
+    calculate_entry_geometry,
+    compute_legacy_order_size,
+    should_early_close,
+)
 _QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 
 class Plugin:
@@ -350,46 +356,17 @@ class Plugin:
                 #print(f"[DEBUG]   Daily predictions at {dt_hour} are empty or NaN")
                 return
 
-            # --- Compute entry conditions for long ---
-            ideal_profit_pips_buy = (max(daily_preds) - current_price) / self.p.pip_cost
-            ideal_drawdown_pips_buy = max((current_price - min(daily_preds)) / self.p.pip_cost,
-                                          self.p.min_drawdown_pips)
-            rr_buy = ideal_profit_pips_buy / ideal_drawdown_pips_buy if ideal_drawdown_pips_buy > 0 else 0
-            tp_buy = current_price + self.p.tp_multiplier * ideal_profit_pips_buy * self.p.pip_cost
-            sl_buy = current_price - self.p.sl_multiplier * ideal_drawdown_pips_buy * self.p.pip_cost
-
-            # --- Compute entry conditions for short ---
-            ideal_profit_pips_sell = (current_price - min(daily_preds)) / self.p.pip_cost
-            ideal_drawdown_pips_sell = max((max(daily_preds) - current_price) / self.p.pip_cost,
-                                           self.p.min_drawdown_pips)
-            rr_sell = ideal_profit_pips_sell / ideal_drawdown_pips_sell if ideal_drawdown_pips_sell > 0 else 0
-            tp_sell = current_price - self.p.tp_multiplier * ideal_profit_pips_sell * self.p.pip_cost
-            sl_sell = current_price + self.p.sl_multiplier * ideal_drawdown_pips_sell * self.p.pip_cost
-
-            #print(f"[DEBUG]   Entry calculations at {dt}:")
-            #print(f"        current_price: {current_price:.5f}")
-            #print(f"        Daily predictions: {daily_preds}")
-            #print(f"        Long -> ideal_profit_pips: {ideal_profit_pips_buy:.2f}, ideal_drawdown: {ideal_drawdown_pips_buy:.2f}, RR: {rr_buy:.2f}, TP: {tp_buy:.5f}, SL: {sl_buy:.5f}")
-            #print(f"        Short -> ideal_profit_pips: {ideal_profit_pips_sell:.2f}, ideal_drawdown: {ideal_drawdown_pips_sell:.2f}, RR: {rr_sell:.2f}, TP: {tp_sell:.5f}, SL: {sl_sell:.5f}")
-
-            long_signal = (ideal_profit_pips_buy >= self.p.profit_threshold)
-            short_signal = (ideal_profit_pips_sell >= self.p.profit_threshold)
-
-            if long_signal and (rr_buy >= rr_sell):
-                signal = 'long'
-                chosen_tp = tp_buy
-                chosen_sl = sl_buy
-                chosen_rr = rr_buy
-                #print(f"[DEBUG]   Long signal triggered")
-            elif short_signal and (rr_sell > rr_buy):
-                signal = 'short'
-                chosen_tp = tp_sell
-                chosen_sl = sl_sell
-                chosen_rr = rr_sell
-                #print(f"[DEBUG]   Short signal triggered")
-            else:
-                #print(f"[DEBUG]   No entry signal triggered")
+            geometry = calculate_entry_geometry(
+                current_price=current_price,
+                long_horizon_predictions=daily_preds,
+                params=self._policy_params(),
+            )
+            if geometry is None:
                 return
+            signal = geometry.direction
+            chosen_tp = geometry.take_profit_price
+            chosen_sl = geometry.stop_loss_price
+            chosen_rr = geometry.reward_risk_ratio
 
             order_size = self.compute_size(chosen_rr)
             #print(f"[DEBUG]   Computed order size: {order_size:.2f}")
@@ -415,71 +392,49 @@ class Plugin:
 
         def _should_early_close_long(self, v, preds_h, preds_d, sl, entry_price):
             """Check if long position should early-close based on exit variant."""
-            if v == 'A':
-                all_p = preds_h + preds_d
-                return bool(all_p) and min(all_p) < sl
-            elif v == 'B':
-                return bool(preds_d) and min(preds_d) < sl
-            elif v == 'C':
-                return bool(preds_h) and min(preds_h) < sl
-            elif v == 'D':
-                h_trig = bool(preds_h) and min(preds_h) < sl
-                d_trig = bool(preds_d) and min(preds_d) < sl
-                return h_trig and d_trig
-            elif v == 'E':
-                if preds_h and preds_d:
-                    return 0.6 * min(preds_h) + 0.4 * min(preds_d) < sl
-                elif preds_h:
-                    return min(preds_h) < sl
-                elif preds_d:
-                    return min(preds_d) < sl
-            elif v == 'F':
-                buf = 0.5 * abs(sl - entry_price) if entry_price else 0
-                h_trig = bool(preds_h) and min(preds_h) < (sl - buf)
-                d_trig = bool(preds_d) and min(preds_d) < sl
-                return h_trig or d_trig
-            return False
+            return should_early_close(
+                direction="long",
+                variant=v,
+                short_horizon_predictions=preds_h,
+                long_horizon_predictions=preds_d,
+                stop_loss_price=sl,
+                entry_price=entry_price,
+            )
 
         def _should_early_close_short(self, v, preds_h, preds_d, sl, entry_price):
             """Check if short position should early-close based on exit variant."""
-            if v == 'A':
-                all_p = preds_h + preds_d
-                return bool(all_p) and max(all_p) > sl
-            elif v == 'B':
-                return bool(preds_d) and max(preds_d) > sl
-            elif v == 'C':
-                return bool(preds_h) and max(preds_h) > sl
-            elif v == 'D':
-                h_trig = bool(preds_h) and max(preds_h) > sl
-                d_trig = bool(preds_d) and max(preds_d) > sl
-                return h_trig and d_trig
-            elif v == 'E':
-                if preds_h and preds_d:
-                    return 0.6 * max(preds_h) + 0.4 * max(preds_d) > sl
-                elif preds_h:
-                    return max(preds_h) > sl
-                elif preds_d:
-                    return max(preds_d) > sl
-            elif v == 'F':
-                buf = 0.5 * abs(sl - entry_price) if entry_price else 0
-                h_trig = bool(preds_h) and max(preds_h) > (sl + buf)
-                d_trig = bool(preds_d) and max(preds_d) > sl
-                return h_trig or d_trig
-            return False
+            return should_early_close(
+                direction="short",
+                variant=v,
+                short_horizon_predictions=preds_h,
+                long_horizon_predictions=preds_d,
+                stop_loss_price=sl,
+                entry_price=entry_price,
+            )
+
+        def _policy_params(self):
+            return PredictionEntryExitParameters(
+                pip_cost=self.params.pip_cost,
+                rel_volume=self.params.rel_volume,
+                min_order_volume=self.params.min_order_volume,
+                max_order_volume=self.params.max_order_volume,
+                leverage=self.params.leverage,
+                profit_threshold=self.params.profit_threshold,
+                min_drawdown_pips=self.params.min_drawdown_pips,
+                tp_multiplier=self.params.tp_multiplier,
+                sl_multiplier=self.params.sl_multiplier,
+                lower_rr_threshold=self.params.lower_rr_threshold,
+                upper_rr_threshold=self.params.upper_rr_threshold,
+                max_trades_per_5days=self.params.max_trades_per_5days,
+                exit_variant=self.exit_variant,
+            )
 
         def compute_size(self, rr):
-            min_vol = self.params.min_order_volume
-            max_vol = self.params.max_order_volume
-            if rr >= self.params.upper_rr_threshold:
-                size = max_vol
-            elif rr <= self.params.lower_rr_threshold:
-                size = min_vol
-            else:
-                size = min_vol + ((rr - self.params.lower_rr_threshold) /
-                                  (self.params.upper_rr_threshold - self.params.lower_rr_threshold)) * (max_vol - min_vol)
-            cash = self.broker.getcash()
-            max_from_cash = cash * self.params.rel_volume * self.params.leverage
-            return min(size, max_from_cash)
+            return compute_legacy_order_size(
+                reward_risk_ratio=rr,
+                available_cash=self.broker.getcash(),
+                params=self._policy_params(),
+            )
 
 
 
