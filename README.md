@@ -169,10 +169,11 @@ only — no venue connectivity, no capital at risk, not financial advice.
 - **Vendored `timeseries-gan/` subtree.** A full copy of the legacy
   [timeseries-gan](https://github.com/harveybc/timeseries-gan) project
   (predecessor of
-  [synthetic-datagen](https://github.com/harveybc/synthetic-datagen)) is
-  committed at [`timeseries-gan/`](timeseries-gan/). It is not part of the
-  installed package, breaks root-level pytest collection, and its
-  `LICENSE.txt` applies to that subtree only.
+  [synthetic-datagen](https://github.com/harveybc/synthetic-datagen)) may
+  be present locally at `timeseries-gan/` — a gitignored working-tree
+  directory, not committed to this repository's history. When present it
+  is not part of the installed package, breaks root-level pytest
+  collection, and its `LICENSE.txt` applies to that subtree only.
 - **Stale test modules.** Part of `tests/` predates the current codebase
   and fails collection (8 errors, see above).
 - **Malformed `requirements.txt`.** It contains the line
