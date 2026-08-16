@@ -21,6 +21,14 @@ no orders on any venue; the wider stack it belongs to runs in paper/demo
 venues only, with real capital not enabled. Nothing here is financial
 advice.
 
+## Run this with an AI agent
+
+Paste this into Claude Code, Cursor, Codex, GitHub Copilot or any coding agent with shell access:
+
+> Read `AGENTS.md` in this repository and follow the **Agent quickstart** section end to end: set up the environment, run the smoke test, execute the example backtest, then tell me the exact file paths or URL where I can see the results and one analysis I should try first.
+
+`AGENTS.md` is the [agents.md](https://agents.md) convention, read natively by most coding agents.
+
 ## Role and non-responsibilities
 
 **Owns**
@@ -98,7 +106,7 @@ git clone https://github.com/harveybc/trading-contracts.git
 git clone https://github.com/harveybc/heuristic-strategy.git
 pip install -e ./trading-contracts
 cd heuristic-strategy
-pip install backtrader deap pandas numpy requests
+pip install backtrader deap pandas numpy requests matplotlib
 pip install -e .
 ```
 
@@ -117,6 +125,33 @@ PYTHONPATH=./ python app/main.py --help    # verified: exits 0, prints CLI refer
 python run_wfo.py --help                   # verified: exits 0, prints WFO options
 ```
 
+A short CSV-only backtest (no service required, verified: exits 0 in ~6 s,
+writes `run_out/trades.csv`, `run_out/summary.csv` and the balance plot):
+
+```bash
+mkdir -p run_out
+PYTHONPATH=./ python app/main.py --plugin ls_pred_strategy \
+  --base_dataset_file tests/data/phase_2_3_base_d3.csv \
+  --hourly_predictions_file tests/data/phase_2_3_cnn_1h_prediction_d3.csv \
+  --daily_predictions_file tests/data/phase_2_3_cnn_1d_prediction_d3.csv \
+  --population_size 2 --num_generations 1 \
+  --trades_csv_file run_out/trades.csv --summary_csv_file run_out/summary.csv \
+  --balance_plot_file run_out/balance_plot.png \
+  --save_parameters run_out/parameters.json --save_config run_out/config_out.json
+```
+
+The dataset paths must be given explicitly: the defaults in
+[`app/config.py`](app/config.py) use Windows separators (`tests\data\...`) and
+do not resolve on Linux. Create the output directory first — the app does not.
+
+A two-fold walk-forward run needs no predictions at all (verified: 17 s):
+
+```bash
+python run_wfo.py --train_years 1 --first_test_year 2009 --last_test_year 2010 \
+  --population_size 4 --num_generations 1 --min_trades 1 \
+  --save_results run_out/wfo_results.json --save_trades run_out/wfo_trades.csv
+```
+
 A repository-owned end-to-end config is
 [`config_direction_atr_cnn.json`](config_direction_atr_cnn.json): it runs the
 `direction_atr` plugin over the committed dataset
@@ -129,24 +164,29 @@ for this document):
 PYTHONPATH=./ python app/main.py --load_config config_direction_atr_cnn.json
 ```
 
-CSV-only runs (no service required) use the `default` / `ls_pred_strategy`
-plugin with the prediction CSVs committed under
-[`tests/data/`](tests/data/).
-
 ## Tests and validation
 
 ```bash
-python -m pytest -q --collect-only tests
+python -m pytest tests -q --continue-on-collection-errors
 ```
 
-Observed result: `34 tests collected, 8 errors` — the errors come from
-stale test modules that still import an autoencoder-era API
+Observed result: `26 passed, 8 failed, 8 errors`. The collection errors come
+from stale test modules that still import an autoencoder-era API
 (`app.autoencoder_manager`, encoder plugins) which no longer exists; the
-policy suite collects and the policy import
-(`from app.policies.prediction_entry_exit import PredictionEntryExitPolicy`)
-was verified OK. Collecting from the repository root instead of `tests/`
-additionally pulls in the vendored `timeseries-gan/tests` and fails —
-always pass the `tests` path.
+failures are in `tests/unit_tests/test_prediction_client.py` and
+`tests/integration_tests/test_configuration_handling.py`. The healthy subset —
+the trade lifecycle policy, its prediction sources and the backtrader replay —
+passes cleanly:
+
+```bash
+python -m pytest tests/unit_tests/test_prediction_entry_exit_policy.py \
+                 tests/unit_tests/test_prediction_source_substitution.py \
+                 tests/unit_tests/test_prediction_entry_exit_backtrader_replay.py -q
+# observed: 17 passed
+```
+
+Collecting from the repository root instead of `tests/` additionally pulls in
+the vendored `timeseries-gan/tests` and fails — always pass the `tests` path.
 
 ## Artifacts, data and outputs
 
@@ -178,10 +218,16 @@ only — no venue connectivity, no capital at risk, not financial advice.
   and fails collection (8 errors, see above).
 - **Malformed `requirements.txt`.** It contains the line
   `pytestpip install graph` (a corrupted merge of `pytest` and a pip
-  command); install dependencies individually as shown above.
+  command); install dependencies individually as shown above. It also omits
+  `matplotlib`, which `app/heuristic_strategy.py` imports at module level.
 - **Declared vs. actual dependencies.** `setup.py` declares only
   `trading-contracts`; Backtrader/DEAP and the rest must be installed
   separately.
+- **The balance plot is written to `./balance_plot.png` and then moved** to
+  `--balance_plot_file`, so a run overwrites (or, on a successful move,
+  removes) the committed root `balance_plot.png`; the move also fails across
+  filesystems. Keep the output directory inside the repository and restore the
+  file with `git checkout -- balance_plot.png`.
 - Committed experiment residue at the repository root (result JSONs, trade
   CSVs, `balance_plot.png`, `debug_log_*` outputs, prediction CSV exports)
   is historical record, not documentation.

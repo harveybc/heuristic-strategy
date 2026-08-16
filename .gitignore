@@ -152,3 +152,6 @@ trading_research/project2/*/data/raw/
 trading_research/project2/*/data/processed/
 trading_research/project2/part_II_invalidated/data/
 timeseries-gan/
+
+# Agent quickstart output directory (see AGENTS.md)
+run_out/
