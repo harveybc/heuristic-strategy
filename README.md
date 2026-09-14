@@ -11,6 +11,15 @@ the `trade_lifecycle_policy.plugins` entry-point group.
 
 ## Status
 
+**For evaluation:** the [agent guide](AGENTS.md) describes bounded examples.
+Prefer the CSV prediction source when reproducing a backtest; an HTTP source
+can change with the service or model version. Preserve dataset, prediction,
+strategy and cost configurations together. Backtest output does not establish
+out-of-sample profitability.
+
+See the [research repository map](https://github.com/harveybc/predictor/blob/master/docs/RESEARCH_STACK.md)
+for the upstream data, feature-engineering and representation-learning stages.
+
 **ACTIVE — component repository.** Package `heuristic_strategy` version
 **0.1.0** ([`setup.py`](setup.py)). It is a leaf tool: no sibling repository
 imports it as a dependency (siblings that show similar code use their own
