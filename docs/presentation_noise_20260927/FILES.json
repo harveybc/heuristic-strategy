@@ -1,0 +1,179 @@
+{
+  "schema": "presentation_sources.v1",
+  "date": "2026-09-27",
+  "displayed_experiment": "historical directional oracle; NOT the latest price-forecast sweep",
+  "new_simulations": 0,
+  "scope": "Exact data, summaries, source snapshots, noise draws and figures; not the full per-cell trade ledger",
+  "files": [
+    {
+      "path": "historical/figure_as_presented.png",
+      "sha256": "7b89d13535d1adfd4f3684eb48d1c2261b6bc18325e8bab49638c4f54414a777",
+      "bytes": 213658
+    },
+    {
+      "path": "historical/sweep_noise_results.csv",
+      "sha256": "b164d34a0f58dd512357de8bc64e157b780873d0432539c72695346869d46bfa",
+      "bytes": 2703
+    },
+    {
+      "path": "historical/sweep_noise.py",
+      "sha256": "1313c8a15927e97eb69cf3ab9d29e9a2d4cfc75b1d6d6a4bc03f8faeea144df8",
+      "bytes": 5161
+    },
+    {
+      "path": "historical/input.csv",
+      "sha256": "4b57164f54d03fe25de4796b75c367a15e2b1d90c89b0a40d831e5d65cd4b6e1",
+      "bytes": 952571
+    },
+    {
+      "path": "historical/plugin_direction_atr.py",
+      "sha256": "4b6e8b1f366ca5c7928603e3ab04796ba3e4a997159ed61d489dd46b3725287f",
+      "bytes": 16906
+    },
+    {
+      "path": "latest_native/input.csv",
+      "sha256": "4b57164f54d03fe25de4796b75c367a15e2b1d90c89b0a40d831e5d65cd4b6e1",
+      "bytes": 952571
+    },
+    {
+      "path": "latest_native/manifest.json",
+      "sha256": "958726415c09ced866c7d8164dfe4e49b99b4ccb8e0e5e7059fa26effdbba94f",
+      "bytes": 3823
+    },
+    {
+      "path": "latest_native/naive.csv",
+      "sha256": "fea9b28a6d337bd3751b4b05f470669bf64e562c8d409e8b8882d7698ca72977",
+      "bytes": 390
+    },
+    {
+      "path": "latest_native/conditional_paired.csv",
+      "sha256": "856c00928f53a69bb419251c8aea372ddbe98552a263a5afa13ac939072f3fac",
+      "bytes": 56371
+    },
+    {
+      "path": "latest_native/conditional_summary.csv",
+      "sha256": "e79d10cf08232d47087fc92f97437f428de4c587aeaf15ea98118af4f3377378",
+      "bytes": 17104
+    },
+    {
+      "path": "latest_native/execution_diagnostics.csv",
+      "sha256": "3abecf9ca3fa78f12f654e08ae371498de6d9fe2094c8dec089dd6be4e85696b",
+      "bytes": 44737
+    },
+    {
+      "path": "latest_native/sweep.csv",
+      "sha256": "27c7e6ecde08e596a7347d52d20e71ae139d5a166f34b65aadbf3489793266bc",
+      "bytes": 141718
+    },
+    {
+      "path": "latest_native/results.json",
+      "sha256": "c15eebbe0a1910e5edca46ca6fec819ecb955ea613444d89736124b74ccf9eca",
+      "bytes": 433866
+    },
+    {
+      "path": "latest_native/completion.json",
+      "sha256": "f615a5cd60df6177e200a8ce8628146f1b0b55abdba034a0ba40c9bf627e70d0",
+      "bytes": 339
+    },
+    {
+      "path": "latest_native/curves.json",
+      "sha256": "839a8f215547c5ccc5eeb545f7f17ce7eb0585ab7842e9679665eb1ae963d109",
+      "bytes": 37137
+    },
+    {
+      "path": "latest_native/INDEPENDENT_VERIFICATION.json",
+      "sha256": "02cf7e75646ba1319d993f087f4f502f5f78955b615d363323acafa0d6879332",
+      "bytes": 2015
+    },
+    {
+      "path": "latest_native/origins.csv",
+      "sha256": "7b7ad5edbe54583f001ee8750988dfa44685e976623dc798333adb5aca153c81",
+      "bytes": 345056
+    },
+    {
+      "path": "latest_native/NATIVE_PLAN.md",
+      "sha256": "8c2cccb4a6068d86b717623592f8ac448520f496d51e0ac93b99ab62e8bc4842",
+      "bytes": 2715
+    },
+    {
+      "path": "latest_native/PLAN.md",
+      "sha256": "237c67d31faa8ebb324ab04f9a457f56d1d30f2b079cbf273bfe7357fd0c8d4e",
+      "bytes": 3763
+    },
+    {
+      "path": "latest_native/native_adapter.py",
+      "sha256": "f4edf197c1ea594dc2e2681fd9fd3894a8afccc4a61632db1a5b326e9edf08e1",
+      "bytes": 8543
+    },
+    {
+      "path": "latest_native/native_plugin.py",
+      "sha256": "1a835feeceffc6b38ddf6613fe1c76e11dda1ab6fdb641928fe319d29e8975a1",
+      "bytes": 26686
+    },
+    {
+      "path": "latest_native/legacy_policy.py",
+      "sha256": "16394e2f0d6e358d2acc60e8e2f4ce221224adc452524316dfcaa3d9e6bff9d7",
+      "bytes": 12679
+    },
+    {
+      "path": "latest_native/runner.py",
+      "sha256": "cf5097a461aa5f3ea5ddb1c25f24861bf1675bd5bcc976295f99d4b1a4210946",
+      "bytes": 7522
+    },
+    {
+      "path": "latest_native/execution.py",
+      "sha256": "f898b269727a7560ab13758d9286ebae30cea3cb0c91a04b47a8a5b877c54f8d",
+      "bytes": 20205
+    },
+    {
+      "path": "latest_native/shared_helpers.py",
+      "sha256": "a603f86183c125230ebc15dd5079edd5ea616a4b076a24265fb7bae8caad9591",
+      "bytes": 15146
+    },
+    {
+      "path": "latest_native/standard_normal_seed42.npy",
+      "sha256": "d0e391dd9955c7cd89bc64791efc6d1c5e49aad6e5b9127e51b873130f4eaa82",
+      "bytes": 1304768
+    },
+    {
+      "path": "latest_native/standard_normal_seed43.npy",
+      "sha256": "1777a094a3d6cc78845b91d59f64a92b16aecd90340107d9a69b60c07354dd3f",
+      "bytes": 1304768
+    },
+    {
+      "path": "latest_native/standard_normal_seed44.npy",
+      "sha256": "2c810449046fa2b089f76a65933b0cdf1e0b25a845cd96a4080b386a74904933",
+      "bytes": 1304768
+    },
+    {
+      "path": "latest_native/targets.npy",
+      "sha256": "73d1ec9916f4a2a4f85e11fb88d84f1cb472bf0d0254b4df6927485868b253e1",
+      "bytes": 1304768
+    },
+    {
+      "path": "latest_native/RESULTS.md",
+      "sha256": "e8389833b952f36023bd151d62efd0da02a6f3bd2d339240f7071ab4834aa709",
+      "bytes": 7043
+    },
+    {
+      "path": "latest_native/figures/barrido_estrategia_largo_profit.png",
+      "sha256": "fa13b33bdeb35b1b7d8ac7e788c46117bc4738db45ea6b2a5cec2044237d4d7c",
+      "bytes": 201490
+    },
+    {
+      "path": "latest_native/figures/barrido_estrategia_largo_sharpe.png",
+      "sha256": "c9cdd4d75f2106feed3e42b59ab3698b7b5339f17497e97bd11b040c83b72baf",
+      "bytes": 232010
+    },
+    {
+      "path": "latest_native/figures/barrido_estrategia_corto_profit.png",
+      "sha256": "a3474e82156bd934486b1a031e4537714e1b94ff035fb0d76691af68a00f45d4",
+      "bytes": 197123
+    },
+    {
+      "path": "latest_native/figures/barrido_estrategia_corto_sharpe.png",
+      "sha256": "e835211b839398ce539e559e88a0f1a189a56a289d70ce6d69204718de45a40a",
+      "bytes": 227045
+    }
+  ]
+}

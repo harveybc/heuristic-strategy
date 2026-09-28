@@ -1,0 +1,8 @@
+{
+  "status": "COMPLETE",
+  "cells": 241,
+  "cpu_seconds": 1461.692917632,
+  "manifest_sha256": "958726415c09ced866c7d8164dfe4e49b99b4ccb8e0e5e7059fa26effdbba94f",
+  "results_sha256": "c15eebbe0a1910e5edca46ca6fec819ecb955ea613444d89736124b74ccf9eca",
+  "sweep_sha256": "27c7e6ecde08e596a7347d52d20e71ae139d5a166f34b65aadbf3489793266bc"
+}

@@ -1,0 +1,71 @@
+{
+  "status": "VERIFIED",
+  "scope": "timestamps, forecasts consumed, fills, independent cash/equity, costs and metrics; native default-E decision oracle",
+  "cells": 241,
+  "n_origins": 13590,
+  "n_by_horizon": {
+    "1": 13589,
+    "2": 13588,
+    "3": 13588,
+    "4": 13588,
+    "5": 13589,
+    "6": 13590,
+    "24": 10756,
+    "48": 7146,
+    "72": 6239,
+    "96": 6279,
+    "120": 9860,
+    "144": 13590
+  },
+  "naive": {
+    "1": 0.0006574884097431748,
+    "2": 0.0009391566087724461,
+    "3": 0.0011625051516043563,
+    "4": 0.0013616978216072994,
+    "5": 0.001538528957244829,
+    "6": 0.0017059896983075775,
+    "24": 0.0036340172926738546,
+    "48": 0.005277969493422892,
+    "72": 0.005311266228562268,
+    "96": 0.005406427775123426,
+    "120": 0.006517609533468559,
+    "144": 0.007522118469462839
+  },
+  "max_mae_difference": 3.469446951953614e-18,
+  "sigma_naive_H144": 0.009465237869817598,
+  "manifest_sha256": "958726415c09ced866c7d8164dfe4e49b99b4ccb8e0e5e7059fa26effdbba94f",
+  "verifier_sha256": "2f6b0a5a06e1acde29bd8b437ee6b1f420d379d22160eed784a7e37b68efbb7b",
+  "naive_markers": {
+    "6": {
+      "naive_mae": 0.0017059896983075775,
+      "sigma": 0.002143103851041743,
+      "mae_per_seed": [
+        0.0017090310006851218,
+        0.0016945072364405228,
+        0.0017144308577970904
+      ],
+      "mae_mean": 0.0017059896983075782,
+      "n": 13590,
+      "trading_at_exact_sigma_sampled": true
+    },
+    "144": {
+      "naive_mae": 0.007522118469462839,
+      "sigma": 0.009465237869817598,
+      "mae_per_seed": [
+        0.007537954317959415,
+        0.0075609321724473665,
+        0.007467468917981736
+      ],
+      "mae_mean": 0.007522118469462839,
+      "n": 13590,
+      "trading_at_exact_sigma_sampled": true
+    }
+  },
+  "entry_margin_fractions": {
+    "n": 60494,
+    "min": 0.006717303726171934,
+    "max": 0.050000000000008094,
+    "limit": 0.05
+  },
+  "limitation": "native CLOSE-only TP/SL, next-open execution and synthetic fixed costs; not tick/bid-ask execution"
+}

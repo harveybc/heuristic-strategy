@@ -1,0 +1,2018 @@
+[
+  {
+    "cell": "seed42_c1_l0",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0,
+    "scenario": "long_naive",
+    "ratio": 0
+  },
+  {
+    "cell": "seed43_c1_l0",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0,
+    "scenario": "long_naive",
+    "ratio": 0
+  },
+  {
+    "cell": "seed44_c1_l0",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0,
+    "scenario": "long_naive",
+    "ratio": 0
+  },
+  {
+    "cell": "seed42_c1_l0.05",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.05,
+    "scenario": "long_naive",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed43_c1_l0.05",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.05,
+    "scenario": "long_naive",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed44_c1_l0.05",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.05,
+    "scenario": "long_naive",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed42_c1_l0.1",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.1,
+    "scenario": "long_naive",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed43_c1_l0.1",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.1,
+    "scenario": "long_naive",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed44_c1_l0.1",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.1,
+    "scenario": "long_naive",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed42_c1_l0.15",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.15,
+    "scenario": "long_naive",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed43_c1_l0.15",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.15,
+    "scenario": "long_naive",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed44_c1_l0.15",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.15,
+    "scenario": "long_naive",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed42_c1_l0.2",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.2,
+    "scenario": "long_naive",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed43_c1_l0.2",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.2,
+    "scenario": "long_naive",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed44_c1_l0.2",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.2,
+    "scenario": "long_naive",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed42_c1_l0.3",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.3,
+    "scenario": "long_naive",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed43_c1_l0.3",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.3,
+    "scenario": "long_naive",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed44_c1_l0.3",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.3,
+    "scenario": "long_naive",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed42_c1_l0.4",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.4,
+    "scenario": "long_naive",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed43_c1_l0.4",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.4,
+    "scenario": "long_naive",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed44_c1_l0.4",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.4,
+    "scenario": "long_naive",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed42_c1_l0.5",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.5,
+    "scenario": "long_naive",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed43_c1_l0.5",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.5,
+    "scenario": "long_naive",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed44_c1_l0.5",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.5,
+    "scenario": "long_naive",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed42_c1_l0.6",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.6,
+    "scenario": "long_naive",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed43_c1_l0.6",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.6,
+    "scenario": "long_naive",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed44_c1_l0.6",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.6,
+    "scenario": "long_naive",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed42_c1_l0.75",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.75,
+    "scenario": "long_naive",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed43_c1_l0.75",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.75,
+    "scenario": "long_naive",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed44_c1_l0.75",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.75,
+    "scenario": "long_naive",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed42_c1_l0.9",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.9,
+    "scenario": "long_naive",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed43_c1_l0.9",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.9,
+    "scenario": "long_naive",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed44_c1_l0.9",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.9,
+    "scenario": "long_naive",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed42_c1_l0.95",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0.95,
+    "scenario": "long_naive",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed43_c1_l0.95",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0.95,
+    "scenario": "long_naive",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed44_c1_l0.95",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0.95,
+    "scenario": "long_naive",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed42_c1_l1",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 1,
+    "scenario": "long_naive",
+    "ratio": 1
+  },
+  {
+    "cell": "seed43_c1_l1",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 1,
+    "scenario": "long_naive",
+    "ratio": 1
+  },
+  {
+    "cell": "seed44_c1_l1",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 1,
+    "scenario": "long_naive",
+    "ratio": 1
+  },
+  {
+    "cell": "seed42_c1_l1.05",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 1.05,
+    "scenario": "long_naive",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed43_c1_l1.05",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 1.05,
+    "scenario": "long_naive",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed44_c1_l1.05",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 1.05,
+    "scenario": "long_naive",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed42_c1_l1.1",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 1.1,
+    "scenario": "long_naive",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed43_c1_l1.1",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 1.1,
+    "scenario": "long_naive",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed44_c1_l1.1",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 1.1,
+    "scenario": "long_naive",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed42_c1_l1.25",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 1.25,
+    "scenario": "long_naive",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed43_c1_l1.25",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 1.25,
+    "scenario": "long_naive",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed44_c1_l1.25",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 1.25,
+    "scenario": "long_naive",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed42_c1_l1.5",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 1.5,
+    "scenario": "long_naive",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed43_c1_l1.5",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 1.5,
+    "scenario": "long_naive",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed44_c1_l1.5",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 1.5,
+    "scenario": "long_naive",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed42_c1_l1.75",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 1.75,
+    "scenario": "long_naive",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed43_c1_l1.75",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 1.75,
+    "scenario": "long_naive",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed44_c1_l1.75",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 1.75,
+    "scenario": "long_naive",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed42_c1_l2",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 2,
+    "scenario": "long_naive",
+    "ratio": 2
+  },
+  {
+    "cell": "seed43_c1_l2",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 2,
+    "scenario": "long_naive",
+    "ratio": 2
+  },
+  {
+    "cell": "seed44_c1_l2",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 2,
+    "scenario": "long_naive",
+    "ratio": 2
+  },
+  {
+    "cell": "seed42_c1_l2.5",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 2.5,
+    "scenario": "long_naive",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed43_c1_l2.5",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 2.5,
+    "scenario": "long_naive",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed44_c1_l2.5",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 2.5,
+    "scenario": "long_naive",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed42_c1_l3",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 3,
+    "scenario": "long_naive",
+    "ratio": 3
+  },
+  {
+    "cell": "seed43_c1_l3",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 3,
+    "scenario": "long_naive",
+    "ratio": 3
+  },
+  {
+    "cell": "seed44_c1_l3",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 3,
+    "scenario": "long_naive",
+    "ratio": 3
+  },
+  {
+    "cell": "seed42_c0_l1",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0
+  },
+  {
+    "cell": "seed43_c0_l1",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0
+  },
+  {
+    "cell": "seed44_c0_l1",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0
+  },
+  {
+    "cell": "seed42_c0.05_l1",
+    "seed": 42,
+    "short_ratio": 0.05,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed43_c0.05_l1",
+    "seed": 43,
+    "short_ratio": 0.05,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed44_c0.05_l1",
+    "seed": 44,
+    "short_ratio": 0.05,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed42_c0.1_l1",
+    "seed": 42,
+    "short_ratio": 0.1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed43_c0.1_l1",
+    "seed": 43,
+    "short_ratio": 0.1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed44_c0.1_l1",
+    "seed": 44,
+    "short_ratio": 0.1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed42_c0.15_l1",
+    "seed": 42,
+    "short_ratio": 0.15,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed43_c0.15_l1",
+    "seed": 43,
+    "short_ratio": 0.15,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed44_c0.15_l1",
+    "seed": 44,
+    "short_ratio": 0.15,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed42_c0.2_l1",
+    "seed": 42,
+    "short_ratio": 0.2,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed43_c0.2_l1",
+    "seed": 43,
+    "short_ratio": 0.2,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed44_c0.2_l1",
+    "seed": 44,
+    "short_ratio": 0.2,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed42_c0.3_l1",
+    "seed": 42,
+    "short_ratio": 0.3,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed43_c0.3_l1",
+    "seed": 43,
+    "short_ratio": 0.3,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed44_c0.3_l1",
+    "seed": 44,
+    "short_ratio": 0.3,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed42_c0.4_l1",
+    "seed": 42,
+    "short_ratio": 0.4,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed43_c0.4_l1",
+    "seed": 43,
+    "short_ratio": 0.4,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed44_c0.4_l1",
+    "seed": 44,
+    "short_ratio": 0.4,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed42_c0.5_l1",
+    "seed": 42,
+    "short_ratio": 0.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed43_c0.5_l1",
+    "seed": 43,
+    "short_ratio": 0.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed44_c0.5_l1",
+    "seed": 44,
+    "short_ratio": 0.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed42_c0.6_l1",
+    "seed": 42,
+    "short_ratio": 0.6,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed43_c0.6_l1",
+    "seed": 43,
+    "short_ratio": 0.6,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed44_c0.6_l1",
+    "seed": 44,
+    "short_ratio": 0.6,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed42_c0.75_l1",
+    "seed": 42,
+    "short_ratio": 0.75,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed43_c0.75_l1",
+    "seed": 43,
+    "short_ratio": 0.75,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed44_c0.75_l1",
+    "seed": 44,
+    "short_ratio": 0.75,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed42_c0.9_l1",
+    "seed": 42,
+    "short_ratio": 0.9,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed43_c0.9_l1",
+    "seed": 43,
+    "short_ratio": 0.9,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed44_c0.9_l1",
+    "seed": 44,
+    "short_ratio": 0.9,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed42_c0.95_l1",
+    "seed": 42,
+    "short_ratio": 0.95,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed43_c0.95_l1",
+    "seed": 43,
+    "short_ratio": 0.95,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed44_c0.95_l1",
+    "seed": 44,
+    "short_ratio": 0.95,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed42_c1_l1",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1
+  },
+  {
+    "cell": "seed43_c1_l1",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1
+  },
+  {
+    "cell": "seed44_c1_l1",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1
+  },
+  {
+    "cell": "seed42_c1.05_l1",
+    "seed": 42,
+    "short_ratio": 1.05,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed43_c1.05_l1",
+    "seed": 43,
+    "short_ratio": 1.05,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed44_c1.05_l1",
+    "seed": 44,
+    "short_ratio": 1.05,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed42_c1.1_l1",
+    "seed": 42,
+    "short_ratio": 1.1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed43_c1.1_l1",
+    "seed": 43,
+    "short_ratio": 1.1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed44_c1.1_l1",
+    "seed": 44,
+    "short_ratio": 1.1,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed42_c1.25_l1",
+    "seed": 42,
+    "short_ratio": 1.25,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed43_c1.25_l1",
+    "seed": 43,
+    "short_ratio": 1.25,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed44_c1.25_l1",
+    "seed": 44,
+    "short_ratio": 1.25,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed42_c1.5_l1",
+    "seed": 42,
+    "short_ratio": 1.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed43_c1.5_l1",
+    "seed": 43,
+    "short_ratio": 1.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed44_c1.5_l1",
+    "seed": 44,
+    "short_ratio": 1.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed42_c1.75_l1",
+    "seed": 42,
+    "short_ratio": 1.75,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed43_c1.75_l1",
+    "seed": 43,
+    "short_ratio": 1.75,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed44_c1.75_l1",
+    "seed": 44,
+    "short_ratio": 1.75,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed42_c2_l1",
+    "seed": 42,
+    "short_ratio": 2,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 2
+  },
+  {
+    "cell": "seed43_c2_l1",
+    "seed": 43,
+    "short_ratio": 2,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 2
+  },
+  {
+    "cell": "seed44_c2_l1",
+    "seed": 44,
+    "short_ratio": 2,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 2
+  },
+  {
+    "cell": "seed42_c2.5_l1",
+    "seed": 42,
+    "short_ratio": 2.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed43_c2.5_l1",
+    "seed": 43,
+    "short_ratio": 2.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed44_c2.5_l1",
+    "seed": 44,
+    "short_ratio": 2.5,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed42_c3_l1",
+    "seed": 42,
+    "short_ratio": 3,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 3
+  },
+  {
+    "cell": "seed43_c3_l1",
+    "seed": 43,
+    "short_ratio": 3,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 3
+  },
+  {
+    "cell": "seed44_c3_l1",
+    "seed": 44,
+    "short_ratio": 3,
+    "long_ratio": 1,
+    "scenario": "short_naive",
+    "ratio": 3
+  },
+  {
+    "cell": "seed42_c0_l0",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0,
+    "scenario": "long_ideal",
+    "ratio": 0
+  },
+  {
+    "cell": "seed43_c0_l0",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0,
+    "scenario": "long_ideal",
+    "ratio": 0
+  },
+  {
+    "cell": "seed44_c0_l0",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0,
+    "scenario": "long_ideal",
+    "ratio": 0
+  },
+  {
+    "cell": "seed42_c0_l0.05",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.05,
+    "scenario": "long_ideal",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed43_c0_l0.05",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.05,
+    "scenario": "long_ideal",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed44_c0_l0.05",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.05,
+    "scenario": "long_ideal",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed42_c0_l0.1",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.1,
+    "scenario": "long_ideal",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed43_c0_l0.1",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.1,
+    "scenario": "long_ideal",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed44_c0_l0.1",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.1,
+    "scenario": "long_ideal",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed42_c0_l0.15",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.15,
+    "scenario": "long_ideal",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed43_c0_l0.15",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.15,
+    "scenario": "long_ideal",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed44_c0_l0.15",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.15,
+    "scenario": "long_ideal",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed42_c0_l0.2",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.2,
+    "scenario": "long_ideal",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed43_c0_l0.2",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.2,
+    "scenario": "long_ideal",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed44_c0_l0.2",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.2,
+    "scenario": "long_ideal",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed42_c0_l0.3",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.3,
+    "scenario": "long_ideal",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed43_c0_l0.3",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.3,
+    "scenario": "long_ideal",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed44_c0_l0.3",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.3,
+    "scenario": "long_ideal",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed42_c0_l0.4",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.4,
+    "scenario": "long_ideal",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed43_c0_l0.4",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.4,
+    "scenario": "long_ideal",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed44_c0_l0.4",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.4,
+    "scenario": "long_ideal",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed42_c0_l0.5",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.5,
+    "scenario": "long_ideal",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed43_c0_l0.5",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.5,
+    "scenario": "long_ideal",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed44_c0_l0.5",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.5,
+    "scenario": "long_ideal",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed42_c0_l0.6",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.6,
+    "scenario": "long_ideal",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed43_c0_l0.6",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.6,
+    "scenario": "long_ideal",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed44_c0_l0.6",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.6,
+    "scenario": "long_ideal",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed42_c0_l0.75",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.75,
+    "scenario": "long_ideal",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed43_c0_l0.75",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.75,
+    "scenario": "long_ideal",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed44_c0_l0.75",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.75,
+    "scenario": "long_ideal",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed42_c0_l0.9",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.9,
+    "scenario": "long_ideal",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed43_c0_l0.9",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.9,
+    "scenario": "long_ideal",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed44_c0_l0.9",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.9,
+    "scenario": "long_ideal",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed42_c0_l0.95",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0.95,
+    "scenario": "long_ideal",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed43_c0_l0.95",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0.95,
+    "scenario": "long_ideal",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed44_c0_l0.95",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0.95,
+    "scenario": "long_ideal",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed42_c0_l1",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 1,
+    "scenario": "long_ideal",
+    "ratio": 1
+  },
+  {
+    "cell": "seed43_c0_l1",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 1,
+    "scenario": "long_ideal",
+    "ratio": 1
+  },
+  {
+    "cell": "seed44_c0_l1",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 1,
+    "scenario": "long_ideal",
+    "ratio": 1
+  },
+  {
+    "cell": "seed42_c0_l1.05",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 1.05,
+    "scenario": "long_ideal",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed43_c0_l1.05",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 1.05,
+    "scenario": "long_ideal",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed44_c0_l1.05",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 1.05,
+    "scenario": "long_ideal",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed42_c0_l1.1",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 1.1,
+    "scenario": "long_ideal",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed43_c0_l1.1",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 1.1,
+    "scenario": "long_ideal",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed44_c0_l1.1",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 1.1,
+    "scenario": "long_ideal",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed42_c0_l1.25",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 1.25,
+    "scenario": "long_ideal",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed43_c0_l1.25",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 1.25,
+    "scenario": "long_ideal",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed44_c0_l1.25",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 1.25,
+    "scenario": "long_ideal",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed42_c0_l1.5",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 1.5,
+    "scenario": "long_ideal",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed43_c0_l1.5",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 1.5,
+    "scenario": "long_ideal",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed44_c0_l1.5",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 1.5,
+    "scenario": "long_ideal",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed42_c0_l1.75",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 1.75,
+    "scenario": "long_ideal",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed43_c0_l1.75",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 1.75,
+    "scenario": "long_ideal",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed44_c0_l1.75",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 1.75,
+    "scenario": "long_ideal",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed42_c0_l2",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 2,
+    "scenario": "long_ideal",
+    "ratio": 2
+  },
+  {
+    "cell": "seed43_c0_l2",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 2,
+    "scenario": "long_ideal",
+    "ratio": 2
+  },
+  {
+    "cell": "seed44_c0_l2",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 2,
+    "scenario": "long_ideal",
+    "ratio": 2
+  },
+  {
+    "cell": "seed42_c0_l2.5",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 2.5,
+    "scenario": "long_ideal",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed43_c0_l2.5",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 2.5,
+    "scenario": "long_ideal",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed44_c0_l2.5",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 2.5,
+    "scenario": "long_ideal",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed42_c0_l3",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 3,
+    "scenario": "long_ideal",
+    "ratio": 3
+  },
+  {
+    "cell": "seed43_c0_l3",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 3,
+    "scenario": "long_ideal",
+    "ratio": 3
+  },
+  {
+    "cell": "seed44_c0_l3",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 3,
+    "scenario": "long_ideal",
+    "ratio": 3
+  },
+  {
+    "cell": "seed42_c0_l0",
+    "seed": 42,
+    "short_ratio": 0,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0
+  },
+  {
+    "cell": "seed43_c0_l0",
+    "seed": 43,
+    "short_ratio": 0,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0
+  },
+  {
+    "cell": "seed44_c0_l0",
+    "seed": 44,
+    "short_ratio": 0,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0
+  },
+  {
+    "cell": "seed42_c0.05_l0",
+    "seed": 42,
+    "short_ratio": 0.05,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed43_c0.05_l0",
+    "seed": 43,
+    "short_ratio": 0.05,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed44_c0.05_l0",
+    "seed": 44,
+    "short_ratio": 0.05,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.05
+  },
+  {
+    "cell": "seed42_c0.1_l0",
+    "seed": 42,
+    "short_ratio": 0.1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed43_c0.1_l0",
+    "seed": 43,
+    "short_ratio": 0.1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed44_c0.1_l0",
+    "seed": 44,
+    "short_ratio": 0.1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.1
+  },
+  {
+    "cell": "seed42_c0.15_l0",
+    "seed": 42,
+    "short_ratio": 0.15,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed43_c0.15_l0",
+    "seed": 43,
+    "short_ratio": 0.15,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed44_c0.15_l0",
+    "seed": 44,
+    "short_ratio": 0.15,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.15
+  },
+  {
+    "cell": "seed42_c0.2_l0",
+    "seed": 42,
+    "short_ratio": 0.2,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed43_c0.2_l0",
+    "seed": 43,
+    "short_ratio": 0.2,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed44_c0.2_l0",
+    "seed": 44,
+    "short_ratio": 0.2,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.2
+  },
+  {
+    "cell": "seed42_c0.3_l0",
+    "seed": 42,
+    "short_ratio": 0.3,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed43_c0.3_l0",
+    "seed": 43,
+    "short_ratio": 0.3,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed44_c0.3_l0",
+    "seed": 44,
+    "short_ratio": 0.3,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.3
+  },
+  {
+    "cell": "seed42_c0.4_l0",
+    "seed": 42,
+    "short_ratio": 0.4,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed43_c0.4_l0",
+    "seed": 43,
+    "short_ratio": 0.4,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed44_c0.4_l0",
+    "seed": 44,
+    "short_ratio": 0.4,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.4
+  },
+  {
+    "cell": "seed42_c0.5_l0",
+    "seed": 42,
+    "short_ratio": 0.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed43_c0.5_l0",
+    "seed": 43,
+    "short_ratio": 0.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed44_c0.5_l0",
+    "seed": 44,
+    "short_ratio": 0.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.5
+  },
+  {
+    "cell": "seed42_c0.6_l0",
+    "seed": 42,
+    "short_ratio": 0.6,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed43_c0.6_l0",
+    "seed": 43,
+    "short_ratio": 0.6,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed44_c0.6_l0",
+    "seed": 44,
+    "short_ratio": 0.6,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.6
+  },
+  {
+    "cell": "seed42_c0.75_l0",
+    "seed": 42,
+    "short_ratio": 0.75,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed43_c0.75_l0",
+    "seed": 43,
+    "short_ratio": 0.75,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed44_c0.75_l0",
+    "seed": 44,
+    "short_ratio": 0.75,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.75
+  },
+  {
+    "cell": "seed42_c0.9_l0",
+    "seed": 42,
+    "short_ratio": 0.9,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed43_c0.9_l0",
+    "seed": 43,
+    "short_ratio": 0.9,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed44_c0.9_l0",
+    "seed": 44,
+    "short_ratio": 0.9,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.9
+  },
+  {
+    "cell": "seed42_c0.95_l0",
+    "seed": 42,
+    "short_ratio": 0.95,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed43_c0.95_l0",
+    "seed": 43,
+    "short_ratio": 0.95,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed44_c0.95_l0",
+    "seed": 44,
+    "short_ratio": 0.95,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 0.95
+  },
+  {
+    "cell": "seed42_c1_l0",
+    "seed": 42,
+    "short_ratio": 1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1
+  },
+  {
+    "cell": "seed43_c1_l0",
+    "seed": 43,
+    "short_ratio": 1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1
+  },
+  {
+    "cell": "seed44_c1_l0",
+    "seed": 44,
+    "short_ratio": 1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1
+  },
+  {
+    "cell": "seed42_c1.05_l0",
+    "seed": 42,
+    "short_ratio": 1.05,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed43_c1.05_l0",
+    "seed": 43,
+    "short_ratio": 1.05,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed44_c1.05_l0",
+    "seed": 44,
+    "short_ratio": 1.05,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.05
+  },
+  {
+    "cell": "seed42_c1.1_l0",
+    "seed": 42,
+    "short_ratio": 1.1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed43_c1.1_l0",
+    "seed": 43,
+    "short_ratio": 1.1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed44_c1.1_l0",
+    "seed": 44,
+    "short_ratio": 1.1,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.1
+  },
+  {
+    "cell": "seed42_c1.25_l0",
+    "seed": 42,
+    "short_ratio": 1.25,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed43_c1.25_l0",
+    "seed": 43,
+    "short_ratio": 1.25,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed44_c1.25_l0",
+    "seed": 44,
+    "short_ratio": 1.25,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.25
+  },
+  {
+    "cell": "seed42_c1.5_l0",
+    "seed": 42,
+    "short_ratio": 1.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed43_c1.5_l0",
+    "seed": 43,
+    "short_ratio": 1.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed44_c1.5_l0",
+    "seed": 44,
+    "short_ratio": 1.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.5
+  },
+  {
+    "cell": "seed42_c1.75_l0",
+    "seed": 42,
+    "short_ratio": 1.75,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed43_c1.75_l0",
+    "seed": 43,
+    "short_ratio": 1.75,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed44_c1.75_l0",
+    "seed": 44,
+    "short_ratio": 1.75,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 1.75
+  },
+  {
+    "cell": "seed42_c2_l0",
+    "seed": 42,
+    "short_ratio": 2,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 2
+  },
+  {
+    "cell": "seed43_c2_l0",
+    "seed": 43,
+    "short_ratio": 2,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 2
+  },
+  {
+    "cell": "seed44_c2_l0",
+    "seed": 44,
+    "short_ratio": 2,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 2
+  },
+  {
+    "cell": "seed42_c2.5_l0",
+    "seed": 42,
+    "short_ratio": 2.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed43_c2.5_l0",
+    "seed": 43,
+    "short_ratio": 2.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed44_c2.5_l0",
+    "seed": 44,
+    "short_ratio": 2.5,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 2.5
+  },
+  {
+    "cell": "seed42_c3_l0",
+    "seed": 42,
+    "short_ratio": 3,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 3
+  },
+  {
+    "cell": "seed43_c3_l0",
+    "seed": 43,
+    "short_ratio": 3,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 3
+  },
+  {
+    "cell": "seed44_c3_l0",
+    "seed": 44,
+    "short_ratio": 3,
+    "long_ratio": 0,
+    "scenario": "short_ideal",
+    "ratio": 3
+  }
+]
