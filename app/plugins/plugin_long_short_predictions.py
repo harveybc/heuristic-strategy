@@ -4,6 +4,16 @@ import backtrader as bt
 import pandas as pd
 import numpy as np
 import os as _os
+from app.account_convention import (
+    SUCCESSOR,
+    commission_cash,
+    compute_successor_order_size,
+    configure_successor_broker,
+    debit_cash,
+    order_state_name,
+    reconcile_book,
+    swap_cash,
+)
 from app.policies.prediction_entry_exit import (
     PredictionEntryExitParameters,
     calculate_entry_geometry,
@@ -37,6 +47,11 @@ class Plugin:
         'min_order_volume': 10000,
         'max_order_volume': 1000000,
         'leverage': 100,              # realistic retail leverage (not 1000)
+        # Fraction of equity that may be posted as margin. Not above 0.05.
+        # evaluate_candidate uses the successor book. The 781022a reproduction
+        # passes accounting_convention='legacy' and does not read this cap.
+        'margin_fraction': 0.05,
+        'accounting_convention': 'successor',
         'profit_threshold': 5,
         'min_drawdown_pips': 10,
         'tp_multiplier': 0.9,
@@ -46,10 +61,10 @@ class Plugin:
         'max_trades_per_5days': 3,
         'exit_variant': 'E',
         # Trading costs (worst-case retail EURUSD)
-        'spread_pips': 2.0,           # 2 pip spread per trade
-        'commission_per_lot': 7.0,    # $7 per 100K lot round-trip
-        'slippage_pips': 1.0,         # 1 pip slippage per trade
-        'swap_per_lot_per_day': 10.0, # $10 per 100K lot per night (overnight fee)
+        'spread_pips': 2.0,           # 2 pip spread, applied as price slippage per side
+        'commission_per_lot': 7.0,    # /100000, per side, fraction of fill price
+        'slippage_pips': 1.0,         # 1 pip slippage, applied as price slippage per side
+        'swap_per_lot_per_day': 10.0, # 10 currency units per 100K units per 24h
     }
 
     def __init__(self):
@@ -148,25 +163,30 @@ class Plugin:
             upper_rr_threshold=upper_rr,
             max_trades_per_5days=self.params['max_trades_per_5days'],
             exit_variant=self.params['exit_variant'],
-            swap_per_lot_per_day=self.params['swap_per_lot_per_day']
+            swap_per_lot_per_day=self.params['swap_per_lot_per_day'],
+            accounting_convention=SUCCESSOR,
+            margin_fraction=self.params['margin_fraction'],
+            commission_per_unit=self.params['commission_per_lot'] / 100000.0,
+            spread_pips=self.params['spread_pips'],
+            slippage_pips=self.params['slippage_pips'],
         )
         data_feed = bt.feeds.PandasData(dataname=base_data)
         cerebro.adddata(data_feed)
         cerebro.broker.setcash(10000.0)
 
-        # Apply realistic trading costs
-        spread_cost = self.params['spread_pips'] * self.params['pip_cost']  # spread in price units
-        slippage_cost = self.params['slippage_pips'] * self.params['pip_cost']  # slippage in price units
-        total_spread = spread_cost + slippage_cost  # total per-trade cost in price units
-        # Commission: $7 per 100K lot round-trip = 0.00007 per unit
+        spread_cost = self.params['spread_pips'] * self.params['pip_cost']
+        slippage_cost = self.params['slippage_pips'] * self.params['pip_cost']
+        total_spread = spread_cost + slippage_cost
         commission_per_unit = self.params['commission_per_lot'] / 100000.0
-        cerebro.broker.setcommission(
-            commission=commission_per_unit,  # per-unit commission
-            margin=None,
-            mult=1.0,
+        configure_successor_broker(
+            cerebro,
+            cash=10000.0,
+            leverage=self.params['leverage'],
+            margin_fraction=self.params['margin_fraction'],
+            commission_rate=commission_per_unit,
+            min_order_volume=self.params['min_order_volume'],
+            slippage_per_side=total_spread / 2.0,
         )
-        # Spread + slippage applied via slippage_fixed (total cost per side)
-        cerebro.broker.set_slippage_fixed(total_spread / 2.0, slip_open=True, slip_limit=True)
 
         # Run the backtest.
         try:
@@ -234,8 +254,23 @@ class Plugin:
                     leverage, profit_threshold, min_drawdown_pips,
                     tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
                     max_trades_per_5days, exit_variant='E', swap_per_lot_per_day=10.0,
+                    accounting_convention='legacy', margin_fraction=0.05,
+                    commission_per_unit=None, spread_pips=2.0, slippage_pips=1.0,
                     *args, **kwargs):
             super().__init__()
+            self.accounting_convention = accounting_convention
+            self.margin_fraction = margin_fraction
+            self.commission_per_unit = commission_per_unit
+            self.spread_pips = spread_pips
+            self.slippage_pips = slippage_pips
+            self.ledger = []
+            self.order_events = []
+            self.cap_events = []
+            self._swap_open_units = 0.0
+            self._swap_last_ts = None
+            self._swap_trade_total = 0.0
+            self._swap_for_report = 0.0
+            self.accounting_snapshot = None
             self.params.pred_file = pred_file
             self.params.pip_cost = pip_cost
             self.params.rel_volume = rel_volume
@@ -274,6 +309,8 @@ class Plugin:
             self.trade_entry_bar = None
 
         def next(self):
+            if self.accounting_convention == SUCCESSOR and self.position:
+                self._accrue_swap(self._bar_clock())
             dt = self.data0.datetime.datetime(0)
             dt_hour = dt.replace(minute=0, second=0, microsecond=0)
             current_price = self.data0.close[0]
@@ -432,15 +469,225 @@ class Plugin:
             )
 
         def compute_size(self, rr):
-            return compute_legacy_order_size(
+            if self.accounting_convention != SUCCESSOR:
+                return compute_legacy_order_size(
+                    reward_risk_ratio=rr,
+                    available_cash=self.broker.getcash(),
+                    params=self._policy_params(),
+                )
+            rate = self.commission_per_unit
+            if rate is None:
+                rate = 0.0
+            return compute_successor_order_size(
                 reward_risk_ratio=rr,
-                available_cash=self.broker.getcash(),
+                price=float(self.data0.close[0]),
+                equity=float(self.broker.getvalue()),
+                cash=float(self.broker.getcash()),
+                margin_fraction=self.margin_fraction,
+                leverage=float(self.params.leverage),
+                commission_rate=float(rate),
                 params=self._policy_params(),
             )
+
+        def buy(self, *args, **kwargs):
+            order = super().buy(*args, **kwargs)
+            self._mark_inflight(order, "buy")
+            return order
+
+        def sell(self, *args, **kwargs):
+            order = super().sell(*args, **kwargs)
+            self._mark_inflight(order, "sell")
+            return order
+
+        def close(self, *args, **kwargs):
+            order = super().close(*args, **kwargs)
+            self._mark_inflight(order, "close")
+            return order
+
+        def _mark_inflight(self, order, role):
+            if self.accounting_convention != SUCCESSOR or order is None:
+                return
+            self.order_events.append(
+                {
+                    "role": role,
+                    "state": "in_flight",
+                    "ref": int(order.ref),
+                    "size": float(order.size or 0.0),
+                    "clock": self._bar_clock().isoformat(),
+                }
+            )
+
+        def _bar_clock(self):
+            stamp = pd.Timestamp(self.data0.datetime.datetime(0))
+            if stamp.tzinfo is None:
+                return stamp.tz_localize("UTC")
+            return stamp.tz_convert("UTC")
+
+        def _accrue_swap(self, until):
+            if self.accounting_convention != SUCCESSOR:
+                return 0.0
+            if not self._swap_open_units or self._swap_last_ts is None:
+                return 0.0
+            elapsed = until - self._swap_last_ts
+            hours = elapsed.total_seconds() / 3600.0
+            if hours < 0.0:
+                raise ValueError("swap clock moved backwards")
+            amount = swap_cash(
+                self._swap_open_units,
+                hours,
+                float(self.p.swap_per_lot_per_day),
+            )
+            if amount == 0.0:
+                self._swap_last_ts = until
+                return 0.0
+            before = float(self.broker.getcash())
+            debit_cash(self.broker, amount)
+            after = float(self.broker.getcash())
+            self._swap_trade_total += amount
+            self._swap_last_ts = until
+            self.ledger.append(
+                {
+                    "kind": "swap",
+                    "amount": amount,
+                    "hours": hours,
+                    "clock": until.isoformat(),
+                    "units": float(self._swap_open_units),
+                    "debited_to_cash": True,
+                    "included_in_fill_price": False,
+                    "cash_before": before,
+                    "cash_after": after,
+                }
+            )
+            return amount
+
+        def _record_fill_costs(self, order):
+            price = float(order.executed.price)
+            size = float(order.executed.size)
+            rate = 0.0 if self.commission_per_unit is None else float(self.commission_per_unit)
+            open_price = float(self.data0.open[0])
+            applied = abs(price - open_price)
+            pip_weight = self.spread_pips + self.slippage_pips
+            spread_share = self.spread_pips / pip_weight if pip_weight else 0.0
+            slip_share = self.slippage_pips / pip_weight if pip_weight else 0.0
+            clock = self._bar_clock().isoformat()
+            self.ledger.append(
+                {
+                    "kind": "commission",
+                    "amount": commission_cash(size, price, rate),
+                    "clock": clock,
+                    "units": size,
+                    "price": price,
+                    "debited_to_cash": True,
+                    "included_in_fill_price": False,
+                    "cash_after": float(self.broker.getcash()),
+                }
+            )
+            self.ledger.append(
+                {
+                    "kind": "spread",
+                    "amount": applied * spread_share * abs(size),
+                    "clock": clock,
+                    "units": size,
+                    "price": price,
+                    "debited_to_cash": False,
+                    "included_in_fill_price": True,
+                }
+            )
+            self.ledger.append(
+                {
+                    "kind": "slippage",
+                    "amount": applied * slip_share * abs(size),
+                    "clock": clock,
+                    "units": size,
+                    "price": price,
+                    "debited_to_cash": False,
+                    "included_in_fill_price": True,
+                }
+            )
+
+        def _successor_on_fill(self, order):
+            self._record_fill_costs(order)
+            if self.position:
+                self.current_volume = abs(float(self.position.size))
+                self._swap_open_units = float(self.position.size)
+                self._swap_last_ts = self._bar_clock()
+                self._swap_trade_total = 0.0
+                return
+            self._accrue_swap(self._bar_clock())
+            self._swap_for_report = self._swap_trade_total
+            self._swap_open_units = 0.0
+            self._swap_last_ts = None
+            self._swap_trade_total = 0.0
+
+        def _successor_on_reject(self, order):
+            if self.position:
+                return
+            self.current_direction = None
+            self.current_tp = None
+            self.current_sl = None
+            self.current_volume = None
+            if self.trade_entry_dates:
+                self.trade_entry_dates.pop()
+            self._swap_open_units = 0.0
+            self._swap_last_ts = None
+            self._swap_trade_total = 0.0
+
+        def accounting_report(self):
+            position = float(self.position.size)
+            entry = float(self.position.price) if position else 0.0
+            mark = float(self.data0.close[0])
+            leverage = float(self.params.leverage)
+            cash = float(self.broker.getcash())
+            equity = float(self.broker.getvalue())
+            realized = float(sum(trade["pnl"] for trade in self.trades))
+            book = reconcile_book(
+                initial_cash=float(self.initial_balance),
+                cash=cash,
+                equity=equity,
+                position_units=position,
+                entry_price=entry,
+                mark_price=mark,
+                leverage=leverage,
+                realized_pnl=realized,
+            )
+            cap_events = list(getattr(self.broker, "cap_events", []))
+            return {
+                "cash": cash,
+                "equity": equity,
+                "position_units": position,
+                "entry_price": entry,
+                "mark_price": mark,
+                "leverage": leverage,
+                "margin_fraction": float(self.margin_fraction),
+                "initial_cash": float(self.initial_balance),
+                "realized_pnl": realized,
+                "ledger": list(self.ledger),
+                "orders": list(self.order_events),
+                "cap_events": cap_events,
+                "book": book,
+            }
 
 
 
         def notify_order(self, order):
+            if self.accounting_convention == SUCCESSOR:
+                self.order_events.append(
+                    {
+                        "state": order_state_name(order),
+                        "ref": int(order.ref),
+                        "size": float(order.size or 0.0),
+                        "clock": self._bar_clock().isoformat(),
+                    }
+                )
+                if order.status == order.Completed:
+                    self._successor_on_fill(order)
+                elif order.status in (
+                    order.Margin,
+                    order.Rejected,
+                    order.Canceled,
+                    order.Expired,
+                ):
+                    self._successor_on_reject(order)
             if order.status in [order.Completed]:
                 self.order_entry_price = order.executed.price
                 self.order_direction = 'long' if order.isbuy() else 'short'
@@ -451,13 +698,16 @@ class Plugin:
                 dt = self.data0.datetime.datetime(0)
                 entry_price = self.order_entry_price if self.order_entry_price is not None else 0
                 exit_price = trade.price
-                profit_usd = trade.pnlcomm
-                # Deduct swap/overnight costs: duration in 1h bars, swap per lot per day
-                overnight_days = max(0, duration / 24.0)
-                volume = self.current_volume if hasattr(self, "current_volume") and self.current_volume is not None else 0
-                lots = volume / 100000.0  # convert to standard lots
-                swap_cost = overnight_days * lots * self.p.swap_per_lot_per_day if hasattr(self.p, 'swap_per_lot_per_day') else 0
-                profit_usd -= swap_cost
+                if self.accounting_convention == SUCCESSOR:
+                    swap_cost = float(self._swap_for_report)
+                    self._swap_for_report = 0.0
+                else:
+                    # Bar-count swap stays on the legacy reproduction only.
+                    overnight_days = max(0, duration / 24.0)
+                    volume = self.current_volume if hasattr(self, "current_volume") and self.current_volume is not None else 0
+                    lots = volume / 100000.0  # convert to standard lots
+                    swap_cost = overnight_days * lots * self.p.swap_per_lot_per_day if hasattr(self.p, 'swap_per_lot_per_day') else 0
+                profit_usd = trade.pnlcomm - swap_cost
                 direction = self.order_direction
                 if direction == 'long':
                     profit_pips = (exit_price - entry_price) / self.p.pip_cost
@@ -479,6 +729,10 @@ class Plugin:
                     'duration': duration,
                     'max_dd': intra_dd
                 }
+                if self.accounting_convention == SUCCESSOR:
+                    trade_record['gross_pnl'] = float(trade.pnl)
+                    trade_record['commission'] = float(trade.pnl - trade.pnlcomm)
+                    trade_record['swap'] = float(swap_cost)
                 self.trades.append(trade_record)
                 if not _QUIET: print(f"[DEBUG]   TRADE CLOSED ({direction}): Date={dt}, Entry={entry_price:.5f}, Exit={exit_price:.5f}, "
                       f"Volume={trade_record['volume']}, PnL={profit_usd:.2f}, Pips={profit_pips:.2f}, "
@@ -491,6 +745,8 @@ class Plugin:
         
         
         def stop(self):
+            if self.accounting_convention == SUCCESSOR:
+                self.accounting_snapshot = self.accounting_report()
             if self.position:
                 self.close()
             min_balance = min(self.balance_history) if self.balance_history else 0

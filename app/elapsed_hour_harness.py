@@ -12,6 +12,7 @@ from typing import Iterable
 
 import pandas as pd
 
+from app.account_convention import LEGACY, SUCCESSOR, configure_successor_broker
 from app.plugins.plugin_long_short_predictions import Plugin
 from app.strategy_support import (
     ELAPSED_OFFSET_UNIT,
@@ -261,17 +262,19 @@ class _ObservedStrategy(Plugin.HeuristicStrategy):
 def _public_trades(trades: list[dict]) -> list[dict]:
     public = []
     for trade in trades:
-        public.append(
-            {
-                "open_dt": _iso(trade.get("open_dt")),
-                "close_dt": _iso(trade.get("close_dt")),
-                "volume": float(trade.get("volume", 0.0)),
-                "pnl": float(trade.get("pnl", 0.0)),
-                "pips": float(trade.get("pips", 0.0)),
-                "duration_bars": float(trade.get("duration", 0.0)),
-                "max_dd_pips": float(trade.get("max_dd", 0.0)),
-            }
-        )
+        row = {
+            "open_dt": _iso(trade.get("open_dt")),
+            "close_dt": _iso(trade.get("close_dt")),
+            "volume": float(trade.get("volume", 0.0)),
+            "pnl": float(trade.get("pnl", 0.0)),
+            "pips": float(trade.get("pips", 0.0)),
+            "duration_bars": float(trade.get("duration", 0.0)),
+            "max_dd_pips": float(trade.get("max_dd", 0.0)),
+        }
+        for key in ("gross_pnl", "commission", "swap"):
+            if key in trade:
+                row[key] = float(trade[key])
+        public.append(row)
     return public
 
 
@@ -378,6 +381,25 @@ def run_elapsed_hour_harness(
 
     initial_cash = float(config.get("initial_cash", 10000.0))
     cerebro = bt.Cerebro()
+    spread_cost = params["spread_pips"] * params["pip_cost"]
+    slippage_cost = params["slippage_pips"] * params["pip_cost"]
+    total_spread = spread_cost + slippage_cost
+    commission_per_unit = params["commission_per_lot"] / 100000.0
+    accounting = config.get("accounting_convention", params["accounting_convention"])
+    leverage = params["leverage"]
+    strategy_kwargs = {}
+    if accounting == SUCCESSOR:
+        margin_fraction = config.get("margin_fraction", params["margin_fraction"])
+        leverage = config.get("leverage", params["leverage"])
+        strategy_kwargs = {
+            "accounting_convention": SUCCESSOR,
+            "margin_fraction": margin_fraction,
+            "commission_per_unit": commission_per_unit,
+            "spread_pips": params["spread_pips"],
+            "slippage_pips": params["slippage_pips"],
+        }
+    elif accounting != LEGACY:
+        raise ValueError("accounting_convention must be successor or legacy")
     cerebro.addstrategy(
         _ObservedStrategy,
         pred_file=prediction_path,
@@ -385,7 +407,7 @@ def run_elapsed_hour_harness(
         rel_volume=params["rel_volume"],
         min_order_volume=params["min_order_volume"],
         max_order_volume=params["max_order_volume"],
-        leverage=params["leverage"],
+        leverage=leverage,
         profit_threshold=params["profit_threshold"],
         min_drawdown_pips=params["min_drawdown_pips"],
         tp_multiplier=params["tp_multiplier"],
@@ -395,16 +417,24 @@ def run_elapsed_hour_harness(
         max_trades_per_5days=params["max_trades_per_5days"],
         exit_variant="E",
         swap_per_lot_per_day=params["swap_per_lot_per_day"],
+        **strategy_kwargs,
     )
     cerebro.adddata(bt.feeds.PandasData(dataname=_broker_frame(broker_label)))
-    cerebro.broker.setcash(initial_cash)
-    cerebro.broker.set_coc(False)
-    spread_cost = params["spread_pips"] * params["pip_cost"]
-    slippage_cost = params["slippage_pips"] * params["pip_cost"]
-    total_spread = spread_cost + slippage_cost
-    commission_per_unit = params["commission_per_lot"] / 100000.0
-    cerebro.broker.setcommission(commission=commission_per_unit, margin=None, mult=1.0)
-    cerebro.broker.set_slippage_fixed(total_spread / 2.0, slip_open=True, slip_limit=True)
+    if accounting == SUCCESSOR:
+        configure_successor_broker(
+            cerebro,
+            cash=initial_cash,
+            leverage=float(leverage),
+            margin_fraction=margin_fraction,
+            commission_rate=commission_per_unit,
+            min_order_volume=params["min_order_volume"],
+            slippage_per_side=total_spread / 2.0,
+        )
+    else:
+        cerebro.broker.setcash(initial_cash)
+        cerebro.broker.set_coc(False)
+        cerebro.broker.setcommission(commission=commission_per_unit, margin=None, mult=1.0)
+        cerebro.broker.set_slippage_fixed(total_spread / 2.0, slip_open=True, slip_limit=True)
 
     previous = os.getcwd()
     os.chdir(work_directory)
@@ -421,7 +451,7 @@ def run_elapsed_hour_harness(
         for event in strategy.events
         if event["request"] in {"buy", "sell"}
     ]
-    return {
+    result = {
         "label": "SYNTHETIC",
         "prediction_generator": HARNESS_CONFIG_VALUE,
         "offset_unit": ELAPSED_OFFSET_UNIT,
@@ -483,3 +513,7 @@ def run_elapsed_hour_harness(
         "events": strategy.events,
         "equal_mae_note": EQUAL_MAE_NOTE,
     }
+    if accounting == SUCCESSOR:
+        result["accounting_convention"] = SUCCESSOR
+        result["accounting"] = strategy.accounting_snapshot
+    return result

@@ -391,6 +391,8 @@ def _arm_config(short_family, long_family, **extra):
         "long_family": long_family,
         "initial_cash": DECLARED_CAPITAL,
         "price_column": "CLOSE",
+        # 781022a reproduction. The successor book is a different convention.
+        "accounting_convention": "legacy",
     }
     config.update(extra)
     return config

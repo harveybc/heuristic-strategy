@@ -1,0 +1,794 @@
+{
+  "arms": {
+    "ideal/ideal": {
+      "cap_events": [
+        {
+          "action": "capped",
+          "allowed_units": 49999,
+          "margin_budget": 500.0,
+          "margin_used": 499.99749985,
+          "price": 1.000015,
+          "requested_units": 50000.0
+        },
+        {
+          "action": "accepted",
+          "allowed_units": 56329.0,
+          "margin_budget": 574.547425688333,
+          "margin_used": 574.5371508,
+          "price": 1.019985,
+          "requested_units": -56328.0
+        },
+        {
+          "action": "capped",
+          "allowed_units": 63035,
+          "margin_budget": 630.3692247283324,
+          "margin_used": 630.35945525,
+          "price": 1.000015,
+          "requested_units": 63036.0
+        }
+      ],
+      "cash": 12659.436486283295,
+      "collateral": 0.0,
+      "cost_sums": {
+        "commission": 23.898949549999998,
+        "slippage": 1.6936200000110953,
+        "spread": 3.3872400000221905,
+        "swap": 1.1487041666666666
+      },
+      "entry_sides": [
+        "long",
+        "short",
+        "long"
+      ],
+      "equity_gap": 0.0,
+      "fills": [
+        {
+          "datetime": "2019-05-01T01:00:00+00:00",
+          "is_buy": true,
+          "price": 1.000015,
+          "size": 49999.0
+        },
+        {
+          "datetime": "2019-05-01T03:00:00+00:00",
+          "is_buy": false,
+          "price": 1.029985,
+          "size": -49999.0
+        },
+        {
+          "datetime": "2019-05-01T05:00:00+00:00",
+          "is_buy": false,
+          "price": 1.019985,
+          "size": -56328.0
+        },
+        {
+          "datetime": "2019-05-01T07:00:00+00:00",
+          "is_buy": true,
+          "price": 1.000015,
+          "size": 56328.0
+        },
+        {
+          "datetime": "2019-05-01T09:00:00+00:00",
+          "is_buy": true,
+          "price": 1.000015,
+          "size": 63035.0
+        },
+        {
+          "datetime": "2019-05-01T10:00:00+00:00",
+          "is_buy": false,
+          "price": 1.0009849999999998,
+          "size": -63035.0
+        }
+      ],
+      "flat_cash_gap": 0.0,
+      "initial_cash": 10000.0,
+      "leverage": 100.0,
+      "long_family_mae": 0.0,
+      "mae_macro_average": 0.0,
+      "margin_fraction": 0.05,
+      "marked_equity": 12659.436486283295,
+      "n_closed_trades": 3,
+      "naive_macro_average": 0.009208333333333327,
+      "order_states": [
+        "Accepted",
+        "Completed",
+        "Submitted",
+        "in_flight"
+      ],
+      "pending_position_units": 0.0,
+      "per_horizon_mae": {
+        "1": 0.0,
+        "120": 0.0,
+        "144": 0.0,
+        "2": 0.0,
+        "24": 0.0,
+        "3": 0.0,
+        "4": 0.0,
+        "48": 0.0,
+        "5": 0.0,
+        "6": 0.0,
+        "72": 0.0,
+        "96": 0.0
+      },
+      "per_horizon_naive_mae": {
+        "1": 0.006000000000000005,
+        "120": 0.006749999999999978,
+        "144": 0.006249999999999978,
+        "2": 0.016750000000000015,
+        "24": 0.006749999999999978,
+        "3": 0.013750000000000012,
+        "4": 0.01050000000000001,
+        "48": 0.013000000000000012,
+        "5": 0.00874999999999998,
+        "6": 0.008000000000000007,
+        "72": 0.007500000000000007,
+        "96": 0.00649999999999995
+      },
+      "realized_pnl": 2659.4364862832954,
+      "short_family_mae": 0.0,
+      "trades": [
+        {
+          "close_dt": "2019-05-01T03:00:00+00:00",
+          "commission": 7.10485790000007,
+          "duration_bars": 3.0,
+          "gross_pnl": 1498.4700299999915,
+          "max_dd_pips": -2998.4999999999927,
+          "open_dt": "2019-05-01T00:00:00+00:00",
+          "pips": 2996.9999999999827,
+          "pnl": 1490.9485137666582,
+          "swap": 0.41665833333333335,
+          "volume": 49999.0
+        },
+        {
+          "close_dt": "2019-05-01T07:00:00+00:00",
+          "commission": 7.964779200000066,
+          "duration_bars": 3.0,
+          "gross_pnl": 1124.87015999999,
+          "max_dd_pips": -1998.4999999999918,
+          "open_dt": "2019-05-01T04:00:00+00:00",
+          "pips": 1996.999999999982,
+          "pnl": 1116.43598079999,
+          "swap": 0.46939999999999993,
+          "volume": 56328.0
+        },
+        {
+          "close_dt": "2019-05-01T10:00:00+00:00",
+          "commission": 8.829312449999996,
+          "duration_bars": 2.0,
+          "gross_pnl": 61.14394999998067,
+          "max_dd_pips": -98.49999999997915,
+          "open_dt": "2019-05-01T08:00:00+00:00",
+          "pips": 96.99999999996932,
+          "pnl": 52.05199171664734,
+          "swap": 0.2626458333333333,
+          "volume": 63035.0
+        }
+      ],
+      "unrealized_pnl": 0.0
+    },
+    "ideal/persistence": {
+      "cap_events": [],
+      "cash": 10000.0,
+      "collateral": 0.0,
+      "cost_sums": {
+        "commission": 0.0,
+        "slippage": 0.0,
+        "spread": 0.0,
+        "swap": 0.0
+      },
+      "entry_sides": [],
+      "equity_gap": 0.0,
+      "fills": [],
+      "flat_cash_gap": 0.0,
+      "initial_cash": 10000.0,
+      "leverage": 100.0,
+      "long_family_mae": 0.007791666666666651,
+      "mae_macro_average": 0.0038958333333333254,
+      "margin_fraction": 0.05,
+      "marked_equity": 10000.0,
+      "n_closed_trades": 0,
+      "naive_macro_average": 0.009208333333333327,
+      "order_states": [],
+      "pending_position_units": 0.0,
+      "per_horizon_mae": {
+        "1": 0.0,
+        "120": 0.006749999999999978,
+        "144": 0.006249999999999978,
+        "2": 0.0,
+        "24": 0.006749999999999978,
+        "3": 0.0,
+        "4": 0.0,
+        "48": 0.013000000000000012,
+        "5": 0.0,
+        "6": 0.0,
+        "72": 0.007500000000000007,
+        "96": 0.00649999999999995
+      },
+      "per_horizon_naive_mae": {
+        "1": 0.006000000000000005,
+        "120": 0.006749999999999978,
+        "144": 0.006249999999999978,
+        "2": 0.016750000000000015,
+        "24": 0.006749999999999978,
+        "3": 0.013750000000000012,
+        "4": 0.01050000000000001,
+        "48": 0.013000000000000012,
+        "5": 0.00874999999999998,
+        "6": 0.008000000000000007,
+        "72": 0.007500000000000007,
+        "96": 0.00649999999999995
+      },
+      "realized_pnl": 0.0,
+      "short_family_mae": 0.0,
+      "trades": [],
+      "unrealized_pnl": 0.0
+    },
+    "persistence/ideal": {
+      "cap_events": [
+        {
+          "action": "capped",
+          "allowed_units": 49999,
+          "margin_budget": 500.0,
+          "margin_used": 499.99749985,
+          "price": 1.000015,
+          "requested_units": 50000.0
+        },
+        {
+          "action": "accepted",
+          "allowed_units": 56329.0,
+          "margin_budget": 574.547425688333,
+          "margin_used": 574.5371508,
+          "price": 1.019985,
+          "requested_units": -56328.0
+        },
+        {
+          "action": "capped",
+          "allowed_units": 63035,
+          "margin_budget": 630.3692247283324,
+          "margin_used": 630.35945525,
+          "price": 1.000015,
+          "requested_units": 63036.0
+        }
+      ],
+      "cash": 11965.837377399974,
+      "collateral": 0.0,
+      "cost_sums": {
+        "commission": 23.8504126,
+        "slippage": 1.6936200000087624,
+        "spread": 3.387240000017525,
+        "swap": 1.4113499999999999
+      },
+      "entry_sides": [
+        "long",
+        "short",
+        "long"
+      ],
+      "equity_gap": 0.0,
+      "fills": [
+        {
+          "datetime": "2019-05-01T01:00:00+00:00",
+          "is_buy": true,
+          "price": 1.000015,
+          "size": 49999.0
+        },
+        {
+          "datetime": "2019-05-01T03:00:00+00:00",
+          "is_buy": false,
+          "price": 1.029985,
+          "size": -49999.0
+        },
+        {
+          "datetime": "2019-05-01T05:00:00+00:00",
+          "is_buy": false,
+          "price": 1.019985,
+          "size": -56328.0
+        },
+        {
+          "datetime": "2019-05-01T07:00:00+00:00",
+          "is_buy": true,
+          "price": 1.000015,
+          "size": 56328.0
+        },
+        {
+          "datetime": "2019-05-01T09:00:00+00:00",
+          "is_buy": true,
+          "price": 1.000015,
+          "size": 63035.0
+        },
+        {
+          "datetime": "2019-05-01T11:00:00+00:00",
+          "is_buy": false,
+          "price": 0.989985,
+          "size": -63035.0
+        }
+      ],
+      "flat_cash_gap": -1.5916157281026244e-12,
+      "initial_cash": 10000.0,
+      "leverage": 100.0,
+      "long_family_mae": 0.0,
+      "mae_macro_average": 0.005312500000000002,
+      "margin_fraction": 0.05,
+      "marked_equity": 11965.837377399974,
+      "n_closed_trades": 3,
+      "naive_macro_average": 0.009208333333333327,
+      "order_states": [
+        "Accepted",
+        "Completed",
+        "Submitted",
+        "in_flight"
+      ],
+      "pending_position_units": 0.0,
+      "per_horizon_mae": {
+        "1": 0.006000000000000005,
+        "120": 0.0,
+        "144": 0.0,
+        "2": 0.016750000000000015,
+        "24": 0.0,
+        "3": 0.013750000000000012,
+        "4": 0.01050000000000001,
+        "48": 0.0,
+        "5": 0.00874999999999998,
+        "6": 0.008000000000000007,
+        "72": 0.0,
+        "96": 0.0
+      },
+      "per_horizon_naive_mae": {
+        "1": 0.006000000000000005,
+        "120": 0.006749999999999978,
+        "144": 0.006249999999999978,
+        "2": 0.016750000000000015,
+        "24": 0.006749999999999978,
+        "3": 0.013750000000000012,
+        "4": 0.01050000000000001,
+        "48": 0.013000000000000012,
+        "5": 0.00874999999999998,
+        "6": 0.008000000000000007,
+        "72": 0.007500000000000007,
+        "96": 0.00649999999999995
+      },
+      "realized_pnl": 1965.8373773999754,
+      "short_family_mae": 0.010625000000000004,
+      "trades": [
+        {
+          "close_dt": "2019-05-01T03:00:00+00:00",
+          "commission": 7.10485790000007,
+          "duration_bars": 3.0,
+          "gross_pnl": 1498.4700299999915,
+          "max_dd_pips": -2998.4999999999927,
+          "open_dt": "2019-05-01T00:00:00+00:00",
+          "pips": 2996.9999999999827,
+          "pnl": 1490.9485137666582,
+          "swap": 0.41665833333333335,
+          "volume": 49999.0
+        },
+        {
+          "close_dt": "2019-05-01T07:00:00+00:00",
+          "commission": 7.964779200000066,
+          "duration_bars": 3.0,
+          "gross_pnl": 1124.87015999999,
+          "max_dd_pips": -1998.4999999999918,
+          "open_dt": "2019-05-01T04:00:00+00:00",
+          "pips": 1996.999999999982,
+          "pnl": 1116.43598079999,
+          "swap": 0.46939999999999993,
+          "volume": 56328.0
+        },
+        {
+          "close_dt": "2019-05-01T11:00:00+00:00",
+          "commission": 8.780775500000004,
+          "duration_bars": 3.0,
+          "gross_pnl": -632.241050000006,
+          "max_dd_pips": 1001.4999999999995,
+          "open_dt": "2019-05-01T08:00:00+00:00",
+          "pips": -1003.0000000000093,
+          "pnl": -641.5471171666727,
+          "swap": 0.5252916666666666,
+          "volume": 63035.0
+        }
+      ],
+      "unrealized_pnl": 0.0
+    },
+    "persistence/persistence": {
+      "cap_events": [],
+      "cash": 10000.0,
+      "collateral": 0.0,
+      "cost_sums": {
+        "commission": 0.0,
+        "slippage": 0.0,
+        "spread": 0.0,
+        "swap": 0.0
+      },
+      "entry_sides": [],
+      "equity_gap": 0.0,
+      "fills": [],
+      "flat_cash_gap": 0.0,
+      "initial_cash": 10000.0,
+      "leverage": 100.0,
+      "long_family_mae": 0.007791666666666651,
+      "mae_macro_average": 0.009208333333333327,
+      "margin_fraction": 0.05,
+      "marked_equity": 10000.0,
+      "n_closed_trades": 0,
+      "naive_macro_average": 0.009208333333333327,
+      "order_states": [],
+      "pending_position_units": 0.0,
+      "per_horizon_mae": {
+        "1": 0.006000000000000005,
+        "120": 0.006749999999999978,
+        "144": 0.006249999999999978,
+        "2": 0.016750000000000015,
+        "24": 0.006749999999999978,
+        "3": 0.013750000000000012,
+        "4": 0.01050000000000001,
+        "48": 0.013000000000000012,
+        "5": 0.00874999999999998,
+        "6": 0.008000000000000007,
+        "72": 0.007500000000000007,
+        "96": 0.00649999999999995
+      },
+      "per_horizon_naive_mae": {
+        "1": 0.006000000000000005,
+        "120": 0.006749999999999978,
+        "144": 0.006249999999999978,
+        "2": 0.016750000000000015,
+        "24": 0.006749999999999978,
+        "3": 0.013750000000000012,
+        "4": 0.01050000000000001,
+        "48": 0.013000000000000012,
+        "5": 0.00874999999999998,
+        "6": 0.008000000000000007,
+        "72": 0.007500000000000007,
+        "96": 0.00649999999999995
+      },
+      "realized_pnl": 0.0,
+      "short_family_mae": 0.010625000000000004,
+      "trades": [],
+      "unrealized_pnl": 0.0
+    }
+  },
+  "b0_status": "B0_NOT_STARTED",
+  "experiment": "successor_accounting_variant_E",
+  "factorial_executed": false,
+  "fill_differences_versus_legacy": {
+    "ideal/ideal": {
+      "legacy_citation": "LEGACY",
+      "legacy_count": 6,
+      "rows": [
+        {
+          "index": 0,
+          "legacy": {
+            "datetime": "2019-05-01T01:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": -950001.0,
+          "successor": {
+            "datetime": "2019-05-01T01:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 49999.0
+          }
+        },
+        {
+          "index": 1,
+          "legacy": {
+            "datetime": "2019-05-01T03:00:00+00:00",
+            "is_buy": false,
+            "price": 1.029985,
+            "size": -1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": 950001.0,
+          "successor": {
+            "datetime": "2019-05-01T03:00:00+00:00",
+            "is_buy": false,
+            "price": 1.029985,
+            "size": -49999.0
+          }
+        },
+        {
+          "index": 2,
+          "legacy": {
+            "datetime": "2019-05-01T05:00:00+00:00",
+            "is_buy": false,
+            "price": 1.019985,
+            "size": -1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": 943672.0,
+          "successor": {
+            "datetime": "2019-05-01T05:00:00+00:00",
+            "is_buy": false,
+            "price": 1.019985,
+            "size": -56328.0
+          }
+        },
+        {
+          "index": 3,
+          "legacy": {
+            "datetime": "2019-05-01T07:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": -943672.0,
+          "successor": {
+            "datetime": "2019-05-01T07:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 56328.0
+          }
+        },
+        {
+          "index": 4,
+          "legacy": {
+            "datetime": "2019-05-01T09:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": -936965.0,
+          "successor": {
+            "datetime": "2019-05-01T09:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 63035.0
+          }
+        },
+        {
+          "index": 5,
+          "legacy": {
+            "datetime": "2019-05-01T10:00:00+00:00",
+            "is_buy": false,
+            "price": 1.0009849999999998,
+            "size": -1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": 936965.0,
+          "successor": {
+            "datetime": "2019-05-01T10:00:00+00:00",
+            "is_buy": false,
+            "price": 1.0009849999999998,
+            "size": -63035.0
+          }
+        }
+      ],
+      "successor_count": 6
+    },
+    "ideal/persistence": {
+      "legacy_citation": "LEGACY",
+      "legacy_count": 0,
+      "rows": [],
+      "successor_count": 0
+    },
+    "persistence/ideal": {
+      "legacy_citation": "LEGACY",
+      "legacy_count": 6,
+      "rows": [
+        {
+          "index": 0,
+          "legacy": {
+            "datetime": "2019-05-01T01:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": -950001.0,
+          "successor": {
+            "datetime": "2019-05-01T01:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 49999.0
+          }
+        },
+        {
+          "index": 1,
+          "legacy": {
+            "datetime": "2019-05-01T03:00:00+00:00",
+            "is_buy": false,
+            "price": 1.029985,
+            "size": -1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": 950001.0,
+          "successor": {
+            "datetime": "2019-05-01T03:00:00+00:00",
+            "is_buy": false,
+            "price": 1.029985,
+            "size": -49999.0
+          }
+        },
+        {
+          "index": 2,
+          "legacy": {
+            "datetime": "2019-05-01T05:00:00+00:00",
+            "is_buy": false,
+            "price": 1.019985,
+            "size": -1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": 943672.0,
+          "successor": {
+            "datetime": "2019-05-01T05:00:00+00:00",
+            "is_buy": false,
+            "price": 1.019985,
+            "size": -56328.0
+          }
+        },
+        {
+          "index": 3,
+          "legacy": {
+            "datetime": "2019-05-01T07:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": -943672.0,
+          "successor": {
+            "datetime": "2019-05-01T07:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 56328.0
+          }
+        },
+        {
+          "index": 4,
+          "legacy": {
+            "datetime": "2019-05-01T09:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": -936965.0,
+          "successor": {
+            "datetime": "2019-05-01T09:00:00+00:00",
+            "is_buy": true,
+            "price": 1.000015,
+            "size": 63035.0
+          }
+        },
+        {
+          "index": 5,
+          "legacy": {
+            "datetime": "2019-05-01T11:00:00+00:00",
+            "is_buy": false,
+            "price": 0.989985,
+            "size": -1000000.0
+          },
+          "price_delta": 0.0,
+          "same_clock": true,
+          "same_side": true,
+          "size_delta": 936965.0,
+          "successor": {
+            "datetime": "2019-05-01T11:00:00+00:00",
+            "is_buy": false,
+            "price": 0.989985,
+            "size": -63035.0
+          }
+        }
+      ],
+      "successor_count": 6
+    },
+    "persistence/persistence": {
+      "legacy_citation": "LEGACY",
+      "legacy_count": 0,
+      "rows": [],
+      "successor_count": 0
+    }
+  },
+  "initial_cash": 10000.0,
+  "label": "SYNTHETIC",
+  "legacy_evidence": "LEGACY docs/audits/evidence/STRATEGY_MICRO_20260930/MICRO.json",
+  "leverage": 100.0,
+  "margin_fraction": 0.05,
+  "parent_commit": "781022a4702244d866cf86bb69343673340e9eff",
+  "phase": "MEASURED",
+  "terminal_probe": {
+    "cap_events": [
+      {
+        "action": "capped",
+        "allowed_units": 49999,
+        "margin_budget": 500.0,
+        "margin_used": 499.99749985,
+        "price": 1.000015,
+        "requested_units": 50000.0
+      }
+    ],
+    "cash": 9496.50251765105,
+    "collateral": 499.99749985,
+    "cost_sums": {
+      "commission": 3.4999824989499997,
+      "slippage": 0.24999500000163777,
+      "spread": 0.49999000000327554,
+      "swap": 0.0
+    },
+    "entry_sides": [
+      "long"
+    ],
+    "equity_gap": 0.0,
+    "fills": [
+      {
+        "datetime": "2019-05-01T01:00:00+00:00",
+        "is_buy": true,
+        "price": 1.000015,
+        "size": 49999.0
+      }
+    ],
+    "flat_cash_gap": null,
+    "initial_cash": 10000.0,
+    "leverage": 100.0,
+    "long_family_mae": 0.0,
+    "mae_macro_average": 0.0,
+    "margin_fraction": 0.05,
+    "marked_equity": 10045.74903250104,
+    "n_closed_trades": 0,
+    "naive_macro_average": 0.010499999999999954,
+    "order_states": [
+      "Accepted",
+      "Completed",
+      "Submitted",
+      "in_flight"
+    ],
+    "pending_position_units": 49999.0,
+    "per_horizon_mae": {
+      "1": 0.0,
+      "120": 0.0,
+      "144": 0.0,
+      "2": 0.0,
+      "24": 0.0,
+      "3": 0.0,
+      "4": 0.0,
+      "48": 0.0,
+      "5": 0.0,
+      "6": 0.0,
+      "72": 0.0,
+      "96": 0.0
+    },
+    "per_horizon_naive_mae": {
+      "1": 0.0009999999999998899,
+      "120": 0.020000000000000018,
+      "144": 0.020000000000000018,
+      "2": 0.0009999999999998899,
+      "24": 0.020000000000000018,
+      "3": 0.0009999999999998899,
+      "4": 0.0009999999999998899,
+      "48": 0.020000000000000018,
+      "5": 0.0009999999999998899,
+      "6": 0.0009999999999998899,
+      "72": 0.020000000000000018,
+      "96": 0.020000000000000018
+    },
+    "realized_pnl": 0.0,
+    "short_family_mae": 0.0,
+    "trades": [],
+    "unrealized_pnl": 49.24901499998958
+  }
+}
