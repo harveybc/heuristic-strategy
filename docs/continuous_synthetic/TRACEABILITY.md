@@ -25,8 +25,8 @@ For ideal/ideal, variant E was evaluated 127 times and never triggered; 20
 occupied late bars had no complete 144h forecast, so variant E was not evaluated
 there. For noisy-short/ideal-long, it was evaluated 8 times and triggered 6.
 
-`pilot.json` retains all 12 per-horizon MAE/naive pairs and complete per-bar
-events/fills at the caller's output path. The 44-cell grid was not run or
+`evidence/pilot.json` retains all 12 per-horizon MAE/naive pairs and complete per-bar
+events/fills (SHA-256 `9fa86188d8f899f588b28f7d9dfe2cddd4891c95a6dac312b8fed1d44a60cec1`). The 44-cell grid was not run or
 estimated from PnL. The earlier four-origin sweep and retained evidence remain
 untouched. A broader baseline test has one pre-existing failure:
 `test_backtrader_adapter_delegates_to_frozen_core` builds a dummy without
