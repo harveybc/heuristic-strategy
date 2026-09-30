@@ -151,8 +151,13 @@ def test_no_entry_origins_are_purged_only_by_target_support(tmp_path: Path) -> N
     _fixture(tmp_path)
     bars, arm = _derive(tmp_path)
     t = arm.table
+    # Entries: K, X, T plus two SHORTS at the spike bars (rows 3 and 100), because the plugin
+    # shorts when the close sits 30 pips above a flat long forecast (profit_sell >= threshold).
+    entries = set(t.loc[t["entry_direction"] != NO_ENTRY, "origin"])
+    assert entries == {pd.Timestamp(x) for x in ("2019-05-06 00:00", "2019-05-06 03:00", "2019-05-08 00:00",
+                                                  "2019-05-10 01:00", "2019-05-10 04:00")}
     flat = t[t["entry_direction"] == NO_ENTRY]
-    assert len(flat) == len(t) - 3
+    assert len(flat) == len(t) - 5
     assert (flat["trade_support_crosses_cut_any_variant"] == False).all()  # noqa: E712
     # Every origin from 2019-05-10 00:00 onward has origin + 144 h >= cut.
     late = flat[flat["origin"] >= pd.Timestamp("2019-05-10 00:00")]
@@ -163,8 +168,9 @@ def test_no_entry_origins_are_purged_only_by_target_support(tmp_path: Path) -> N
 
 def test_reserved_rows_are_never_read_poison_invariance(tmp_path: Path) -> None:
     """Replacing every reserved price with NaN/9.9 and adding reserved rows changes nothing."""
-    clean = _fixture(tmp_path / "clean")
+    (tmp_path / "clean").mkdir()
     (tmp_path / "poison").mkdir()
+    clean = _fixture(tmp_path / "clean")
     poisoned = _fixture(tmp_path / "poison", poison_reserved=True, extra_reserved_rows=500)
     bars_c, arm_c = _derive(clean)
     bars_p, arm_p = _derive(poisoned)
@@ -276,8 +282,9 @@ def test_variant_e_rule_is_the_weighted_minimum_with_empty_family_fallback() -> 
 def test_calibration_uses_development_rows_only(tmp_path: Path) -> None:
     """Residual scale/correlation are identical when reserved prices are poisoned, and
     origins whose targets reach the cut are excluded and counted."""
-    clean = _fixture(tmp_path / "clean")
+    (tmp_path / "clean").mkdir()
     (tmp_path / "poison").mkdir()
+    clean = _fixture(tmp_path / "clean")
     poisoned = _fixture(tmp_path / "poison", poison_reserved=True, extra_reserved_rows=100)
     horizons = (1, 2, 3, 4, 5, 6)
     stats = []

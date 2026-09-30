@@ -102,7 +102,7 @@ def main(argv=None) -> int:
         if p.exists():
             try:
                 data = json.loads(p.read_text())
-                folds = data if isinstance(data, list) else data.get("folds", data.get("results", []))
+                folds = data if isinstance(data, list) else data.get("fold_results", data.get("folds", []))
                 hit = [f for f in folds if isinstance(f, dict) and f.get("test_year") == 2019]
                 report["wfo_results_2019_fold"][name] = {"sha256": sha256(p), "n_2019_folds": len(hit),
                                                          "test_bars": [f.get("test_bars") for f in hit]}
