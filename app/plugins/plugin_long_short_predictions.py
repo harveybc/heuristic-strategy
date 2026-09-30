@@ -21,14 +21,16 @@ class Plugin:
     """
 
     # Default plugin parameters (must be present for optimizer integration)
-    # Exit variant modes:
-    #   A = min(hourly+daily) vs SL (original)
+    # Exit variants compare a forecast level with the stop. Baseline is E.
+    # That baseline is an explicit resolution of the old D/E contradiction,
+    # not a recovered historical run. See app.strategy_support.baseline_config.
+    #   A = min(hourly+daily) vs SL
     #   B = long-term only exit
     #   C = short-term only exit
-    #   D = both must agree (DEFAULT — best avg profit across noise levels)
-    #   E = weighted 0.6*hourly + 0.4*daily threshold
-    #   F = short-term with buffer (less trigger-happy)
-    #   G = no early close (TP only)
+    #   D = both must agree
+    #   E = weighted 0.6*hourly + 0.4*daily
+    #   F = short-term with buffer
+    #   G = no early close (TP/SL only)
     plugin_params = {
         'pip_cost': 0.00001,
         'rel_volume': 0.02, # uses max 2% of balance for each order (default) 
@@ -231,7 +233,7 @@ class Plugin:
         def __init__(self, pred_file, pip_cost, rel_volume, min_order_volume, max_order_volume,
                     leverage, profit_threshold, min_drawdown_pips,
                     tp_multiplier, sl_multiplier, lower_rr_threshold, upper_rr_threshold,
-                    max_trades_per_5days, exit_variant='D', swap_per_lot_per_day=10.0,
+                    max_trades_per_5days, exit_variant='E', swap_per_lot_per_day=10.0,
                     *args, **kwargs):
             super().__init__()
             self.params.pred_file = pred_file
