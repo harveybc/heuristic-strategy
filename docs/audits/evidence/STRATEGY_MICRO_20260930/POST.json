@@ -1,0 +1,16 @@
+{
+  "label": "SYNTHETIC",
+  "phase": "POST",
+  "scope": "F2 and F3 contract tests after the repair, plus the elapsed-hour microexperiment and the existing strategy-support tests. No market CSV, no noise fit, no B0 run.",
+  "pytest_exit_code": 0,
+  "passed": 28,
+  "failed": 0,
+  "duration_seconds": 1.41,
+  "f2_failed": false,
+  "f3_failed": false,
+  "f2_f3_contract_tests_passed": 17,
+  "microexperiment_tests_passed": 2,
+  "strategy_support_tests_passed": 9,
+  "pre_reference": "PRE.json records the unrepaired run: 16 failed, 1 passed. F2 failed and F3 failed. That file was not rewritten.",
+  "warning": "One pre-existing Pydantic protected-namespace warning."
+}

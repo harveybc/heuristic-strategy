@@ -77,14 +77,15 @@ def test_legacy_generators_are_row_offsets_and_still_exist() -> None:
     frame = pd.DataFrame({"CLOSE": [10.0, 30.0, 40.0]}, index=index)
     legacy = create_hourly_predictions(frame, 1)
     assert legacy.iloc[0, 0] == 30.0
-    elapsed_one = create_elapsed_hour_predictions(frame, [1])
-    assert list(elapsed_one.index) == [pd.Timestamp("2019-04-01 03:00")]
-    assert pd.Timestamp("2019-04-01 00:00") not in elapsed_one.index
+    elapsed_one = create_elapsed_hour_predictions(frame, [1], source_timezone="UTC")
+    assert list(elapsed_one.index) == [pd.Timestamp("2019-04-01 03:00", tz="UTC")]
+    assert pd.Timestamp("2019-04-01 00:00", tz="UTC") not in elapsed_one.index
     assert elapsed_one.iloc[0, 0] == 40.0
-    elapsed_three = create_elapsed_hour_predictions(frame, [3])
-    assert list(elapsed_three.index) == [pd.Timestamp("2019-04-01 00:00")]
+    elapsed_three = create_elapsed_hour_predictions(frame, [3], source_timezone="UTC")
+    assert list(elapsed_three.index) == [pd.Timestamp("2019-04-01 00:00", tz="UTC")]
     assert elapsed_three.iloc[0, 0] == 30.0
     assert elapsed_three.attrs["offset_unit"] == "hours"
+    assert elapsed_three.attrs["normalized_timezone"] == "UTC"
 
 
 def test_elapsed_144_hours_is_not_144_rows() -> None:
@@ -100,27 +101,27 @@ def test_elapsed_144_hours_is_not_144_rows() -> None:
         },
         index=index,
     )
-    elapsed = create_elapsed_hour_predictions(frame, [144])
+    elapsed = create_elapsed_hour_predictions(frame, [144], source_timezone="UTC")
     assert ELAPSED_OFFSET_UNIT == "hours"
     assert list(elapsed.columns) == ["elapsed_144h"]
-    assert list(elapsed.index) == [pd.Timestamp("2019-04-01 00:00")]
+    assert list(elapsed.index) == [pd.Timestamp("2019-04-01 00:00", tz="UTC")]
     assert elapsed.iloc[0, 0] == 4.0
     assert elapsed.iloc[0, 0] != frame.iloc[0]["OPEN"]
     assert len(frame) < 144
     assert create_hourly_predictions(frame[["CLOSE"]], 144).empty
     assert create_daily_predictions(frame[["CLOSE"]], 6).empty
-    both = create_elapsed_hour_predictions(frame, [1, 144])
-    assert list(both.index) == [pd.Timestamp("2019-04-01 00:00")]
+    both = create_elapsed_hour_predictions(frame, [1, 144], source_timezone="UTC")
+    assert list(both.index) == [pd.Timestamp("2019-04-01 00:00", tz="UTC")]
     assert both.iloc[0]["elapsed_1h"] == 1.5
     assert both.iloc[0]["elapsed_144h"] == 4.0
-    assert pd.Timestamp("2019-04-01 01:00") not in both.index
+    assert pd.Timestamp("2019-04-01 01:00", tz="UTC") not in both.index
 
 
 def test_elapsed_24_hours_is_not_24_rows() -> None:
     index = pd.to_datetime(["2019-04-01 00:00", "2019-04-02 00:00"])
     frame = pd.DataFrame({"CLOSE": [1.0, 2.0]}, index=index)
     assert create_daily_predictions(frame, 1).empty
-    elapsed = create_elapsed_hour_predictions(frame, [24])
+    elapsed = create_elapsed_hour_predictions(frame, [24], source_timezone="UTC")
     assert elapsed.iloc[0, 0] == 2.0
     assert elapsed.attrs["offset_unit"] == ELAPSED_OFFSET_UNIT
 
@@ -132,6 +133,7 @@ def test_synthetic_support_purges_targets_on_or_after_the_cut() -> None:
     population = derive_development_support(
         frame,
         origins,
+        source_timezone="UTC",
         required_horizons_hours=(1, 144),
         longest_horizon_hours=144,
         population_label="SYNTHETIC",
@@ -149,18 +151,20 @@ def test_synthetic_support_purges_targets_on_or_after_the_cut() -> None:
     assert population.n_entire_target_support_before_cut == 2
     assert population.n_not_separated_by_origin_cut == 5
     assert population.alternative_latest_development_origin == pd.Timestamp(
-        "2019-05-09 23:00:00"
+        "2019-05-09 23:00:00", tz="UTC"
     )
+    assert population.normalized_timezone == "UTC"
+    assert population.reserved_start_utc == pd.Timestamp("2019-05-16 00:00:00", tz="UTC")
     by_origin = {row.origin: row for row in population.origins}
-    assert by_origin[pd.Timestamp("2019-05-10 00:00:00")].purged is True
-    assert by_origin[pd.Timestamp("2019-05-10 00:00:00")].latest_target_timestamp == (
-        DESIGN_RESERVED_START
+    assert by_origin[pd.Timestamp("2019-05-10 00:00:00", tz="UTC")].purged is True
+    assert by_origin[pd.Timestamp("2019-05-10 00:00:00", tz="UTC")].latest_target_timestamp == (
+        pd.Timestamp("2019-05-16 00:00:00", tz="UTC")
     )
-    late = by_origin[pd.Timestamp("2019-05-15 12:00:00")]
+    late = by_origin[pd.Timestamp("2019-05-15 12:00:00", tz="UTC")]
     assert late.purged is True
     assert late.exact_target_bar_present is False
-    assert late.latest_target_timestamp == pd.Timestamp("2019-05-21 12:00:00")
-    kept = by_origin[pd.Timestamp("2019-05-09 23:00:00")]
+    assert late.latest_target_timestamp == pd.Timestamp("2019-05-21 12:00:00", tz="UTC")
+    kept = by_origin[pd.Timestamp("2019-05-09 23:00:00", tz="UTC")]
     assert kept.purged is False
     assert kept.separation == NOT_SEPARATED_BY_ORIGIN_CUT
     assert kept.trade_exit_support == TRADE_DURATION_UNBOUNDED
@@ -170,6 +174,7 @@ def test_synthetic_support_purges_targets_on_or_after_the_cut() -> None:
     full = derive_development_support(
         frame,
         origins,
+        source_timezone="UTC",
         population_label="SYNTHETIC",
     )
     assert full.required_horizons_hours == REQUIRED_HORIZONS_HOURS
@@ -188,12 +193,15 @@ def test_support_refuses_a_rewritten_reserved_window_and_reserved_origins() -> N
         derive_development_support(
             frame,
             origins,
+            source_timezone="UTC",
             reserved_start=pd.Timestamp("2019-05-09 00:00:00"),
             required_horizons_hours=(1, 144),
             longest_horizon_hours=144,
         )
     with pytest.raises(DevelopmentOriginError):
-        derive_development_support(frame, [DESIGN_RESERVED_START])
+        derive_development_support(
+            frame, [DESIGN_RESERVED_START], source_timezone="UTC"
+        )
 
 
 def test_calibration_set_rejects_reserved_timestamps_and_does_not_fit_noise() -> None:
