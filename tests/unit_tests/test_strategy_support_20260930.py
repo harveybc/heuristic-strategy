@@ -38,13 +38,13 @@ def test_baseline_config_is_variant_e_and_not_a_recovered_run() -> None:
     assert DEFAULT_VALUES["exit_variant"] == "E"
     assert DEFAULT_VALUES["historical_run_recovered"] is False
     assert DEFAULT_VALUES["exit_variant_resolution"] == RESOLUTION_EXPLICIT
-    assert DEFAULT_VALUES["sweep_241_exit_variant"] == "NOT_CHECKED"
+    assert DEFAULT_VALUES["sweep_241_exit_variant"] == "E"  # S07: read from the retained manifest
     assert report["exit_variant"] == "E"
     assert report["plugin_params_exit_variant"] == "E"
     assert report["signature_default_exit_variant"] == "E"
     assert report["historical_run_recovered"] is False
     assert report["resolution"] == RESOLUTION_EXPLICIT
-    assert report["sweep_241_exit_variant"] == "NOT_CHECKED"
+    assert report["sweep_241_exit_variant"] == "E"
     assert "Not a recovered historical run" in report["note"]
     assert report["fill_semantics"] == "close_only_decision_next_open_market_fill"
     assert report["protective_broker_orders"] == "separate_named_experiment_not_in_baseline"

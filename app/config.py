@@ -50,9 +50,17 @@ DEFAULT_VALUES = {
     "pp_api_url": "http://127.0.0.1:8000",
     "pp_timeout": 5.0,
     # Explicit resolution of the D/E contradiction. Not a recovered historical run.
-    # The retained 241-cell manifest was not opened: sweep_241_exit_variant stays NOT_CHECKED.
+    # S07 2026-09-30: the retained 241-cell manifest (run_out/native_conditional_20260927_full/
+    # manifest.json, sha256 958726415c09ced866c7d8164dfe4e49b99b4ccb8e0e5e7059fa26effdbba94f)
+    # records execution.exit_variant = "E" and plugin_params.exit_variant = "E". Verified by reading
+    # the manifest, not by rerunning the sweep.
     "exit_variant": "E",
     "exit_variant_resolution": "explicit_resolution_not_recovered_historical_run",
     "historical_run_recovered": False,
-    "sweep_241_exit_variant": "NOT_CHECKED",
+    "sweep_241_exit_variant": "E",
+    "sweep_241_manifest_sha256": "958726415c09ced866c7d8164dfe4e49b99b4ccb8e0e5e7059fa26effdbba94f",
+    # Protective (bracket/intrabar) orders are NOT part of the replication baseline. A run that
+    # uses them is the separately named experiment below and must set it explicitly.
+    "protective_orders_experiment": "PROTECTIVE_BROKER_ORDERS_EXPERIMENT_NOT_RUN",
+    "use_protective_broker_orders": False,
 }
