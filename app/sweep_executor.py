@@ -504,6 +504,46 @@ def prepare_cell(cell: dict, *, dev_scales: dict, scored_frame: pd.DataFrame) ->
 class _SweepStrategy(_ObservedStrategy):
     """Same decisions as the plugin. Records the bar around each fill."""
 
+    def _should_early_close_long(self, *args):
+        self._early_close_evaluated = True
+        triggered = super()._should_early_close_long(*args)
+        self._early_close_triggered = bool(triggered)
+        return triggered
+
+    def _should_early_close_short(self, *args):
+        self._early_close_evaluated = True
+        triggered = super()._should_early_close_short(*args)
+        self._early_close_triggered = bool(triggered)
+        return triggered
+
+    def next(self):
+        self._early_close_triggered = False
+        self._early_close_evaluated = False
+        direction = self.current_direction
+        price = float(self.data0.close[0])
+        tp, sl = self.current_tp, self.current_sl
+        super().next()
+        row = self.events[-1]
+        cause = None
+        if row["request"] == "close":
+            if direction == "long":
+                cause = "take_profit" if price >= tp else "stop_loss" if price <= sl else "early_prediction"
+            elif direction == "short":
+                cause = "take_profit" if price <= tp else "stop_loss" if price >= sl else "early_prediction"
+            else:
+                raise RuntimeError("close request without a direction")
+            if (cause == "early_prediction") != self._early_close_triggered:
+                raise RuntimeError("close cause disagrees with variant E evaluation")
+        row["close_cause"] = cause
+        row["direction_before"] = direction
+        row["take_profit_before"] = None if tp is None else float(tp)
+        row["stop_loss_before"] = None if sl is None else float(sl)
+        row["early_close_evaluated"] = self._early_close_evaluated
+        row["early_close_triggered"] = self._early_close_triggered
+        row["equity"] = float(self.broker.getvalue())
+        row["cash"] = float(self.broker.getcash())
+        row["open_exposure_units"] = float(self.position.size)
+
     def notify_order(self, order):
         super().notify_order(order)
         if order.status == order.Completed and self.fill_rows:
@@ -663,6 +703,7 @@ def run_book(
         ],
         "trades": trades,
         "fills": list(strategy.fill_rows),
+        "events": list(strategy.events),
         "ledger": list(strategy.ledger),
         "cap_events": list(snapshot["cap_events"]),
         "order_states": [event["state"] for event in strategy.order_events],

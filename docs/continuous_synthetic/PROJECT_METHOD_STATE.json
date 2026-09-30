@@ -1,0 +1,21 @@
+{
+  "initiative": "continuous_synthetic_hourly_sensitivity",
+  "current_stage": "S12_ALPHA_ACCEPTANCE",
+  "status": "PILOT_VERIFIED_FULL_GRID_DEFERRED",
+  "problem": "The four-origin sweep cannot expose hourly early-close causality or open exposure across a continuous trajectory.",
+  "scope": "Synthetic, offline, unchanged variant E; no B0, market, GPU, service, broker, or calibration campaign.",
+  "traceability_file": "docs/continuous_synthetic/TRACEABILITY.md",
+  "evidence": [
+    "tests/unit_tests/test_continuous_synthetic.py",
+    "/tmp/continuous-synthetic-codex-20260930/pilot.json"
+  ],
+  "next_allowed_actions": [
+    "Review pilot and limitations",
+    "Request a separate capped full-grid run if a new budget is approved"
+  ],
+  "blocked_actions": [
+    "Treat synthetic PnL as financial utility",
+    "Start B0 or a market confirmation run",
+    "Claim the 44-cell grid was measured"
+  ]
+}
