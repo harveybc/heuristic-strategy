@@ -48,5 +48,11 @@ DEFAULT_VALUES = {
     # Prediction source: "CSV" (default) or "API" (Prediction Provider)
     "prediction_source": "CSV",
     "pp_api_url": "http://127.0.0.1:8000",
-    "pp_timeout": 5.0
+    "pp_timeout": 5.0,
+    # Explicit resolution of the D/E contradiction. Not a recovered historical run.
+    # The retained 241-cell manifest was not opened: sweep_241_exit_variant stays NOT_CHECKED.
+    "exit_variant": "E",
+    "exit_variant_resolution": "explicit_resolution_not_recovered_historical_run",
+    "historical_run_recovered": False,
+    "sweep_241_exit_variant": "NOT_CHECKED",
 }

@@ -14,9 +14,16 @@ _QUIET = _os.environ.get("STRATEGY_QUIET", "0") == "1"
 # Calls `run_optimizer()` from `app.optimizer` to optimize the trading strategy.
 # =============================================================================
 
+# Legacy generators step by dataframe row. The unit is rows, not hours.
+LEGACY_OFFSET_UNIT = "rows"
+
+
 def create_hourly_predictions(df, horizon):
     """
-    Auto-compute hourly predictions from the base dataset.
+    Legacy row-offset reproduction of the short family.
+
+    Offset unit: rows, not hours. Row i contributes the next `horizon`
+    dataframe rows. It does not look up timestamp + horizon hours.
     """
     blocks = []
     for i in range(len(df) - horizon):
@@ -26,10 +33,11 @@ def create_hourly_predictions(df, horizon):
 
 def create_daily_predictions(df, horizon):
     """
-    Auto-compute daily predictions from the base dataset.
+    Legacy row-offset reproduction of the long family.
 
-    Each row i in 'df' yields a block of predicted values at offsets t+24, t+48, ... t+24*horizon.
-    If there are not enough rows (or any row indexing is invalid), we return an empty DataFrame.
+    Offset unit: rows, not hours. Step d is row i + d*24, not timestamp + d days
+    and not timestamp + 24*d hours. A column described as 144 hours is not this
+    function. If there are not enough rows, return an empty DataFrame.
     """
     nrows = len(df)
     required_rows = horizon * 24
@@ -40,7 +48,7 @@ def create_daily_predictions(df, horizon):
         return pd.DataFrame()
 
     blocks = []
-    # For each row i, gather the next horizon days (24*horizon ticks).
+    # For each row i, gather horizon steps at row offsets 24, 48, ... (unit: rows).
     for i in range(nrows - required_rows):
         block_values = []
         # Attempt to fetch each day offset at i + d*24
@@ -70,6 +78,10 @@ def create_daily_predictions(df, horizon):
     # Align the index accordingly
     daily_idx = df.index[:(nrows - required_rows)]
     return pd.DataFrame(blocks, index=daily_idx)
+
+
+create_hourly_predictions.offset_unit = LEGACY_OFFSET_UNIT
+create_daily_predictions.offset_unit = LEGACY_OFFSET_UNIT
 
 def process_data(config):
     """
