@@ -34,10 +34,11 @@ def horizon_mae(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Mapping
     index = {bar["time"]: i for i, bar in enumerate(bars)}
     out = {}
     for h in horizons:
-        n = (steps or {}).get(h, h)
         model, zero, mean = [], [], []
         for row in predictions:
             t = row["time"]
+            # Irregular bars: M07 writes the bar count per horizon (n_rows_h<h>); else steps or h.
+            n = int(row[f"n_rows_h{h}"]) if f"n_rows_h{h}" in row else (steps or {}).get(h, h)
             if (origins is not None and t not in origins) or t not in index:
                 continue
             i = index[t]
