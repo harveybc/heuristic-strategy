@@ -199,6 +199,25 @@ def run_processing_pipeline(config, plugin):
 
     prediction_source = config.get("prediction_source", "CSV").upper()
 
+    # Owner gate (predictor b327b771 s5): predictions that have not beaten
+    # persistence never reach the strategy. Decided only from declared frozen
+    # evidence (held-out validation / chronological OOF), never from this run's
+    # trading period. A SKIP evaluates the strategy zero times and writes no
+    # trades, summary, plot or parameters.
+    from app.forecast_naive_gate import ELIGIBLE, gate_run
+    consumed = None
+    if hourly_preds is not None and daily_preds is not None:
+        consumed = {"hourly": int(hourly_preds.shape[1]), "daily": int(daily_preds.shape[1])}
+    gate = gate_run(config, consumed)
+    receipt_file = config.get("naive_gate_receipt_file")
+    if receipt_file:
+        with open(receipt_file, "w") as f:
+            json.dump(gate, f, indent=2, sort_keys=True)
+    if gate["status"] != ELIGIBLE:
+        print(f"{gate['status']}: strategy not evaluated "
+              f"({len(gate['failures'])} failure(s); contract {gate['contract_sha256'][:12]})")
+        return {"status": gate["status"], "forecast_naive_gate": gate}, None
+
     # Calculate error metrics only when CSV predictions are available
     if prediction_source != "API" and hourly_preds is not None and daily_preds is not None:
         # For hourly predictions: each column corresponds to the forecast for h hours ahead.
@@ -211,14 +230,17 @@ def run_processing_pipeline(config, plugin):
             # Reassign index so that actual aligns element-wise with pred
             actual.index = hourly_preds.index
             pred = hourly_preds.iloc[:, h - 1]
-            valid = actual.notna()
+            naive = base_full.reindex(hourly_preds.index)["CLOSE"]
+            valid = actual.notna() & naive.notna()
             if valid.sum() == 0:
-                mae = None
-                r2 = None
+                mae = naive_mae = r2 = None
             else:
                 mae = mean_absolute_error(actual[valid], pred[valid])
+                naive_mae = mean_absolute_error(actual[valid], naive[valid])
                 r2 = r2_score(actual[valid], pred[valid])
-            hourly_results.append({"Horizon (hours)": h, "MAE": mae, "R2": r2})
+            hourly_results.append({"Horizon (hours)": h, "MAE": mae, "Naive_MAE (persistence, same rows)": naive_mae,
+                                   "Skill": (1 - mae / naive_mae) if mae is not None and naive_mae else "NOT_AVAILABLE",
+                                   "R2": r2, "Rows": int(valid.sum())})
         
         df_hourly = pd.DataFrame(hourly_results)
 
@@ -231,18 +253,22 @@ def run_processing_pipeline(config, plugin):
             # Reassign index so that actual aligns with the predictions
             actual.index = daily_preds.index
             pred = daily_preds.iloc[:, d - 1]
-            valid = actual.notna()
+            naive = base_full.reindex(daily_preds.index)["CLOSE"]
+            valid = actual.notna() & naive.notna()
             if valid.sum() == 0:
-                mae = None
-                r2 = None
+                mae = naive_mae = r2 = None
             else:
                 mae = mean_absolute_error(actual[valid], pred[valid])
+                naive_mae = mean_absolute_error(actual[valid], naive[valid])
                 r2 = r2_score(actual[valid], pred[valid])
-            daily_results.append({"Horizon (days)": d, "MAE": mae, "R2": r2})
+            daily_results.append({"Horizon (days)": d, "MAE": mae, "Naive_MAE (persistence, same rows)": naive_mae,
+                                  "Skill": (1 - mae / naive_mae) if mae is not None and naive_mae else "NOT_AVAILABLE",
+                                  "R2": r2, "Rows": int(valid.sum())})
         
         df_daily = pd.DataFrame(daily_results)
 
         # Print the error metrics tables
+        if not _QUIET: print("\n[trading-period diagnostic: NOT eligibility evidence; the gate used frozen validation evidence]")
         if not _QUIET: print("\nError Metrics for Hourly Predictions:")
         if not _QUIET: print(df_hourly.to_string(index=False))
         if not _QUIET: print("\nError Metrics for Daily Predictions:")
