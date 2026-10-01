@@ -192,7 +192,8 @@ def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Map
                  for bar in bars]  # failing columns are never read; [] = no forecast, no new entry
     targets = decide_targets(bars, forecasts, params)
     episode = run_episode(bars, targets)
-    status = "RESULT" if manifest_status == "FROZEN" else "PILOT_NOT_A_RESULT"
+    status = {"FROZEN": "RESULT", "FROZEN_DEVELOPMENT": "DEVELOPMENT_NOT_CONFIRMATORY"}.get(
+        manifest_status, "PILOT_NOT_A_RESULT")
     result = {"schema": RESULT_SCHEMA, "arm": "heuristic_forecast", "status": status,
               "manifest_status": manifest_status, "naive_gate": gate, "evaluation_population": population,
               "costs": COSTS, "params": asdict(params), "metrics": episode_metrics(episode),

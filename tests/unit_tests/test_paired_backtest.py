@@ -192,3 +192,11 @@ def test_missing_tail_forecasts_hold_only_when_declared():
     out = paired_backtest(bars, preds, record, _declared(record, [1]), HeuristicParams(), missing_forecast="hold")
     assert out["evaluation_population"]["bars_without_forecast"]["count"] == 3
     assert out["evaluation_population"]["rows"] == 12
+
+
+def test_frozen_development_manifest_labels_the_run_development():
+    record = _record([_horizon(1, 0.5, 0.9)])
+    bars = _bars([100 + 3 * ((-1) ** i) for i in range(12)])
+    out = paired_backtest(bars, _predictions(bars, [1]), record, _declared(record, [1]), HeuristicParams(),
+                          manifest_status="FROZEN_DEVELOPMENT")
+    assert out["status"] == "DEVELOPMENT_NOT_CONFIRMATORY"
