@@ -1,0 +1,24 @@
+{
+  "schema_id": "predictor.direction_naive_evidence.v1",
+  "purpose": "Held-out / chronological-OOF evidence that a direction (classification) model beats both classification baselines on every consumed horizon; consumed by heuristic_strategy app/direction_naive_gate.py.",
+  "design": "coordinator design from question 21; mirrors predictor.forecast_naive_evidence.v1 (M04 de164a09) in digest, split and population binding",
+  "digest": "evidence_sha256 = sha256 of canonical JSON (sorted keys, separators ',' ':', no NaN) of the record without evidence_sha256",
+  "fields": {
+    "schema": "predictor.direction_naive_evidence.v1",
+    "frozen_metric": {"primary": ["balanced_accuracy", "log_loss"], "rule": "both strictly better than both baselines", "frozen": "declared before selection; never switched after seeing results"},
+    "artifact": {"model_sha256": "hex", "weights_sha256": "hex (optional)", "predictor_revision": "commit (optional)", "candidate_cid": "(optional)"},
+    "population": {"dataset_id": "id", "asset": "symbol", "rows": "int", "row_ids_sha256": "sha256 of ordered row ids joined by \\n", "first_origin": "ISO UTC", "last_origin": "ISO UTC", "sample_hours": "float", "horizon_unit": "steps of <sample_hours> h", "label_definition": "e.g. close[t+h] > close[t], ties excluded or assigned (state which)"},
+    "split": {"provenance": "held_out_validation | chronological_oof", "test_used": false, "reserved_trading_test": false},
+    "baselines": {
+      "majority_class": {"definition": "always the TRAIN majority class; probability = TRAIN class frequency (finite log-loss)"},
+      "sign_persistence": {"definition": "the sign of the last observed return at the origin; probability = TRAIN-estimated P(next direction == last direction) (finite log-loss)"}
+    },
+    "per_horizon": [{"horizon": "int (in horizon_unit)", "rows": "int == population.rows",
+                      "model": {"balanced_accuracy": "float", "log_loss": "float"},
+                      "majority_class": {"balanced_accuracy": "float", "log_loss": "float"},
+                      "sign_persistence": {"balanced_accuracy": "float", "log_loss": "float"}}],
+    "evidence_sha256": "hex"
+  },
+  "eligibility": "for every consumed horizon of every consumed family: model.balanced_accuracy > max(baselines.balanced_accuracy) AND model.log_loss < min(baselines.log_loss), strictly; all values finite; a missing or non-finite value, a tie, provenance other than held_out_validation/chronological_oof, test_used or reserved_trading_test true, a digest or declaration mismatch all mean SKIPPED_NOT_BETTER_THAN_NAIVE",
+  "missing_values": "write null with a reason; never 0, never NaN"
+}

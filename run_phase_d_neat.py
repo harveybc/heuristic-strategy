@@ -622,7 +622,7 @@ def run_backtest(base_data, source, config, label=""):
     """Run direction_atr strategy with prediction source."""
     # Per prediction set, before the strategy is touched (S09 naive gate).
     from app.runner_naive_gate import require_installed
-    require_installed(label or "candidate", None)
+    require_installed(label or "candidate", {"long": 1, "short": 1})  # long and short direction models
     import backtrader as bt
     from app.plugins.plugin_direction_atr import Plugin as DirectionATRPlugin
 
@@ -782,7 +782,7 @@ def main():
     args = parser.parse_args()
     # Naive gate at entry (S09): decided before any data or model is loaded.
     from app.runner_naive_gate import entry_gate_for_runner
-    if not entry_gate_for_runner("run_phase_d_neat").allowed:
+    if not entry_gate_for_runner("run_phase_d_neat", kind="direction").allowed:
         return
 
 

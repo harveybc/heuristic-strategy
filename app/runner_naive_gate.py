@@ -51,7 +51,11 @@ def _load_declared(path: str | Path | None) -> Mapping[str, Any] | None:
 class RunnerGate:
     def __init__(self, runner: str, evidence_config: str | Path | None = None,
                  receipt_path: str | Path | None = None, *, consumes_predictions: bool = True,
-                 asset: str | None = None, prediction_source: str = "OFFLINE") -> None:
+                 asset: str | None = None, prediction_source: str = "OFFLINE",
+                 kind: str = "forecast") -> None:
+        if kind not in ("forecast", "direction"):
+            raise ValueError("kind must be forecast or direction")
+        self.kind = kind
         self.runner = runner
         self.evidence_config = evidence_config
         self.receipt_path = Path(receipt_path) if receipt_path else None
@@ -70,7 +74,21 @@ class RunnerGate:
         if isinstance(declared, Mapping) and "_unreadable" in declared:
             from app.forecast_naive_gate import _skip
             return _skip("evidence_unreadable", declared["_unreadable"], self.asset)
+        if self.kind == "direction":
+            return self._decide_direction(declared, consumed or {})
         return gate_run(self._config(declared), consumed)
+
+    def _decide_direction(self, declared, consumed):
+        """predictor.direction_naive_evidence.v1 against both classification baselines."""
+        from app.direction_naive_gate import evaluate_direction
+        records = {}
+        for family, spec in ((declared or {}).get("families") or {}).items():
+            try:
+                records[family] = json.loads(Path(spec.get("file", "")).expanduser().read_text())
+            except (OSError, ValueError, TypeError, AttributeError):
+                pass
+        asset = self.asset or (declared or {}).get("asset")
+        return evaluate_direction(records, declared, consumed, asset)
 
     def entry(self) -> bool:
         if not self.consumes_predictions:
@@ -102,7 +120,7 @@ class RunnerGate:
             row = {"label": label, "status": NOT_APPLICABLE, "failures": [], "horizons": []}
         else:
             declared = _load_declared(evidence_config or self.evidence_config)
-            if consumed is None:
+            if consumed is None and self.kind == "forecast":
                 decision = {"status": SKIPPED, "horizons": [], "failures": [{
                     "reason": "consumption_not_declared", "family": None, "horizon": None,
                     "detail": "this prediction set is not an hourly/daily price-forecast family of the contract"}]}
@@ -148,7 +166,7 @@ def require_installed(label: str, consumed: Mapping[str, int] | None) -> None:
 
 def entry_gate_for_runner(runner: str, argv=None, *, consumes_predictions: bool = True,
                           asset: str = "EURUSD", prediction_source: str = "OFFLINE",
-                          default_receipt: str | None = None) -> RunnerGate:
+                          default_receipt: str | None = None, kind: str = "forecast") -> RunnerGate:
     """Parse --forecast_evidence / --naive_gate_receipt (unknown args ignored) and decide entry."""
     import argparse
 
@@ -158,7 +176,7 @@ def entry_gate_for_runner(runner: str, argv=None, *, consumes_predictions: bool 
     known, _ = parser.parse_known_args(argv)
     gate = RunnerGate(runner, evidence_config=known.forecast_evidence, receipt_path=known.naive_gate_receipt,
                       consumes_predictions=consumes_predictions, asset=asset,
-                      prediction_source=prediction_source)
+                      prediction_source=prediction_source, kind=kind)
     gate.entry()
     install(gate)
     if not gate.allowed:
