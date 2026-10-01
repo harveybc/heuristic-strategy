@@ -123,7 +123,53 @@ def run_oracle_backtest(base_data, oracle, config, label=""):
     return profit, stats, trades
 
 
-def main():
+DIAGNOSTIC_CLASS = "DIAGNOSTIC_ORACLE_NOT_A_STRATEGY_RESULT"
+
+
+def stamp(document):
+    """Mark an output as an oracle diagnostic, never a strategy result."""
+    return {**document, "result_class": DIAGNOSTIC_CLASS}
+
+
+def stamp_rows(rows):
+    return [{**row, "result_class": DIAGNOSTIC_CLASS} for row in rows]
+
+
+def diagnostic_bypass_receipt(path):
+    """S09: the oracle never passes through the naive gate; the bypass is recorded."""
+    from app.forecast_naive_gate import CONTRACT_SHA256
+    receipt = {"schema": "heuristic_strategy.runner_naive_gate_receipt.v1", "runner": "run_oracle_ceiling",
+               "status": "DIAGNOSTIC_BYPASS_RECORDED", "bypass": "--diagnostic-oracle",
+               "contract_sha256": CONTRACT_SHA256, "result_class": DIAGNOSTIC_CLASS,
+               "reason": "perfect-future oracle by design; no forecast-vs-naive gate is fitted to it"}
+    with open(path, "w") as handle:
+        json.dump(receipt, handle, indent=2, sort_keys=True)
+    return receipt
+
+
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description="Oracle ceiling (diagnostic only)")
+    parser.add_argument("--diagnostic-oracle", action="store_true",
+                        help="required: run the perfect-future oracle as a labelled diagnostic")
+    parser.add_argument("--naive_gate_receipt", default="naive_gate_receipt_run_oracle_ceiling.json")
+    args = parser.parse_args(argv)
+    if not args.diagnostic_oracle:
+        from app.forecast_naive_gate import CONTRACT_SHA256
+        with open(args.naive_gate_receipt, "w") as handle:
+            json.dump({"schema": "heuristic_strategy.runner_naive_gate_receipt.v1",
+                       "runner": "run_oracle_ceiling", "contract_sha256": CONTRACT_SHA256,
+                       "status": "REFUSED_ORACLE_WITHOUT_DIAGNOSTIC_FLAG",
+                       "reason": "oracle predictions are not a strategy input; pass --diagnostic-oracle"},
+                      handle, indent=2, sort_keys=True)
+        print("REFUSED: run_oracle_ceiling is an oracle diagnostic; pass --diagnostic-oracle")
+        return 2
+    diagnostic_bypass_receipt(args.naive_gate_receipt)
+    _oracle_main()
+    return 0
+
+
+def _oracle_main():
     os.environ["STRATEGY_QUIET"] = "1"
     os.environ["PREDICTION_PROVIDER_QUIET"] = "1"
 
@@ -263,7 +309,7 @@ def main():
 
     # Save results
     with open("oracle_ceiling_results.json", "w") as f:
-        json.dump({
+        json.dump(stamp({
             "phase": "A1_oracle_ceiling",
             "total_profit": total_profit,
             "total_trades": total_trades,
@@ -276,11 +322,11 @@ def main():
             "fold_results": fold_results,
             "config": {k: v for k, v in config.items()
                        if isinstance(v, (int, float, str, bool))},
-        }, f, indent=2, default=str)
+        }), f, indent=2, default=str)
     print("Saved oracle_ceiling_results.json")
 
     if all_trades:
-        pd.DataFrame(all_trades).to_csv("oracle_ceiling_trades.csv", index=False)
+        pd.DataFrame(stamp_rows(all_trades)).to_csv("oracle_ceiling_trades.csv", index=False)
         print("Saved oracle_ceiling_trades.csv")
 
     # ================================================================
@@ -376,9 +422,9 @@ def main():
 
     # Save noise sweep
     with open("oracle_noise_sweep.json", "w") as f:
-        json.dump(noise_results, f, indent=2, default=str)
+        json.dump({"result_class": DIAGNOSTIC_CLASS, "noise_results": noise_results}, f, indent=2, default=str)
     print("Saved oracle_noise_sweep.json")
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

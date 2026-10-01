@@ -620,6 +620,9 @@ class NEATPredictionSource:
 
 def run_backtest(base_data, source, config, label=""):
     """Run direction_atr strategy with prediction source."""
+    # Per prediction set, before the strategy is touched (S09 naive gate).
+    from app.runner_naive_gate import require_installed
+    require_installed(label or "candidate", None)
     import backtrader as bt
     from app.plugins.plugin_direction_atr import Plugin as DirectionATRPlugin
 
@@ -773,7 +776,15 @@ def main():
                         help="NEAT generations per stage (default: 5)")
     parser.add_argument("--neat-pop", type=int, default=15,
                         help="NEAT population size (default: 15)")
+    parser.add_argument("--forecast_evidence", default=None,
+                        help="Declared forecast-vs-naive evidence (S09 gate)")
+    parser.add_argument("--naive_gate_receipt", default="naive_gate_receipt_run_phase_d_neat.json")
     args = parser.parse_args()
+    # Naive gate at entry (S09): decided before any data or model is loaded.
+    from app.runner_naive_gate import entry_gate_for_runner
+    if not entry_gate_for_runner("run_phase_d_neat").allowed:
+        return
+
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)

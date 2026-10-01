@@ -618,6 +618,9 @@ class EnsemblePredictionSource:
 
 def run_backtest(base_data, source, config, label=""):
     """Run direction_atr strategy with prediction source."""
+    # Per prediction set, before the strategy is touched (S09 naive gate).
+    from app.runner_naive_gate import require_installed
+    require_installed(label or "candidate", None)
     import backtrader as bt
     from app.plugins.plugin_direction_atr import Plugin as DirectionATRPlugin
 
@@ -763,6 +766,11 @@ def quick_sample_test(sample_data, pred_df, config, label, threshold=0.55):
 # ================================================================
 
 def main():
+    # Naive gate at entry (S09): decided before any data or model is loaded.
+    from app.runner_naive_gate import entry_gate_for_runner
+    if not entry_gate_for_runner("run_phase_c_ensemble").allowed:
+        return
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     sys.path.insert(0, script_dir)

@@ -41,6 +41,10 @@ REGIME_NAMES = {
 class Plugin:
     """Regime-Adaptive Trading Strategy Plugin."""
 
+    # Purely reactive to indicators of the base data; no learned predictions reach it.
+    # The forecast-versus-naive gate records this run as NOT_APPLICABLE (S09).
+    consumes_learned_predictions = False
+
     plugin_params = {
         'pip_cost': 0.00001,
         'rel_volume': 0.10,

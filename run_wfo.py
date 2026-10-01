@@ -53,6 +53,9 @@ def main():
     parser.add_argument("--save_results", type=str,
                         default="wfo_results.json",
                         help="Save WFO results to JSON")
+    parser.add_argument("--forecast_evidence", type=str, default=None,
+                        help="Declared forecast-vs-naive evidence (S09 gate)")
+    parser.add_argument("--naive_gate_receipt", type=str, default="naive_gate_receipt_wfo.json")
     parser.add_argument("--save_trades", type=str,
                         default="wfo_oos_trades.csv",
                         help="Save OOS trades to CSV")
@@ -61,16 +64,25 @@ def main():
     # Suppress verbose inner strategy output
     os.environ["STRATEGY_QUIET"] = "1"
 
+    # Naive gate at entry (S09): decided before any data is loaded or evaluated.
+    from app.runner_naive_gate import RunnerGate, plugin_consumes_learned_predictions
+    plugin_class, _ = load_plugin('heuristic_strategy.plugins', args.plugin)
+    plugin = plugin_class()
+    gate = RunnerGate("run_wfo", evidence_config=args.forecast_evidence,
+                      receipt_path=args.naive_gate_receipt,
+                      consumes_predictions=plugin_consumes_learned_predictions(plugin),
+                      asset="EURUSD", prediction_source="API")
+    if not gate.entry():
+        print(f"SKIPPED_NOT_BETTER_THAN_NAIVE: walk-forward not run (receipt {args.naive_gate_receipt})")
+        return
+
     # Load dataset
     print(f"Loading dataset: {args.base_dataset_file}")
     base_data = load_csv(args.base_dataset_file, headers=True)
     print(f"Loaded: {base_data.shape[0]} bars, "
           f"{base_data.index.min()} to {base_data.index.max()}")
 
-    # Load plugin
-    print(f"Loading plugin: {args.plugin}")
-    plugin_class, _ = load_plugin('heuristic_strategy.plugins', args.plugin)
-    plugin = plugin_class()
+    print(f"Plugin: {args.plugin} (gate entry: {gate.entry_decision['status']})")
 
     # Config stub (regime_wfo uses API mode — no CSV predictions needed)
     config = {
@@ -90,6 +102,7 @@ def main():
         population_size=args.population_size,
         num_generations=args.num_generations,
         min_trades=args.min_trades,
+        gate=gate,
     )
 
     # Save results

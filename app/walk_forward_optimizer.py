@@ -160,7 +160,8 @@ def run_walk_forward(plugin, full_data, config,
                      last_test_year=2020,
                      population_size=30,
                      num_generations=20,
-                     min_trades=10):
+                     min_trades=10,
+                     gate=None):
     """
     Rolling-window walk-forward optimization.
 
@@ -183,6 +184,10 @@ def run_walk_forward(plugin, full_data, config,
     Returns:
         dict with fold results, aggregated OOS metrics
     """
+    # S09 naive gate: refuse before touching data unless an allowing gate is supplied.
+    from app.runner_naive_gate import GateRefused
+    if gate is None or not gate.allowed:
+        raise GateRefused("SKIPPED_NOT_BETTER_THAN_NAIVE: run_walk_forward needs an allowing naive gate")
     start_time = time.time()
 
     if not isinstance(full_data.index, pd.DatetimeIndex):
@@ -205,6 +210,9 @@ def run_walk_forward(plugin, full_data, config,
     all_oos_trades = []
 
     for test_year in range(first_test_year, last_test_year + 1):
+        # The fold's prediction set is decided before any GA or OOS evaluation of it.
+        if not gate.candidate(f"fold_{test_year}", None if gate.consumes_predictions else {}):
+            continue
         fold_start = time.time()
         train_start_year = test_year - train_years
         train_end_year = test_year - 1

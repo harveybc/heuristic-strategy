@@ -462,6 +462,10 @@ class OfflineCNNPredictionSource:
 
 def run_cnn_backtest(base_data, cnn_source, config, label=""):
     """Run direction_atr strategy with offline CNN predictions."""
+    # Per prediction set, before the strategy is touched: a direction-probability
+    # set has no form in the forecast-vs-naive contract, so it is never admitted.
+    from app.runner_naive_gate import require_installed
+    require_installed(label or "cnn", None)
     import backtrader as bt
     from app.plugins.plugin_direction_atr import Plugin as DirectionATRPlugin
 
@@ -596,6 +600,11 @@ def run_wfo_cnn(base_data_1h, cnn_source, config, thresholds_to_test):
 
 
 def main():
+    # Naive gate at entry (S09): decided before any data or model is loaded.
+    from app.runner_naive_gate import entry_gate_for_runner
+    if not entry_gate_for_runner("run_phase_b_cnn").allowed:
+        return
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     sys.path.insert(0, script_dir)

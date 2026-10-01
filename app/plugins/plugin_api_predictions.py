@@ -94,7 +94,21 @@ class Plugin:
 
         Predictions are fetched per-tick inside the strategy (no CSV files
         needed).  hourly_predictions and daily_predictions are ignored.
+
+        S09 naive gate: per-tick API predictions cannot be bound to declared
+        horizons before the run, so this refuses before any strategy runs,
+        however it is driven (the pipeline already skips API runs).
         """
+        from app.forecast_naive_gate import gate_run
+        from app.runner_naive_gate import GateRefused
+        decision = gate_run(dict(config or {}, prediction_source="API"), None)
+        receipt = (config or {}).get("naive_gate_receipt_file")
+        if receipt:
+            import json as _json
+            with open(receipt, "w") as handle:
+                _json.dump(decision, handle, indent=2, sort_keys=True)
+        raise GateRefused(f"{decision['status']}: api_predictions evaluates nothing "
+                          f"({decision['failures'][0]['reason']})")
         import backtrader as bt
 
         profit_threshold, tp_multiplier, sl_multiplier, lower_rr, upper_rr = individual
