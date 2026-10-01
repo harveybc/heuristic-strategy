@@ -203,3 +203,126 @@ def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Map
     result["digest"] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(",", ":"),
                                                  allow_nan=False, default=str).encode()).hexdigest()
     return result
+
+
+# ---------------------------------------------------------------- the strategy's own two families
+
+
+def should_early_close(direction: str, hourly: Sequence[float], daily: Sequence[float], *, sl: float) -> bool:
+    """Exit variant E of plugin_long_short_predictions (lts heuristic_strategy.should_early_close)."""
+    if direction == "long":
+        if hourly and daily:
+            return 0.6 * min(hourly) + 0.4 * min(daily) < sl
+        if hourly:
+            return min(hourly) < sl
+        if daily:
+            return min(daily) < sl
+        return False
+    if hourly and daily:
+        return 0.6 * max(hourly) + 0.4 * max(daily) > sl
+    if hourly:
+        return max(hourly) > sl
+    if daily:
+        return max(daily) > sl
+    return False
+
+
+def decide_targets_families(bars, daily, hourly, params: HeuristicParams, *, early_close: bool) -> list[int]:
+    """Entry from the daily family (heuristic entry rule); TP/SL exits; optional variant-E early close."""
+    targets, position, tp, sl = [], 0, None, None
+    for bar, d_preds, h_preds in zip(bars, daily, hourly):
+        price = float(bar["close"])
+        if position != 0:
+            hit_tp = price >= tp if position > 0 else price <= tp
+            hit_sl = price <= sl if position > 0 else price >= sl
+            early = early_close and should_early_close("long" if position > 0 else "short",
+                                                       h_preds, d_preds, sl=sl)
+            if hit_tp or hit_sl or early:
+                position, tp, sl = 0, None, None
+        elif d_preds:
+            high, low = max(d_preds), min(d_preds)
+            profit_long, profit_short = high - price, price - low
+            dd_long = max(price - low, params.min_drawdown_frac * price)
+            dd_short = max(high - price, params.min_drawdown_frac * price)
+            rr_long = profit_long / dd_long if dd_long > 0 else 0.0
+            rr_short = profit_short / dd_short if dd_short > 0 else 0.0
+            if profit_long / price >= params.profit_threshold_frac and rr_long >= rr_short:
+                position, tp, sl = 1, price + params.tp_multiplier * profit_long, price - params.sl_multiplier * dd_long
+            elif profit_short / price >= params.profit_threshold_frac and rr_short > rr_long:
+                position, tp, sl = -1, price - params.tp_multiplier * profit_short, price + params.sl_multiplier * dd_short
+        targets.append(position)
+    return targets
+
+
+def _family_gate(family, record, declared):
+    spec = (declared.get("families") or {}).get(family) or {}
+    horizons = list(spec.get("horizons") or [])
+    one = dict(declared, families={family: spec})
+    full = evaluate({family: record}, one, {family: len(horizons)}, declared.get("asset"), families=(family,))
+    by_h = {}
+    for failure in full["failures"]:
+        by_h.setdefault(failure["horizon"], []).append(failure)
+    global_failures = by_h.pop(None, [])
+    rows = {row["horizon"]: row for row in full["horizons"]}
+    passing = [h for h in horizons if h not in by_h] if not global_failures else []
+    return {"evidence_sha256": (record or {}).get("evidence_sha256"), "declared_horizons": horizons,
+            "consumed_horizons": passing, "global_failures": global_failures,
+            "excluded_horizons": [dict(rows.get(h, {"horizon": h}), failures=by_h[h]) for h in horizons if h in by_h],
+            "passing_rows": [rows[h] for h in passing if h in rows], "provenance": full["provenance"]}
+
+
+def paired_backtest_families(bars: Sequence[Mapping[str, Any]], predictions: Mapping[str, Sequence[Mapping[str, Any]]],
+                             records: Mapping[str, Mapping[str, Any]], declared: Mapping[str, Any],
+                             params: HeuristicParams, *, manifest_status: str = "UNKNOWN",
+                             split: str = "validation", entry_family: str = "daily",
+                             exit_family: str = "hourly") -> dict[str, Any]:
+    """Heuristic strategy over its own families, each gated on its own record and horizons.
+
+    Families pair on bar time: a bar without a daily forecast takes no new entry, and a
+    bar without an hourly forecast has no early-close input. Failing horizons are excluded
+    as a declared reduced experiment. No passing daily horizon means no run.
+    """
+    gates = {f: _family_gate(f, records.get(f), declared) for f in (entry_family, exit_family)}
+    by_time = {f: {row["time"]: row for row in predictions.get(f, [])} for f in gates}
+    population = {"split": split, "episodes": 1, "rows": len(bars), "first": bars[0]["time"],
+                  "last": bars[-1]["time"], "selection_metric": "none (paired evaluation, no selection)",
+                  "bars_without_daily_forecast": sum(1 for b in bars if b["time"] not in by_time[entry_family]),
+                  "bars_without_hourly_forecast": sum(1 for b in bars if b["time"] not in by_time[exit_family])}
+    candidates = {f: ((records.get(f) or {}).get("artifact") or {}).get("candidate_cid") for f in gates}
+    reductions = []
+    entry_ok = gates[entry_family]["consumed_horizons"]
+    variant_e = str(params.exit_variant).upper().startswith("E")
+    early_close = variant_e and bool(gates[exit_family]["consumed_horizons"])
+    if variant_e and not early_close:
+        reductions.append(f"{exit_family} family has no passing horizon: variant-E early close disabled")
+    for f, g in gates.items():
+        if g["excluded_horizons"]:
+            reductions.append(f"{f} horizons {[r['horizon'] for r in g['excluded_horizons']]} failed the naive gate")
+    gate = {"contract_sha256": CONTRACT_SHA256, "families": gates, "passed": bool(entry_ok),
+            "reduced_input_experiment": {"declared": bool(reductions), "reason": "; ".join(reductions)}}
+    base = {"schema": RESULT_SCHEMA, "arm": "heuristic_forecast_families", "naive_gate": gate,
+            "evaluation_population": population, "costs": COSTS, "candidates": candidates,
+            "params": dict(asdict(params), effective_exit_variant="E" if early_close else "G (TP/SL on close only)"),
+            "manifest_status": manifest_status}
+    if not entry_ok:
+        return dict(base, status=SKIPPED, metrics=None, trajectory=None,
+                    baselines={"no_trade": no_trade_baseline(len(bars)), "heuristic": "UNAVAILABLE"})
+
+    def read(family, bar):
+        row = by_time[family].get(bar["time"])
+        return [float(row[h]) for h in gates[family]["consumed_horizons"]] if row else []  # failing never read
+
+    daily = [read(entry_family, bar) for bar in bars]
+    hourly = [read(exit_family, bar) if early_close else [] for bar in bars]
+    targets = decide_targets_families(bars, daily, hourly, params, early_close=early_close)
+    episode = run_episode(bars, targets)
+    status = {"FROZEN": "RESULT", "FROZEN_DEVELOPMENT": "DEVELOPMENT_NOT_CONFIRMATORY"}.get(
+        manifest_status, "PILOT_NOT_A_RESULT")
+    result = dict(base, status=status, metrics=episode_metrics(episode),
+                  baselines={"no_trade": no_trade_baseline(len(bars)),
+                             "heuristic": {"naive_gate": {"passed": True, "evidence": {
+                                 f: g["evidence_sha256"] for f, g in gates.items()}}}},
+                  trajectory={"targets": episode["targets"], "fills": episode["fills"]})
+    result["digest"] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(",", ":"),
+                                                 allow_nan=False, default=str).encode()).hexdigest()
+    return result
