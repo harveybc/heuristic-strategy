@@ -52,7 +52,7 @@ def load_predictions(path, horizons):
         for row in reader:
             item = {"time": row["DATE_TIME"]}
             for h in horizons:
-                key = f"h_{h}" if f"h_{h}" in row else f"Prediction_{h}"
+                key = next(k for k in (f"close_hat_h{h}", f"h_{h}", f"Prediction_{h}") if k in row)
                 item[h] = float(row[key]) if row.get(key) not in (None, "") else float("nan")
             out.append(item)
     return out
@@ -64,13 +64,15 @@ def main(argv=None):
         parser.add_argument(name, required=True)
     parser.add_argument("--family", default="forecast")
     parser.add_argument("--manifest-status", default="UNKNOWN")
+    parser.add_argument("--missing-forecast", default="refuse", choices=["refuse", "hold"])
     args = parser.parse_args(argv)
     record = json.loads(Path(args.evidence).read_text())
     declared = json.loads(Path(args.declared).read_text())
     horizons = declared["families"][args.family]["horizons"]
     bars = load_bars(args.bars, args.rows)
     result = paired_backtest(bars, load_predictions(args.predictions, horizons), record, declared,
-                             HeuristicParams(), family=args.family, manifest_status=args.manifest_status)
+                             HeuristicParams(), family=args.family, manifest_status=args.manifest_status,
+                             missing_forecast=args.missing_forecast)
     result["inputs"] = {"bars_sha256": _sha(args.bars), "rows": args.rows,
                         "predictions_sha256": _sha(args.predictions), "evidence_file_sha256": _sha(args.evidence),
                         "declared_sha256": _sha(args.declared)}

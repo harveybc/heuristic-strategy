@@ -143,11 +143,13 @@ def decide_targets(bars, forecasts: Sequence[Sequence[float]], params: Heuristic
 def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Mapping[str, Any]],
                     record: Mapping[str, Any], declared: Mapping[str, Any], params: HeuristicParams,
                     *, family: str = "forecast", split: str = "validation",
-                    manifest_status: str = "UNKNOWN") -> dict[str, Any]:
+                    manifest_status: str = "UNKNOWN", missing_forecast: str = "refuse") -> dict[str, Any]:
+    """``missing_forecast="hold"`` lets bars without a forecast take no new entry (exits still
+    apply); the count and the bars are recorded. The default refuses."""
     by_time = {row["time"]: row for row in predictions}
-    for bar in bars:
-        if bar["time"] not in by_time:
-            raise ValueError(f"forecast missing for bar {bar['time']}")
+    missing = [bar["time"] for bar in bars if bar["time"] not in by_time]
+    if missing and missing_forecast != "hold":
+        raise ValueError(f"forecast missing for bar {missing[0]}")
     spec = (declared.get("families") or {}).get(family) or {}
     horizons = list(spec.get("horizons") or [])
     full = evaluate({family: record}, declared, {family: len(horizons)}, declared.get("asset"), families=(family,))
@@ -163,7 +165,10 @@ def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Map
             "excluded_horizons": excluded, "global_failures": global_failures,
             "passing_rows": [rows[h] for h in passing if h in rows], "provenance": full["provenance"]}
     population = {"split": split, "episodes": 1, "rows": len(bars), "first": bars[0]["time"],
-                  "last": bars[-1]["time"], "selection_metric": "none (paired evaluation, no selection)"}
+                  "last": bars[-1]["time"], "selection_metric": "none (paired evaluation, no selection)",
+                  "bars_without_forecast": {"count": len(missing), "policy": missing_forecast,
+                                            "first": missing[0] if missing else None,
+                                            "last": missing[-1] if missing else None}}
     if global_failures or not passing:
         gate.update(passed=False, reduced_input_experiment={"declared": False})
         return {"schema": RESULT_SCHEMA, "arm": "heuristic_forecast", "status": SKIPPED,
@@ -183,7 +188,8 @@ def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Map
     else:
         gate["reduced_input_experiment"] = {"declared": False}
     gate["passed"] = True
-    forecasts = [[float(by_time[bar["time"]][h]) for h in passing] for bar in bars]  # failing columns never read
+    forecasts = [[float(by_time[bar["time"]][h]) for h in passing] if bar["time"] in by_time else []
+                 for bar in bars]  # failing columns are never read; [] = no forecast, no new entry
     targets = decide_targets(bars, forecasts, params)
     episode = run_episode(bars, targets)
     status = "RESULT" if manifest_status == "FROZEN" else "PILOT_NOT_A_RESULT"

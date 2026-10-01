@@ -183,3 +183,12 @@ def test_cli_runs_end_to_end_on_files(tmp_path):
     out = json.loads((tmp_path / "out.json").read_text())
     assert out["evaluation_population"]["rows"] == 20 and out["status"] == "PILOT_NOT_A_RESULT"
     assert out["naive_gate"]["consumed_horizons"] == [1] and out["inputs"]["rows"] == "10:30"
+
+
+def test_missing_tail_forecasts_hold_only_when_declared():
+    record = _record([_horizon(1, 0.5, 0.9)])
+    bars = _bars([100 + 3 * ((-1) ** i) for i in range(12)])
+    preds = _predictions(bars, [1])[:-3]
+    out = paired_backtest(bars, preds, record, _declared(record, [1]), HeuristicParams(), missing_forecast="hold")
+    assert out["evaluation_population"]["bars_without_forecast"]["count"] == 3
+    assert out["evaluation_population"]["rows"] == 12
