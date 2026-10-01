@@ -56,10 +56,18 @@ class HeuristicParams:
     direction: str = "both"  # ablation: "long_only" / "short_only" never take the other side
 
 
-def run_episode(bars: Sequence[Mapping[str, Any]], targets: Sequence[int]) -> dict[str, Any]:
-    """Apply target positions decided after each close; fills at the next bar's open."""
+def run_episode(bars: Sequence[Mapping[str, Any]], targets: Sequence[int],
+                costs: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Apply target positions decided after each close; fills at the next bar's open.
+
+    ``costs`` is a declared cost profile (e.g. docs/contracts/fx_profile.*.json):
+    ``commission_fraction_per_side`` and ``modelled_round_trip_spread_price`` (half charged
+    per side, per unit). Without it the harness defaults (lane G's ETH values) apply.
+    """
     if len(targets) != len(bars):
         raise ValueError("one target per bar is required")
+    commission = float((costs or {}).get("commission_fraction_per_side", COSTS["commission"]))
+    half_spread = float((costs or {}).get("modelled_round_trip_spread_price", 0.0)) / 2.0
     cash, position = COSTS["initial_cash"], 0
     equity, positions, fills = [], [], []
     for t, bar in enumerate(bars):
@@ -67,7 +75,7 @@ def run_episode(bars: Sequence[Mapping[str, Any]], targets: Sequence[int]) -> di
             delta = int(targets[t - 1]) - position
             if delta:
                 price = float(bar["open"])
-                cash -= delta * price + COSTS["commission"] * abs(delta) * price
+                cash -= delta * price + commission * abs(delta) * price + half_spread * abs(delta)
                 fills.append((t, delta, price))
                 position += delta
         positions.append(position)

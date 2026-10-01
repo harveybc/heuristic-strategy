@@ -1,0 +1,17 @@
+{
+  "schema": "heuristic_strategy.cost_profile.v1",
+  "name": "eurusd_ibkr_canary_v1",
+  "declared": "2026-10-01, coordinator ruling, before any FX sign-rule run; never tuned on validation",
+  "instrument": "EUR.USD",
+  "spread_cap_price": 0.0003,
+  "spread_cap_source": "lts examples/configs/ibkr_l1_canary_profile_v2.json max_spread_price (sha256 d2ec083a3988d564982925ea5cef3a106abf9e2a8ef7b6b41421aa2d515e0c43)",
+  "modelled_round_trip_spread_price": 0.0001,
+  "modelled_spread_note": "1e-4 total per round trip (half per side), MODELLED; within the 0.0003 spread gate",
+  "commission_fraction_per_side": 0.001,
+  "commission_note": "as already in the paired harness (lane G's ETH value); NOT an IBKR figure: IBKR's real FX commission is far smaller, flagged",
+  "slippage_price": 0.0,
+  "swap_financing": 0.0,
+  "broker_fill_costs": {"status": "NOT_AVAILABLE", "reason": "offline backtest; realised costs appear only in route fills"},
+  "position_units": 1.0,
+  "initial_cash": 10000.0
+}
