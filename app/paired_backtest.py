@@ -53,6 +53,7 @@ class HeuristicParams:
     tp_multiplier: float = 0.9
     sl_multiplier: float = 2.0
     exit_variant: str = "G (TP/SL on close only)"
+    direction: str = "both"  # ablation: "long_only" / "short_only" never take the other side
 
 
 def run_episode(bars: Sequence[Mapping[str, Any]], targets: Sequence[int]) -> dict[str, Any]:
@@ -111,16 +112,24 @@ def no_trade_baseline(bars: int) -> dict[str, Any]:
             "turnover_units": 0, "trades_closed": 0, "exposure_fraction": 0.0, "bars": bars}
 
 
-def decide_targets(bars, forecasts: Sequence[Sequence[float]], params: HeuristicParams) -> list[int]:
-    """Heuristic entry over the readable horizons; TP/SL exits on the close."""
+def decide_targets(bars, forecasts: Sequence[Sequence[float]], params: HeuristicParams,
+                   reasons: list | None = None) -> list[int]:
+    """Heuristic entry over the readable horizons; TP/SL exits on the close.
+
+    ``reasons`` (optional) receives one decision reason per bar for observability.
+    """
     targets, position, tp, sl = [], 0, None, None
+    allow_long = params.direction in ("both", "long_only")
+    allow_short = params.direction in ("both", "short_only")
     for bar, preds in zip(bars, forecasts):
         price = float(bar["close"])
+        reason = "hold_position" if position != 0 else ("hold_flat" if preds else "no_forecast")
         if position != 0:
             hit_tp = price >= tp if position > 0 else price <= tp
             hit_sl = price <= sl if position > 0 else price >= sl
             if hit_tp or hit_sl:
                 position, tp, sl = 0, None, None
+                reason = "take_profit" if hit_tp else "stop_loss"
         elif preds:
             high, low = max(preds), min(preds)
             profit_long, profit_short = high - price, price - low
@@ -128,22 +137,58 @@ def decide_targets(bars, forecasts: Sequence[Sequence[float]], params: Heuristic
             dd_short = max(high - price, params.min_drawdown_frac * price)
             rr_long = profit_long / dd_long if dd_long > 0 else 0.0
             rr_short = profit_short / dd_short if dd_short > 0 else 0.0
-            if profit_long / price >= params.profit_threshold_frac and rr_long >= rr_short:
+            if allow_long and profit_long / price >= params.profit_threshold_frac and (
+                    rr_long >= rr_short or not allow_short):
                 position = 1
                 tp = price + params.tp_multiplier * profit_long
                 sl = price - params.sl_multiplier * dd_long
-            elif profit_short / price >= params.profit_threshold_frac and rr_short > rr_long:
+                reason = "entry_long"
+            elif allow_short and profit_short / price >= params.profit_threshold_frac and (
+                    rr_short > rr_long or not allow_long):
                 position = -1
                 tp = price - params.tp_multiplier * profit_short
                 sl = price + params.sl_multiplier * dd_short
+                reason = "entry_short"
         targets.append(position)
+        if reasons is not None:
+            reasons.append(reason)
     return targets
+
+
+SIZING = {"position_units": 1.0, "initial_cash": 10000.0, "rule": "one asset unit per entry"}
+
+
+def cost_lines(fills) -> list[dict[str, Any]]:
+    """Every cost as an explicit line: MODELLED here, BROKER_FILL only from real fills."""
+    commission = sum(COSTS["commission"] * abs(delta) * price for _, delta, price in fills)
+    return [
+        {"line": "commission", "value": commission, "source": "MODELLED", "unit": "account currency",
+         "basis": "0.001 x |units| x fill price, per side"},
+        {"line": "slippage", "value": 0.0, "source": "MODELLED", "note": "not modelled (lane G specification)"},
+        {"line": "spread", "value": 0.0, "source": "MODELLED", "note": "not modelled (lane G specification)"},
+        {"line": "swap_financing", "value": 0.0, "source": "MODELLED", "note": "financing disabled (lane G specification)"},
+        {"line": "broker_fill_costs", "value": None, "source": "BROKER_FILL", "status": "NOT_AVAILABLE",
+         "reason": "offline backtest: no broker fills exist; real spread/commission/swap appear only in route fills"},
+    ]
+
+
+def write_observability(path, header, bars=(), targets=(), reasons=(), forecasts=()):
+    """One JSONL header (gate, sizing, costs) and one line per bar (decision and reason)."""
+    if path is None:
+        return
+    with open(path, "w") as handle:
+        handle.write(json.dumps(dict(header, kind="header"), sort_keys=True, default=str) + "\n")
+        for bar, target, reason, preds in zip(bars, targets, reasons, forecasts):
+            handle.write(json.dumps({"kind": "bar", "time": bar["time"], "close": float(bar["close"]),
+                                     "target": target, "reason": reason, "forecasts": list(preds)},
+                                    sort_keys=True) + "\n")
 
 
 def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Mapping[str, Any]],
                     record: Mapping[str, Any], declared: Mapping[str, Any], params: HeuristicParams,
                     *, family: str = "forecast", split: str = "validation",
-                    manifest_status: str = "UNKNOWN", missing_forecast: str = "refuse") -> dict[str, Any]:
+                    manifest_status: str = "UNKNOWN", missing_forecast: str = "refuse",
+                    observability_path=None) -> dict[str, Any]:
     """``missing_forecast="hold"`` lets bars without a forecast take no new entry (exits still
     apply); the count and the bars are recorded. The default refuses."""
     by_time = {row["time"]: row for row in predictions}
@@ -171,7 +216,12 @@ def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Map
                                             "last": missing[-1] if missing else None}}
     if global_failures or not passing:
         gate.update(passed=False, reduced_input_experiment={"declared": False})
-        return {"schema": RESULT_SCHEMA, "arm": "heuristic_forecast", "status": SKIPPED,
+        write_observability(observability_path, {
+            "status": SKIPPED, "gate": gate, "skipped_by_gate": excluded + (
+                [{"horizon": None, "failures": global_failures}] if global_failures else []),
+            "sizing": SIZING, "cost_lines": cost_lines([])})
+        return {"schema": RESULT_SCHEMA, "arm": "heuristic_forecast", "status": SKIPPED, "sizing": SIZING,
+                "cost_lines": cost_lines([]),
                 "naive_gate": gate, "evaluation_population": population, "costs": COSTS,
                 "params": asdict(params), "metrics": None, "trajectory": None,
                 "baselines": {"no_trade": no_trade_baseline(len(bars)), "heuristic": "UNAVAILABLE"}}
@@ -190,11 +240,17 @@ def paired_backtest(bars: Sequence[Mapping[str, Any]], predictions: Sequence[Map
     gate["passed"] = True
     forecasts = [[float(by_time[bar["time"]][h]) for h in passing] if bar["time"] in by_time else []
                  for bar in bars]  # failing columns are never read; [] = no forecast, no new entry
-    targets = decide_targets(bars, forecasts, params)
+    reasons: list = []
+    targets = decide_targets(bars, forecasts, params, reasons)
     episode = run_episode(bars, targets)
+    lines = cost_lines(episode["fills"])
+    write_observability(observability_path, {"status": "RAN", "gate": gate, "params": asdict(params),
+                                             "sizing": SIZING, "cost_lines": lines},
+                        bars, targets, reasons, forecasts)
     status = {"FROZEN": "RESULT", "FROZEN_DEVELOPMENT": "DEVELOPMENT_NOT_CONFIRMATORY"}.get(
         manifest_status, "PILOT_NOT_A_RESULT")
     result = {"schema": RESULT_SCHEMA, "arm": "heuristic_forecast", "status": status,
+              "sizing": SIZING, "cost_lines": lines,
               "manifest_status": manifest_status, "naive_gate": gate, "evaluation_population": population,
               "costs": COSTS, "params": asdict(params), "metrics": episode_metrics(episode),
               "baselines": {"no_trade": no_trade_baseline(len(bars)),
