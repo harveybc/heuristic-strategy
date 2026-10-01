@@ -120,8 +120,14 @@ def _skip(reason: str, detail: Any = None, asset: Any = None) -> dict[str, Any]:
 
 
 def evaluate(evidence: Mapping[str, Any], declared: Mapping[str, Any] | None,
-             consumed: Mapping[str, int], asset: str | None) -> dict[str, Any]:
-    """Decide from per-family records, the declaration and the consumed column counts."""
+             consumed: Mapping[str, int], asset: str | None,
+             families: tuple = FAMILIES) -> dict[str, Any]:
+    """Decide from per-family records, the declaration and the consumed column counts.
+
+    ``families`` names the prediction families this runner's strategy consumes
+    (default: the backtest pipeline's hourly and daily). Every named family must
+    pass; the rule itself (CONTRACT) is unchanged.
+    """
     failures, horizons, provenance, population, macro, baselines = [], [], {}, {}, {}, {}
 
     def fail(reason, family=None, horizon=None, detail=None):
@@ -133,7 +139,7 @@ def evaluate(evidence: Mapping[str, Any], declared: Mapping[str, Any] | None,
         fail("asset_not_declared", detail="config.asset is absent")
     elif declared.get("asset") != asset:
         fail("asset_mismatch", detail={"declared": declared.get("asset"), "run": asset})
-    for family in FAMILIES:
+    for family in families:
         spec = (declared.get("families") or {}).get(family)
         count = consumed.get(family)
         if not isinstance(spec, Mapping) or not isinstance(spec.get("horizons"), list):
