@@ -415,3 +415,28 @@ def test_loader_refuses_test_rows(tmp_path):
     assert len(loaded) == 4
     with pytest.raises(D.TestRowsError):
         D.load_ohlc(path, start="2024-12-01", end_exclusive="2025-01-02")
+
+
+def test_blend_family_moves_from_naive_to_truth():
+    truth = np.array([1.10, 1.20, 1.30, 1.40])
+    naive = np.array([1.00, 1.00, np.nan, 1.50])
+    np.testing.assert_allclose(N.blend(truth, naive, 0.0)[[0, 1, 3]], naive[[0, 1, 3]])
+    np.testing.assert_allclose(N.blend(truth, naive, 1.0), truth)  # exact oracle, no NaN leak
+    half = N.blend(truth, naive, 0.5)
+    assert math.isnan(half[2])  # no naive -> no forecast below w = 1
+    np.testing.assert_allclose(half[[0, 1, 3]], [1.05, 1.10, 1.45])
+    paths = np.array([[1.1, np.nan], [1.2, 1.3]])
+    ref = np.array([1.0, 1.0])
+    out = N.blend(paths, ref[:, None], 0.5)
+    assert math.isnan(out[0, 1]) and out[1, 1] == pytest.approx(1.15)
+
+
+def test_sortino_is_infinite_without_down_days():
+    bars = synthetic_bars(seed=12, segments=3)
+    cal = calendar_for(bars)
+    bl = B.build_blocks(bars, cal, 6)
+    zero = X.Costs().scaled(0.0)
+    orders = S.range_first_orders("RF-M", bl, bl.H, bl.L, bl.ft_oracle(), zero, S.RangeFirstParams(), 10_000.0)
+    res = X.run_backtest(bars, bl, orders, zero, cal, 10_000.0, split=(bars.index[0], bars.index[-1] + HOUR))
+    if (np.diff(np.r_[10_000.0, res.daily_equity.to_numpy()]) >= 0).all():
+        assert math.isinf(res.metrics["sortino_daily_sqrt365"])
