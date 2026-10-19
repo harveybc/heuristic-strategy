@@ -120,3 +120,41 @@ pivot level as TP and are not reproducible causally.
 - The learned arm on Musashi's 19-feature manifest is BLOCKED_ON_THIS_HOST (bundle absent); the
   substitute-feature run is a SMOKE_PROBE_WEAK_DETECTOR and says nothing about the manifest or the ceiling.
 - Compute: NSGA 13 + 85 s, confirmed 89 s, noise 57 s, demos < 10 s CPU; GPU as above.
+
+## 7. PARITY_CHECK — the sealed series replayed in gym-fx
+
+The expert trade series (sha256 `352ddf6a…`) and the smoke-probe series were replayed as candidate
+policies in the gym-fx simulation through agent-multi's replay worker (`sweep_worker.py` @ `e4d01fa0`,
+read-only worktrees of both repositories; the bundle-level `sweep` wrapper needs a fitted policy
+bundle, so its simulation half was driven directly with a flat gym-fx configuration). Same
+instrument, 2024, same bars (lake, pinned digest), fixed 90 000 units (no compounding), matched
+per-fill costs (3,5 USD/lot/side; half spread 0,3 pip + 0,2 pip slippage as `slippage_perc`), no swap.
+Because gym-fx has no per-trade SL/TP, the policy compared is **hold-to-reversal** (long at a valley /
+short at a peak, fills at the next bar open) in both simulators — labelled PARITY_ONLY_NOT_A_STRATEGY;
+it is not the expert's SL/TP result of §3. Table: `results/zigzag/parity/PARITY_TABLE.md`, raw
+`PARITY.json`.
+
+| Series | Metric | Ours | gym-fx | Δ % |
+|---|---|---:|---:|---:|
+| expert | Net USD | 143 408 | 147 351 | +2,7 % |
+| expert | Sharpe | 12,92 | 13,80 | +6,8 % |
+| expert | Max DD USD / % | 805,5 / 3,92 | 805,1 / 3,90 | −0,05 % |
+| expert | Trades | 1 279 blocks (53 clipped at a session close) | 1 287 closed trades (1 288 position changes) | |
+| probe | Net USD | 3 368 | 8 082 | +140 % |
+| probe | Sharpe | 0,74 | 1,33 | |
+| probe | Max DD USD | 5 458 | 4 577 | −16 % |
+| probe | Trades | 537 blocks | 232 closed trades (233 changes) | |
+
+Reading. The expert series agrees to 2,7 % in net and to the dollar in max drawdown: the price path,
+the next-bar-open fill and the per-fill costs are the same in both simulators. The residual is the
+**session calendar**: our simulator force-flats at every session close (53 expert blocks clipped at
+the weekly gap, re-entered after it, paying two extra fills) while gym-fx holds through the gap. The
+probe series disagrees because its signals repeat the same direction (long, long, …): our simulator
+closes and re-opens a block at every signal (537 fills, 8 216 USD of costs) while gym-fx's
+`legacy_directional_v1` ignores a same-direction decision (232 trades) — a contract difference in
+**what a repeated decision means**, not a price or cost discrepancy. Every other difference
+(intrabar stop-before-TP rule, limit trade-through, hour-dependent spread, swap with a triple day,
+compounding sizing, ruin stop-out, daily cap, frequency rule) is disabled or absent on one side and
+listed in `PARITY.json`. Verdict: PARITY_CHECK COMPARABLE for the expert under the hold-to-reversal
+contract; the SL/TP, swap and calendar features of this lane have no counterpart in gym-fx and must
+stay on this side.
