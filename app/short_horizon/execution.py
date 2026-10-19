@@ -339,6 +339,13 @@ def _account(bars, trades, split, initial_capital, evaluated, refused, orders_su
          "fill_rate": float(len(trades) / len(evaluated)) if len(evaluated) else 0.0,
          "net_per_eligible_block_usd": float((equity.iloc[-1] - initial_capital) / len(evaluated))
          if len(evaluated) else 0.0}
+    # Ruin: marked-to-market equity at or below zero. Returns against a non-positive base are
+    # meaningless, so a ruined run has no Sharpe or Sortino.
+    m["ruined"] = bool(curve.min() <= 0)
+    m["ruin_skipped_orders"] = 0
+    if m["ruined"]:
+        m["sharpe_daily_sqrt365"] = math.nan
+        m["sortino_daily_sqrt365"] = math.nan
     recon = m["gross_usd"] - sum(m[f"cost_{c}_usd"] for c in ("spread", "slippage", "commission", "financing"))
     if abs(recon - m["net_profit_usd"]) > 1e-6 * max(1.0, abs(recon)):
         raise AssertionError("cash ledger does not reconcile with trade costs")
@@ -352,19 +359,24 @@ def _business_day(blocks, calendar, k):
 
 def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Calendar,
                  initial_capital: float, split, profile: Optional[RealisticProfile] = None,
-                 max_orders_per_day: Optional[int] = None) -> Result:
+                 max_orders_per_day: Optional[int] = None, ruin_floor: Optional[float] = None) -> Result:
     """``max_orders_per_day``: strategy-side cap per business day (rollover to rollover),
-    applied at decision time in block order; later orders of a full day are not sent."""
+    applied at decision time in block order; later orders of a full day are not sent.
+    ``ruin_floor``: stop-out; no new order once realized equity is at or below this level."""
     v = bars.index.as_unit("ns").asi8
     arr = [bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE")]
     evaluated = list(np.flatnonzero(blocks.in_split(split)))
-    trades, refused, submitted, unfilled, capped = [], 0, 0, 0, 0
+    trades, refused, submitted, unfilled, capped, ruin_skipped = [], 0, 0, 0, 0, 0
+    realized = initial_capital
     per_day, trades_day = {}, {}
     through = profile.limit_through if profile is not None else 0.0
     delay = profile.entry_delay_bars if profile is not None else 0
     for k in evaluated:
         order = orders[k]
         if order is None or order.units <= 0:
+            continue
+        if ruin_floor is not None and realized <= ruin_floor:
+            ruin_skipped += 1
             continue
         day = _business_day(blocks, calendar, k)
         if max_orders_per_day is not None and per_day.get(day, 0) >= max_orders_per_day:
@@ -385,13 +397,14 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
             continue
         trades_day[day] = trades_day.get(day, 0) + 1
         trades.append(_trade_record(v, blocks.segment[k], lo, fill, costs, calendar, int(k), profile))
+        realized += trades[-1]["net_usd"]
     res = _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled)
     weeks = {tuple(blocks.start[k].isocalendar()[:2]) for k in evaluated}
     res.metrics.update({"weeks_with_eligible_blocks": len(weeks),
                         "trades_per_week": len(trades) / len(weeks) if weeks else 0.0,
                         "max_orders_per_day": max(per_day.values(), default=0),
                         "max_trades_per_day": max(trades_day.values(), default=0),
-                        "capped_orders": capped,
+                        "capped_orders": capped, "ruin_skipped_orders": ruin_skipped,
                         "max_orders_per_day_cap": -1 if max_orders_per_day is None else int(max_orders_per_day)})
     return res
 

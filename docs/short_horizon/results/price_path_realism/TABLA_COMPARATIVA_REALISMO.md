@@ -50,14 +50,14 @@ Etiqueta `DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT`. Break-even leído 
 | RF-M | realistas / A1 | 10,23 | 0,66 | 0,66 | 0,67 | 0,66 | 0,90 | 3,94 |
 | RF-M | realistas / A2 | 10,29 | — | — | — | — | — | — |
 | RF-M | (ii) realistas ×2 / i.i.d. | 10,09 | — | — | — | 16,53 | 22,87 | — |
-| RF-M | (iii) realistas ×2 / A3 | 10,09 | 0,67 | 0,65 | 0,66 | 0,65 | 0,94 | 3,63 |
+| RF-M | (iii) realistas ×2 / A3 | 10,09 | 0,67 | 0,65 | 0,66 | 0,65 | 0,84 | 3,63 |
 | RF-L | (i) costes anteriores / i.i.d. | 10,68 | — | — | — | — | 0,86 | — |
 | RF-L | (ii) realistas / i.i.d. | 10,97 | — | — | — | — | 0,86 | — |
-| RF-L | (iii) realistas / A3 | 10,97 | 0,73 | 0,71 | 0,72 | 0,71 | — | 4,48 |
+| RF-L | (iii) realistas / A3 | 10,97 | 0,73 | 0,71 | 0,72 | 0,71 | 1,05 | 4,48 |
 | RF-L | realistas / A1 | 10,91 | 0,66 | 0,66 | 0,66 | 0,65 | 1,00 | 4,69 |
 | RF-L | realistas / A2 | 10,97 | — | — | — | — | 2,89 | — |
 | RF-L | (ii) realistas ×2 / i.i.d. | 10,86 | — | — | — | — | 0,86 | — |
-| RF-L | (iii) realistas ×2 / A3 | 10,86 | 0,66 | 0,64 | 0,65 | 0,62 | — | 4,49 |
+| RF-L | (iii) realistas ×2 / A3 | 10,86 | 0,66 | 0,64 | 0,65 | 0,62 | 0,84 | 4,49 |
 
 ## Día hábil (B = 24 h) · ENTRENAMIENTO 2020-2023 · válido con ≥ 4 operaciones/semana
 
@@ -126,7 +126,7 @@ Etiqueta `DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT`. Break-even leído 
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | RF-M | (i) costes anteriores / i.i.d. | 6,57 | 10,40 | 5,91 | 8,86 | 9,67 | — | 14,85 |
 | RF-M | (ii) realistas / i.i.d. | 8,69 | 28,55 | 16,24 | 24,33 | 20,42 | — | 12,16 |
-| RF-M | (iii) realistas / A3 | 8,69 | 0,67 | 0,66 | 0,67 | 0,66 | — | 6,78 |
+| RF-M | (iii) realistas / A3 | 8,69 | 0,67 | 0,66 | 0,67 | 0,66 | 1,15 | 6,78 |
 | RF-M | realistas / A1 | 8,86 | 0,60 | 0,59 | 0,60 | 0,59 | 0,90 | 7,74 |
 | RF-M | realistas / A2 | 8,69 | — | — | — | — | — | — |
 | RF-M | (ii) realistas ×2 / i.i.d. | 8,43 | 13,17 | 7,49 | 11,22 | 10,44 | — | 14,89 |
@@ -134,12 +134,12 @@ Etiqueta `DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT`. Break-even leído 
 | RF-M | realistas ×1 / A3, ≤ 2 órdenes/día | 8,74 | 0,65 | 0,64 | 0,65 | 0,63 | 1,04 | 5,86 |
 | RF-L | (i) costes anteriores / i.i.d. | 6,96 | — | — | — | — | 2,95 | — |
 | RF-L | (ii) realistas / i.i.d. | 8,94 | — | — | — | — | 2,95 | — |
-| RF-L | (iii) realistas / A3 | 8,94 | 0,58 | 0,57 | 0,58 | 0,57 | — | 11,86 |
-| RF-L | realistas / A1 | 9,09 | 0,53 | 0,53 | 0,53 | 0,53 | 1,00 | 12,55 |
+| RF-L | (iii) realistas / A3 | 8,94 | 0,58 | 0,57 | 0,58 | 0,57 | 0,73 | 11,86 |
+| RF-L | realistas / A1 | 9,09 | 0,53 | 0,53 | 0,53 | 0,53 | 0,70 | 12,55 |
 | RF-L | realistas / A2 | 8,94 | — | — | — | — | — | — |
 | RF-L | (ii) realistas ×2 / i.i.d. | 8,50 | — | — | — | — | 2,95 | — |
-| RF-L | (iii) realistas ×2 / A3 | 8,50 | 0,49 | 0,48 | 0,49 | 0,48 | 0,94 | 10,52 |
-| RF-L | realistas ×1 / A3, ≤ 2 órdenes/día | 9,05 | 0,57 | 0,56 | 0,56 | 0,56 | — | 8,43 |
+| RF-L | (iii) realistas ×2 / A3 | 8,50 | 0,49 | 0,48 | 0,49 | 0,48 | 0,63 | 10,52 |
+| RF-L | realistas ×1 / A3, ≤ 2 órdenes/día | 9,05 | 0,57 | 0,56 | 0,56 | 0,56 | 0,83 | 8,43 |
 
 ## Bloques de 6 h (B = 6) · ENTRENAMIENTO 2020-2023 · válido con ≥ 4 operaciones/semana
 
@@ -155,12 +155,12 @@ Etiqueta `DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT`. Break-even leído 
 | RF-M | realistas ×1 / A3, ≤ 2 órdenes/día | 8,74 | 0,65 | 0,64 | 0,65 | 0,63 | 0,94 | 5,86 |
 | RF-L | (i) costes anteriores / i.i.d. | 6,96 | — | — | — | — | 2,21 | — |
 | RF-L | (ii) realistas / i.i.d. | 8,94 | — | — | — | — | 2,21 | — |
-| RF-L | (iii) realistas / A3 | 8,94 | 0,58 | 0,57 | 0,58 | 0,57 | — | 11,86 |
-| RF-L | realistas / A1 | 9,09 | 0,53 | 0,53 | 0,53 | 0,53 | 0,90 | 12,55 |
+| RF-L | (iii) realistas / A3 | 8,94 | 0,58 | 0,57 | 0,58 | 0,57 | 0,73 | 11,86 |
+| RF-L | realistas / A1 | 9,09 | 0,53 | 0,53 | 0,53 | 0,53 | 0,70 | 12,55 |
 | RF-L | realistas / A2 | 8,94 | — | — | — | — | — | — |
 | RF-L | (ii) realistas ×2 / i.i.d. | 8,50 | — | — | — | — | 2,21 | — |
-| RF-L | (iii) realistas ×2 / A3 | 8,50 | 0,49 | 0,48 | 0,49 | 0,48 | 0,94 | 10,52 |
-| RF-L | realistas ×1 / A3, ≤ 2 órdenes/día | 9,05 | 0,57 | 0,56 | 0,56 | 0,56 | — | 8,43 |
+| RF-L | (iii) realistas ×2 / A3 | 8,50 | 0,49 | 0,48 | 0,49 | 0,48 | 0,63 | 10,52 |
+| RF-L | realistas ×1 / A3, ≤ 2 órdenes/día | 9,05 | 0,57 | 0,56 | 0,56 | 0,56 | 0,83 | 8,43 |
 
 ## A1 con w = 0 (naïve puro + ε de 0,5 pip)
 

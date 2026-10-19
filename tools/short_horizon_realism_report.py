@@ -100,7 +100,28 @@ def break_even(c, key="net"):
     return out
 
 
-def figure(df, B, split, strategy, metric, outdir):
+MARKER_SHAPE = {"path": "X", "PERSIST": "v", "MEAN20": "s", "EWMA": "D", "HAR": "*"}
+MARKER_COLOUR = {"path": "#6b7378", "BASE": "#1d2b36", "LOGIT": "#9c2f7a"}
+
+
+def draw_markers(axes, markers, B, split, strategy, metric):
+    """Sealed baseline predictors (weekly refit + persistence path) at their achieved path MAE."""
+    if markers is None:
+        return
+    mk = markers[(markers.block_hours == B) & (markers.split == split) & (markers.strategy == strategy)
+                 & (markers.cost_mult == 1.0) & markers.cadence.isin(["weekly", "n/a"])]
+    ycol = {"sharpe": "sharpe_daily_sqrt365", "net": "net_profit_usd", "trades": "trades"}[metric]
+    for ax, xcol in zip(axes, ("path_mae_hp", "path_mae_hs", "path_mae_mean")):
+        for _, r in mk.iterrows():
+            colour = MARKER_COLOUR[r.order]
+            ax.scatter([r[xcol]], [r[ycol]], marker=MARKER_SHAPE[r.excursion], s=120 if r.excursion == "HAR" else 70,
+                       facecolors=colour if r.valid else "none", edgecolors=colour, linewidths=1.4, zorder=5,
+                       label=(f"Predictor {r.predictor}" + (" (semanal)" if r.cadence == "weekly" else "")
+                              + ("" if r.valid else " — inválido"))
+                       if ax is axes[0] else None)
+
+
+def figure(df, B, split, strategy, metric, outdir, markers=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -108,7 +129,7 @@ def figure(df, B, split, strategy, metric, outdir):
 
     hp, hs = AXES[B]
     split_es, period, tag = SPLIT_ES[split]
-    fig, axes = plt.subplots(1, 3, figsize=(25, 8.6), sharey=True, facecolor="white")
+    fig, axes = plt.subplots(1, 3, figsize=(25, 9.8 if markers is not None else 8.6), sharey=True, facecolor="white")
     ylabel = {"sharpe": "Sharpe anualizado (retornos diarios; 365 días)", "net": "Beneficio neto (USD)",
               "trades": "Operaciones por corrida"}[metric]
     xcols = (("mae_p", "p", f"MAE a h = {hp} (USD/EUR)"), ("mae_s", "s", f"MAE a h = {hs} (USD/EUR)"),
@@ -172,6 +193,7 @@ def figure(df, B, split, strategy, metric, outdir):
         ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _, n=nv[nk]: f"{es(v, 4)}\n(×{es(v / n, 1)})"))
         ax.tick_params(axis="x", labelsize=9.5)
         ax.set_xlabel(f"{xl}\nentre paréntesis: × naïve del mismo horizonte", fontsize=11, color=INK)
+    draw_markers(axes, markers, B, split, strategy, metric)
     axes[0].set_ylabel(ylabel, fontsize=12.5, color=INK)
     axes[0].yaxis.set_major_formatter(FuncFormatter(lambda v, _: es(v, 0 if metric != "sharpe" else 1)))
     if metric != "trades":
@@ -201,8 +223,8 @@ def figure(df, B, split, strategy, metric, outdir):
     fig.text(0.815, 0.88, box, ha="left", va="top", fontsize=10, color=INK, multialignment="left",
              bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="#b8c4cc"))
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, fontsize=10, loc="upper left", bbox_to_anchor=(0.815, 0.40), frameon=True,
-               edgecolor="#d0d0d0")
+    fig.legend(handles, labels, fontsize=8.5 if markers is not None else 10, loc="upper left",
+               bbox_to_anchor=(0.815, 0.42), frameon=True, edgecolor="#d0d0d0")
     title = {"sharpe": "Sharpe frente al error de las predicciones de precio — modelo de error y costes realistas",
              "net": "Beneficio frente al error de las predicciones de precio — modelo de error y costes realistas",
              "trades": "Operaciones frente al error de las predicciones de precio — modelo de error y costes realistas"}[metric]
@@ -344,7 +366,8 @@ def markdown(cmp_rows, a1):
     return "\n".join(lines) + "\n"
 
 
-def build(run: Path, pub: Path):
+def build(run: Path, pub: Path, markers_path=None):
+    markers = pd.read_csv(markers_path, keep_default_na=False, na_values=[""]) if markers_path else None
     df = pd.read_csv(run / "cells.csv")
     if set(df.label) != {LABEL} or set(df.grid) != {"pathr"}:
         raise SystemExit("unexpected population")
@@ -354,7 +377,7 @@ def build(run: Path, pub: Path):
         for split in ("VALIDATION_2024", "TRAIN_2020_2023"):
             for st in ("RF-M", "RF-L"):
                 for metric in ("sharpe", "net", "trades"):
-                    stems.append(figure(df, B, split, st, metric, pub))
+                    stems.append(figure(df, B, split, st, metric, pub, markers))
     cmp_rows = comparison(df)
     a1 = a1_naive_point(df)
     (pub / "comparacion_realismo.json").write_text(json.dumps({"comparison": cmp_rows, "a1_w0": a1}, indent=1,
@@ -380,8 +403,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run", type=Path)
     ap.add_argument("--publish", type=Path, default=ROOT / "docs/short_horizon/results/price_path_realism")
+    ap.add_argument("--markers", type=Path, help="baseline predictor results CSV (adapter scores)")
     a = ap.parse_args()
-    build(a.run, a.publish)
+    build(a.run, a.publish, a.markers)
 
 
 if __name__ == "__main__":

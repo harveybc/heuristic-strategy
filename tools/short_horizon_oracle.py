@@ -442,7 +442,8 @@ def run_pathr_cell(ctx, cell, p):
     rows = []
     for name, (a, b) in SPLITS.items():
         res = X.run_backtest(ctx.bars, ctx.blocks, orders, costs, ctx.cal, CAPITAL, (utc(a), utc(b)),
-                             profile=profile, max_orders_per_day=cap)
+                             profile=profile, max_orders_per_day=cap,
+                             ruin_floor=0.0 if profile is not None else None)
         rows.append(({"split": name, **res.metrics, **acc(ctx.masks[name])}, res))
     return rows
 

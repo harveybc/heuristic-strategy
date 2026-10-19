@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional, Sequence
 
 import numpy as np
+import pandas as pd
 
 from .blocks import AMBIGUOUS, LOW_FIRST
 
@@ -54,12 +55,23 @@ def path_mae(pred, target, rows):
             "count": int(valid.sum())}
 
 
+def ruined(df):
+    """Ruin flag per row: the stored flag when present, otherwise a drawdown of >= 100 % of the peak
+    (marked-to-market equity reached zero), which is derivable from older result tables."""
+    flag = df["max_drawdown_pct"] >= 100.0 if "max_drawdown_pct" in df.columns else False
+    if "ruined" in df.columns:
+        flag = flag | df["ruined"].astype(bool)
+    return pd.Series(flag, index=df.index) if not isinstance(flag, pd.Series) else flag
+
+
 def frequency_validity(df, min_per_week=3.0, max_per_day=4, min_valid_seeds=3):
-    """Owner rule: a seed is valid with >= ``min_per_week`` trades per business week and
+    """Owner rule (plus: a ruined seed is never valid): a seed is valid with >= ``min_per_week`` trades per business week and
     <= ``max_per_day`` orders per business day; a level needs >= ``min_valid_seeds`` valid seeds.
 
     Returns (per-row bool Series, per-level bool Series indexed by ``level``).
     """
     seeds = (df["trades_per_week"] >= min_per_week) & (df["max_orders_per_day"] <= max_per_day)
+    if "max_drawdown_pct" in df.columns or "ruined" in df.columns:
+        seeds = seeds & ~ruined(df)
     levels = seeds.groupby(df["level"]).sum() >= min_valid_seeds
     return seeds, levels
