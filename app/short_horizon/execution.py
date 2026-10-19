@@ -45,6 +45,64 @@ class Costs:
             self.commission_per_lot_round_trip / self.lot_units
 
 
+_DEFAULT_SPREAD_SCHEDULE = (  # (from, to) hours since the daily rollover -> full spread, price units
+    (0, 1, 3.0e-4),    # first hour after rollover: liquidity gap
+    (1, 3, 1.0e-4),
+    (3, 9, 0.6e-4),    # Asian session on this bar clock
+    (9, 21, 0.3e-4),   # London / New York core hours (raw ECN spread)
+    (21, 23, 0.6e-4),
+    (23, 24, 1.5e-4),  # last hour before rollover: widening
+)
+
+
+@dataclass(frozen=True)
+class RealisticProfile:
+    """Realistic execution and costs; every value ASSUMED_NOT_BROKER_VERIFIED.
+
+    Spread depends on the hour since the configured daily rollover (rollover
+    instants are segment open + 24 k on the calendar; no day name is read);
+    the first hour after a segment (weekly) open uses ``weekly_open_spread``.
+    Half the spread is charged on each fill, slippage on market and stop fills
+    only, commission per side, and swap per rollover held by side (negative
+    rate = cost) with a triple charge on the configured rollover index of the
+    segment (third rollover after the weekly open = the Wednesday convention).
+    """
+    spread_schedule: tuple = _DEFAULT_SPREAD_SCHEDULE
+    weekly_open_spread: float = 3.0e-4
+    slippage_market: float = 0.2e-4
+    slippage_stop: float = 0.5e-4
+    limit_through: float = 1.0e-4
+    entry_delay_bars: int = 1
+    commission_per_lot_side: float = 3.5
+    swap_long_per_lot: float = -7.0
+    swap_short_per_lot: float = 2.5
+    triple_swap_rollover_index: int = 3
+    lot_units: float = 100_000.0
+
+    def scaled(self, m: float) -> "RealisticProfile":
+        return replace(self, spread_schedule=tuple((a, b, x * m) for a, b, x in self.spread_schedule),
+                       weekly_open_spread=self.weekly_open_spread * m, slippage_market=self.slippage_market * m,
+                       slippage_stop=self.slippage_stop * m, commission_per_lot_side=self.commission_per_lot_side * m,
+                       swap_long_per_lot=self.swap_long_per_lot * m, swap_short_per_lot=self.swap_short_per_lot * m)
+
+    def spread_for_hour(self, hour: float) -> float:
+        for a, b, x in self.spread_schedule:
+            if a <= hour < b:
+                return x
+        raise ValueError(f"hour {hour} outside the schedule")
+
+    def spread_at(self, t_ns: int, open_ns: int) -> float:
+        since = (t_ns - open_ns) / HOUR.value
+        if since < 1.0:
+            return self.weekly_open_spread
+        return self.spread_for_hour(since % 24)
+
+    def round_trip_price(self) -> float:
+        """Edge-filter estimate: time-weighted mean spread + two market slippages + commission."""
+        mean_spread = sum((b - a) * x for a, b, x in self.spread_schedule) / 24.0
+        return mean_spread + 2 * self.slippage_market + 2 * self.commission_per_lot_side / self.lot_units
+
+
 @dataclass(frozen=True)
 class BlockOrder:
     direction: int            # +1 long, -1 short
@@ -67,22 +125,26 @@ class Fill:
     exit_at_open: bool = False
     ambiguous: bool = False
     refused: bool = False
+    entry_kind: str = ""
 
 
-def _protect(d, tp, sl, o, h, l):
-    """Full bar after the fill: (reason, price, at_open, ambiguous) or None."""
+def _protect(d, tp, sl, o, h, l, through=0.0):
+    """Full bar after the fill: (reason, price, at_open, ambiguous) or None.
+
+    ``through``: the TP limit fills intrabar only if price trades beyond it by this much.
+    """
     if d > 0:
         if o <= sl:
             return "SL", o, True, False
         if o >= tp:
             return "TP", o, True, False
-        hit_sl, hit_tp = l <= sl, h >= tp
+        hit_sl, hit_tp = l <= sl, h >= tp + through
     else:
         if o >= sl:
             return "SL", o, True, False
         if o <= tp:
             return "TP", o, True, False
-        hit_sl, hit_tp = h >= sl, l <= tp
+        hit_sl, hit_tp = h >= sl, l <= tp - through
     if hit_sl:
         return "SL", sl, False, bool(hit_tp)
     if hit_tp:
@@ -90,25 +152,32 @@ def _protect(d, tp, sl, o, h, l):
     return None
 
 
-def simulate_block(order: BlockOrder, o, h, l, c, entry_bars: Optional[int] = None) -> Optional[Fill]:
-    """Simulate one block. ``entry_bars``: how many leading bars may host an entry."""
+def simulate_block(order: BlockOrder, o, h, l, c, entry_bars: Optional[int] = None,
+                   limit_through: float = 0.0, entry_delay: int = 0) -> Optional[Fill]:
+    """Simulate one block. ``entry_bars``: how many leading bars may host an entry.
+
+    ``entry_delay``: decision latency in bars (the order exists from that bar on).
+    ``limit_through``: limits (entry and TP) fill intrabar only when price trades
+    beyond them by this much; an open already beyond the limit fills at the open.
+    """
     n = len(o)
     entry_bars = n if entry_bars is None else min(entry_bars, n)
     d, tp, sl = order.direction, order.take_profit, order.stop_loss
-    f = Fill(direction=d, units=order.units)
+    f = Fill(direction=d, units=order.units, entry_kind=order.entry_type)
+    q = entry_delay
     if order.entry_type == "MARKET":
-        if entry_bars < 1:
+        if entry_bars < q + 1:
             return None
-        if not (sl < o[0] < tp if d > 0 else tp < o[0] < sl):
+        if not (sl < o[q] < tp if d > 0 else tp < o[q] < sl):
             f.refused, f.units = True, 0
             return f
-        f.entry_bar, f.entry_price, start = 0, float(o[0]), 0
+        f.entry_bar, f.entry_price, start = q, float(o[q]), q
     elif order.entry_type == "LIMIT":
         e = order.entry_price
         start = None
-        for k in range(entry_bars):
+        for k in range(q, entry_bars):
             crossed_open = o[k] <= e if d > 0 else o[k] >= e
-            touched = l[k] <= e if d > 0 else h[k] >= e
+            touched = l[k] <= e - limit_through if d > 0 else h[k] >= e + limit_through
             if crossed_open:
                 f.entry_bar, f.entry_price, start = k, float(o[k]), k
                 break
@@ -125,7 +194,7 @@ def simulate_block(order: BlockOrder, o, h, l, c, entry_bars: Optional[int] = No
     else:
         raise ValueError(f"unknown entry type {order.entry_type}")
     for k in range(start, n):
-        hit = _protect(d, tp, sl, o[k], h[k], l[k])
+        hit = _protect(d, tp, sl, o[k], h[k], l[k], limit_through)
         if hit:
             f.exit_bar = k
             f.exit_reason, price, f.exit_at_open, f.ambiguous = hit
@@ -150,15 +219,37 @@ class Result:
         return sum(u for a, b, u in self._intervals if a <= t < b)
 
 
-def _trade_record(v, seg_id, lo, fill, costs, calendar, block_id):
+def _realistic_costs(profile, v, seg_id, lo, fill, calendar, entry_ns, exit_ns):
+    u, lots = abs(fill.units), abs(fill.units) / profile.lot_units
+    open_ns = calendar.segments[seg_id].market_open.value
+    entry_label, exit_label = int(v[lo + fill.entry_bar]), int(v[lo + fill.exit_bar])
+    slip_in = profile.slippage_market if fill.entry_kind == "MARKET" else 0.0
+    slip_out = {"SL": profile.slippage_stop, "TIME": profile.slippage_market}.get(fill.exit_reason, 0.0)
+    fc_in = {"spread": u * profile.spread_at(entry_label, open_ns) / 2, "slippage": u * slip_in,
+             "commission": lots * profile.commission_per_lot_side}
+    fc_out = {"spread": u * profile.spread_at(exit_label, open_ns) / 2, "slippage": u * slip_out,
+              "commission": lots * profile.commission_per_lot_side}
+    rate = profile.swap_long_per_lot if fill.direction > 0 else profile.swap_short_per_lot
+    fin, rolls = 0.0, 0
+    for i, r in enumerate(calendar.rollover_ns(seg_id), start=1):
+        if entry_ns < r <= exit_ns:
+            rolls += 1
+            fin -= rate * lots * (3 if i == profile.triple_swap_rollover_index else 1)
+    return fc_in, fc_out, fin, rolls
+
+
+def _trade_record(v, seg_id, lo, fill, costs, calendar, block_id, profile=None):
     """``v``: bar labels as int64 nanoseconds."""
     d, u = fill.direction, fill.units
     entry_ns = int(v[lo + fill.entry_bar])
     exit_ns = int(v[lo + fill.exit_bar]) + (0 if fill.exit_at_open else HOUR.value)
-    rolls = sum(1 for r in calendar.rollover_ns(seg_id) if entry_ns < r <= exit_ns)
     entry_time, exit_time = pd.Timestamp(entry_ns, tz="UTC"), pd.Timestamp(exit_ns, tz="UTC")
-    fc_in, fc_out = costs.fill_costs(u), costs.fill_costs(u)
-    fin = costs.financing(u, rolls)
+    if profile is None:
+        rolls = sum(1 for r in calendar.rollover_ns(seg_id) if entry_ns < r <= exit_ns)
+        fc_in, fc_out = costs.fill_costs(u), costs.fill_costs(u)
+        fin = costs.financing(u, rolls)
+    else:
+        fc_in, fc_out, fin, rolls = _realistic_costs(profile, v, seg_id, lo, fill, calendar, entry_ns, exit_ns)
     gross = d * u * (fill.exit_price - fill.entry_price)
     entry_cost = sum(fc_in.values())
     exit_cost = sum(fc_out.values()) + fin
@@ -254,29 +345,55 @@ def _account(bars, trades, split, initial_capital, evaluated, refused, orders_su
     return Result(trades, m, equity, daily, [int(k) for k in evaluated], 0.0, intervals)
 
 
-def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs: Costs, calendar: Calendar,
-                 initial_capital: float, split) -> Result:
+def _business_day(blocks, calendar, k):
+    seg = calendar.segments[blocks.segment[k]]
+    return int(blocks.segment[k]), int((blocks.start[k] - seg.market_open) // pd.Timedelta(hours=24))
+
+
+def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Calendar,
+                 initial_capital: float, split, profile: Optional[RealisticProfile] = None,
+                 max_orders_per_day: Optional[int] = None) -> Result:
+    """``max_orders_per_day``: strategy-side cap per business day (rollover to rollover),
+    applied at decision time in block order; later orders of a full day are not sent."""
     v = bars.index.as_unit("ns").asi8
     arr = [bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE")]
     evaluated = list(np.flatnonzero(blocks.in_split(split)))
-    trades, refused, submitted, unfilled = [], 0, 0, 0
+    trades, refused, submitted, unfilled, capped = [], 0, 0, 0, 0
+    per_day, trades_day = {}, {}
+    through = profile.limit_through if profile is not None else 0.0
+    delay = profile.entry_delay_bars if profile is not None else 0
     for k in evaluated:
         order = orders[k]
         if order is None or order.units <= 0:
             continue
+        day = _business_day(blocks, calendar, k)
+        if max_orders_per_day is not None and per_day.get(day, 0) >= max_orders_per_day:
+            capped += 1
+            continue
+        per_day[day] = per_day.get(day, 0) + 1
         submitted += 1
         lo, hi = blocks.bar_lo[k], blocks.bar_hi[k]
         seg = calendar.segments[blocks.segment[k]]
         fill = simulate_block(order, *(x[lo:hi] for x in arr),
-                              entry_bars=_entry_bars(v, lo, hi, seg.entry_cutoff))
+                              entry_bars=_entry_bars(v, lo, hi, seg.entry_cutoff),
+                              limit_through=through, entry_delay=delay)
         if fill is None:
             unfilled += 1
             continue
         if fill.refused:
             refused += 1
             continue
-        trades.append(_trade_record(v, blocks.segment[k], lo, fill, costs, calendar, int(k)))
-    return _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled)
+        trades_day[day] = trades_day.get(day, 0) + 1
+        trades.append(_trade_record(v, blocks.segment[k], lo, fill, costs, calendar, int(k), profile))
+    res = _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled)
+    weeks = {tuple(blocks.start[k].isocalendar()[:2]) for k in evaluated}
+    res.metrics.update({"weeks_with_eligible_blocks": len(weeks),
+                        "trades_per_week": len(trades) / len(weeks) if weeks else 0.0,
+                        "max_orders_per_day": max(per_day.values(), default=0),
+                        "max_trades_per_day": max(trades_day.values(), default=0),
+                        "capped_orders": capped,
+                        "max_orders_per_day_cap": -1 if max_orders_per_day is None else int(max_orders_per_day)})
+    return res
 
 
 def run_segment_hold(bars, calendar, direction, costs, initial_capital, split, blocks,

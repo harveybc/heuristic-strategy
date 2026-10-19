@@ -52,3 +52,14 @@ def path_mae(pred, target, rows):
         per_h = np.array([np.nanmean(err[:, j]) if valid[:, j].any() else np.nan for j in range(err.shape[1])])
     return {"mae": float(np.nanmean(err)) if valid.any() else float("nan"), "per_h": per_h,
             "count": int(valid.sum())}
+
+
+def frequency_validity(df, min_per_week=3.0, max_per_day=4, min_valid_seeds=3):
+    """Owner rule: a seed is valid with >= ``min_per_week`` trades per business week and
+    <= ``max_per_day`` orders per business day; a level needs >= ``min_valid_seeds`` valid seeds.
+
+    Returns (per-row bool Series, per-level bool Series indexed by ``level``).
+    """
+    seeds = (df["trades_per_week"] >= min_per_week) & (df["max_orders_per_day"] <= max_per_day)
+    levels = seeds.groupby(df["level"]).sum() >= min_valid_seeds
+    return seeds, levels

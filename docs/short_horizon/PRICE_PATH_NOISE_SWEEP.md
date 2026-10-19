@@ -82,33 +82,46 @@ along σ = 0), and the largest relative deviation between horizons is 2.8 %
 `results/price_path/verificacion_ejes_monotonos.json`. No fallback to a
 single axis was needed. No other forecast or tool is consumed, so no other error axis exists.
 
-## Break-even (mean of 5 seeds; "all seeds" = first level where the worst seed reaches zero)
+## Break-even with the frequency rule applied (owner rule, applied retroactively)
 
-MAE in USD/EUR, with the multiple of the naive MAE at that horizon in brackets.
-Read on net profit by linear interpolation between grid points. "—" means the
-mean never turns negative on the grid; the strategy stops trading instead (see below).
+**Una configuración que no cumple la frecuencia mínima de operación no se reporta como resultado.**
 
-| B | Split | Strategy | Costs | Mean break-even: MAE h_primary | MAE h_B | MAE mean | All seeds: MAE h_primary |
-|---|---|---|---|---|---|---|---|
-| 24 | VAL 2024 | RF-M | ×1 | **0,0156 (15,2× h6)** | 0,0153 (5,1× h24) | 0,0153 (10,0×) | 0,0119 (11,6×) |
-| 24 | VAL 2024 | RF-M | ×2 | 0,0075 (7,3× h6) | 0,0073 (2,4× h24) | 0,0073 (4,8×) | 0,0063 (6,1×) |
-| 24 | VAL 2024 | RF-L | ×1 | — (0 trades from MAE ≈ 0,012) | — | — | 0,0122 (11,9×) |
-| 24 | VAL 2024 | RF-L | ×2 | — | — | — | 0,0040 (3,9×) |
-| 24 | TRAIN | RF-M | ×1 | — (+4 USD, 70 trades at σ 0,06) | — | — | 0,0212 (15,4×) |
-| 24 | TRAIN | RF-M | ×2 | 0,0135 (9,8× h6) | 0,0139 (3,2× h24) | 0,0137 (6,2×) | 0,0113 (8,2×) |
-| 24 | TRAIN | RF-L | ×1 / ×2 | — (2 trades at σ 0,06) | — | — | 0,0106 / 0,0094 |
-| 6 | VAL 2024 | RF-M | ×1 | **0,0058 (7,6× h3)** | 0,0057 (4,0× h6) | 0,0058 (6,3×) | 0,0051 (6,7×) |
-| 6 | VAL 2024 | RF-M | ×2 | 0,0023 (3,0× h3) | 0,0022 (1,6× h6) | 0,0023 (2,5×) | 0,0019 (2,5×) |
-| 6 | VAL 2024 | RF-L | ×1 | 0,0115 (15,0× h3) | 0,0113 (7,9× h6) | 0,0114 (12,5×) | 0,0069 (9,0×) |
-| 6 | VAL 2024 | RF-L | ×2 | 0,0054 (7,1× h3) | 0,0053 (3,7× h6) | 0,0054 (5,9×) | 0,0037 (4,8×) |
-| 6 | TRAIN | RF-M | ×1 | 0,0113 (10,4× h3) | 0,0112 (5,9× h6) | 0,0113 (8,9×) | 0,0105 (9,7×) |
-| 6 | TRAIN | RF-M | ×2 | 0,0046 (4,2× h3) | 0,0045 (2,4× h6) | 0,0046 (3,6×) | 0,0040 (3,7×) |
-| 6 | TRAIN | RF-L | ×1 | 0,0199 (18,3× h3) | 0,0197 (10,4× h6) | 0,0198 (15,6×) | 0,0149 (13,7×) |
-| 6 | TRAIN | RF-L | ×2 | 0,0104 (9,5× h3) | 0,0103 (5,4× h6) | 0,0103 (8,1×) | 0,0079 (7,3×) |
+The rule:
+- A seed is valid with at least 3 trades per business week, counted over weeks
+  with at least one eligible block. A stricter 4-per-week variant is reported in
+  the tables.
+- At most 4 orders per business day (variant: 2). In this first price-path run,
+  B = 24 has at most 1 per day and B = 6 at most 4 by construction of the block grid.
+- A noise level needs at least 3 of 5 valid seeds.
 
-The Sharpe zero crossing falls at the same place within 0,0004 (`break_even_trayectoria.json`).
-At ×1, the ideal path gives Sharpe 12,0 (RF-M) / 13,5 (RF-L) and 20.292 / 26.975 USD
-at B = 24 on 2024. At B = 6 it gives 15.003 / 17.679 USD.
+How it is applied:
+- Means, the ±1 SD band, the first sign change and every break-even use valid
+  seeds and valid levels only. Reading stops at the first invalid level (the
+  "frontier").
+- Invalid points are drawn hollow and grey.
+- This removes RF-L's abstention tail entirely: RF-L becomes invalid **before**
+  it ever changes sign.
+
+The figures above were regenerated with the rule (same filenames).
+
+MAE in USD/EUR (× naive at that horizon); i.i.d. noise, earlier cost model. These
+are upper bounds (see "Por qué el Sharpe en MAE = naive era alto" below).
+
+| B | Split | Strategy | Costs | Frontier (σ) | Mean break-even: MAE h_primary | MAE h_B | MAE mean | All seeds: MAE h_primary |
+|---|---|---|---|---|---|---|---|---|
+| 24 | VAL 2024 | RF-M | ×1 | 0,04 | 0,0156 (15,22× h6) | 0,0153 (5,05× h24) | 0,0153 (9,98×) | 0,0119 (11,63×) |
+| 24 | VAL 2024 | RF-M | ×2 | 0,04 | 0,0075 (7,27×) | 0,0073 (2,41×) | 0,0073 (4,77×) | 0,0063 (6,09×) |
+| 24 | VAL 2024 | RF-L | ×1 / ×2 | 0,001 | invalid before any sign change | — | — | — |
+| 24 | TRAIN | RF-M | ×1 / ×2 | 0,04 | — / 0,0135 (9,80×) | — / 0,0139 (3,22×) | — / 0,0136 (6,23×) | 0,0212 / 0,0113 |
+| 24 | TRAIN | RF-L | ×1 / ×2 | 0,0015 | invalid before any sign change | — | — | — |
+| 6 | VAL 2024 | RF-M | ×1 | always valid | 0,0058 (7,63× h3) | 0,0057 (4,00× h6) | 0,0058 (6,33×) | 0,0051 (6,69×) |
+| 6 | VAL 2024 | RF-M | ×2 | always valid | 0,0023 (2,97×) | 0,0022 (1,56×) | 0,0022 (2,46×) | 0,0019 (2,51×) |
+| 6 | VAL 2024 | RF-L | ×1 / ×2 | 0,003 | invalid before any sign change | — | — | — |
+| 6 | TRAIN | RF-M | ×1 / ×2 | always valid | 0,0113 (10,40×) / 0,0046 (4,22×) | 0,0112 (5,91×) / 0,0045 (2,40×) | 0,0112 (8,86×) / 0,0046 (3,60×) | 0,0105 / 0,0040 |
+| 6 | TRAIN | RF-L | ×1 / ×2 | 0,004 | invalid before any sign change | — | — | — |
+
+The per-level tables now include "órdenes/semana (media, min seed)" and
+"máx órdenes/día", and print "inválida" where a level fails the rule.
 
 ## Per-level table (excerpt; full tables in `results/price_path/TABLAS_POR_NIVEL.md` and `tabla_por_nivel_de_ruido.csv`)
 
@@ -127,6 +140,10 @@ B = 24, VALIDACIÓN 2024, means of 5 seeds:
 | 0,03 | 0,02443 (23,78) | 0,02386 (7,89) | 0,02387 (15,60) | −0,70 / −36 / 212 | 0,20 / 3 / 0 | −163 | 2 |
 
 The full tables also give MAE at h = 1, 2, 3 and 12, max drawdown, and the TRAIN and B = 6 cases.
+
+**Frequency rule:** the RF-L rows from σ 0,001 (B = 24) are **invalid**: fewer than
+3 trades per week on at least 3 seeds. They are kept above only as the record of
+the first run. The regenerated `TABLAS_POR_NIVEL.md` prints them as "inválida".
 
 ## Honest reading — what these curves can and cannot say
 
@@ -162,3 +179,122 @@ The full tables also give MAE at h = 1, 2, 3 and 12, max drawdown, and the TRAIN
    - The vendor bar clock is still under repair.
    - Partial business-day blocks (12 h at the start and end of a session) have
      shorter paths; MAE counts only existing bars.
+
+## Por qué el Sharpe en MAE = naive era alto (realism pass, owner 2026-10-19)
+
+**Owner question:** isn't a Sharpe of about 11 at MAE = naive suspiciously high?
+
+**Answer:** yes. The cause is **the noise model, not the costs.**
+- i.i.d. Gaussian noise centred on each true price keeps the truth inside every
+  prediction. At MAE = naive it still carries far more information than the
+  naive, which produces no trades at all.
+- With model-like errors, the same strategy breaks even at about **0,6–0,7× the
+  naive MAE** instead of 5–15×.
+- The realistic execution assumptions barely change the ideal Sharpe: they are
+  *cheaper* per round trip than the earlier flat 4,7 pips, but add latency,
+  trade-through and rollover spreads.
+- Still DEVELOPMENT, VALIDATION 2024 primary, TRAIN copy, 5 seeds, ×1 and ×2,
+  TEST closed. This is not a model result.
+
+### Model-like error families (all on the predicted price path h = 1..B)
+
+| Family | Prediction for horizon h | Grid |
+|---|---|---|
+| i.i.d. (cota superior optimista) | P(t+h) + σ·z_h | σ = 0 … 0,06 |
+| A1 mezcla hacia persistencia | P(t) + w·(P(t+h) − P(t)) + ε_h, ε ~ N(0; 0,5 pip) | w = 1 … 0; **w = 0 is the naive** |
+| A2 paseo aleatorio | P(t+h) + s·Σ_(j≤h) z_j (error grows like √h, autocorrelated along the path) | s = 0 … 0,005 |
+| A3 = A1 + A2 (realista, para citar) | P(t) + w·(P(t+h) − P(t)) + s·Σ z_j, with s = 0,0002·(1 − w) | w = 1 … 0, then w = 0 with s = 0,0004, 0,0008, 0,0016 |
+
+### Realistic execution (applied to every curve; all ASSUMED_NOT_BROKER_VERIFIED)
+
+| Item | Assumption |
+|---|---|
+| Spread by hour since the daily rollover (rollover = segment open + 24 k on the configured calendar) | 0–1 h: 3,0 pips · 1–3 h: 1,0 · 3–9 h: 0,6 · **9–21 h (core): 0,3** · 21–23 h: 0,6 · 23–24 h: 1,5; first hour after the weekly open: 3,0 |
+| Charged | half spread on every fill, at that fill's bar |
+| Slippage | 0,2 pip on market fills (entries and time exits), 0,5 pip on stops, none on limit fills |
+| Commission | 3,5 USD/lot/side |
+| Limit orders (entry and TP) | fill intrabar only if price trades **through** by ≥ 1 pip; an open beyond the limit fills at the open |
+| Latency | one bar: decision on the bar closed at t0, market entry at the next bar's open, and limits active from that bar |
+| Swap | long −7,0 USD/lot/night (paid), short +2,5 (received); **×3 on the third rollover after the weekly open**. This is the Wednesday convention, configured as an index; no day name is read. |
+| Intrabar and gaps | stop-first kept; forced flat 12 h before close (no exposure across closures) |
+| Orders per day | strategy-side cap ≤ 4 per business day (variant ≤ 2), enforced at decision time |
+
+The "×1 previous costs" reference curve (2 pip spread, 1 pip slippage per fill,
+7 USD/lot round trip, 10 USD/lot/rollover, no latency, touch fills) is drawn in
+every figure.
+
+### Figures (PNG + PDF; three panels = MAE at h_p, at h_B and the mean)
+
+In these figures the stacked shared axes of the earlier i.i.d. figures are
+replaced by three panels. The reason: under A1/A2/A3 the mapping from one
+horizon's MAE to another differs by family (A2 grows like √h), so one shared
+secondary axis would be wrong. The x range covers A1–A3; the i.i.d. tails
+continue in the i.i.d. figures above.
+
+B = 24, VALIDACIÓN 2024:
+- https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/price_path_realism/barrido_trayectoria_realista_sharpe_B24_validacion_RFM.png
+- https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/price_path_realism/barrido_trayectoria_realista_net_B24_validacion_RFM.png
+- https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/price_path_realism/barrido_trayectoria_realista_trades_B24_validacion_RFM.png
+- https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/price_path_realism/barrido_trayectoria_realista_sharpe_B24_validacion_RFL.png
+- https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/price_path_realism/barrido_trayectoria_realista_net_B24_validacion_RFL.png
+- https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/price_path_realism/barrido_trayectoria_realista_trades_B24_validacion_RFL.png
+
+B = 6, VALIDACIÓN 2024 (same names with `B6`); TRAIN copies with `entrenamiento`
+in place of `validacion`. 24 figures in total, listed in
+`results/price_path_realism/MANIFEST_REALISMO.json`.
+
+### Comparison (VALIDACIÓN 2024; break-even on net profit, valid points only, ≥ 3 trades/week)
+
+| B | Strategy | Case | Ideal Sharpe | Break-even ×naïve h_p | ×naïve h_B | ×naïve mean | All seeds ×naïve h_p |
+|---|---|---|---:|---:|---:|---:|---:|
+| 24 | RF-M | (i) previous costs / i.i.d. | 12,04 | 15,22 (h6) | 5,05 (h24) | 9,98 | 11,63 |
+| 24 | RF-M | (ii) realistic / i.i.d. | 13,07 | — (positive until invalid at 31,7×) | — | — | 15,37 |
+| 24 | RF-M | **(iii) realistic / A3** | 13,07 | **0,71** | **0,67** | **0,69** | 0,66 |
+| 24 | RF-M | realistic / A1 | 13,02 | 0,61 | 0,61 | 0,61 | 0,61 |
+| 24 | RF-M | (iii) realistic ×2 / A3 | 12,53 | 0,65 | 0,62 | 0,64 | 0,62 |
+| 24 | RF-L | (i) / (ii) i.i.d. | 13,50 / 14,33 | invalid from 0,79× before any sign change | — | — | — |
+| 24 | RF-L | **(iii) realistic / A3** | 14,33 | **0,73** | **0,69** | **0,71** | 0,70 |
+| 24 | RF-L | (iii) realistic ×2 / A3 | 14,02 | 0,64 | 0,61 | 0,62 | 0,62 |
+| 6 | RF-M | (i) previous costs / i.i.d. | 8,34 | 7,63 (h3) | 4,00 (h6) | 6,33 | 6,69 |
+| 6 | RF-M | (ii) realistic / i.i.d. | 10,77 | 20,96 | 11,00 | 17,39 | 15,71 |
+| 6 | RF-M | **(iii) realistic / A3** | 10,77 | **0,63** | **0,61** | **0,62** | 0,61 |
+| 6 | RF-M | (iii) realistic ×2 / A3 | 10,08 | 0,59 | 0,57 | 0,58 | 0,57 |
+| 6 | RF-M | realistic / A3, ≤ 2 orders/day | 10,94 | 0,63 | 0,61 | 0,62 | 0,58 |
+| 6 | RF-L | (i) / (ii) i.i.d. | 8,67 / 11,59 | invalid from 3,18× before any sign change | — | — | — |
+| 6 | RF-L | **(iii) realistic / A3** | 11,59 | **0,56** | **0,55** | **0,56** | 0,54 |
+| 6 | RF-L | (iii) realistic ×2 / A3 | 10,85 | 0,50 | 0,48 | 0,49 | 0,47 |
+| 6 | RF-L | realistic / A3, ≤ 2 orders/day | 11,66 | 0,56 | 0,54 | 0,55 | 0,51 |
+
+How to read the table:
+- A2 alone (a random-walk error centred on the truth) never crosses zero while
+  valid. Like i.i.d., it keeps the truth inside the forecast; only the blend
+  toward persistence removes the information.
+- With the stricter **4 trades/week** rule, RF-M B = 24 under A3 becomes invalid
+  at 0,76× (×1) and 0,44× (×2), before it would cross zero. So no break-even is
+  reported there.
+- RF-L B = 24 keeps 0,73×.
+- The full table, with both frequency variants and TRAIN, is
+  `results/price_path_realism/TABLA_COMPARATIVA_REALISMO.md`; per-level values
+  are in `tabla_realismo_por_nivel.csv`.
+
+**Where the pure naive sits (A1, w = 0: persistence + 0,5-pip ε).** Achieved MAE
+is 1,00× naive.
+- RF-M: 0 trades at ×1 and ×2, for both B.
+- RF-L B = 24: 0,2 trades in the year (−2,50 USD).
+- It is invalid under the frequency rule, as expected: a forecast with the
+  naive's information cannot even meet the trading frequency.
+
+**Requirement to quote (realistic costs, A3, ≥ 3 trades/week, 2024).** The
+price-path forecaster must reach about **0,7× the naive MAE** at business-day
+horizons (B = 24: 0,71× at h6, 0,67× at h24) and about **0,55–0,63×** for 6-hour
+blocks. That means at least a 30–45 % error reduction over persistence. Even
+then, the curves are oracle constructions: a real model's errors have their own
+structure and must be backtested directly.
+
+### Compute
+
+- Grid `pathr`: 3,186 cells, both splits each (6,372 rows), 443,0 CPU-seconds
+  in 14 chunks of `crispdm-run -q -m 2G -t 120s`.
+- Reports ran in a few further bounded calls.
+- The earlier i.i.d. figures were re-rendered with the frequency rule from their
+  retained cells; their week counts come from this run.

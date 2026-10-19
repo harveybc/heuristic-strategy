@@ -21,7 +21,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from app.short_horizon.analysis import zero_crossing  # noqa: E402
+from app.short_horizon.analysis import frequency_validity, zero_crossing  # noqa: E402
 from tools.short_horizon_oracle import LABEL, PATH_SIGMAS  # noqa: E402
 
 TEAL, BLUE = "#237a75", "#1f4e9c"            # RF-M solid, RF-L dashed
@@ -45,15 +45,36 @@ def es(v, nd=4):
     return s.replace(",", "_").replace(".", ",").replace("_", ".")
 
 
-def stats(df, B, split, cost, strategy):
+MIN_WEEK, MAX_DAY = 3.0, 4   # owner frequency rule (variant 4/week reported in the tables)
+
+
+def stats(df, B, split, cost, strategy, min_week=MIN_WEEK):
+    """Means over VALID seeds only (owner rule); a level needs >= 3 valid seeds."""
     d = df[(df.block_hours == B) & (df.split == split) & (df.cost_mult == cost) & (df.strategy == strategy)]
-    g = d.groupby("level")
+    ok, lv = frequency_validity(d, min_per_week=min_week, max_per_day=MAX_DAY)
+    dv = d[ok]
     cols = {"sharpe": "sharpe_daily_sqrt365", "net": "net_profit_usd", "trades": "trades",
             "dd": "max_drawdown_usd"}
+    g = dv.groupby("level")
     out = pd.concat({k: g[c].agg(["mean", "std", "min", "max"]) for k, c in cols.items()}, axis=1)
     out.columns = [f"{a}_{b}" for a, b in out.columns]
-    seeds = {k: d.pivot_table(index="level", columns="seed", values=c) for k, c in cols.items()}
+    levels = sorted(d.level.unique())
+    out = out.reindex(levels)
+    allg = d.groupby("level")
+    for k, c in cols.items():
+        out[f"{k}_all"] = allg[c].mean()
+    out["valid"] = lv.reindex(levels).fillna(False).astype(bool)
+    out["tpw_mean"] = allg["trades_per_week"].mean()
+    out["tpw_min"] = allg["trades_per_week"].min()
+    out["max_day"] = allg["max_orders_per_day"].max()
+    out["n_valid"] = ok.groupby(d.level).sum()
+    seeds = {k: dv.pivot_table(index="level", columns="seed", values=c).reindex(levels) for k, c in cols.items()}
     return out.sort_index(), seeds
+
+
+def valid_prefix_index(valid):
+    bad = np.flatnonzero(~np.asarray(valid, bool))
+    return bad[0] if len(bad) else len(valid)
 
 
 def mae_table(df, B, split):
@@ -118,20 +139,29 @@ def figure(df, B, split, metric, outdir, cost=1.0):
         col, ls = STYLE[st]
         s, seeds = stats(df, B, split, cost, st)
         s = s.loc[t.index]
-        m, sd = s[f"{metric}_mean"].to_numpy(), np.nan_to_num(s[f"{metric}_std"].to_numpy())
+        valid = s["valid"].to_numpy()
+        m = np.where(valid, s[f"{metric}_mean"].to_numpy(), np.nan)
+        sd = np.nan_to_num(s[f"{metric}_std"].to_numpy())
         ax.fill_between(u, m - sd, m + sd, color=col, alpha=0.12, linewidth=0,
-                        label=f"{st}: dispersión entre 5 semillas (±1 DE)")
+                        label=f"{st}: dispersión entre semillas válidas (±1 DE)")
         for seed in seeds[metric].columns:
-            ax.plot(u, seeds[metric].loc[t.index, seed], color=col, alpha=0.22, linewidth=0.8, linestyle=ls)
+            ax.plot(u, np.where(valid, seeds[metric].loc[t.index, seed], np.nan), color=col, alpha=0.22,
+                    linewidth=0.8, linestyle=ls)
         ax.plot(u, m, color=col, linestyle=ls, linewidth=2.6, marker="o", markersize=5,
-                label=f"{st}: media de 5 semillas" + (" (entrada a mercado)" if st == "RF-M" else " (orden límite)"))
+                label=f"{st}: media de semillas válidas" + (" (entrada a mercado)" if st == "RF-M" else " (orden límite)"))
+        if (~valid).any():
+            ax.scatter(u[~valid], s[f"{metric}_all"].to_numpy()[~valid], facecolors="none", edgecolors="#9a9a96",
+                       s=40, linewidths=1.3, zorder=3,
+                       label=f"{st} inválida: < 3 operaciones/semana (no se reporta)")
         ideal[st] = m[0]
         if metric != "trades":
-            pos = np.flatnonzero(m <= 0)
+            n = valid_prefix_index(valid)
+            mv = m[:n]
+            pos = np.flatnonzero(mv <= 0)
             if len(pos) and pos[0] > 0:
                 i = pos[0]
                 ax.axvspan(u[i - 1], u[i], color=col, alpha=0.10, linewidth=0)
-                crossings[st] = zero_crossing(xp, m)
+                crossings[st] = zero_crossing(xp[:n], mv)
             else:
                 crossings[st] = None
     ax.axhline(0, color=PURPLE, linestyle=":", linewidth=1.4,
@@ -154,10 +184,10 @@ def figure(df, B, split, metric, outdir, cost=1.0):
             col = STYLE[st][0]
             if crossings.get(st) is not None:
                 ax.annotate(f"Primer cambio de signo observado ({st})", xy=(np.sqrt(crossings[st]), 0),
-                            xytext=(0.50, 0.30 - 0.08 * k), textcoords="axes fraction", fontsize=11.5, color=INK,
+                            xytext=(0.36, 0.17 - 0.07 * k), textcoords="axes fraction", fontsize=11.5, color=INK,
                             arrowprops=dict(arrowstyle="->", color=col, lw=1.4))
             else:
-                ax.text(0.50, 0.30 - 0.08 * k, f"{st}: sin cambio de signo en la rejilla (abstención)",
+                ax.text(0.36, 0.17 - 0.07 * k, f"{st}: sin cambio de signo mientras es válida",
                         transform=ax.transAxes, fontsize=11.5, color=INK)
             k += 1
     # three stacked x axes with exact ticks
@@ -189,6 +219,7 @@ def figure(df, B, split, metric, outdir, cost=1.0):
                      "TP/SL intravela; stop primero si ambos", "Spread: 2 pips (½ por lado)",
                      "Deslizamiento: 1 pip/lado", "Comisión: 3,5 USD/lote/lado",
                      "Swap: 10 USD/lote/rollover; plano al cierre", f"Costes ×{es(cost, 0)}; supuestos, no verificados",
+                     "Válido: ≥ 3 operaciones/semana, ≤ 4 órdenes/día",
                      "Ejes x en escala raíz cuadrada"])
     ax.text(0.985, 0.975, box, transform=ax.transAxes, ha="right", va="top", fontsize=10.5, color=INK,
             multialignment="left", bbox=dict(boxstyle="round,pad=0.6", facecolor="white", edgecolor="#b8c4cc"))
@@ -219,9 +250,11 @@ def break_even(df, B, split):
         for cost in (1.0, 2.0):
             s, seeds = stats(df, B, split, cost, st)
             s = s.loc[t.index]
-            row = {"block_hours": B, "split": split, "strategy": st, "cost_mult": cost}
+            n = valid_prefix_index(s["valid"].to_numpy())
+            row = {"block_hours": B, "split": split, "strategy": st, "cost_mult": cost,
+                   "validity_frontier_sigma": float(t.index[n]) if n < len(t) else None}
             for key, col in (("net_mean", "net_mean"), ("net_all_seeds", "net_min"), ("sharpe_mean", "sharpe_mean")):
-                sig = zero_crossing(t.index.to_numpy(), s[col].to_numpy())
+                sig = zero_crossing(t.index.to_numpy()[:n], s[col].to_numpy()[:n]) if n >= 2 else None
                 row[f"{key}_sigma"] = sig
                 if sig is not None:
                     for name, c, nvk in ((f"h{hp}", f"mae_h{hp}", f"h{hp}"), (f"h{hs}", f"mae_h{hs}", f"h{hs}"),
@@ -245,6 +278,10 @@ def level_table(df, B, split):
             tag = f"{st}_x{cost:g}"
             for k in ("sharpe", "net", "trades", "dd"):
                 out[f"{tag}_{k}"] = s.loc[t.index, f"{k}_mean"].to_numpy()
+            out[f"{tag}_valid"] = s.loc[t.index, "valid"].to_numpy()
+            out[f"{tag}_orders_week_mean"] = s.loc[t.index, "tpw_mean"].to_numpy()
+            out[f"{tag}_orders_week_min_seed"] = s.loc[t.index, "tpw_min"].to_numpy()
+            out[f"{tag}_max_orders_day"] = s.loc[t.index, "max_day"].to_numpy()
     return out.reset_index(drop=True), naive
 
 
@@ -269,7 +306,8 @@ def markdown_tables(df, splits):
                                                 [es(r.ratio_mean, 2)]) + " |")
             lines.append("")
             head = ["σ"] + [f"{st} ×{c} {k}" for st in ("RF-M", "RF-L") for c in (1, 2)
-                            for k in ("Sharpe", "neto USD", "oper.", "DD USD")]
+                            for k in ("Sharpe", "neto USD", "oper.", "DD USD", "órdenes/semana (media, min seed)",
+                                      "máx órdenes/día")]
             lines.append("| " + " | ".join(head) + " |")
             lines.append("|" + "---:|" * len(head))
             for _, r in tab.iterrows():
@@ -277,17 +315,30 @@ def markdown_tables(df, splits):
                 for st in ("RF-M", "RF-L"):
                     for c in (1, 2):
                         tag = f"{st}_x{c}"
-                        cells += [es(r[f"{tag}_sharpe"], 2), es(r[f"{tag}_net"], 0), es(r[f"{tag}_trades"], 0),
-                                  es(r[f"{tag}_dd"], 0)]
+                        v = bool(r[f"{tag}_valid"])
+                        f = (lambda x, nd: es(x, nd) if v and np.isfinite(x) else "inválida")
+                        cells += [f(r[f"{tag}_sharpe"], 2), f(r[f"{tag}_net"], 0), es(r[f"{tag}_trades"], 0)
+                                  if np.isfinite(r[f"{tag}_trades"]) else "inválida", f(r[f"{tag}_dd"], 0),
+                                  f"{es(r[f'{tag}_orders_week_mean'], 2)}; {es(r[f'{tag}_orders_week_min_seed'], 2)}",
+                                  f"{int(r[f'{tag}_max_orders_day'])}"]
                 lines.append("| " + " | ".join(cells) + " |")
             lines.append("")
     return "\n".join(lines) + "\n"
 
 
-def build(run: Path, pub: Path):
+def build(run: Path, pub: Path, weeks_from: Path):
     df = pd.read_csv(run / "cells.csv")
     if set(df.label) != {LABEL} or set(df.grid) != {"pathx"}:
         raise SystemExit("unexpected population")
+    # Retroactive frequency rule: weeks with eligible blocks per (B, split) from the realism run (same
+    # blocks and rows); the pathx strategy had no cap, but B = 24 has <= 1 and B = 6 <= 4 orders per
+    # business day by construction of the block grid.
+    w = pd.read_csv(weeks_from, usecols=["block_hours", "split", "weeks_with_eligible_blocks"]).drop_duplicates()
+    if w.duplicated(["block_hours", "split"]).any():
+        raise SystemExit("ambiguous week counts")
+    df = df.merge(w, on=["block_hours", "split"], how="left", validate="many_to_one")
+    df["trades_per_week"] = df.trades / df.weeks_with_eligible_blocks
+    df["max_orders_per_day"] = np.where(df.block_hours == 24, np.minimum(df.trades, 1), 4)
     pub.mkdir(parents=True, exist_ok=True)
     figures, checks, be = [], {}, []
     for B in (24, 6):
@@ -322,8 +373,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run", type=Path)
     ap.add_argument("--publish", type=Path, default=ROOT / "docs/short_horizon/results/price_path")
+    ap.add_argument("--weeks-from", type=Path, required=True, help="cells.csv of the pathr run (week counts)")
     a = ap.parse_args()
-    build(a.run, a.publish)
+    build(a.run, a.publish, a.weeks_from)
 
 
 if __name__ == "__main__":

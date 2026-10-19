@@ -72,6 +72,13 @@ VAL_FIXED_FT = (0.6, 0.7)
 # Owner redesign 2026-10-19: strategy consumes only a predicted hourly price path h = 1..B.
 PATH_SIGMAS = (0.0, 0.0001, 0.0002, 0.0003, 0.0005, 0.00075, 0.001, 0.0015, 0.002, 0.003, 0.004, 0.005,
                0.0075, 0.01, 0.015, 0.02, 0.03, 0.04, 0.06)
+# Owner realism pass 2026-10-19 (pathr): model-like error families and realistic execution.
+A1_W = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
+A1_EPS = 0.00005          # small i.i.d. term in A1 (0.5 pip)
+A2_STEPS = (0.0, 0.00005, 0.0001, 0.0002, 0.0003, 0.0005, 0.00075, 0.001, 0.0015, 0.002, 0.003, 0.005)
+A3_REF_STEP = 0.0002      # A3: random-walk step grows as the blend loses skill
+A3_PAIRS = tuple((w, round(A3_REF_STEP * (1 - w), 8)) for w in A1_W) + ((0.0, 0.0004), (0.0, 0.0008), (0.0, 0.0016))
+ORDER_CAP_PER_DAY = 4
 CAPITAL = 10_000.0
 PIP = 1e-4
 LABEL = "DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT"
@@ -241,6 +248,23 @@ def cells(grid):
         out += [dict(grid=grid, sweep=sw, block_hours=24, strategy="RF-L", family="abs", level=x, p_flip=p,
                      seed=s, cost_mult=m) for (sw, x, p), s, m in itertools.product(sweeps, VAL_SEEDS, VAL_COSTS)]
         return out
+    if grid == "pathr":
+        fam_levels = {"iid": PATH_SIGMAS, "a1": A1_W, "a2": A2_STEPS, "a3": tuple(float(j) for j in range(len(A3_PAIRS)))}
+        out = [dict(grid=grid, sweep=prof, block_hours=h, strategy="PERSISTENCE", family="path", level=0.0,
+                    p_flip=0.0, seed=0, cost_mult=m)
+               for h in BLOCK_HOURS for prof, m in (("legacy", 1.0), ("realistic", 1.0), ("realistic", 2.0))]
+        out += [dict(grid=grid, sweep="legacy", block_hours=h, strategy=st, family="iid", level=x, p_flip=0.0,
+                     seed=s, cost_mult=1.0)
+                for h, st, x, s in itertools.product(BLOCK_HOURS, ("RF-M", "RF-L"), PATH_SIGMAS, VAL_SEEDS)]
+        out += [dict(grid=grid, sweep="realistic", block_hours=h, strategy=st, family=f, level=x, p_flip=0.0,
+                     seed=s, cost_mult=m)
+                for h, st, f, s, m in itertools.product(BLOCK_HOURS, ("RF-M", "RF-L"), fam_levels, VAL_SEEDS, VAL_COSTS)
+                for x in fam_levels[f]]
+        # owner variant: at most 2 orders per business day (only binding for B = 6)
+        out += [dict(grid=grid, sweep="realistic_cap2", block_hours=6, strategy=st, family=f, level=x, p_flip=0.0,
+                     seed=s, cost_mult=1.0, order_cap=2)
+                for st, f, s in itertools.product(("RF-M", "RF-L"), fam_levels, VAL_SEEDS) for x in fam_levels[f]]
+        return out
     if grid == "pathx":
         out = [dict(grid=grid, block_hours=h, strategy="PERSISTENCE", family="path", level=0.0, p_flip=0.0,
                     seed=0, cost_mult=m) for h in BLOCK_HOURS for m in VAL_COSTS]
@@ -276,6 +300,8 @@ def run_cell(ctx, cell):
     st = cell["strategy"]
     if cell["grid"] == "pathx":
         return run_path_cell(ctx, cell, costs, p)
+    if cell["grid"] == "pathr":
+        return run_pathr_cell(ctx, cell, p)
     if cell["grid"] in ("val24", "val24x"):
         return run_val24_cell(ctx, cell, costs, p)
     if st in ("RF-M", "RF-L"):
@@ -370,6 +396,57 @@ def run_path_cell(ctx, cell, costs, p):
     return evaluate(ctx, orders, costs, acc)
 
 
+def path_forecast_family(ctx, family, level, seed):
+    """Predicted price path for one error family (DEVELOPMENT oracle/noise constructions)."""
+    T, ref = ctx.path_targets(), ctx.blocks.ref
+    if family == "iid":
+        return T + level * ctx.path_noise(seed)
+    z1 = ctx.path_noise(seed)
+    if family == "a1":
+        return N.blend_path(T, ref, level, A1_EPS, z1)
+    z2 = ctx.__dict__.setdefault("_rw_noise", {}).setdefault(seed, N.path_draws(seed, len(ctx.blocks), ctx.hours, 1))
+    if family == "a2":
+        return np.where(np.isfinite(T), T + N.random_walk_error(z2, level), np.nan)
+    if family == "a3":
+        w, step = A3_PAIRS[int(level)]
+        return np.where(np.isfinite(T), N.blend_path(T, ref, w, 0.0, z1) + N.random_walk_error(z2, step), np.nan)
+    raise ValueError(family)
+
+
+def run_pathr_cell(ctx, cell, p):
+    """Price-path range-first with the legacy or the realistic execution profile and the daily order cap."""
+    T = ctx.path_targets()
+    naive = np.where(np.isfinite(T), ctx.blocks.ref[:, None], np.nan)
+    m = cell["cost_mult"]
+    if cell["sweep"] == "legacy":
+        costs, profile = X.Costs().scaled(m), None
+    else:
+        profile = X.RealisticProfile().scaled(m)
+        costs = profile
+    if cell["strategy"] == "PERSISTENCE":
+        preds, variant = naive, "RF-M"
+    else:
+        preds, variant = path_forecast_family(ctx, cell["family"], cell["level"], cell["seed"]), cell["strategy"]
+    H_hat, L_hat, ft_hat = S.path_to_range(preds)
+    orders = S.range_first_orders(variant, ctx.blocks, H_hat, L_hat, ft_hat, costs, p, CAPITAL)
+    cap = cell.get("order_cap", ORDER_CAP_PER_DAY)
+
+    def acc(mask):
+        a, nv = A.path_mae(preds, T, mask), A.path_mae(naive, T, mask)
+        out = {"path_mae": a["mae"], "naive_path_mae": nv["mae"],
+               "path_mae_ratio_to_naive": a["mae"] / nv["mae"] if nv["mae"] else np.nan}
+        for j in range(ctx.hours):
+            out[f"path_mae_h{j + 1}"] = float(a["per_h"][j])
+            out[f"naive_mae_h{j + 1}"] = float(nv["per_h"][j])
+        return out
+    rows = []
+    for name, (a, b) in SPLITS.items():
+        res = X.run_backtest(ctx.bars, ctx.blocks, orders, costs, ctx.cal, CAPITAL, (utc(a), utc(b)),
+                             profile=profile, max_orders_per_day=cap)
+        rows.append(({"split": name, **res.metrics, **acc(ctx.masks[name])}, res))
+    return rows
+
+
 def cell_key(c):
     return (c["grid"], c["block_hours"], c["strategy"], c["family"], c["level"], c["p_flip"], c["seed"], c["cost_mult"])
 
@@ -442,7 +519,7 @@ def main():
     ap.add_argument("stage", choices=["calendar", "pilot", "run", "merge"])
     ap.add_argument("--data", type=Path, help=f"lake file {LAKE_RELPATH}")
     ap.add_argument("--output", type=Path)
-    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs", "val24", "val24x", "pathx"])
+    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs", "val24", "val24x", "pathx", "pathr"])
     ap.add_argument("--grids", default="baselines,rf,comparator,costs", help="merge: grids expected")
     ap.add_argument("--chunk", default="0/1")
     ap.add_argument("--save-equity", action="store_true")

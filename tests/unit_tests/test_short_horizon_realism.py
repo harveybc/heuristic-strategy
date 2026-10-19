@@ -42,8 +42,8 @@ def test_limit_entry_needs_trade_through():
     touch = [[1.1000, 1.1010, 1.0980, 1.1000], [1.1000, 1.1005, 1.0990, 1.1000]]
     assert run(touch, order) is not None                               # legacy: a touch fills
     assert run(touch, order, limit_through=PIP) is None                # realistic: a touch does not
-    through = [[1.1000, 1.1010, 1.0979, 1.1000]]
-    assert run(through, order, limit_through=PIP) is None              # 0.1 pip through is not enough
+    through = [[1.1000, 1.1010, 1.09795, 1.1000]]
+    assert run(through, order, limit_through=PIP) is None              # 0.5 pip through is not enough
     through = [[1.1000, 1.1010, 1.0970, 1.1000]]
     f = run(through, order, limit_through=PIP)
     assert f.entry_price == 1.0980 and f.entry_kind == "LIMIT"
@@ -130,7 +130,9 @@ def test_pathr_grid():
     cells = H.cells("pathr")
     fams = {c["family"] for c in cells if c["strategy"] in ("RF-M", "RF-L")}
     assert fams == {"iid", "a1", "a2", "a3"}
-    assert {c["sweep"] for c in cells} == {"legacy", "realistic"}
+    assert {c["sweep"] for c in cells} == {"legacy", "realistic", "realistic_cap2"}
+    assert {c["block_hours"] for c in cells if c["sweep"] == "realistic_cap2"} == {6}
+    assert {c.get("order_cap") for c in cells if c["sweep"] == "realistic_cap2"} == {2}
     legacy = [c for c in cells if c["sweep"] == "legacy" and c["strategy"] != "PERSISTENCE"]
     assert {c["family"] for c in legacy} == {"iid"} and {c["cost_mult"] for c in legacy} == {1.0}
     real = [c for c in cells if c["sweep"] == "realistic"]

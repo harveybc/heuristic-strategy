@@ -67,6 +67,23 @@ def flip_to_accuracy(ft, eligible, u, target):
     return out
 
 
-def path_draws(seed: int, n_blocks: int, horizons: int) -> np.ndarray:
-    """Standard normals for every predicted price of every block's path (own stream)."""
-    return np.random.default_rng([int(seed), int(horizons), 2026_10_19]).standard_normal((n_blocks, horizons))
+def path_draws(seed: int, n_blocks: int, horizons: int, stream: int = 0) -> np.ndarray:
+    """Standard normals for every predicted price of every block's path.
+
+    ``stream`` 0 is the original i.i.d. stream (unchanged); other streams are
+    independent (used for the random-walk error component).
+    """
+    key = [int(seed), int(horizons), 2026_10_19] + ([int(stream)] if stream else [])
+    return np.random.default_rng(key).standard_normal((n_blocks, horizons))
+
+
+def blend_path(truth, ref, w, eps_sigma, z):
+    """Model-like A1: ``ref + w (truth - ref) + eps``; w = 0 is persistence, w = 1 the truth."""
+    truth = np.asarray(truth, float)
+    ref = np.asarray(ref, float)[:, None]
+    return np.where(np.isfinite(truth), ref + w * (truth - ref) + eps_sigma * np.asarray(z), np.nan)
+
+
+def random_walk_error(z, step):
+    """A2: Gaussian random walk along the horizon (std grows like sqrt(h), autocorrelated)."""
+    return step * np.cumsum(np.asarray(z, float), axis=1)
