@@ -31,10 +31,11 @@ def tri(levels, width=5):
     return pd.DataFrame({"OPEN": open_, "HIGH": high, "LOW": low, "CLOSE": close}, index=idx.rename("DATE_TIME"))
 
 
-@pytest.mark.xfail(reason="WIP (paused by owner reorder 2026-10-19): the Deviation test in MT ZigZag compares the bar to the Depth-window extreme, not to the previous pivot; hand-built expectations to be rebuilt", strict=False)
 def test_hand_built_zigzag_finds_alternating_extremes_and_ignores_small_wiggles():
+    # MT semantics: Deviation compares the bar to the Depth-window extreme (not to the previous pivot), so the
+    # 5-pip dip is absorbed only when Depth covers the leg; the earlier peak is then REPLACED by the higher one.
     bars = tri([1.1000, 1.1100, 1.1020, 1.1120, 1.1115, 1.1125, 1.1000], width=6)
-    p = Z.Params(depth=3, deviation_pips=5, backstep=2)
+    p = Z.Params(depth=8, deviation_pips=5, backstep=2)
     piv = Z.hindsight_pivots(bars.HIGH.to_numpy(), bars.LOW.to_numpy(), p)
     kinds = [k for _, k, _ in piv]
     # alternation is mandatory
@@ -47,17 +48,16 @@ def test_hand_built_zigzag_finds_alternating_extremes_and_ignores_small_wiggles(
     assert pytest.approx(min(lows), abs=1e-5) == 1.1000 - 0.00002
 
 
-@pytest.mark.xfail(reason="WIP (paused by owner reorder 2026-10-19): series must be rebuilt so the prefix peak is replaced under MT semantics", strict=False)
 def test_zigzag_is_non_causal_and_rewrites_the_past():
-    bars = tri([1.1000, 1.1100, 1.1050, 1.1200, 1.1000], width=8)
-    p = Z.Params(depth=4, deviation_pips=10, backstep=3)
+    bars = tri([1.1000, 1.1100, 1.1020, 1.1120, 1.1115, 1.1125, 1.1000], width=6)
+    p = Z.Params(depth=8, deviation_pips=5, backstep=2)
     full = Z.hindsight_pivots(bars.HIGH.to_numpy(), bars.LOW.to_numpy(), p)
-    # on the prefix ending just after the first peak, the algorithm names that peak; later it is replaced
-    k = 10
+    # on the prefix ending at bar 24 the algorithm names the peak at bar 18 (1,1120); later it is replaced by bar 30
+    k = 25
     prefix = Z.hindsight_pivots(bars.HIGH.to_numpy()[:k], bars.LOW.to_numpy()[:k], p)
     peaks_prefix = [i for i, kind, _ in prefix if kind == Z.PEAK]
     peaks_full = [i for i, kind, _ in full if kind == Z.PEAK]
-    assert peaks_prefix and peaks_prefix[0] not in peaks_full
+    assert peaks_prefix[-1] == 18 and 18 not in peaks_full and 30 in peaks_full
 
 
 def test_confirmation_bar_is_after_the_pivot_and_the_prefix_contains_it_from_then_on():
@@ -95,17 +95,18 @@ def test_pivot_blocks_and_reversal_orders_carry_sl_tp_units_and_respect_forced_f
         if blocks.status[k] == BL.OK:
             seg = cal.segments[blocks.segment[k]]
             assert blocks.end[k] <= seg.force_flat
-    orders = Z.reversal_orders(blocks, sig, piv, sigma, mode="hindsight", m_sl=2.0, inset=1e-4)
+    sigma_rule = Z.causal_range_sigma(bars)
+    orders = Z.reversal_orders(blocks, sig, piv, sigma, mode="hindsight", m_sl=2.0, inset=1e-4, sigma_rule=sigma_rule)
     ok = [(k, o) for k, o in enumerate(orders) if o is not None]
     assert ok
     for k, o in ok:
         assert o.direction in (1, -1) and np.isfinite(o.take_profit) and np.isfinite(o.stop_loss)
         assert (o.take_profit > blocks.ref[k] > o.stop_loss) if o.direction > 0 else (o.take_profit < blocks.ref[k] < o.stop_loss)
-    rb = Z.reversal_orders(blocks, sig, piv, sigma, mode="causal", k_tp=1.0, m_sl=2.0)
+    rb = Z.reversal_orders(blocks, sig, piv, sigma, mode="causal", k_tp=1.0, m_sl=2.0, sigma_rule=sigma_rule)
     assert any(o is not None for o in rb)
     res = X.run_backtest(bars, blocks, orders, X.RealisticProfile(), cal, 10_000.0,
                          (bars.index[0], bars.index[-1] + HOUR), profile=X.RealisticProfile(),
-                         order_rules=X.OrderRules(), sigma_block=Z.causal_range_sigma(bars), sizing=X.Sizing())
+                         order_rules=X.OrderRules(), sigma_block=sigma_rule[np.minimum(blocks.bar_lo, len(bars) - 1)], sizing=X.Sizing())
     for t in res.trades:
         assert t["units"] >= 1 and np.isfinite(t["stop_loss"]) and np.isfinite(t["take_profit"])
 

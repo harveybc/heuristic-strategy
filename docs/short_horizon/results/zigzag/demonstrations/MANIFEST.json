@@ -1,0 +1,34 @@
+{
+ "label": "HINDSIGHT_NON_CAUSAL_EXPERT",
+ "sha256": "352ddf6a55300864e11abe790b8bad396742abe4fd4d2aaef1012127ba544f76",
+ "rows": 3791,
+ "params": {
+  "depth": 3,
+  "deviation_pips": 36.3,
+  "backstep": 2
+ },
+ "data_sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+ "costs": {
+  "profile": "RealisticProfile defaults (ASSUMED_NOT_BROKER_VERIFIED)",
+  "sizing": "rel_volume 0.10, leverage 100",
+  "sl": "entry -/+ 2.0 x causal 24 h vol",
+  "tp": "next hindsight pivot level -/+ 1 pip"
+ },
+ "warning": "Trades use the final repainted ZigZag pivots and the NEXT pivot level as TP: not reproducible causally; demonstrations only.",
+ "periods": {
+  "DECISION_2020_2022": [
+   "2020-01-01",
+   "2023-01-01"
+  ],
+  "VALIDATION_2023": [
+   "2023-01-01",
+   "2024-01-01"
+  ],
+  "CONFIRM_2024": [
+   "2024-01-01",
+   "2025-01-01"
+  ]
+ },
+ "data_file": "market_data/forex/g10/eurusd/1h.parquet",
+ "calendar": "config/short_horizon/eurusd_h1_calendar.dev.json"
+}

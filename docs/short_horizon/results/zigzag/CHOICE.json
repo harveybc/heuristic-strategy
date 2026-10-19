@@ -1,0 +1,163 @@
+{
+ "params": {
+  "depth": 3,
+  "deviation_pips": 36.3,
+  "backstep": 2
+ },
+ "chosen_by": "best 2023 Sharpe among front points accepted by the frequency rule on both 2020-2022 and 2023",
+ "decision": {
+  "sharpe_daily_sqrt365": 17.086631751742516,
+  "max_drawdown_pct": 6.79298218643721,
+  "net_profit_usd": 5.836122123482586e+23,
+  "trades_per_week": 14.802547770700636,
+  "valid": "True"
+ },
+ "validation_2023": {
+  "sharpe_daily_sqrt365": 19.482236744466196,
+  "max_drawdown_pct": 5.38616064823224,
+  "net_profit_usd": 3565303876.7975163,
+  "trades_per_week": 12.981132075471699,
+  "valid": "True"
+ },
+ "confirm_2024": {
+  "net_profit_usd": 357102096.6475064,
+  "max_drawdown_usd": 7043897.421400189,
+  "max_drawdown_pct": 3.226916387945616,
+  "sharpe_daily_sqrt365": 18.914760315609563,
+  "trades": 779,
+  "win_rate": 0.9409499358151476,
+  "trades_per_week": 14.69811320754717,
+  "max_orders_per_day": 4,
+  "ruined": false,
+  "share_exit_tp": 0.9717586649550706,
+  "share_exit_sl": 0.0,
+  "share_exit_time": 0.028241335044929396,
+  "capped_orders": 217,
+  "unfilled_orders": 100,
+  "rule_skipped_orders": 95,
+  "valid": true,
+  "period": "CONFIRM_2024"
+ },
+ "confirm_2024_leverage": {
+  "10": {
+   "net_profit_usd": 18913.584435000124,
+   "max_drawdown_usd": 90.56700000000274,
+   "max_drawdown_pct": 0.3292197338434387,
+   "sharpe_daily_sqrt365": 19.04187041834418,
+   "trades": 779,
+   "win_rate": 0.9409499358151476,
+   "trades_per_week": 14.69811320754717,
+   "max_orders_per_day": 4,
+   "ruined": false,
+   "share_exit_tp": 0.9717586649550706,
+   "share_exit_sl": 0.0,
+   "share_exit_time": 0.028241335044929396,
+   "capped_orders": 217,
+   "unfilled_orders": 100,
+   "rule_skipped_orders": 95,
+   "valid": true,
+   "period": "CONFIRM_2024"
+  },
+  "50": {
+   "net_profit_usd": 1950814.9277000253,
+   "max_drawdown_usd": 24972.149950000457,
+   "max_drawdown_pct": 1.6314362743423048,
+   "sharpe_daily_sqrt365": 18.985315205723996,
+   "trades": 779,
+   "win_rate": 0.9409499358151476,
+   "trades_per_week": 14.69811320754717,
+   "max_orders_per_day": 4,
+   "ruined": false,
+   "share_exit_tp": 0.9717586649550706,
+   "share_exit_sl": 0.0,
+   "share_exit_time": 0.028241335044929396,
+   "capped_orders": 217,
+   "unfilled_orders": 100,
+   "rule_skipped_orders": 95,
+   "valid": true,
+   "period": "CONFIRM_2024"
+  }
+ },
+ "generations": 15,
+ "population": 16,
+ "history": [
+  {
+   "generation": 1,
+   "best_sharpe": 14.261644238620711,
+   "min_dd": 5.598490841599186
+  },
+  {
+   "generation": 2,
+   "best_sharpe": 15.202985802670808,
+   "min_dd": 5.598490841599184
+  },
+  {
+   "generation": 3,
+   "best_sharpe": 15.865375388495524,
+   "min_dd": 5.598490841599184
+  },
+  {
+   "generation": 4,
+   "best_sharpe": 17.07261054449168,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 5,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 6,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 7,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 8,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 9,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 10,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 11,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 12,
+   "best_sharpe": 17.7748573012053,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 13,
+   "best_sharpe": 17.9008627823044,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 14,
+   "best_sharpe": 17.9008627823044,
+   "min_dd": 4.903983904576194
+  },
+  {
+   "generation": 15,
+   "best_sharpe": 17.9008627823044,
+   "min_dd": 4.903983904576194
+  }
+ ],
+ "front_points": 16,
+ "front_accepted": 16,
+ "label": "HINDSIGHT_NON_CAUSAL_EXPERT"
+}

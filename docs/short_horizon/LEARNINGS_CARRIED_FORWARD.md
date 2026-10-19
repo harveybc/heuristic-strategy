@@ -94,3 +94,8 @@ names the old failure, then the rule and how it is enforced here.
     at hourly resolution, causal gate empty → abstain or widen stops around releases.
 
 **Branch state 2026-10-19: DEVELOPMENT; nothing trading-eligible.**
+
+18. **A hindsight expert's edge is half timing, half extent.** Delaying ZigZag pivots by their median
+    confirmation lag keeps Sharpe ≈ 8–9 while the causally confirmed version with a vol-based TP is
+    negative: the next-pivot level (the extent of the leg) carries as much information as the pivot
+    time. Demonstrations must be judged on both (`ZIGZAG_EXPERT_STUDY.md` §4).

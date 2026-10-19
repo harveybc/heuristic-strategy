@@ -40,10 +40,16 @@ class Params:
 
 def _window_extreme(x, depth, fn):
     """fn over the window [i - depth + 1, i] (shorter at the start), like Lowest/Highest in MQL."""
+    x = np.asarray(x, float)
     n = len(x)
-    out = np.empty(n)
-    for i in range(n):
-        out[i] = fn(x[max(0, i - depth + 1):i + 1])
+    if n == 0:
+        return np.empty(0)
+    d = min(depth, n)
+    pad = np.r_[np.full(d - 1, x[0]), x]           # short windows at the start reduce to the available bars
+    win = np.lib.stride_tricks.sliding_window_view(pad, d)
+    out = fn(win, axis=1)
+    for i in range(min(d - 1, n)):                 # exact short-window values at the start
+        out[i] = fn(x[:i + 1])
     return out
 
 
@@ -218,14 +224,15 @@ def signal_blocks(bars: pd.DataFrame, cal, signals) -> Blocks:
 
 
 def reversal_orders(blocks: Blocks, signals, pivots, sigma, mode: str = "hindsight", k_tp: float = 1.0,
-                    m_sl: float = 2.0, inset: float = PIP, size: float = 1.0) -> list:
+                    m_sl: float = 2.0, inset: float = PIP, size: float = 1.0, sigma_rule=None) -> list:
     """Market order per signal block. ``hindsight``: TP = next pivot level -/+ inset (NON-CAUSAL, labelled);
     ``causal``: TP = entry +/- k_tp * sigma. SL = entry -/+ m_sl * sigma in both."""
     piv_bars = np.array([i for i, _, _ in pivots])
     piv_lvl = np.array([lvl for _, _, lvl in pivots])
     out = []
     for k, (b, d) in enumerate(signals):
-        if blocks.status[k] != OK or not np.isfinite(sigma[blocks.bar_lo[k]]) or sigma[blocks.bar_lo[k]] <= 0:
+        if blocks.status[k] != OK or not np.isfinite(sigma[blocks.bar_lo[k]]) or sigma[blocks.bar_lo[k]] <= 0 \
+                or (sigma_rule is not None and not np.isfinite(sigma_rule[blocks.bar_lo[k]])):
             out.append(None)
             continue
         r = float(blocks.ref[k])
