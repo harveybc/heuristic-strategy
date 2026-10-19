@@ -103,6 +103,64 @@ class RealisticProfile:
         return mean_spread + 2 * self.slippage_market + 2 * self.commission_per_lot_side / self.lot_units
 
 
+class OrderRuleError(ValueError):
+    """Business hard rule violated: every order carries side, units, an effective SL and TP."""
+
+
+@dataclass(frozen=True)
+class OrderRules:
+    """Toda orden lleva SL y TP calculados y efectivos desde la entrada.
+
+    Fixed a priori (ASSUMED_NOT_BROKER_VERIFIED): broker minimum stop distance 0.5 pip; a level
+    is effective only within ``effectiveness_c`` x the causal block sigma (mean range of the
+    last 20 completed blocks), so it has a real chance of being hit within the block.
+    """
+    min_distance: float = 0.5e-4
+    effectiveness_c: float = 1.5
+
+
+@dataclass(frozen=True)
+class Sizing:
+    """Owner rule: volume in integer base-currency (EUR) units from a share of the CURRENT balance.
+
+    units_max = floor(balance_USD * rel_volume * leverage / price_USD_per_EUR)  (basis "margin":
+    legacy heuristic-strategy convention max_from_cash = cash * rel_volume * leverage, with the
+    USD->EUR conversion that the legacy code omits), or without the leverage factor (basis
+    "notional"). units = floor(fraction * units_max). Leverage is an account scenario.
+    """
+    rel_volume: float = 0.10
+    leverage: float = 100.0
+    basis: str = "margin"
+    min_units: int = 1
+    margin_closeout: float = 0.5      # ASSUMED: broker closes out when equity <= 50 % of margin used
+    rel_volume_bound: float = 0.20
+    leverage_bound: float = 100.0
+
+    def __post_init__(self):
+        if not 0 < self.rel_volume <= self.rel_volume_bound:
+            raise ValueError(f"rel_volume must be in (0, {self.rel_volume_bound}]")
+        if self.basis not in ("margin", "notional"):
+            raise ValueError("basis must be margin or notional")
+        if not 0 < self.leverage <= self.leverage_bound:
+            raise ValueError(f"leverage must be in (0, {self.leverage_bound}]")
+
+    def units_max(self, balance: float, price: float) -> int:
+        factor = self.leverage if self.basis == "margin" else 1.0
+        return max(0, int(math.floor(balance * self.rel_volume * factor / price)))
+
+    def units(self, balance: float, price: float, fraction: float = 1.0) -> int:
+        if not 0 < fraction <= 1:
+            raise ValueError("fraction must be in (0, 1]")
+        return int(math.floor(fraction * self.units_max(balance, price)))
+
+    @staticmethod
+    def manifest() -> dict:
+        return {"rel_volume": {"default": 0.10, "bounds": [0.0, 0.2], "tune_on": "inner validation 2023 only"},
+                "fraction": {"default": 1.0, "bounds": [0.0, 1.0], "tune_on": "inner validation 2023 only"},
+                "rel_volume_basis": {"default": "margin", "choices": ["margin", "notional"]},
+                "leverage": {"default": 100, "scenarios": [10, 50, 100], "kind": "account setting, not tuned"}}
+
+
 @dataclass(frozen=True)
 class BlockOrder:
     direction: int            # +1 long, -1 short
@@ -110,7 +168,33 @@ class BlockOrder:
     entry_price: Optional[float]
     take_profit: float
     stop_loss: float
-    units: float
+    units: Optional[float]
+    fraction: float = 1.0     # share of units_max when a Sizing is applied
+
+
+def check_order(order: BlockOrder, entry_ref: float, sigma: float, rules: OrderRules,
+                require_units: bool = False) -> None:
+    """Raise OrderRuleError unless the order has side, (units), an effective SL and TP."""
+    if order.direction not in (1, -1):
+        raise OrderRuleError("order side missing")
+    if require_units and (order.units is None or order.units <= 0 or float(order.units) != int(order.units)):
+        raise OrderRuleError("order units missing or not a positive integer")
+    tp, sl = order.take_profit, order.stop_loss
+    if tp is None or sl is None or not (math.isfinite(tp) and math.isfinite(sl)):
+        raise OrderRuleError("order without both a finite stop-loss and take-profit")
+    entry = order.entry_price if order.entry_type != "MARKET" else entry_ref
+    if entry is None or not math.isfinite(entry):
+        raise OrderRuleError("order entry price missing")
+    d = order.direction
+    if not (sl < entry < tp if d > 0 else tp < entry < sl):
+        raise OrderRuleError("stop-loss / take-profit on the wrong side of the entry")
+    dist_tp, dist_sl = abs(tp - entry), abs(entry - sl)
+    if min(dist_tp, dist_sl) < rules.min_distance:
+        raise OrderRuleError("level closer than the broker minimum distance")
+    if not (sigma is not None and math.isfinite(sigma) and sigma > 0):
+        raise OrderRuleError("no causal sigma to judge level effectiveness")
+    if max(dist_tp, dist_sl) > rules.effectiveness_c * sigma:
+        raise OrderRuleError("symbolic level: farther than effectiveness_c x causal block sigma")
 
 
 @dataclass
@@ -267,12 +351,20 @@ def _trade_record(v, seg_id, lo, fill, costs, calendar, block_id, profile=None):
             "notional_usd": u * (fill.entry_price + fill.exit_price)}
 
 
+def _decorate(rec, order, sizing):
+    rec["stop_loss"], rec["take_profit"] = float(order.stop_loss), float(order.take_profit)
+    rec["units"] = int(rec["units"]) if float(rec["units"]).is_integer() else rec["units"]
+    rec["margin_usd"] = (abs(rec["units"]) * rec["entry_price"] / sizing.leverage) if sizing else 0.0
+    return rec
+
+
 def _entry_bars(v, lo, hi, cutoff):
     """Leading block bars that end at or before the entry cutoff (``v`` in ns)."""
     return int(np.searchsorted(v[lo:hi], (cutoff - HOUR).value, side="right"))
 
 
-def _account(bars, trades, split, initial_capital, evaluated, refused, orders_submitted=None, unfilled=0):
+def _account(bars, trades, split, initial_capital, evaluated, refused, orders_submitted=None, unfilled=0,
+             margin_closeout=0.5):
     ts = bars.index
     a, b = (pd.Timestamp(x) for x in split)
     sel = np.flatnonzero((ts >= a) & (ts < b))
@@ -341,6 +433,18 @@ def _account(bars, trades, split, initial_capital, evaluated, refused, orders_su
          if len(evaluated) else 0.0}
     # Ruin: marked-to-market equity at or below zero. Returns against a non-positive base are
     # meaningless, so a ruined run has no Sharpe or Sortino.
+    n_tr = len(trades)
+    for key, reason in (("tp", "TP"), ("sl", "SL"), ("time", "TIME"), ("early", "EARLY")):
+        m[f"share_exit_{key}"] = (sum(t["exit_reason"] == reason for t in trades) / n_tr) if n_tr else 0.0
+    m["tp_rarely_hit"] = bool(n_tr >= 20 and m["share_exit_tp"] < 0.05)
+    events = 0
+    eq = initial_capital + np.cumsum(cash) + unreal
+    for t in trades:
+        if t.get("margin_usd", 0.0) > 0:
+            i, j = t["entry_bar_abs"] - first, t["exit_bar_abs"] - first
+            if (eq[i:j + 1] <= margin_closeout * t["margin_usd"]).any():
+                events += 1
+    m["margin_call_events"] = events
     m["ruined"] = bool(curve.min() <= 0)
     m["ruin_skipped_orders"] = 0
     if m["ruined"]:
@@ -359,7 +463,9 @@ def _business_day(blocks, calendar, k):
 
 def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Calendar,
                  initial_capital: float, split, profile: Optional[RealisticProfile] = None,
-                 max_orders_per_day: Optional[int] = None, ruin_floor: Optional[float] = None) -> Result:
+                 max_orders_per_day: Optional[int] = None, ruin_floor: Optional[float] = None,
+                 order_rules: Optional[OrderRules] = None, sigma_block=None,
+                 sizing: Optional[Sizing] = None) -> Result:
     """``max_orders_per_day``: strategy-side cap per business day (rollover to rollover),
     applied at decision time in block order; later orders of a full day are not sent.
     ``ruin_floor``: stop-out; no new order once realized equity is at or below this level."""
@@ -371,9 +477,12 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
     per_day, trades_day = {}, {}
     through = profile.limit_through if profile is not None else 0.0
     delay = profile.entry_delay_bars if profile is not None else 0
+    below_min, max_margin_pct, max_expo = 0, 0.0, 0.0
+    if order_rules is not None and sigma_block is None:
+        raise OrderRuleError("order rules need the causal block sigma")
     for k in evaluated:
         order = orders[k]
-        if order is None or order.units <= 0:
+        if order is None or (sizing is None and (order.units is None or order.units <= 0)):
             continue
         if ruin_floor is not None and realized <= ruin_floor:
             ruin_skipped += 1
@@ -382,6 +491,19 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
         if max_orders_per_day is not None and per_day.get(day, 0) >= max_orders_per_day:
             capped += 1
             continue
+        entry_ref = float(order.entry_price) if order.entry_type != "MARKET" else float(blocks.ref[k])
+        if sizing is not None:
+            units = sizing.units(realized, entry_ref, order.fraction)
+            if units < sizing.min_units:
+                below_min += 1
+                continue
+            order = replace(order, units=units)
+            notional = units * entry_ref
+            max_expo = max(max_expo, notional / realized)
+            margin = notional / sizing.leverage
+            max_margin_pct = max(max_margin_pct, 100 * margin / realized)
+        if order_rules is not None:
+            check_order(order, float(blocks.ref[k]), float(sigma_block[k]), order_rules, require_units=True)
         per_day[day] = per_day.get(day, 0) + 1
         submitted += 1
         lo, hi = blocks.bar_lo[k], blocks.bar_hi[k]
@@ -396,9 +518,16 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
             refused += 1
             continue
         trades_day[day] = trades_day.get(day, 0) + 1
-        trades.append(_trade_record(v, blocks.segment[k], lo, fill, costs, calendar, int(k), profile))
+        trades.append(_decorate(_trade_record(v, blocks.segment[k], lo, fill, costs, calendar, int(k), profile),
+                                order, sizing))
         realized += trades[-1]["net_usd"]
-    res = _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled)
+    res = _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled,
+                   margin_closeout=sizing.margin_closeout if sizing else 0.5)
+    res.metrics.update({"below_min_units": below_min,
+                        "rel_volume": sizing.rel_volume if sizing else None,
+                        "leverage": sizing.leverage if sizing else None,
+                        "rel_volume_basis": sizing.basis if sizing else None,
+                        "max_margin_used_pct": max_margin_pct, "max_exposure_x_balance": max_expo})
     weeks = {tuple(blocks.start[k].isocalendar()[:2]) for k in evaluated}
     res.metrics.update({"weeks_with_eligible_blocks": len(weeks),
                         "trades_per_week": len(trades) / len(weeks) if weeks else 0.0,

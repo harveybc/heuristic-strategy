@@ -75,7 +75,8 @@ def test_order_missing_units_or_side_is_refused_without_sizing(bad):
 
 
 def test_margin_call_events_are_reported():
-    bars = synthetic_bars(seed=82, segments=3)
+    from tests.unit_tests.test_short_horizon_ruin import falling_market
+    bars = falling_market()   # every long loses ~0.15 % per hour: a 100x notional reaches closeout
     cal = calendar_for(bars)
     bl = B.build_blocks(bars, cal, 6)
     split = (bars.index[0], bars.index[-1] + HOUR)

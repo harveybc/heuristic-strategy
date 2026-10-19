@@ -61,6 +61,11 @@ NO_TRADE 0; BLOCK_BUY −70,480 / −21,886 (6 h, TRAIN / VALIDATION) and −22,
 strategy (NAIVE_MEAN20 RF-L) −38,922 / −12,338 (6 h) and −11,854 / −2,206 (24 h);
 the comparator's persistence naive makes no trade. Full table: generated §2.
 
+> **Ruin note (added 2026-10-19).** Several baseline accounts (e.g. BLOCK_BUY, −70.480 USD on
+> 10.000) went through zero equity. Their net figures assume no stop-out and their Sharpe is
+> undefined; the generated table now prints `ruin` for them. Later studies stop trading at zero
+> equity and treat ruin as invalid.
+
 ## The frontier
 
 Two families of degraded forecasts were run, and they disagree. That

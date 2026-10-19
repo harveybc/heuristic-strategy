@@ -211,3 +211,55 @@ first-touch) target without rewriting it, so the new harness
 `tools/short_horizon_oracle.py` reuses their method — fixed oracle, monotone noise
 grid, accuracy reported next to profit — plus the committed entry-geometry policy,
 and writes only under its own output directory.
+
+## 14. Business rule: every order carries SL and TP (owner, 2026-10-19)
+
+**Toda orden lleva SL y TP calculados y efectivos desde la entrada; el cierre anticipado del agente es adicional, nunca sustituto.**
+
+- **Levels are broker-side orders.** SL and TP are set at entry as native
+  broker orders. A strategy may move the SL (for a trailing stop) but never
+  remove it.
+- **Typed refusal.** The simulator refuses an order without a side, positive
+  integer units, a finite SL and a finite TP on the correct sides of the entry
+  (`OrderRuleError`).
+- **No symbolic levels.** Each distance must be at least the broker minimum (0,5
+  pip, ASSUMED) and at most `effectiveness_c` × the causal block sigma.
+  - Causal block sigma = mean range of the last 20 completed blocks.
+  - `effectiveness_c` = 1,5, fixed a priori, so each level has a real chance of
+    being hit within the block.
+  - Strategies filter such orders before sending them (counted).
+- **Per-run reporting.** Each run reports the shares of exits by TP, SL, early
+  close and time/forced flat. A TP hit in fewer than 5 % of ≥ 20 trades is flagged
+  `tp_rarely_hit`.
+- **Retro-check.** Committed RF-M/RF-L orders always set both levels (tested).
+- **Passive baselines are excluded.** BLOCK_BUY/SELL and SEGMENT_BUY/SELL of the
+  first study are reference benchmarks, not strategy orders. They used placeholder
+  levels and cannot be run under this rule.
+
+## 15. Business rule: volume in units from `rel_volume` (owner, 2026-10-19)
+
+- **Units are integer base-currency (EUR) units**, as the broker API takes them:
+  `units_max = floor(balance_USD · rel_volume · leverage / price_USD_per_EUR)` and
+  `units = floor(f · units_max)`, with f ∈ (0, 1].
+- **Balance is the current balance at each entry**, so sizing compounds. Below
+  the broker minimum units, the order is not traded (counted).
+- **`rel_volume`:** default 0,10, bounded (0, 0,20]. It and `f` are declared in a
+  manifest for a later sweep or DEAP search on the inner validation year only,
+  never on 2024.
+- **`rel_volume_basis = margin`** (owner-confirmed legacy convention). `notional`,
+  i.e. without the leverage factor, is a one-flag alternative, and every run
+  reports which basis it used.
+- **Leverage is an account scenario, not a tuned parameter:** 1:10, 1:50 and 1:100
+  (default, matches the plugins). With margin = 10 % of balance, the notional is
+  1×, 5× and 10× the balance respectively.
+  - Each run reports margin used, max exposure (notional/balance) and margin-call
+    events. Closeout is ASSUMED at equity ≤ 50 % of the margin used.
+  - Equity reaching zero is ruin: no new orders, no Sharpe, invalid.
+- **Legacy observation (plugins not edited).** `app/heuristic_strategy.py` and the
+  `direction_atr` / `api_predictions` plugins compute
+  `max_from_cash = cash · rel_volume · leverage` and compare it with a unit
+  count. For EURUSD, cash is USD and units are EUR, so the USD→EUR division by
+  price is missing there. It is applied here.
+- **The old sizing** (1 % risk to the stop, notional ≤ 5× the *initial* capital,
+  non-compounding) is kept only as a labelled reference arm for the earlier studies.
+- **Every order record** in outputs carries units, side, entry, SL and TP.

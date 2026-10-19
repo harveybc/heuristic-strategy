@@ -23,51 +23,51 @@ Marks: `+` all three seeds net > 0 (robust); `~` mean > 0 but a seed <= 0; `-` m
 
 ## 2. Baselines on identical blocks
 
-MAE = mean of high and low MAE in pips; FT = first-touch accuracy on non-ambiguous blocks.
+MAE = mean of high and low MAE in pips; FT = first-touch accuracy on non-ambiguous blocks. `ruin`: marked-to-market equity reached zero (drawdown >= 100 % of the peak); the net figure assumes no stop-out and the Sharpe is undefined (ruin handling added after this study).
 
 | Block | Baseline | Split | Trades | Net | Max DD | Sharpe | MAE pips | FT acc | All costs |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 6 h | BLOCK_BUY | TRAIN 2020-2023 | 3304 | -70,480 | 71,040 | 0.04 |  |  | 72,612 |
-| 6 h | BLOCK_BUY | VALIDATION 2024 | 830 | -21,886 | 21,997 | -1.00 |  |  | 18,783 |
-| 6 h | BLOCK_SELL | TRAIN 2020-2023 | 3304 | -74,744 | 75,359 | 0.55 |  |  | 72,612 |
-| 6 h | BLOCK_SELL | VALIDATION 2024 | 830 | -15,680 | 16,124 | -0.15 |  |  | 18,783 |
+| 6 h | BLOCK_BUY | TRAIN 2020-2023 | 3304 | -70,480 | 71,040 | ruin |  |  | 72,612 |
+| 6 h | BLOCK_BUY | VALIDATION 2024 | 830 | -21,886 | 21,997 | ruin |  |  | 18,783 |
+| 6 h | BLOCK_SELL | TRAIN 2020-2023 | 3304 | -74,744 | 75,359 | ruin |  |  | 72,612 |
+| 6 h | BLOCK_SELL | VALIDATION 2024 | 830 | -15,680 | 16,124 | ruin |  |  | 18,783 |
 | 6 h | COMPARATOR_NAIVE_PERSISTENCE | TRAIN 2020-2023 | 0 | 0 | 0 | 0.00 |  |  | 0 |
 | 6 h | COMPARATOR_NAIVE_PERSISTENCE | VALIDATION 2024 | 0 | 0 | 0 | 0.00 |  |  | 0 |
 | 6 h | COMPARATOR_ORACLE | TRAIN 2020-2023 | 2844 | 20,545 | 1,019 | 2.73 |  |  | 58,520 |
 | 6 h | COMPARATOR_ORACLE | VALIDATION 2024 | 649 | 4,397 | 906 | 2.82 |  |  | 13,839 |
-| 6 h | NAIVE_MEAN20_RF-L | TRAIN 2020-2023 | 1729 | -38,922 | 38,922 | -0.08 | 13.4 | 0.500 | 36,737 |
-| 6 h | NAIVE_MEAN20_RF-L | VALIDATION 2024 | 404 | -12,338 | 12,338 | 0.26 | 10.1 | 0.478 | 8,915 |
-| 6 h | NAIVE_MEAN20_RF-M | TRAIN 2020-2023 | 3243 | -57,918 | 57,918 | 0.59 | 13.4 | 0.500 | 57,008 |
-| 6 h | NAIVE_MEAN20_RF-M | VALIDATION 2024 | 812 | -18,539 | 18,637 | -0.77 | 10.1 | 0.478 | 16,750 |
-| 6 h | NAIVE_PERSIST_RF-L | TRAIN 2020-2023 | 2470 | -52,157 | 52,224 | 0.54 | 17.8 | 0.499 | 51,704 |
-| 6 h | NAIVE_PERSIST_RF-L | VALIDATION 2024 | 630 | -15,367 | 15,427 | 0.05 | 13.8 | 0.497 | 13,791 |
-| 6 h | NAIVE_PERSIST_RF-M | TRAIN 2020-2023 | 2830 | -56,833 | 56,900 | 0.48 | 17.8 | 0.499 | 54,754 |
-| 6 h | NAIVE_PERSIST_RF-M | VALIDATION 2024 | 654 | -15,937 | 16,031 | 0.19 | 13.8 | 0.497 | 13,897 |
+| 6 h | NAIVE_MEAN20_RF-L | TRAIN 2020-2023 | 1729 | -38,922 | 38,922 | ruin | 13.4 | 0.500 | 36,737 |
+| 6 h | NAIVE_MEAN20_RF-L | VALIDATION 2024 | 404 | -12,338 | 12,338 | ruin | 10.1 | 0.478 | 8,915 |
+| 6 h | NAIVE_MEAN20_RF-M | TRAIN 2020-2023 | 3243 | -57,918 | 57,918 | ruin | 13.4 | 0.500 | 57,008 |
+| 6 h | NAIVE_MEAN20_RF-M | VALIDATION 2024 | 812 | -18,539 | 18,637 | ruin | 10.1 | 0.478 | 16,750 |
+| 6 h | NAIVE_PERSIST_RF-L | TRAIN 2020-2023 | 2470 | -52,157 | 52,224 | ruin | 17.8 | 0.499 | 51,704 |
+| 6 h | NAIVE_PERSIST_RF-L | VALIDATION 2024 | 630 | -15,367 | 15,427 | ruin | 13.8 | 0.497 | 13,791 |
+| 6 h | NAIVE_PERSIST_RF-M | TRAIN 2020-2023 | 2830 | -56,833 | 56,900 | ruin | 17.8 | 0.499 | 54,754 |
+| 6 h | NAIVE_PERSIST_RF-M | VALIDATION 2024 | 654 | -15,937 | 16,031 | ruin | 13.8 | 0.497 | 13,897 |
 | 6 h | NO_TRADE | TRAIN 2020-2023 | 0 | 0 | 0 | 0.00 |  |  | 0 |
 | 6 h | NO_TRADE | VALIDATION 2024 | 0 | 0 | 0 | 0.00 |  |  | 0 |
-| 6 h | SEGMENT_BUY | TRAIN 2020-2023 | 209 | -6,886 | 11,735 | -0.48 |  |  | 8,060 |
+| 6 h | SEGMENT_BUY | TRAIN 2020-2023 | 209 | -6,886 | 11,735 | ruin |  |  | 8,060 |
 | 6 h | SEGMENT_BUY | VALIDATION 2024 | 53 | -5,488 | 5,652 | -2.27 |  |  | 2,089 |
 | 6 h | SEGMENT_SELL | TRAIN 2020-2023 | 209 | -9,235 | 12,591 | -0.02 |  |  | 8,060 |
 | 6 h | SEGMENT_SELL | VALIDATION 2024 | 53 | 1,311 | 2,702 | 0.63 |  |  | 2,089 |
-| 24 h | BLOCK_BUY | TRAIN 2020-2023 | 1020 | -22,638 | 23,924 | 0.13 |  |  | 24,812 |
+| 24 h | BLOCK_BUY | TRAIN 2020-2023 | 1020 | -22,638 | 23,924 | ruin |  |  | 24,812 |
 | 24 h | BLOCK_BUY | VALIDATION 2024 | 259 | -9,595 | 9,737 | -2.79 |  |  | 6,508 |
-| 24 h | BLOCK_SELL | TRAIN 2020-2023 | 1020 | -26,986 | 29,260 | 0.58 |  |  | 24,812 |
+| 24 h | BLOCK_SELL | TRAIN 2020-2023 | 1020 | -26,986 | 29,260 | ruin |  |  | 24,812 |
 | 24 h | BLOCK_SELL | VALIDATION 2024 | 259 | -3,421 | 5,779 | -1.07 |  |  | 6,508 |
 | 24 h | COMPARATOR_NAIVE_PERSISTENCE | TRAIN 2020-2023 | 0 | 0 | 0 | 0.00 |  |  | 0 |
 | 24 h | COMPARATOR_NAIVE_PERSISTENCE | VALIDATION 2024 | 0 | 0 | 0 | 0.00 |  |  | 0 |
 | 24 h | COMPARATOR_ORACLE | TRAIN 2020-2023 | 951 | 19,335 | 421 | 3.87 |  |  | 19,145 |
 | 24 h | COMPARATOR_ORACLE | VALIDATION 2024 | 223 | 4,819 | 353 | 3.87 |  |  | 4,708 |
-| 24 h | NAIVE_MEAN20_RF-L | TRAIN 2020-2023 | 517 | -11,854 | 12,120 | -0.02 | 24.2 | 0.497 | 9,904 |
+| 24 h | NAIVE_MEAN20_RF-L | TRAIN 2020-2023 | 517 | -11,854 | 12,120 | ruin | 24.2 | 0.497 | 9,904 |
 | 24 h | NAIVE_MEAN20_RF-L | VALIDATION 2024 | 125 | -2,206 | 2,347 | -1.94 | 17.9 | 0.502 | 2,767 |
-| 24 h | NAIVE_MEAN20_RF-M | TRAIN 2020-2023 | 1018 | -10,604 | 10,966 | -0.32 | 24.2 | 0.497 | 10,526 |
+| 24 h | NAIVE_MEAN20_RF-M | TRAIN 2020-2023 | 1018 | -10,604 | 10,966 | ruin | 24.2 | 0.497 | 10,526 |
 | 24 h | NAIVE_MEAN20_RF-M | VALIDATION 2024 | 259 | -2,546 | 2,814 | -2.49 | 17.9 | 0.502 | 3,509 |
-| 24 h | NAIVE_PERSIST_RF-L | TRAIN 2020-2023 | 812 | -13,019 | 14,603 | 0.13 | 31.7 | 0.486 | 15,144 |
+| 24 h | NAIVE_PERSIST_RF-L | TRAIN 2020-2023 | 812 | -13,019 | 14,603 | ruin | 31.7 | 0.486 | 15,144 |
 | 24 h | NAIVE_PERSIST_RF-L | VALIDATION 2024 | 200 | -4,386 | 4,674 | -2.59 | 23.1 | 0.502 | 4,211 |
-| 24 h | NAIVE_PERSIST_RF-M | TRAIN 2020-2023 | 963 | -15,577 | 17,254 | 0.23 | 31.7 | 0.486 | 14,538 |
+| 24 h | NAIVE_PERSIST_RF-M | TRAIN 2020-2023 | 963 | -15,577 | 17,254 | ruin | 31.7 | 0.486 | 14,538 |
 | 24 h | NAIVE_PERSIST_RF-M | VALIDATION 2024 | 237 | -5,145 | 5,205 | -3.28 | 23.1 | 0.502 | 4,251 |
 | 24 h | NO_TRADE | TRAIN 2020-2023 | 0 | 0 | 0 | 0.00 |  |  | 0 |
 | 24 h | NO_TRADE | VALIDATION 2024 | 0 | 0 | 0 | 0.00 |  |  | 0 |
-| 24 h | SEGMENT_BUY | TRAIN 2020-2023 | 209 | -6,886 | 11,735 | -0.48 |  |  | 8,060 |
+| 24 h | SEGMENT_BUY | TRAIN 2020-2023 | 209 | -6,886 | 11,735 | ruin |  |  | 8,060 |
 | 24 h | SEGMENT_BUY | VALIDATION 2024 | 53 | -5,488 | 5,652 | -2.27 |  |  | 2,089 |
 | 24 h | SEGMENT_SELL | TRAIN 2020-2023 | 209 | -9,235 | 12,591 | -0.02 |  |  | 8,060 |
 | 24 h | SEGMENT_SELL | VALIDATION 2024 | 53 | 1,311 | 2,702 | 0.63 |  |  | 2,089 |

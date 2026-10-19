@@ -98,12 +98,15 @@ def build(run: Path, pub: Path):
     for _, r in b.sort_values(["block_hours", "strategy", "split"]).iterrows():
         mae = (r.mae_high_pips + r.mae_low_pips) / 2
         rows.append([f"{r.block_hours} h", r.strategy, SPLIT_SHORT[r.split], int(r.trades), fmt_usd(r.net_profit_usd),
-                     fmt_usd(r.max_drawdown_usd), f"{r.sharpe_daily_sqrt365:.2f}",
+                     fmt_usd(r.max_drawdown_usd),
+                     "ruin" if r.max_drawdown_pct >= 100 else f"{r.sharpe_daily_sqrt365:.2f}",
                      "" if np.isnan(mae) else f"{mae:.1f}",
                      "" if np.isnan(r.first_touch_accuracy) else f"{r.first_touch_accuracy:.3f}",
                      fmt_usd(r.cost_spread_usd + r.cost_slippage_usd + r.cost_commission_usd + r.cost_financing_usd)])
     out += ["## 2. Baselines on identical blocks\n",
-            "MAE = mean of high and low MAE in pips; FT = first-touch accuracy on non-ambiguous blocks.\n",
+            "MAE = mean of high and low MAE in pips; FT = first-touch accuracy on non-ambiguous blocks. "
+            "`ruin`: marked-to-market equity reached zero (drawdown >= 100 % of the peak); the net figure assumes "
+            "no stop-out and the Sharpe is undefined (ruin handling added after this study).\n",
             md_table(["Block", "Baseline", "Split", "Trades", "Net", "Max DD", "Sharpe", "MAE pips", "FT acc",
                       "All costs"], rows), ""]
 

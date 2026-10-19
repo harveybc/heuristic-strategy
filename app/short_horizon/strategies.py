@@ -214,3 +214,27 @@ def path_to_range(paths):
     ft = np.where(il < ih, LOW_FIRST, np.where(ih < il, HIGH_FIRST, AMBIGUOUS))
     ft = np.where(has, ft, AMBIGUOUS).astype(int)
     return H_hat, L_hat, ft
+
+
+# ------------------------------------------------------------------ business hard rule helpers
+def causal_block_sigma(blocks: Blocks) -> np.ndarray:
+    """Causal block-range scale: mean (H - L) of the last 20 completed blocks (NaN before)."""
+    u, d, _ = naive_forecasts(blocks, "MEAN20")
+    return u + d
+
+
+def apply_order_rules(orders, blocks: Blocks, sigma, rules):
+    """Strategy-side filter: an order that would break the SL/TP rule is not sent (counted)."""
+    from .execution import OrderRuleError, check_order
+    out, skipped = [], 0
+    for k, o in enumerate(orders):
+        if o is None:
+            out.append(None)
+            continue
+        try:
+            check_order(o, float(blocks.ref[k]), float(sigma[k]), rules)
+            out.append(o)
+        except OrderRuleError:
+            out.append(None)
+            skipped += 1
+    return out, skipped
