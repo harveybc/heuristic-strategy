@@ -67,12 +67,14 @@ sealed before scoring (`results/predictors/predictores_sellos.json`).
 
 ## Results (VALIDACIÓN 2024, costs ×1; full table `results/predictors/PREDICTORES_TABLA.md`, CSV `predictores_resultados.csv`)
 
+Scored with the SL/TP business rule applied (orders with symbolic levels not sent).
+
 | B | Best of each kind | MAE U / D × MEAN20 | Order accuracy (log-loss vs base) | Path MAE × persistence (h_p / h_B / mean) | RF-M net · Sharpe · trades/wk | RF-L |
 |---|---|---|---|---|---|---|
 | 24 | HAR + LOGIT, daily | 0,98 / 0,91 | 0,560 (0,6923 vs 0,6934) | 2,32 / 1,36 / 1,60 | −548 · −0,52 · 4,9 | −1.689 · −1,66 · 2,0 (invalid) |
 | 24 | EWMA + LOGIT, daily | 0,99 / 0,98 | 0,560 | 2,16 / 1,24 / 1,47 | −341 · −0,29 · 4,9 | −893 · −0,76 · 2,1 (invalid) |
 | 24 | persistence path | 1,45 / 1,46 | no call | 1,00 / 1,00 / 1,00 | 0 trades (invalid) | 0 trades (invalid) |
-| 6 | HAR + LOGIT, daily | 0,94 / 0,90 | 0,504 (0,6918 vs 0,6933) | 1,00 / 1,35 / 1,55 | −6.951 · −3,95 · 15,1 | −4.222 · −2,97 · 7,4 |
+| 6 | HAR + LOGIT, daily | 0,94 / 0,90 | 0,504 (0,6918 vs 0,6933) | 1,00 / 1,35 / 1,55 | −6.905 · −3,95 · 15,0 | −3.820 · −2,96 · 6,9 |
 
 What the table shows:
 - **Excursions:** the best cheap volatility predictor (HAR) cuts U/D error by
