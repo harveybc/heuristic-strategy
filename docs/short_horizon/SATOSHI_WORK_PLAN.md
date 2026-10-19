@@ -48,7 +48,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 | ID | Carril | Repo/rama | Entregable esperado |
 | --- | --- | --- | --- |
-| A1 | NSGA-II ZigZag completo (pop 64 × ≥80 gen × 3 semillas, genes log, Depth 2–200, Dev 1–300 pips, Backstep<Depth, hipervolumen, frentes retrospectivo y confirmado, sensibilidad tope diario) | heuristic-strategy `satoshi/short-horizon-strategy-20261018` | frente, convergencia, nuevas demostraciones selladas |
+| A1 | (RELANZADO 2026-10-19 tarde: no había arrancado tras la paridad; ahora con latencia b+2 y guarda 12 h corregidas de forma aditiva, 2023 = desarrollo conjunto, 2024 = desarrollo ya observado) NSGA-II ZigZag completo (pop 64 × ≥80 gen × 3 semillas, genes log, Depth 2–200, Dev 1–300 pips, Backstep<Depth, hipervolumen, frentes retrospectivo y confirmado, sensibilidad tope diario) | heuristic-strategy `satoshi/short-horizon-strategy-20261018` | frente, convergencia, nuevas demostraciones selladas |
 
 ## 4. Pendientes (ordenados; se tachan al cerrarse)
 
