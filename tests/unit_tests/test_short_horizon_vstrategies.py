@@ -29,9 +29,10 @@ def breakout(tp_off=0.0030, sl_off=0.0020, trail=None):
 
 # ---------------------------------------------------------------- OCO stop entries
 def test_stop_entry_fills_on_touch_and_cancels_the_other_leg():
-    f = sim([[1.1000, 1.1012, 1.0995, 1.1011], [1.1011, 1.1015, 1.0980, 1.0985]], breakout())
+    # bar 1 trades through the sell-stop level 1.0990 but stays above the long's SL (1.0980)
+    f = sim([[1.1000, 1.1012, 1.0995, 1.1011], [1.1011, 1.1015, 1.0985, 1.0987]], breakout(sl_off=0.0030))
     assert f.direction == 1 and f.entry_price == 1.1010 and f.entry_bar == 0
-    assert f.exit_reason == "TIME" and f.exit_price == 1.0985          # the sell-stop was cancelled
+    assert f.exit_reason == "TIME" and f.exit_price == 1.0987          # the sell-stop was cancelled
 
 
 def test_gap_through_a_stop_fills_at_the_open_and_relative_levels_shift():

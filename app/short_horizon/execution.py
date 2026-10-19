@@ -307,7 +307,7 @@ def _realistic_costs(profile, v, seg_id, lo, fill, calendar, entry_ns, exit_ns):
     u, lots = abs(fill.units), abs(fill.units) / profile.lot_units
     open_ns = calendar.segments[seg_id].market_open.value
     entry_label, exit_label = int(v[lo + fill.entry_bar]), int(v[lo + fill.exit_bar])
-    slip_in = profile.slippage_market if fill.entry_kind == "MARKET" else 0.0
+    slip_in = {"MARKET": profile.slippage_market, "STOP": profile.slippage_stop}.get(fill.entry_kind, 0.0)
     slip_out = {"SL": profile.slippage_stop, "TIME": profile.slippage_market}.get(fill.exit_reason, 0.0)
     fc_in = {"spread": u * profile.spread_at(entry_label, open_ns) / 2, "slippage": u * slip_in,
              "commission": lots * profile.commission_per_lot_side}
@@ -351,8 +351,13 @@ def _trade_record(v, seg_id, lo, fill, costs, calendar, block_id, profile=None):
             "notional_usd": u * (fill.entry_price + fill.exit_price)}
 
 
-def _decorate(rec, order, sizing):
-    rec["stop_loss"], rec["take_profit"] = float(order.stop_loss), float(order.take_profit)
+def _decorate(rec, order, sizing, fill=None):
+    if hasattr(order, "legs"):   # OCO: the filled leg's levels (initial SL, TP) and the moved SL
+        rec["stop_loss"], rec["take_profit"] = float(fill.leg_sl_initial), float(fill.leg_tp)
+        rec["stop_loss_final"], rec["trailed"] = float(fill.leg_sl), bool(fill.trailed)
+        rec["ambiguous_entry"] = bool(fill.ambiguous_entry)
+    else:
+        rec["stop_loss"], rec["take_profit"] = float(order.stop_loss), float(order.take_profit)
     rec["units"] = int(rec["units"]) if float(rec["units"]).is_integer() else rec["units"]
     rec["margin_usd"] = (abs(rec["units"]) * rec["entry_price"] / sizing.leverage) if sizing else 0.0
     return rec
@@ -491,7 +496,7 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
         if max_orders_per_day is not None and per_day.get(day, 0) >= max_orders_per_day:
             capped += 1
             continue
-        entry_ref = float(order.entry_price) if order.entry_type != "MARKET" else float(blocks.ref[k])
+        entry_ref = float(order.entry_price) if order.entry_type == "LIMIT" else float(blocks.ref[k])
         if sizing is not None:
             units = sizing.units(realized, entry_ref, order.fraction)
             if units < sizing.min_units:
@@ -503,14 +508,23 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
             margin = notional / sizing.leverage
             max_margin_pct = max(max_margin_pct, 100 * margin / realized)
         if order_rules is not None:
-            check_order(order, float(blocks.ref[k]), float(sigma_block[k]), order_rules, require_units=True)
+            if hasattr(order, "legs"):
+                from .vstrategies import check_oco
+                check_oco(order, float(sigma_block[k]), order_rules, require_units=True)
+            else:
+                check_order(order, float(blocks.ref[k]), float(sigma_block[k]), order_rules, require_units=True)
         per_day[day] = per_day.get(day, 0) + 1
         submitted += 1
         lo, hi = blocks.bar_lo[k], blocks.bar_hi[k]
         seg = calendar.segments[blocks.segment[k]]
-        fill = simulate_block(order, *(x[lo:hi] for x in arr),
-                              entry_bars=_entry_bars(v, lo, hi, seg.entry_cutoff),
-                              limit_through=through, entry_delay=delay)
+        if hasattr(order, "legs"):
+            from .vstrategies import simulate_oco
+            fill = simulate_oco(order, *(x[lo:hi] for x in arr), entry_bars=_entry_bars(v, lo, hi, seg.entry_cutoff),
+                                limit_through=through, entry_delay=delay)
+        else:
+            fill = simulate_block(order, *(x[lo:hi] for x in arr),
+                                  entry_bars=_entry_bars(v, lo, hi, seg.entry_cutoff),
+                                  limit_through=through, entry_delay=delay)
         if fill is None:
             unfilled += 1
             continue
@@ -519,7 +533,7 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
             continue
         trades_day[day] = trades_day.get(day, 0) + 1
         trades.append(_decorate(_trade_record(v, blocks.segment[k], lo, fill, costs, calendar, int(k), profile),
-                                order, sizing))
+                                order, sizing, fill))
         realized += trades[-1]["net_usd"]
     res = _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled,
                    margin_closeout=sizing.margin_closeout if sizing else 0.5)
