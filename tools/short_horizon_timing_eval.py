@@ -1,37 +1,55 @@
 #!/usr/bin/env python3
 """Predictive validation of a timing feature selection through the pivot-detector harness (CPU, DEVELOPMENT).
 
-For each named feature set in FEATURE_SETS.json (predictor ``tools/timing_selection.py`` writes it next to
-``features_all.parquet`` / ``targets_all.parquet``) and each ARM, a causal classifier is trained on TRAIN
-with the owner's early-stopping rule (monitor = 0.5 * (class-weighted running TRAIN loss + the same loss on
-INNER 2023 purged), patience 10, min_delta 1e-8, best weights restored), temperature-calibrated on INNER,
-scored by AUC / calibrated log-loss / precision-recall at the operating threshold, and by the trivial
-reversal strategy's Sharpe through the sealed adapter (``tools.short_horizon_zigzag_study.Ctx.run``:
-TP = k_tp * sigma, SL = 2 sigma, realistic costs, order/frequency rules).  The threshold is chosen on INNER
-2023 (mean Sharpe over seeds, valid first); CONFIRM 2024 is reported once at that threshold.  Every set and
-arm is scored on IDENTICAL rows (rows with a full finite 48-bar window over the union of all compared
-columns, labelled and not purged).  TEST (2025+) is never read.
+Expert-demonstration / hindsight-guided learning: the label is the ZigZag expert's FUTURE pivot (T1, primary,
+anticipatory); every input is causal (bars <= the completed origin bar).  Usefulness established here is for
+this PROXY (pivot classification + the trivial reversal strategy), not for an RL policy.
 
-Arms (the pivot-detector experiment's three, plus a per-bar probe):
-  m0_mlp        per-bar MLP(64,32) on the current bar's features
-  m1_dmo_class  I6-DMO-class network: 13 slots x 2 h (t-24..t), per-feature causal Conv1D branches
-                (grouped convolution = one branch per feature), weightless flatten fusion, origin-time
-                encoding (hour/weekday sin-cos), Dense core, softmax head.  "Class" = same wiring idea as
-                tools.i6dmo.model.build_dmo, not that module (which needs the sealed population).
-  m2_gru        GRU(32) -> Dense(16) on the raw 48-bar hourly window
-  m3_hgb        HistGradientBoostingClassifier on the flattened 48-bar window, monitored every 10
-                iterations with the same two loss terms (TRAIN term from staged probabilities)
-Scaling: TRAIN-only z-score per feature (declared; not the RL rolling z-score).
+Periods (plan audit 2026-10-19, F01/F02/F06):
+  TRAIN_2020_2022    fit only
+  INNER_A_2023H1     early stopping, temperature, regularization-cell choice, operating threshold
+  INNER_B_2023H2     scored with every choice frozen (never updates a choice)
+  REOBSERVED_2024    PREVIOUSLY OBSERVED development / reconfirmation (the expert's CHOICE and earlier
+                     detectors already reported 2024); read once by ``reconfirm`` after ``freeze`` has sealed
+                     the candidate; never a pristine holdout.  2023 is JOINT development: the expert's
+                     parameters were chosen with 2023.
+Labels arrive purged/censored from the predictor driver's support ledger (cuts include 2023-07-01).
 
-Targets: y in {0 none, 1 valley within (t, t+k], 2 peak within (t, t+k]} from the hindsight ZigZag expert
-(labels only).  Rows whose label window crosses a split cut are purged.
+Stages:  develop (one shard = one feature set x one arm; fits every regularization cell x seed; never reads
+2024 rows), freeze (cell, temperature, threshold on INNER_A; INNER_B scored; FROZEN.json sealed),
+reconfirm (2024 with the frozen models/choices only), seal (summary, trial ledger, read ledger).
+
+Monitor (owner's rule, F06 measurement fix): score = 0.5 * (TRAIN loss + INNER_A loss), both evaluated in
+inference mode at the same checkpoint with the same TRAIN class weights; the running training loss is
+logged separately and never enters the score.  Patience 10, min_delta 1e-8, best weights restored; budget,
+best epoch / iteration and stop cause logged.
+
+Arms and the declared regularization grid (owner decision 2026-10-19; the default cell is primary):
+  m1_dmo_class  13 slots x 2 h, per-feature causal Conv1D branches (grouped conv), flatten fusion + origin
+                time encoding, Dense core, DROPOUT after the core, softmax head; AdamW
+  m2_gru        GRU(32) on the 48-bar window (no recurrent dropout), DROPOUT on the GRU output, Dense(16),
+                softmax; AdamW
+                grid {dropout 0, 0.1, 0.2} x {weight_decay 1e-4, 1e-3}; primary (0.1, 1e-4); no BatchNorm,
+                no LayerNorm
+  m3_hgb        HistGradientBoosting, max_depth 4, min_samples_leaf 200, learning_rate 0.05, max_iter 400,
+                l2_regularization in {0, 1, 10}; primary l2 0; the same monitor every 10 iterations
+  Cell rule (pre-declared): lowest mean INNER_A loss at the restored checkpoint across seeds, ties by the
+  smaller mean TRAIN-INNER gap; a non-primary winner is recorded as a replacement in the trial ledger.
+
+Strategy: the sealed adapter ``tools.short_horizon_zigzag_study.Ctx.run`` (TP 2 sigma, SL 2 sigma,
+RealisticProfile costs, order rules, <= 4 orders/day, validity >= 3 orders/week).  An evaluator-side
+REOPEN GUARD drops a signal whose fill bar precedes the segment's operational start (12 h after the
+weekly open): the pinned ``zigzag.signal_blocks`` path does not apply that rule (``blocks.build_blocks``
+does).  The frequency rule only marks validity; it never adds an entry.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import math
 import os
+import pickle
 import sys
 import time
 from pathlib import Path
@@ -43,19 +61,41 @@ import pandas as pd  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tools import short_horizon_pivot_detector as PD  # noqa: E402
+from tools import short_horizon_zigzag_study as STUDY  # noqa: E402
 from tools.short_horizon_zigzag_study import Ctx, params_of  # noqa: E402
 
-PERIODS = ("DECISION_2020_2022", "VALIDATION_2023", "CONFIRM_2024")
+EVAL_PERIODS = {"TRAIN_2020_2022": ("2020-01-01", "2023-01-01"), "INNER_A_2023H1": ("2023-01-01", "2023-07-01"),
+                "INNER_B_2023H2": ("2023-07-01", "2024-01-01"), "REOBSERVED_2024": ("2024-01-01", "2025-01-01")}
+STUDY.PERIODS.update(EVAL_PERIODS)            # runtime registration of the evaluation splits (no adapter edit)
+DEVELOP_PERIODS = ("TRAIN_2020_2022", "INNER_A_2023H1", "INNER_B_2023H2")
 THRESHOLDS = (0.4, 0.5, 0.6, 0.7)
-ARMS = ("m0_mlp", "m1_dmo_class", "m2_gru", "m3_hgb")
+ARMS = ("m1_dmo_class", "m2_gru", "m3_hgb")
 WINDOW, SLOTS, STRIDE = 48, 13, 2
-TRAINING = dict(batch_size=256, learning_rate=1e-3, weight_decay=1e-4, patience=10, min_delta=1e-8, max_epochs=200,
-                hgb_max_iter=400, hgb_eval_every=10, hgb_learning_rate=0.05, hgb_max_leaf_nodes=31)
-HOUR = 3600
+SEEDS = (6102026, 6102027, 6102028)
+TRAINING = dict(batch_size=256, learning_rate=1e-3, patience=10, min_delta=1e-8, max_epochs=200,
+                hgb_max_iter=400, hgb_eval_every=10, hgb_learning_rate=0.05, hgb_max_depth=4, hgb_min_samples_leaf=200)
+GRID = {
+    "m1_dmo_class": [{"dropout": d, "weight_decay": w} for d in (0.0, 0.1, 0.2) for w in (1e-4, 1e-3)],
+    "m2_gru": [{"dropout": d, "weight_decay": w} for d in (0.0, 0.1, 0.2) for w in (1e-4, 1e-3)],
+    "m3_hgb": [{"l2_regularization": v} for v in (0.0, 1.0, 10.0)],
+}
+PRIMARY = {"m1_dmo_class": {"dropout": 0.1, "weight_decay": 1e-4}, "m2_gru": {"dropout": 0.1, "weight_decay": 1e-4},
+           "m3_hgb": {"l2_regularization": 0.0}}
+SHARPE_DEFINITION = ("mean / sd (ddof 1) of daily returns of the marked-to-market equity on every calendar day of the "
+                     "period (closures forward-filled), x sqrt(365); NaN when ruined")
+BOOT = dict(block="ISO calendar week", reps=2000, seed=20261019)
 
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def canon(obj) -> str:
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
+
+
+def cell_id(cell: dict) -> str:
+    return "_".join(f"{k}{v:g}" for k, v in sorted(cell.items()))
 
 
 def _utc(s):
@@ -63,92 +103,107 @@ def _utc(s):
     return t.tz_localize("UTC") if t.tzinfo is None else t.tz_convert("UTC")
 
 
-# --------------------------------------------------------------------------------------- data
-def design_matrix(features: pd.DataFrame, cols: list[str], lags: int) -> np.ndarray:
-    """Row t = [x_t, x_{t-1}, ..., x_{t-lags}] of the named columns (causal: rows <= t only)."""
-    x = features[cols].to_numpy(float)
-    parts = [x]
-    for j in range(1, lags + 1):
-        parts.append(np.vstack([np.full((j, x.shape[1]), np.nan), x[:-j]]))
-    return np.hstack(parts)
+def _set_threads():
+    try:
+        import tensorflow as tf
+        n = int(os.environ.get("TIMING_EVAL_THREADS", "4"))
+        tf.config.threading.set_intra_op_parallelism_threads(n)
+        tf.config.threading.set_inter_op_parallelism_threads(2)
+    except Exception:  # noqa: BLE001 - threads already initialised in this process
+        pass
 
 
+# --------------------------------------------------------------------------------------- inputs
 def windows(z: np.ndarray, rows: np.ndarray, window: int = WINDOW) -> np.ndarray:
-    """(len(rows), window, F): bars t-window+1..t for each row t (rows must be >= window-1)."""
     idx = rows[:, None] + np.arange(-window + 1, 1)[None, :]
     return z[idx]
 
 
-def split_rows(ts: pd.DatetimeIndex, splits: dict, k: int):
-    period = np.full(len(ts), "", object)
-    cuts = []
-    for name, key in (("DECISION_2020_2022", "train"), ("VALIDATION_2023", "inner"), ("CONFIRM_2024", "confirm")):
-        a, b = _utc(splits[key][0]), _utc(splits[key][1])
-        period[(ts >= a) & (ts < b)] = name
-        cuts.append(b)
-    purged = np.zeros(len(ts), bool)
-    for c in cuts:
-        purged |= (ts >= c - pd.Timedelta(hours=k)) & (ts < c)
-    return period, purged
-
-
 def time_encoding(ts: pd.DatetimeIndex) -> np.ndarray:
     h, d = np.asarray(ts.hour, float), np.asarray(ts.dayofweek, float)
-    return np.column_stack([np.sin(2 * np.pi * h / 24), np.cos(2 * np.pi * h / 24), np.sin(2 * np.pi * d / 7), np.cos(2 * np.pi * d / 7)]).astype(np.float32)
+    return np.column_stack([np.sin(2 * np.pi * h / 24), np.cos(2 * np.pi * h / 24),
+                            np.sin(2 * np.pi * d / 7), np.cos(2 * np.pi * d / 7)]).astype(np.float32)
 
 
-# --------------------------------------------------------------------------------------- owner's monitor
-class _OwnerMonitor:
-    """monitor = 0.5 * (running TRAIN weighted loss + INNER weighted log-loss); patience / min_delta / best-restore
-    semantics as in tools/short_horizon_pivot_detector_train.py (paired-mean form of agent-multi's PairedMonitor)."""
+def period_of(ts: pd.DatetimeIndex) -> np.ndarray:
+    period = np.full(len(ts), "", object)
+    for name, (a, b) in EVAL_PERIODS.items():
+        period[(ts >= _utc(a)) & (ts < _utc(b))] = name
+    return period
 
-    def __init__(self, keras, x_inner, y_inner, w_inner, patience, min_delta):
-        self.x_inner, self.y_inner, self.w_inner = x_inner, y_inner, w_inner
-        self.patience, self.min_delta = patience, min_delta
-        self.best, self.best_epoch, self.wait, self.best_weights, self.history = np.inf, -1, 0, None, []
 
-    def weighted_loss(self, p):
-        p = np.clip(p, 1e-9, 1)
-        ll = -np.log(p[np.arange(len(self.y_inner)), self.y_inner])
-        return float(np.sum(self.w_inner * ll) / np.sum(self.w_inner))
+def load_inputs(ev: Path, *, include_2024: bool):
+    """Features/targets with digests verified; without ``include_2024`` no row at or after 2024-01-01 is kept."""
+    sets_doc = json.loads((ev / "FEATURE_SETS.json").read_text())
+    if sha(ev / "features_all.parquet") != sets_doc["features_sha256"] or sha(ev / "targets_all.parquet") != sets_doc["targets_sha256"]:
+        raise SystemExit("EVAL_INPUT_DIGEST")
+    feats = pd.read_parquet(ev / "features_all.parquet")
+    targ = pd.read_parquet(ev / "targets_all.parquet")
+    ts = pd.DatetimeIndex(feats["timestamp"])
+    ts = ts.tz_localize("UTC") if ts.tz is None else ts.tz_convert("UTC")
+    if (ts >= pd.Timestamp("2025-01-01", tz="UTC")).any():
+        raise SystemExit("TEST_ROWS_FORBIDDEN")
+    if not include_2024:
+        keep = ts < pd.Timestamp("2024-01-01", tz="UTC")
+        feats, targ, ts = feats.loc[keep].reset_index(drop=True), targ.loc[keep].reset_index(drop=True), ts[keep]
+    return sets_doc, feats, targ, ts
 
-    def inner_loss(self, model):
-        return self.weighted_loss(model.predict(self.x_inner, verbose=0, batch_size=4096))
 
-    def step(self, epoch, train, inner, weights_getter):
-        """Returns True when patience is exhausted."""
-        score = 0.5 * (train + inner)
-        self.history.append(dict(epoch=epoch, train_running_loss=train, inner_weighted_loss=inner, score=score, loss_gap=inner - train))
+def common_rows(feats, targ, ts, sets_doc, k):
+    """Identical rows for every set and arm: a full finite 48-bar window over the UNION of compared columns,
+    a labelled T1 (support ledger already purged/censored), inside a declared period.  Also returns, per set,
+    the rows that set alone would have had (to report what the longest warm-up costs)."""
+    sets = {n: c for n, c in sets_doc["sets"].items() if c}
+    union = sorted({c for cols in sets.values() for c in cols})
+    y = targ[f"timing_pivot_k{k}"].to_numpy(float)
+    period = period_of(ts)
+
+    def ok_for(cols):
+        fin = np.isfinite(feats[cols].to_numpy(float)).all(axis=1)
+        win = pd.Series(fin).rolling(WINDOW).min().fillna(0).to_numpy().astype(bool)
+        return win & np.isfinite(y) & (period != "")
+
+    common = ok_for(union)
+    alone = {n: ok_for(cols) for n, cols in sets.items()}
+    loss = {n: {p: int((alone[n] & (period == p)).sum() - (common & (period == p)).sum()) for p in EVAL_PERIODS} for n in sets}
+    return common, period, y, sets, loss
+
+
+# --------------------------------------------------------------------------------------- monitor
+class OwnerMonitor:
+    """score = 0.5 * (TRAIN loss + INNER_A loss), both in inference mode at the same checkpoint, same weighting."""
+
+    def __init__(self, cw, y_tr, y_in, patience, min_delta, budget):
+        self.cw, self.y_tr, self.y_in = cw, y_tr, y_in
+        self.patience, self.min_delta, self.budget = patience, min_delta, budget
+        self.best, self.best_step, self.wait, self.best_state, self.history = np.inf, -1, 0, None, []
+        self.stop_cause = "BUDGET_EXHAUSTED"
+
+    def wloss(self, p, y):
+        p = np.clip(np.asarray(p, float), 1e-9, 1)
+        w = self.cw[y]
+        return float(np.sum(w * -np.log(p[np.arange(len(y)), y])) / np.sum(w))
+
+    def step(self, step, p_tr, p_in, state_getter, running=None) -> bool:
+        tr, inn = self.wloss(p_tr, self.y_tr), self.wloss(p_in, self.y_in)
+        score = 0.5 * (tr + inn)
+        self.history.append(dict(step=int(step), train_eval_loss=tr, inner_a_loss=inn, score=score, gap=inn - tr,
+                                 running_train_loss=running))
         if score < self.best - self.min_delta:
-            self.best, self.best_epoch, self.wait, self.best_weights = score, epoch, 0, weights_getter()
+            self.best, self.best_step, self.wait, self.best_state = score, int(step), 0, state_getter()
             return False
         self.wait += 1
-        return self.wait >= self.patience
+        if self.wait >= self.patience:
+            self.stop_cause = "PATIENCE"
+            return True
+        return False
 
-    def on_epoch_end(self, epoch, logs, model):
-        if self.step(epoch, float(logs["loss"]), self.inner_loss(model), model.get_weights):
-            model.stop_training = True
-
-
-def _compile(keras, model):
-    model.compile(optimizer=keras.optimizers.AdamW(learning_rate=TRAINING["learning_rate"], weight_decay=TRAINING["weight_decay"]),
-                  loss="sparse_categorical_crossentropy")
-    return model
-
-
-def _fit_keras(keras, model, x_tr, y_tr, x_in, y_in, cw):
-    mon = _OwnerMonitor(keras, x_in, y_in, cw[y_in], TRAINING["patience"], TRAINING["min_delta"])
-
-    class _CB(keras.callbacks.Callback):
-        def on_epoch_end(self, epoch, logs=None):
-            mon.on_epoch_end(epoch, logs or {}, self.model)
-
-    model.fit(x_tr, y_tr, sample_weight=cw[y_tr], batch_size=TRAINING["batch_size"], epochs=TRAINING["max_epochs"],
-              verbose=0, shuffle=True, callbacks=[_CB()])
-    if mon.best_weights is not None:
-        model.set_weights(mon.best_weights)
-    return model, dict(best_epoch=mon.best_epoch, epochs=len(mon.history), history=mon.history, class_weights=cw.tolist(),
-                       parameters=int(model.count_params()))
+    def summary(self):
+        b = next(h for h in self.history if h["step"] == self.best_step) if self.best_step >= 0 else {}
+        return dict(best_step=self.best_step, steps_run=len(self.history), budget=self.budget, patience=self.patience,
+                    min_delta=self.min_delta, stop_cause=self.stop_cause, best_score=self.best,
+                    best_inner_a_loss=b.get("inner_a_loss"), best_train_eval_loss=b.get("train_eval_loss"),
+                    best_gap=b.get("gap"), history=self.history)
 
 
 def class_weights(y_tr):
@@ -156,79 +211,88 @@ def class_weights(y_tr):
     return (1.0 / np.maximum(counts, 1)) * counts.sum() / 3.0
 
 
-def fit_mlp(x_tr, y_tr, x_in, y_in, seed: int, hidden=(64, 32)):
+def _keras_fit(model, x_tr, y_tr, x_in, y_in, cw, seed):
     import tensorflow as tf
     keras = tf.keras
-    keras.utils.set_random_seed(int(seed))
-    model = keras.Sequential([keras.Input(shape=(x_tr.shape[1],)), *[keras.layers.Dense(h, activation="relu") for h in hidden],
-                              keras.layers.Dense(3, activation="softmax")])
-    return _fit_keras(keras, _compile(keras, model), x_tr, y_tr, x_in, y_in, class_weights(y_tr))
+    mon = OwnerMonitor(cw, y_tr, y_in, TRAINING["patience"], TRAINING["min_delta"], TRAINING["max_epochs"])
+
+    class _CB(keras.callbacks.Callback):
+        def on_epoch_end(self, epoch, logs=None):
+            p_tr = self.model.predict(x_tr, verbose=0, batch_size=4096)
+            p_in = self.model.predict(x_in, verbose=0, batch_size=4096)
+            if mon.step(epoch, p_tr, p_in, self.model.get_weights, running=float((logs or {}).get("loss", np.nan))):
+                self.model.stop_training = True
+
+    model.fit(x_tr, y_tr, sample_weight=cw[y_tr], batch_size=TRAINING["batch_size"], epochs=TRAINING["max_epochs"],
+              verbose=0, shuffle=True, callbacks=[_CB()])
+    if mon.best_state is not None:
+        model.set_weights(mon.best_state)
+    return model, mon.summary()
 
 
-def fit_dmo_class(x_tr, y_tr, x_in, y_in, seed: int, filters=4, core=32):
-    """x = [slots (n,13,F), time (n,4)]; per-feature causal Conv1D branches = grouped Conv1D with F groups."""
+def _compile(model, cell):
     import tensorflow as tf
     keras = tf.keras
-    keras.utils.set_random_seed(int(seed))
-    slots, tenc = x_tr
-    F = slots.shape[2]
-    inp = keras.Input(shape=(slots.shape[1], F))
-    tin = keras.Input(shape=(tenc.shape[1],))
+    model.compile(optimizer=keras.optimizers.AdamW(learning_rate=TRAINING["learning_rate"], weight_decay=cell["weight_decay"]),
+                  loss="sparse_categorical_crossentropy")
+    return model
+
+
+def build_dmo_class(F, n_time, cell, filters=4, core=32):
+    import tensorflow as tf
+    keras = tf.keras
+    inp = keras.Input(shape=(SLOTS, F))
+    tin = keras.Input(shape=(n_time,))
     b = keras.layers.Conv1D(filters * F, 3, padding="causal", groups=F, activation="relu")(inp)
     b = keras.layers.Conv1D(filters * F, 3, padding="causal", groups=F, activation="relu")(b)
     fused = keras.layers.Concatenate()([keras.layers.Flatten()(b), tin])
     h = keras.layers.Dense(core, activation="relu")(fused)
-    out = keras.layers.Dense(3, activation="softmax")(h)
-    model = _compile(keras, keras.Model([inp, tin], out))
-    return _fit_keras(keras, model, list(x_tr), y_tr, list(x_in), y_in, class_weights(y_tr))
+    h = keras.layers.Dropout(cell["dropout"])(h)
+    return _compile(keras.Model([inp, tin], keras.layers.Dense(3, activation="softmax")(h)), cell)
 
 
-def fit_gru(x_tr, y_tr, x_in, y_in, seed: int):
+def build_gru(F, cell):
     import tensorflow as tf
     keras = tf.keras
-    keras.utils.set_random_seed(int(seed))
-    model = keras.Sequential([keras.Input(shape=x_tr.shape[1:]), keras.layers.GRU(32), keras.layers.Dense(16, activation="relu"),
+    model = keras.Sequential([keras.Input(shape=(WINDOW, F)), keras.layers.GRU(32, recurrent_dropout=0.0),
+                              keras.layers.Dropout(cell["dropout"]), keras.layers.Dense(16, activation="relu"),
                               keras.layers.Dense(3, activation="softmax")])
-    return _fit_keras(keras, _compile(keras, model), x_tr, y_tr, x_in, y_in, class_weights(y_tr))
+    return _compile(model, cell)
 
 
-class _StagedHGB:
+class StagedHGB:
+    """A boosting model restored to its monitored best iteration."""
+
     def __init__(self, clf, n_iter):
-        self.clf, self.n_iter = clf, n_iter
+        self.clf, self.n_iter = clf, int(n_iter)
 
     def predict(self, x, verbose=0, batch_size=0):
+        p = None
         for i, p in enumerate(self.clf.staged_predict_proba(x), start=1):
             if i == self.n_iter:
                 return p
         return p
 
 
-def fit_hgb(x_tr, y_tr, x_in, y_in, seed: int):
+def fit_hgb(x_tr, y_tr, x_in, y_in, seed, cell):
     from sklearn.ensemble import HistGradientBoostingClassifier
     cw = class_weights(y_tr)
-    clf = HistGradientBoostingClassifier(learning_rate=TRAINING["hgb_learning_rate"], max_leaf_nodes=TRAINING["hgb_max_leaf_nodes"],
-                                         max_iter=TRAINING["hgb_max_iter"], early_stopping=False, random_state=int(seed))
+    clf = HistGradientBoostingClassifier(learning_rate=TRAINING["hgb_learning_rate"], max_depth=TRAINING["hgb_max_depth"],
+                                         min_samples_leaf=TRAINING["hgb_min_samples_leaf"], max_leaf_nodes=None,
+                                         l2_regularization=cell["l2_regularization"], max_iter=TRAINING["hgb_max_iter"],
+                                         early_stopping=False, random_state=int(seed))
     clf.fit(x_tr, y_tr, sample_weight=cw[y_tr])
-    mon = _OwnerMonitor(None, x_in, y_in, cw[y_in], TRAINING["patience"], TRAINING["min_delta"])
-    w_tr = cw[y_tr]
-    stopped = None
+    mon = OwnerMonitor(cw, y_tr, y_in, TRAINING["patience"], TRAINING["min_delta"], TRAINING["hgb_max_iter"])
     every = TRAINING["hgb_eval_every"]
     for i, (p_tr, p_in) in enumerate(zip(clf.staged_predict_proba(x_tr), clf.staged_predict_proba(x_in)), start=1):
         if i % every:
             continue
-        p_tr = np.clip(p_tr, 1e-9, 1)
-        train = float(np.sum(w_tr * -np.log(p_tr[np.arange(len(y_tr)), y_tr])) / w_tr.sum())
-        if mon.step(i, train, mon.weighted_loss(p_in), lambda i=i: i):
-            stopped = i
+        if mon.step(i, p_tr, p_in, lambda i=i: i):
             break
-    best = mon.best_weights or TRAINING["hgb_max_iter"]
-    return _StagedHGB(clf, best), dict(best_iteration=best, stopped_at=stopped, history=mon.history, class_weights=cw.tolist())
+    return StagedHGB(clf, mon.best_state or TRAINING["hgb_max_iter"]), mon.summary()
 
 
-# --------------------------------------------------------------------------------------- evaluation
-def arm_inputs(arm, Z, tenc, rows, lags):
-    if arm == "m0_mlp":
-        return Z[rows] if not lags else np.hstack([Z[rows - j] for j in range(0, lags + 1)])
+def arm_inputs(arm, Z, tenc, rows):
     W = windows(Z, rows)
     if arm == "m1_dmo_class":
         return [W[:, WINDOW - 1 - STRIDE * (SLOTS - 1):: STRIDE, :], tenc[rows]]
@@ -237,144 +301,448 @@ def arm_inputs(arm, Z, tenc, rows, lags):
     return W.reshape(len(rows), -1)
 
 
-FITTERS = {"m0_mlp": fit_mlp, "m1_dmo_class": fit_dmo_class, "m2_gru": fit_gru, "m3_hgb": fit_hgb}
+def fit_arm(arm, cell, xa_tr, y_tr, xa_in, y_in, seed, F):
+    if arm == "m3_hgb":
+        return fit_hgb(xa_tr, y_tr, xa_in, y_in, seed, cell)
+    import tensorflow as tf
+    tf.keras.utils.set_random_seed(int(seed))
+    model = build_dmo_class(F, 4, cell) if arm == "m1_dmo_class" else build_gru(F, cell)
+    return _keras_fit(model, xa_tr, y_tr, xa_in, y_in, class_weights(y_tr), seed)
 
 
-def evaluate_set(name, cols, arms, feats, ts, y_all, period, ctx, piv, k, k_tp, seeds, lags, common):
+def save_model(model, path: Path, arm):
+    if arm == "m3_hgb":
+        path = path.with_suffix(".pkl")
+        path.write_bytes(pickle.dumps(model))
+    else:
+        path = path.with_suffix(".keras")
+        model.save(path)
+    return path
+
+
+def load_model(path: Path, arm):
+    if arm == "m3_hgb":
+        return pickle.loads(path.read_bytes())
+    import tensorflow as tf
+    return tf.keras.models.load_model(path)
+
+
+def scaler(feats, cols, rows_train):
     X = feats[cols].to_numpy(float)
-    keep = common.copy()
-    rows = np.flatnonzero(keep)
-    tr = period[rows] == "DECISION_2020_2022"
-    mu, sd = X[rows[tr]].mean(0), X[rows[tr]].std(0)
-    sd = np.where(sd > 0, sd, 1.0)
-    Z = ((X - mu) / sd).astype(np.float32)
-    Z[~np.isfinite(Z)] = 0.0                                   # outside the common rows only (never inside a used window)
-    tenc = time_encoding(ts)
-    y = y_all[rows]
-    per = period[rows]
-    inn = per == "VALIDATION_2023"
-    base = np.bincount(y[tr], minlength=3) / tr.sum()
-    out_rows, fits, preds = [], {}, {}
-    for arm in arms:
-        xa = arm_inputs(arm, Z, tenc, rows, lags)
-        sel = (lambda m: [v[m] for v in xa]) if isinstance(xa, list) else (lambda m: xa[m])
-        for seed in seeds:
-            t0 = time.time()
-            model, fit = FITTERS[arm](sel(tr), y[tr], sel(inn), y[inn], seed)
-            fit["wall_seconds"] = time.time() - t0
-            fits[f"{name}:{arm}:s{seed}"] = fit
-            P = model.predict(xa, verbose=0, batch_size=4096)
-            T = PD.temperature(P, y, inn)
-            Pc = PD.calibrate(P, T)
-            preds[(name, arm, seed)] = dict(origin_bar=rows, y=y, period=per, P=Pc, T=T)
-            for tau in THRESHOLDS:
-                sig = PD.signals_from(Pc, rows, tau, k)
-                for pname in PERIODS:
-                    mm = per == pname
-                    m, _ = ctx.run(sig, piv, pname, mode="causal", k_tp=k_tp)
-                    prec, rec, n_sig = PD.prec_recall(sig, y, rows, mm)
-                    m = {kk: v for kk, v in m.items() if kk != "period"}
-                    out_rows.append(dict(set=name, arm=arm, seed=seed, temperature=T, threshold=tau, period=pname, signals=n_sig,
-                                         precision_at_threshold=prec, recall_at_threshold=rec, **PD.metrics(Pc, y, mm, base), **m))
-    return out_rows, fits, preds
+    mu, sd = X[rows_train].mean(0), X[rows_train].std(0)
+    return mu, np.where(sd > 0, sd, 1.0)
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--eval-input", required=True, help="directory with features_all.parquet, targets_all.parquet, FEATURE_SETS.json")
-    ap.add_argument("--data", required=True, help="lake EUR/USD H1 parquet (pinned digest)")
-    ap.add_argument("--zigzag-run", default=str(ROOT / "docs/short_horizon/results/zigzag"))
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--sets", nargs="*", default=None, help="subset of set names (default: all)")
-    ap.add_argument("--arms", nargs="*", default=list(ARMS), choices=list(ARMS))
-    ap.add_argument("--seeds", nargs="*", type=int, default=[6102026, 6102027, 6102028])
-    ap.add_argument("--lags", type=int, default=0, help="m0 only: lagged bars appended to the per-bar vector")
-    a = ap.parse_args(argv)
-    ev = Path(a.eval_input)
-    sets_doc = json.loads((ev / "FEATURE_SETS.json").read_text())
-    feats = pd.read_parquet(ev / "features_all.parquet")
-    targ = pd.read_parquet(ev / "targets_all.parquet")
-    if sha(ev / "features_all.parquet") != sets_doc["features_sha256"] or sha(ev / "targets_all.parquet") != sets_doc["targets_sha256"]:
-        raise SystemExit("EVAL_INPUT_DIGEST")
+def scaled(feats, cols, mu, sd):
+    Z = ((feats[cols].to_numpy(float) - mu) / sd).astype(np.float32)
+    Z[~np.isfinite(Z)] = 0.0          # only outside the identical rows' windows (they are finite by construction)
+    return Z
+
+
+# --------------------------------------------------------------------------------------- stage: develop
+def develop(a):
+    _set_threads()
+    ev, out = Path(a.eval_input), Path(a.out)
+    sets_doc, feats, targ, ts = load_inputs(ev, include_2024=False)
     k = int(sets_doc["k_bars"])
-    ts = pd.DatetimeIndex(feats["timestamp"])
-    ts = ts.tz_localize("UTC") if ts.tz is None else ts.tz_convert("UTC")
-    if (ts >= pd.Timestamp("2025-01-01", tz="UTC")).any():
-        raise SystemExit("TEST_ROWS_FORBIDDEN")
-    y_raw = targ[f"timing_pivot_k{k}"].to_numpy(float)
-    period, purged = split_rows(ts, sets_doc["splits"], k)
+    common, period, y_raw, sets, loss = common_rows(feats, targ, ts, sets_doc, k)
+    cols = sets[a.set]
+    rows = np.flatnonzero(common)
+    per = period[rows]
+    y = y_raw[rows].astype(np.int64)
+    tr, ia = per == "TRAIN_2020_2022", per == "INNER_A_2023H1"
+    mu, sd = scaler(feats, cols, rows[tr])
+    Z = scaled(feats, cols, mu, sd)
+    xa = arm_inputs(a.arm, Z, time_encoding(ts), rows)
+    sel = (lambda m: [v[m] for v in xa]) if isinstance(xa, list) else (lambda m: xa[m])
+    shard = out / "shards" / f"{a.set}__{a.arm}"
+    (shard / "models").mkdir(parents=True, exist_ok=True)
+    fits, preds = {}, {}
+    for cell in GRID[a.arm]:
+        for seed in a.seeds:
+            key = f"{cell_id(cell)}__s{seed}"
+            t0 = time.time()
+            model, fit = fit_arm(a.arm, cell, sel(tr), y[tr], sel(ia), y[ia], seed, len(cols))
+            fit.update(cell=cell, seed=seed, wall_seconds=time.time() - t0, primary=cell == PRIMARY[a.arm])
+            mpath = save_model(model, shard / "models" / key, a.arm)
+            fit["model_file"], fit["model_sha256"] = mpath.name, sha(mpath)
+            preds[key] = model.predict(xa, verbose=0, batch_size=4096).astype(np.float32)
+            fits[key] = fit
+            print(json.dumps({"shard": shard.name, "fit": key, "best_step": fit["best_step"], "stop": fit["stop_cause"],
+                              "inner_a": fit["best_inner_a_loss"], "s": round(fit["wall_seconds"], 1)}), flush=True)
+    np.savez_compressed(shard / "develop_predictions.npz", rows=rows, y=y, period=per.astype(str),
+                        **{k_: v for k_, v in preds.items()})
+    doc = dict(stage="develop", set=a.set, arm=a.arm, columns=cols, scaler={"mean": mu.tolist(), "sd": sd.tolist(), "fit_on": "TRAIN_2020_2022 identical rows"},
+               grid=GRID[a.arm], primary=PRIMARY[a.arm], seeds=list(a.seeds), training=TRAINING, fits=fits,
+               rows_by_period={p: int((per == p).sum()) for p in DEVELOP_PERIODS},
+               common_rows_sha256=hashlib.sha256(rows.tobytes()).hexdigest(), rows_lost_to_union_warmup=loss[a.set],
+               predictions_sha256=sha(shard / "develop_predictions.npz"), periods_read=list(DEVELOP_PERIODS),
+               reads_2024=False, eval_input={"features_sha256": sets_doc["features_sha256"], "targets_sha256": sets_doc["targets_sha256"]})
+    (shard / "DEVELOP.json").write_text(json.dumps(doc, indent=1, default=float) + "\n")
+
+
+# --------------------------------------------------------------------------------------- scoring helpers
+def reopen_guard(signals, ctx, delay_bars: int = 1):
+    """Drop a signal whose fill bar (signal bar + 1 + entry delay) precedes its segment's operational start."""
+    v = ctx.bars.index
+    seg_of = ctx.cal.assign(v)
+    kept, dropped = [], 0
+    for b, d in signals:
+        f = b + 1 + delay_bars
+        if f >= len(v):
+            kept.append((b, d))
+            continue
+        seg = ctx.cal.segments[int(seg_of[f])]
+        if v[f] < seg.operational_start:
+            dropped += 1
+            continue
+        kept.append((b, d))
+    return kept, dropped
+
+
+def per_direction(P, y, sig, origin_bar, mask):
+    from sklearn.metrics import average_precision_score, log_loss, roc_auc_score
+    yy, PP = y[mask], P[mask]
+    out = {"rows": int(mask.sum()), "log_loss": float(log_loss(yy, PP, labels=[0, 1, 2]))}
+    bar_y = {int(b): int(v) for b, v, m in zip(origin_bar, y, mask) if m}
+    for c, name, dsign in ((1, "valley_long", 1), (2, "peak_short", -1)):
+        pos = yy == c
+        out[f"{name}_support"] = int(pos.sum())
+        out[f"{name}_base_rate_incl_none"] = float(pos.mean()) if len(yy) else math.nan
+        out[f"{name}_pr_auc"] = float(average_precision_score(pos, PP[:, c])) if pos.any() else math.nan
+        out[f"{name}_roc_auc"] = float(roc_auc_score(pos, PP[:, c])) if pos.any() and (~pos).any() else math.nan
+        s = [(t, d) for t, d in sig if d == dsign and t in bar_y]
+        hits = sum(bar_y[t] == c for t, _ in s)
+        out[f"{name}_signals"] = len(s)
+        out[f"{name}_precision"] = float(hits / len(s)) if s else math.nan
+        out[f"{name}_recall"] = float(hits / pos.sum()) if pos.any() else math.nan
+    return out
+
+
+def trade_breakdown(res, ctx):
+    tr = res.trades
+    ff = {seg.segment_id: seg.force_flat for seg in ctx.cal.segments}
+    seg_ids = [s.segment_id for s in ctx.cal.segments]
+    forced = sum(1 for t in tr if t["exit_reason"] == "TIME" and pd.Timestamp(t["exit_time"]) >= ff[seg_ids[int(t["segment"])]])
+    entries = [pd.Timestamp(t["entry_time"]) for t in tr]
+    # close-and-reverse: a TIME exit that is not a forced flat, followed in the same segment within 2 bars by an
+    # entry in the opposite direction (the pinned adapter closes at the block end and reopens at the next fill)
+    reverse = sum(1 for t, nxt in zip(tr, tr[1:]) if t["exit_reason"] == "TIME" and int(nxt["segment"]) == int(t["segment"])
+                  and pd.Timestamp(t["exit_time"]) < ff[seg_ids[int(t["segment"])]] and nxt["direction"] == -t["direction"]
+                  and int(nxt["entry_bar_abs"]) - int(t["exit_bar_abs"]) <= 2)
+    m = res.metrics
+    return {"entries_filled": len(entries), "closes_tp": m.get("exit_tp"), "closes_sl": m.get("exit_sl"),
+            "closes_time": m.get("exit_time"), "closes_forced_flat": int(forced), "close_and_reverse": int(reverse),
+            "orders_submitted": m.get("orders_submitted"), "refused_entries": m.get("refused_entries"),
+            "unfilled_orders": m.get("unfilled_orders"), "capped_orders": m.get("capped_orders"),
+            "below_min_units": m.get("below_min_units"), "margin_refused_orders": m.get("margin_refused_orders"),
+            "cost_spread_usd": m.get("cost_spread_usd"), "cost_slippage_usd": m.get("cost_slippage_usd"),
+            "cost_commission_usd": m.get("cost_commission_usd"), "cost_financing_usd": m.get("cost_financing_usd"),
+            "gross_usd": m.get("gross_usd"), "ambiguous_stop_first": m.get("ambiguous_stop_first")}
+
+
+def strategy(ctx, piv, Pc, origin_bar, tau, k, k_tp, period):
+    sig = PD.signals_from(Pc, origin_bar, tau, k)
+    sig, dropped = reopen_guard(sig, ctx)
+    m, res = ctx.run(sig, piv, period, mode="causal", k_tp=k_tp)
+    m = {kk: v for kk, v in m.items() if kk != "period"}
+    m.update(trade_breakdown(res, ctx), signals_emitted=len(sig), signals_dropped_reopen_guard=dropped)
+    return m, res, sig
+
+
+def daily_returns(res):
+    d = res.daily_equity
+    return pd.Series(np.diff(np.r_[d.iloc[0], d.to_numpy()]) / np.r_[d.iloc[0], d.to_numpy()[:-1]], index=d.index)
+
+
+def block_bootstrap(stat_fn, frame: pd.DataFrame, *, reps=BOOT["reps"], seed=BOOT["seed"]):
+    """Resample whole ISO weeks with replacement (dependence-preserving within a week); ``frame`` is indexed by
+    timestamp; returns the 2.5 / 50 / 97.5 % quantiles of ``stat_fn`` over replicates."""
+    idx = pd.DatetimeIndex(frame.index)
+    wk = idx.isocalendar().year.astype(str).to_numpy() + "-" + idx.isocalendar().week.astype(str).to_numpy()
+    groups = {}
+    for i, w in enumerate(wk):
+        groups.setdefault(w, []).append(i)
+    keys = list(groups)
+    rng = np.random.default_rng(seed)
+    vals = []
+    for _ in range(reps):
+        pick = rng.integers(0, len(keys), len(keys))
+        ii = np.concatenate([groups[keys[j]] for j in pick])
+        vals.append(stat_fn(frame.iloc[ii]))
+    vals = np.asarray(vals, float)
+    vals = vals[np.isfinite(vals)]
+    return {"q025": float(np.quantile(vals, 0.025)), "q500": float(np.quantile(vals, 0.5)), "q975": float(np.quantile(vals, 0.975)),
+            "reps": int(len(vals)), "block": BOOT["block"]} if len(vals) else {"reps": 0}
+
+
+def sharpe365(r):
+    r = np.asarray(r, float)
+    sd = r.std(ddof=1) if len(r) > 1 else 0.0
+    return float(r.mean() / sd * math.sqrt(365)) if sd > 0 else 0.0
+
+
+def deflated_sharpe(sr_daily, n_obs, skew, kurt, trial_srs):
+    """Bailey & Lopez de Prado DSR (supplement): P[SR > SR0] with SR0 the expected maximum of N trial Sharpes."""
+    from scipy.stats import norm
+    trial_srs = np.asarray([s for s in trial_srs if np.isfinite(s)], float)
+    N = len(trial_srs)
+    if N < 2 or n_obs < 3:
+        return {"dsr": math.nan, "trials": N}
+    var = trial_srs.var(ddof=1)
+    g = 0.5772156649
+    sr0 = math.sqrt(var) * ((1 - g) * norm.ppf(1 - 1 / N) + g * norm.ppf(1 - 1 / (N * math.e)))
+    den = math.sqrt(max(1 - skew * sr_daily + (kurt - 1) / 4 * sr_daily ** 2, 1e-12))
+    z = (sr_daily - sr0) * math.sqrt(n_obs - 1) / den
+    return {"dsr": float(norm.cdf(z)), "trials": N, "sr0_daily": float(sr0), "sr_daily": float(sr_daily)}
+
+
+# --------------------------------------------------------------------------------------- stage: freeze
+def choose_cell(fits, arm):
+    by = {}
+    for key, f in fits.items():
+        by.setdefault(cell_id(f["cell"]), []).append(f)
+    rows = []
+    for cid, fs in by.items():
+        rows.append({"cell": fs[0]["cell"], "cell_id": cid, "mean_inner_a_loss": float(np.mean([f["best_inner_a_loss"] for f in fs])),
+                     "mean_gap": float(np.mean([f["best_gap"] for f in fs])), "seeds": len(fs), "primary": fs[0]["cell"] == PRIMARY[arm]})
+    rows.sort(key=lambda r: (r["mean_inner_a_loss"], r["mean_gap"]))
+    win = rows[0]
+    return win, rows, {"rule": "lowest mean INNER_A loss at the restored checkpoint across seeds, ties by smaller mean gap",
+                       "winner": win["cell_id"], "primary": cell_id(PRIMARY[arm]), "replaced_primary": not win["primary"]}
+
+
+def freeze(a):
+    ev, out = Path(a.eval_input), Path(a.out)
+    sets_doc, feats, targ, ts = load_inputs(ev, include_2024=False)
+    k = int(sets_doc["k_bars"])
     ctx = Ctx(a.data)
     p = params_of(json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"])
     piv = ctx.pivots(p)
     k_tp = float(pd.read_csv(Path(a.zigzag_run) / "confirmed.csv").query("chosen").k_tp.iloc[0])
     lake_ts = ctx.bars.index.as_unit("s").asi8
-    if not np.array_equal(lake_ts, ts.as_unit("s").asi8):
+    if not np.array_equal(lake_ts[: len(ts)], ts.as_unit("s").asi8):
         raise SystemExit("EVAL_INPUT_GRID_DIFFERS_FROM_LAKE")
-    sets = {n: c for n, c in sets_doc["sets"].items() if (a.sets is None or n in a.sets)}
-    missing = {n: [c for c in cols if c not in feats.columns] for n, cols in sets.items()}
-    sets = {n: cols for n, cols in sets.items() if cols and not missing[n]}
-    # identical rows for every set and arm: full finite 48-bar window over the union of all compared columns,
-    # labelled, not purged, inside a declared period
-    all_cols = sorted({c for cols in sets.values() for c in cols})
-    fin = np.isfinite(feats[all_cols].to_numpy(float)).all(axis=1)
-    win_ok = pd.Series(fin).rolling(WINDOW).min().fillna(0).to_numpy().astype(bool)
-    common = win_ok & np.isfinite(y_raw) & ~purged & (period != "")
-    y_all = np.where(np.isfinite(y_raw), y_raw, 0).astype(np.int64)
+    frozen, scored, trials = {"shards": {}}, [], []
+    for shard in sorted((out / "shards").iterdir()):
+        dev = json.loads((shard / "DEVELOP.json").read_text())
+        if sha(shard / "develop_predictions.npz") != dev["predictions_sha256"]:
+            raise SystemExit("DEVELOP_PREDICTIONS_DIGEST:" + shard.name)
+        z = np.load(shard / "develop_predictions.npz", allow_pickle=False)
+        rows, y, per = z["rows"], z["y"], z["period"].astype(str)
+        win, cell_table, rule = choose_cell(dev["fits"], dev["arm"])
+        ia, ib, trn = per == "INNER_A_2023H1", per == "INNER_B_2023H2", per == "TRAIN_2020_2022"
+        seeds = sorted(f["seed"] for f in dev["fits"].values() if cell_id(f["cell"]) == win["cell_id"])
+        temps, cal = {}, {}
+        for s in seeds:
+            P = z[f"{win['cell_id']}__s{s}"].astype(float)
+            temps[s] = PD.temperature(P, y, ia)
+            cal[s] = PD.calibrate(P, temps[s])
+        # threshold on INNER_A (mean Sharpe over seeds, valid first); every attempt recorded in the trial ledger
+        grid = []
+        for tau in THRESHOLDS:
+            ms = []
+            for s in seeds:
+                m, _, _ = strategy(ctx, piv, cal[s], rows, tau, k, k_tp, "INNER_A_2023H1")
+                ms.append(m)
+                trials.append(dict(set=dev["set"], arm=dev["arm"], cell=win["cell_id"], seed=s, threshold=tau, period="INNER_A_2023H1",
+                                   sharpe=m["sharpe_daily_sqrt365"], valid=m["valid"], entries=m["entries_filled"]))
+            grid.append(dict(threshold=tau, sharpe=float(np.nanmean([m["sharpe_daily_sqrt365"] for m in ms])),
+                             valid=bool(all(m["valid"] for m in ms))))
+        gv = [g for g in grid if g["valid"]]
+        tau = max(gv or grid, key=lambda g: (g["sharpe"], -g["threshold"]))["threshold"]
+        key = f"{dev['set']}__{dev['arm']}"
+        models = {s: dev["fits"][f"{win['cell_id']}__s{s}"] for s in seeds}
+        frozen["shards"][key] = dict(set=dev["set"], arm=dev["arm"], cell=win["cell"], cell_choice=rule, cell_table=cell_table,
+                                     temperatures={str(s): t for s, t in temps.items()}, threshold=tau, threshold_grid_inner_a=grid,
+                                     models={str(s): {"file": m["model_file"], "sha256": m["model_sha256"]} for s, m in models.items()},
+                                     columns=dev["columns"], scaler=dev["scaler"], develop_sha256=sha(shard / "DEVELOP.json"))
+        # scoring with every choice frozen: TRAIN (diagnostic), INNER_A (where chosen), INNER_B (frozen)
+        for pname, mask in (("TRAIN_2020_2022", trn), ("INNER_A_2023H1", ia), ("INNER_B_2023H2", ib)):
+            for s in seeds:
+                m, res, sig = strategy(ctx, piv, cal[s], rows, tau, k, k_tp, pname)
+                cls = per_direction(cal[s], y, sig, rows, mask)
+                scored.append(dict(set=dev["set"], arm=dev["arm"], cell=win["cell_id"], seed=s, threshold=tau, period=pname,
+                                   role={"TRAIN_2020_2022": "FIT_DIAGNOSTIC", "INNER_A_2023H1": "CHOICE_BLOCK",
+                                         "INNER_B_2023H2": "FROZEN_SCORE"}[pname], **cls, **m))
+                if pname == "INNER_B_2023H2":
+                    pd.DataFrame({"r": daily_returns(res)}).to_parquet(shard / f"daily_INNER_B_s{s}.parquet")
+        np.savez_compressed(shard / "frozen_calibrated_develop.npz", rows=rows, y=y, period=per,
+                            **{f"s{s}": cal[s].astype(np.float32) for s in seeds})
+    frozen.update(stage="freeze", thresholds_attempted=list(THRESHOLDS), periods_read=list(DEVELOP_PERIODS), reads_2024=False,
+                  rules={"cell": "lowest mean INNER_A loss, ties by gap", "threshold": "max mean INNER_A Sharpe over seeds among valid, else max",
+                         "temperature": "per seed on INNER_A (log grid 0.25..8)"})
+    frozen["freeze_sha256"] = canon(frozen)
+    (out / "FROZEN.json").write_text(json.dumps(frozen, indent=1, default=float) + "\n")
+    pd.DataFrame(scored).to_csv(out / "scores_develop.csv", index=False)
+    pd.DataFrame(trials).to_csv(out / "trials_threshold_inner_a.csv", index=False)
+    uncertainty(out, ["INNER_B_2023H2"], ev)
+    print(json.dumps({"freeze_sha256": frozen["freeze_sha256"], "shards": {k_: (v["cell"], v["threshold"]) for k_, v in frozen["shards"].items()}}))
+
+
+# --------------------------------------------------------------------------------------- stage: reconfirm
+def reconfirm(a):
+    _set_threads()
+    ev, out = Path(a.eval_input), Path(a.out)
+    frozen = json.loads((out / "FROZEN.json").read_text())
+    if canon({k: v for k, v in frozen.items() if k != "freeze_sha256"}) != frozen["freeze_sha256"]:
+        raise SystemExit("FROZEN_DIGEST")
+    sets_doc, feats, targ, ts = load_inputs(ev, include_2024=True)
+    k = int(sets_doc["k_bars"])
+    common, period, y_raw, sets, loss = common_rows(feats, targ, ts, sets_doc, k)
+    ctx = Ctx(a.data)
+    p = params_of(json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"])
+    piv = ctx.pivots(p)
+    k_tp = float(pd.read_csv(Path(a.zigzag_run) / "confirmed.csv").query("chosen").k_tp.iloc[0])
+    if not np.array_equal(ctx.bars.index.as_unit("s").asi8, ts.as_unit("s").asi8):
+        raise SystemExit("EVAL_INPUT_GRID_DIFFERS_FROM_LAKE")
+    rows = np.flatnonzero(common & (period == "REOBSERVED_2024"))
+    y = y_raw[rows].astype(np.int64)
+    mask = np.ones(len(rows), bool)
+    scored = []
+    tenc = time_encoding(ts)
+    for key, fz in frozen["shards"].items():
+        shard = out / "shards" / key
+        Z = scaled(feats, fz["columns"], np.asarray(fz["scaler"]["mean"]), np.asarray(fz["scaler"]["sd"]))
+        xa = arm_inputs(fz["arm"], Z, tenc, rows)
+        for s, m in fz["models"].items():
+            path = shard / "models" / m["file"]
+            if sha(path) != m["sha256"]:
+                raise SystemExit("FROZEN_MODEL_DIGEST:" + m["file"])
+            model = load_model(path, fz["arm"])
+            Pc = PD.calibrate(model.predict(xa, verbose=0, batch_size=4096), fz["temperatures"][s])
+            met, res, sig = strategy(ctx, piv, Pc, rows, fz["threshold"], k, k_tp, "REOBSERVED_2024")
+            scored.append(dict(set=fz["set"], arm=fz["arm"], cell=cell_id(fz["cell"]), seed=int(s), threshold=fz["threshold"],
+                               period="REOBSERVED_2024", role="PREVIOUSLY_OBSERVED_RECONFIRMATION",
+                               **per_direction(Pc, y, sig, rows, mask), **met))
+            pd.DataFrame({"r": daily_returns(res)}).to_parquet(shard / f"daily_REOBSERVED_2024_s{s}.parquet")
+            np.savez_compressed(shard / f"reobserved_2024_s{s}.npz", rows=rows, y=y, P=Pc.astype(np.float32))
+    pd.DataFrame(scored).to_csv(out / "scores_reobserved_2024.csv", index=False)
+    (out / "RECONFIRM.json").write_text(json.dumps(dict(stage="reconfirm", freeze_sha256=frozen["freeze_sha256"],
+                                                        rows=int(len(rows)), rows_lost_to_union_warmup={n: v["REOBSERVED_2024"] for n, v in loss.items()},
+                                                        decisions_changed=False), indent=1) + "\n")
+    uncertainty(out, ["REOBSERVED_2024"], ev)
+
+
+# --------------------------------------------------------------------------------------- uncertainty
+def uncertainty(out: Path, periods, eval_input):
+    """Paired candidate - baseline differences per arm on identical rows, weekly block bootstrap: seed-mean
+    T1 log-loss per row and seed-mean daily strategy return Sharpe.  Trial family declared alongside."""
+    out = Path(out)
+    frozen = json.loads((out / "FROZEN.json").read_text())
+    sets = sorted({v["set"] for v in frozen["shards"].values()})
+    arms = sorted({v["arm"] for v in frozen["shards"].values()})
+    doc = json.loads((out / "UNCERTAINTY.json").read_text()) if (out / "UNCERTAINTY.json").exists() else {}
+    base = "admitted_core_15_553fc047"
+    for pname in periods:
+        res_p = {}
+        for arm in arms:
+            for cand in [s for s in sets if s != base]:
+                ll, rr = {}, {}
+                for sname in (cand, base):
+                    key = f"{sname}__{arm}"
+                    fz = frozen["shards"].get(key)
+                    if fz is None:
+                        continue
+                    shard = out / "shards" / key
+                    probs, days = [], []
+                    for s in fz["models"]:
+                        if pname == "INNER_B_2023H2":
+                            z = np.load(shard / "frozen_calibrated_develop.npz", allow_pickle=True)
+                            m = z["period"].astype(str) == pname
+                            rows_, y_, P_ = z["rows"][m], z["y"][m], z[f"s{s}"][m]
+                        else:
+                            z = np.load(shard / f"reobserved_2024_s{s}.npz")
+                            rows_, y_, P_ = z["rows"], z["y"], z["P"]
+                        probs.append(P_.astype(float))
+                        days.append(pd.read_parquet(shard / f"daily_{pname}_s{s}.parquet")["r"])
+                    Pm = np.mean(probs, axis=0)
+                    ll[sname] = pd.Series(-np.log(np.clip(Pm[np.arange(len(y_)), y_], 1e-9, 1)), index=rows_)
+                    rr[sname] = pd.concat(days, axis=1).mean(axis=1)
+                if len(ll) < 2:
+                    continue
+                if not ll[cand].index.equals(ll[base].index):
+                    raise SystemExit("ROWS_NOT_IDENTICAL")
+                bars_idx = pd.read_parquet(Path(eval_input) / "features_all.parquet", columns=["timestamp"])["timestamp"]
+                tix = pd.DatetimeIndex(bars_idx.iloc[ll[cand].index.to_numpy()])
+                dl = pd.DataFrame({"d": (ll[cand] - ll[base]).to_numpy()}, index=tix)
+                dr = pd.DataFrame({"c": rr[cand], "b": rr[base]}).dropna()
+                res_p[f"{cand}_minus_{base}__{arm}"] = {
+                    "rows": int(len(dl)), "mean_logloss_diff": float(dl["d"].mean()),
+                    "logloss_diff_ci": block_bootstrap(lambda f: float(f["d"].mean()), dl),
+                    "sharpe_candidate": sharpe365(dr["c"]), "sharpe_baseline": sharpe365(dr["b"]),
+                    "sharpe_diff_ci": block_bootstrap(lambda f: sharpe365(f["c"]) - sharpe365(f["b"]), dr),
+                    "note": "negative log-loss difference favours the candidate; seed-mean predictions and returns"}
+        doc[pname] = res_p
+    doc["trial_family"] = {"sets": sets, "arms": arms, "cells": {a: len(GRID[a]) for a in arms}, "seeds": len(SEEDS),
+                           "thresholds": len(THRESHOLDS), "bootstrap": BOOT,
+                           "selection_awareness": "subsets chosen on TRAIN only (never 2023/2024); cell, temperature and threshold "
+                                                  "chosen on INNER_A; INNER_B and 2024 scored frozen; DSR supplement in SEAL"}
+    (out / "UNCERTAINTY.json").write_text(json.dumps(doc, indent=1, default=float) + "\n")
+
+
+# --------------------------------------------------------------------------------------- stage: seal
+def seal(a):
     out = Path(a.out)
-    out.mkdir(parents=True, exist_ok=True)
-    rows, fits, preds = [], {}, {}
-    for name, cols in sets.items():
-        r, f, pr = evaluate_set(name, cols, a.arms, feats, ts, y_all, period, ctx, piv, k, k_tp, a.seeds, a.lags, common)
-        rows += r
-        fits.update(f)
-        preds.update(pr)
-        pd.DataFrame(rows).to_csv(out / "timing_eval.csv", index=False)      # partial progress is durable
-    det = pd.DataFrame(rows)
-    det.to_csv(out / "timing_eval.csv", index=False)
-    choice, summary = {}, []
-    for name in sets:
-        for arm in a.arms:
-            v = det[(det.set == name) & (det.arm == arm) & (det.period == "VALIDATION_2023")]
-            g = v.groupby("threshold").agg(sharpe=("sharpe_daily_sqrt365", "mean"), valid=("valid", "min")).reset_index()
-            gv = g[g.valid.astype(bool)]
-            tau = float((gv if not gv.empty else g).sort_values("sharpe", ascending=False).threshold.iloc[0])
-            choice[f"{name}:{arm}"] = tau
-            for pname in PERIODS:
-                d = det[(det.set == name) & (det.arm == arm) & (det.threshold == tau) & (det.period == pname)]
-                summary.append(dict(set=name, arm=arm, n_features=len(sets[name]), threshold=tau, period=pname, seeds=len(d),
-                                    rows=int((common & (period == pname)).sum()),
-                                    **{f"{c}_mean": float(d[c].mean()) for c in ("sharpe_daily_sqrt365", "max_drawdown_pct", "trades_per_week",
-                                                                                  "precision_at_threshold", "recall_at_threshold", "auc_valley",
-                                                                                  "auc_peak", "log_loss", "log_loss_base_rate", "win_rate")},
-                                    sharpe_sd=float(d.sharpe_daily_sqrt365.std(ddof=0)), valid_all=bool(d.valid.all())))
-    summ = pd.DataFrame(summary)
-    summ.to_csv(out / "timing_eval_summary.csv", index=False)
-    frames = [pd.DataFrame(dict(set=n, arm=ar, seed=s, origin_ts=ts.as_unit("s").asi8[d["origin_bar"]], period=d["period"], y=d["y"],
-                                p_none=d["P"][:, 0], p_valley=d["P"][:, 1], p_peak=d["P"][:, 2])) for (n, ar, s), d in preds.items()]
-    pred_path = out / "timing_eval_predictions.csv.gz"
-    pd.concat(frames).to_csv(pred_path, index=False, float_format="%.6f")
-    (out / "RUN.json").write_text(json.dumps(dict(fits=fits, training=TRAINING, lags=a.lags, seeds=a.seeds, arms=a.arms), indent=1, default=float) + "\n")
-    seal = dict(label="DEVELOPMENT_TIMING_SELECTION_PREDICTIVE_VALIDATION", evaluator="heuristic-strategy tools/short_horizon_timing_eval.py",
-                arms={ar: ARMS_DOC[ar] for ar in a.arms}, scaling="TRAIN-only z-score per feature",
-                early_stopping="monitor = 0.5*(running TRAIN weighted loss + INNER 2023 weighted log-loss), patience 10, min_delta 1e-8, best restored; m3 every 10 iterations",
-                chosen_on="VALIDATION_2023 (threshold by mean Sharpe over seeds, valid first)", confirm="CONFIRM_2024 once",
-                identical_rows={pn: int((common & (period == pn)).sum()) for pn in PERIODS}, sets={n: cols for n, cols in sets.items()},
-                missing_columns=missing, operating_threshold=choice, k_bars=k, k_tp=k_tp, m_sl=2.0, lake_sha256=ctx.digest,
-                expert_params=p.__dict__, features_sha256=sets_doc["features_sha256"], targets_sha256=sets_doc["targets_sha256"],
-                predictions_sha256=sha(pred_path), files={n: sha(out / n) for n in ("timing_eval.csv", "timing_eval_summary.csv", "RUN.json")},
-                summary=summary, test_read=False)
-    (out / "SEAL.json").write_text(json.dumps(seal, indent=1, default=float) + "\n")
-    print(summ[summ.period != "DECISION_2020_2022"][["set", "arm", "n_features", "threshold", "period", "auc_valley_mean", "auc_peak_mean",
-                                                         "log_loss_mean", "log_loss_base_rate_mean", "precision_at_threshold_mean",
-                                                         "sharpe_daily_sqrt365_mean", "trades_per_week_mean", "valid_all"]].to_string(index=False))
+    frozen = json.loads((out / "FROZEN.json").read_text())
+    dev = pd.read_csv(out / "scores_develop.csv")
+    rec = pd.read_csv(out / "scores_reobserved_2024.csv") if (out / "scores_reobserved_2024.csv").exists() else pd.DataFrame()
+    allsc = pd.concat([dev, rec], ignore_index=True)
+    cols = [c for c in allsc.columns if c not in ("set", "arm", "cell", "seed", "threshold", "period", "role")
+            and pd.api.types.is_numeric_dtype(allsc[c])]
+    summ = allsc.groupby(["set", "arm", "cell", "threshold", "period", "role"])[cols].mean().reset_index()
+    summ["seeds"] = allsc.groupby(["set", "arm", "cell", "threshold", "period", "role"]).seed.nunique().to_numpy()
+    no_trade = [dict(set="NO_TRADE_COMPARATOR", arm="-", cell="-", threshold=np.nan, period=p, role="COMPARATOR",
+                     sharpe_daily_sqrt365=0.0, net_profit_usd=0.0, entries_filled=0, max_drawdown_pct=0.0, valid=False)
+                for p in EVAL_PERIODS]
+    summ = pd.concat([summ, pd.DataFrame(no_trade)], ignore_index=True)
+    summ.to_csv(out / "summary.csv", index=False)
+    trials = pd.read_csv(out / "trials_threshold_inner_a.csv")
+    dsr = {}
+    for key, fz in frozen["shards"].items():
+        for pname in ("INNER_B_2023H2", "REOBSERVED_2024"):
+            files = sorted((out / "shards" / key).glob(f"daily_{pname}_s*.parquet"))
+            if not files:
+                continue
+            r = pd.concat([pd.read_parquet(f)["r"] for f in files], axis=1).mean(axis=1).to_numpy()
+            sr = r.mean() / r.std(ddof=1) if r.std(ddof=1) > 0 else 0.0
+            from scipy.stats import kurtosis, skew
+            tsr = trials[(trials.set == fz["set"]) & (trials.arm == fz["arm"])].sharpe / math.sqrt(365)
+            dsr[f"{key}__{pname}"] = deflated_sharpe(sr, len(r), float(skew(r)), float(kurtosis(r, fisher=False)), tsr)
+    trial_ledger = {"expert_configs": 1, "expert_params": json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"],
+                    "k_bars": 2, "selection_targets": ["timing_pivot_k2", "timing_action_confirmed", "timing_expert_leg_remaining_pips"],
+                    "evaluation_target": "timing_pivot_k2 (T1, primary)", "feature_sets": sorted({v["set"] for v in frozen["shards"].values()}),
+                    "arms": sorted({v["arm"] for v in frozen["shards"].values()}), "regularization_grid": GRID, "primary_cells": PRIMARY,
+                    "seeds": list(SEEDS), "thresholds": list(THRESHOLDS),
+                    "cell_choices": {k_: v["cell_choice"] for k_, v in frozen["shards"].items()},
+                    "threshold_choices": {k_: v["threshold"] for k_, v in frozen["shards"].items()},
+                    "threshold_trials_rows": int(len(trials))}
+    seal_doc = dict(label="DEVELOPMENT_TIMING_PROXY_PREDICTIVE_VALIDATION", evaluator="heuristic-strategy tools/short_horizon_timing_eval.py",
+                    proxy_only=True, periods=EVAL_PERIODS, roles={"TRAIN_2020_2022": "fit", "INNER_A_2023H1": "choices (joint development)",
+                                                                  "INNER_B_2023H2": "frozen score (joint development)",
+                                                                  "REOBSERVED_2024": "previously observed reconfirmation, never pristine"},
+                    freeze_sha256=frozen["freeze_sha256"], sharpe_definition=SHARPE_DEFINITION, monitor=OwnerMonitor.__doc__,
+                    training=TRAINING, trial_ledger=trial_ledger, deflated_sharpe_supplement=dsr,
+                    uncertainty=json.loads((out / "UNCERTAINTY.json").read_text()), summary=summ.to_dict(orient="records"),
+                    files={n: sha(out / n) for n in ("FROZEN.json", "scores_develop.csv", "summary.csv", "UNCERTAINTY.json")
+                           + (("scores_reobserved_2024.csv", "RECONFIRM.json") if (out / "RECONFIRM.json").exists() else ())},
+                    test_read=False)
+    (out / "SEAL.json").write_text(json.dumps(seal_doc, indent=1, default=float) + "\n")
+    print(json.dumps({"seal_sha256": sha(out / "SEAL.json")}))
 
 
-ARMS_DOC = {
-    "m0_mlp": "per-bar MLP(64,32) on the current bar's features",
-    "m1_dmo_class": "13 slots x 2 h window, per-feature causal Conv1D branches (grouped conv, 4 filters, 2 layers), flatten fusion + origin time encoding, Dense(32) core, softmax",
-    "m2_gru": "GRU(32) -> Dense(16) -> softmax on the raw 48-bar hourly window",
-    "m3_hgb": "HistGradientBoostingClassifier (lr 0.05, 31 leaves, <= 400 iterations) on the flattened 48-bar window, owner's monitor every 10 iterations",
-}
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("stage", choices=("develop", "freeze", "reconfirm", "seal"))
+    ap.add_argument("--eval-input", required=True, help="directory with features_all.parquet, targets_all.parquet, FEATURE_SETS.json")
+    ap.add_argument("--data", required=False, help="lake EUR/USD H1 parquet (pinned digest; freeze/reconfirm)")
+    ap.add_argument("--zigzag-run", default=str(ROOT / "docs/short_horizon/results/zigzag"))
+    ap.add_argument("--out", required=True, help="evaluation directory (shards/, FROZEN.json, SEAL.json)")
+    ap.add_argument("--set", help="develop: feature set name from FEATURE_SETS.json")
+    ap.add_argument("--arm", choices=list(ARMS), help="develop: arm")
+    ap.add_argument("--seeds", nargs="*", type=int, default=list(SEEDS))
+    a = ap.parse_args(argv)
+    {"develop": develop, "freeze": freeze, "reconfirm": reconfirm, "seal": seal}[a.stage](a)
 
 
 if __name__ == "__main__":
