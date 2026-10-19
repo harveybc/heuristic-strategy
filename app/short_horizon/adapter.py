@@ -213,8 +213,11 @@ def score(ps: PredictionSet, m: Market, split, strategy: str, cost_mult: float =
     profile = X.RealisticProfile().scaled(cost_mult)
     orders = S.range_first_orders(strategy, b, H_hat, L_hat, ft_hat, profile, S.RangeFirstParams(), CAPITAL)
     orders = [o if rows[k] else None for k, o in enumerate(orders)]
+    sigma = S.causal_block_sigma(b)
+    orders, rule_skipped = S.apply_order_rules(orders, b, sigma, X.OrderRules())
     res = X.run_backtest(m.bars, b, orders, profile, m.calendar, CAPITAL, split, profile=profile,
-                         max_orders_per_day=cap, ruin_floor=0.0)
+                         max_orders_per_day=cap, ruin_floor=0.0, order_rules=X.OrderRules(), sigma_block=sigma)
+    out["rule_skipped_orders"] = rule_skipped
     mm = res.metrics
     out.update({k: mm[k] for k in ("net_profit_usd", "end_equity_usd", "max_drawdown_usd", "sharpe_daily_sqrt365",
                                     "sortino_daily_sqrt365", "trades", "win_rate", "profit_factor",

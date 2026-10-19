@@ -14,7 +14,7 @@ novelty, business rules) are folded in.
 - **Direction classifiers score like a coin.** The logistic first-touch
   classifier's log-loss matched the base rate (0,692 vs 0,693).
 - **The old strategy needs what cannot be had.** Range-first with a price-path
-  input needs a path MAE of about 0,6–0,7× persistence
+  input needs a path MAE of about 0,5–0,7× persistence
   ([PRICE_PATH_NOISE_SWEEP.md](PRICE_PATH_NOISE_SWEEP.md)), out of reach of
   volatility-style predictors.
 - **Volatility and multi-scale trend strength are persistent and predictable.**

@@ -245,34 +245,41 @@ in place of `validacion`. 24 figures in total, listed in
 
 ### Comparison (VALIDACIÓN 2024; break-even on net profit, valid points only, ≥ 3 trades/week)
 
-| B | Strategy | Case | Ideal Sharpe | Break-even ×naïve h_p | ×naïve h_B | ×naïve mean | All seeds ×naïve h_p |
-|---|---|---|---:|---:|---:|---:|---:|
-| 24 | RF-M | (i) previous costs / i.i.d. | 12,04 | 15,22 (h6) | 5,05 (h24) | 9,98 | 11,63 |
-| 24 | RF-M | (ii) realistic / i.i.d. | 13,07 | — (positive until invalid at 31,7×) | — | — | 15,37 |
-| 24 | RF-M | **(iii) realistic / A3** | 13,07 | **0,71** | **0,67** | **0,69** | 0,66 |
-| 24 | RF-M | realistic / A1 | 13,02 | 0,61 | 0,61 | 0,61 | 0,61 |
-| 24 | RF-M | (iii) realistic ×2 / A3 | 12,53 | 0,65 | 0,62 | 0,64 | 0,62 |
-| 24 | RF-L | (i) / (ii) i.i.d. | 13,50 / 14,33 | invalid from 0,79× before any sign change | — | — | — |
-| 24 | RF-L | **(iii) realistic / A3** | 14,33 | **0,73** | **0,69** | **0,71** | 0,70 |
-| 24 | RF-L | (iii) realistic ×2 / A3 | 14,02 | 0,64 | 0,61 | 0,62 | 0,62 |
-| 6 | RF-M | (i) previous costs / i.i.d. | 8,34 | 7,63 (h3) | 4,00 (h6) | 6,33 | 6,69 |
-| 6 | RF-M | (ii) realistic / i.i.d. | 10,77 | 20,96 | 11,00 | 17,39 | 15,71 |
-| 6 | RF-M | **(iii) realistic / A3** | 10,77 | **0,63** | **0,61** | **0,62** | 0,61 |
-| 6 | RF-M | (iii) realistic ×2 / A3 | 10,08 | 0,59 | 0,57 | 0,58 | 0,57 |
-| 6 | RF-M | realistic / A3, ≤ 2 orders/day | 10,94 | 0,63 | 0,61 | 0,62 | 0,58 |
-| 6 | RF-L | (i) / (ii) i.i.d. | 8,67 / 11,59 | invalid from 3,18× before any sign change | — | — | — |
-| 6 | RF-L | **(iii) realistic / A3** | 11,59 | **0,56** | **0,55** | **0,56** | 0,54 |
-| 6 | RF-L | (iii) realistic ×2 / A3 | 10,85 | 0,50 | 0,48 | 0,49 | 0,47 |
-| 6 | RF-L | realistic / A3, ≤ 2 orders/day | 11,66 | 0,56 | 0,54 | 0,55 | 0,51 |
+Regenerated on 2026-10-19 after the business rules (SL/TP effective on every order, orders with symbolic levels not sent; stop-out at ruin) were applied to this grid. Changes against the first version: at 24 h the realistic break-evens moved by at most 0,02 (RF-M A3 0,71 → 0,69×; RF-L 0,73 → 0,72×; A1 0,61 → 0,60×) and the ideal Sharpe 13,07 → 12,93 (RF-M); at 6 h by up to 0,05 (RF-M A3 0,63 → 0,58×; RF-L A3 0,56 → 0,52×), stricter because more far-away levels are skipped. The i.i.d. curves now become invalid before their earlier 15× break-even: their far-away take-profits are symbolic and are no longer sent. Sizing here is still the earlier 1 %-risk reference arm; the owner sizing is used in the V1/V2 study.
+
+| B | Strategy | Case | Ideal Sharpe | Break-even ×naïve h_p | ×naïve h_B | ×naïve mean | All seeds ×naïve h_p | Validity frontier ×naïve h_p |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| 24 | RF-M | (i) previous costs / i.i.d. | 11,91 | — | — | — | — | 2,38 |
+| 24 | RF-M | (ii) realistic / i.i.d. | 12,93 | — | — | — | — | 2,38 |
+| 24 | RF-M | **(iii) realistic / A3** | 12,93 | 0,69 | 0,66 | 0,68 | 0,64 | 3,26 |
+| 24 | RF-M | realistic / A1 | 12,90 | 0,60 | 0,60 | 0,60 | 0,59 | 0,90 |
+| 24 | RF-M | (iii) realistic ×2 / A3 | 12,39 | 0,64 | 0,61 | 0,63 | 0,61 | 0,87 |
+| 24 | RF-L | (i) previous costs / i.i.d. | 13,06 | — | — | — | — | 0,79 |
+| 24 | RF-L | (ii) realistic / i.i.d. | 13,92 | — | — | — | — | 0,59 |
+| 24 | RF-L | **(iii) realistic / A3** | 13,92 | 0,72 | 0,69 | 0,70 | 0,69 | 3,26 |
+| 24 | RF-L | realistic / A1 | 13,90 | 0,60 | 0,59 | 0,60 | 0,59 | 1,00 |
+| 24 | RF-L | (iii) realistic ×2 / A3 | 13,60 | 0,63 | 0,60 | 0,61 | 0,61 | 3,26 |
+| 6 | RF-M | (i) previous costs / i.i.d. | 7,10 | — | — | — | — | 3,18 |
+| 6 | RF-M | (ii) realistic / i.i.d. | 10,58 | — | — | — | — | 3,18 |
+| 6 | RF-M | **(iii) realistic / A3** | 10,58 | 0,58 | 0,57 | 0,57 | 0,55 | — |
+| 6 | RF-M | realistic / A1 | 10,95 | 0,53 | 0,53 | 0,53 | 0,52 | 0,80 |
+| 6 | RF-M | (iii) realistic ×2 / A3 | 9,74 | 0,53 | 0,51 | 0,52 | 0,51 | 0,86 |
+| 6 | RF-M | realistic / A3, ≤ 2 orders/day | 10,75 | 0,58 | 0,57 | 0,58 | 0,55 | — |
+| 6 | RF-L | (i) previous costs / i.i.d. | 7,35 | — | — | — | — | 2,12 |
+| 6 | RF-L | (ii) realistic / i.i.d. | 11,69 | — | — | — | — | 2,12 |
+| 6 | RF-L | **(iii) realistic / A3** | 11,69 | 0,52 | 0,51 | 0,52 | 0,50 | — |
+| 6 | RF-L | realistic / A1 | 12,14 | 0,48 | 0,48 | 0,48 | 0,48 | 0,90 |
+| 6 | RF-L | (iii) realistic ×2 / A3 | 10,70 | 0,46 | 0,44 | 0,45 | 0,43 | 0,97 |
+| 6 | RF-L | realistic / A3, ≤ 2 orders/day | 11,99 | 0,53 | 0,52 | 0,52 | 0,50 | — |
 
 How to read the table:
 - A2 alone (a random-walk error centred on the truth) never crosses zero while
   valid. Like i.i.d., it keeps the truth inside the forecast; only the blend
   toward persistence removes the information.
 - With the stricter **4 trades/week** rule, RF-M B = 24 under A3 becomes invalid
-  at 0,76× (×1) and 0,44× (×2), before it would cross zero. So no break-even is
+  at 0,65× (×1) and 0,44× (×2), before it would cross zero. So no break-even is
   reported there.
-- RF-L B = 24 keeps 0,73×.
+- RF-L B = 24 keeps 0,72×.
 - The full table, with both frequency variants and TRAIN, is
   `results/price_path_realism/TABLA_COMPARATIVA_REALISMO.md`; per-level values
   are in `tabla_realismo_por_nivel.csv`.
@@ -286,8 +293,9 @@ is 1,00× naive.
 
 **Requirement to quote (realistic costs, A3, ≥ 3 trades/week, 2024).** The
 price-path forecaster must reach about **0,7× the naive MAE** at business-day
-horizons (B = 24: 0,71× at h6, 0,67× at h24) and about **0,55–0,63×** for 6-hour
-blocks. That means at least a 30–45 % error reduction over persistence. Even
+horizons (B = 24: 0,69× at h6, 0,66× at h24, after the SL/TP rule) and about
+**0,52–0,58×** for 6-hour blocks. That means at least a 30–48 % error reduction
+over persistence. Even
 then, the curves are oracle constructions: a real model's errors have their own
 structure and must be backtested directly.
 

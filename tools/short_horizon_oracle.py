@@ -429,6 +429,10 @@ def run_pathr_cell(ctx, cell, p):
         preds, variant = path_forecast_family(ctx, cell["family"], cell["level"], cell["seed"]), cell["strategy"]
     H_hat, L_hat, ft_hat = S.path_to_range(preds)
     orders = S.range_first_orders(variant, ctx.blocks, H_hat, L_hat, ft_hat, costs, p, CAPITAL)
+    # business hard rule: orders with symbolic (ineffective) levels are not sent (counted)
+    if not hasattr(ctx, "sigma_block"):
+        ctx.sigma_block = S.causal_block_sigma(ctx.blocks)
+    orders, rule_skipped = S.apply_order_rules(orders, ctx.blocks, ctx.sigma_block, X.OrderRules())
     cap = cell.get("order_cap", ORDER_CAP_PER_DAY)
 
     def acc(mask):
@@ -443,8 +447,10 @@ def run_pathr_cell(ctx, cell, p):
     for name, (a, b) in SPLITS.items():
         res = X.run_backtest(ctx.bars, ctx.blocks, orders, costs, ctx.cal, CAPITAL, (utc(a), utc(b)),
                              profile=profile, max_orders_per_day=cap,
-                             ruin_floor=0.0 if profile is not None else None)
-        rows.append(({"split": name, **res.metrics, **acc(ctx.masks[name])}, res))
+                             ruin_floor=0.0 if profile is not None else None,
+                             order_rules=X.OrderRules(), sigma_block=ctx.sigma_block)
+        rows.append(({"split": name, **res.metrics, **acc(ctx.masks[name]), "rule_skipped_orders": rule_skipped},
+                     res))
     return rows
 
 

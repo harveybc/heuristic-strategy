@@ -1,9 +1,9 @@
 {
  "label": "DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT",
- "cells_csv_sha256": "b8cc32bbbd0489140bc3d811085d32163ea7f8cb97921ef5c043cc11921f9f05",
+ "cells_csv_sha256": "0078202bbc960ab157d38df7b3e7b99136b308ca5b6fd602e0aab4bbc5790233",
  "rows": 6372,
  "data_sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
- "backtest_cpu_seconds": 435.9,
+ "backtest_cpu_seconds": 380.4,
  "chunks": 14,
  "a3_pairs": [
   [
