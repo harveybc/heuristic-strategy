@@ -102,3 +102,47 @@ names the old failure, then the rule and how it is enforced here.
     run in that study is a SMOKE_PROBE_WEAK_DETECTOR (no lookback window, substitute features, one seed):
     a weak probe did not close the gap; a proper windowed model on the selected features is pending, and
     the probe is not evidence about the achievable ceiling.
+
+## Added 2026-10-19 with the clock identity (plan items 14c/16; K13/K14 of `SATOSHI_WORK_PLAN.md`)
+
+19. **Lake clock = New York-like with DST, but on the EU calendar.** The lake's naive labels match the
+    admitted UTC root at +5 h in winter and +4 h in summer. That is "NY with DST" for most of the year. In
+    the ~4 weeks a year between the US and EU transitions, though, the NY rule is off by one hour on every
+    bar (1,953 rows, 0 exact), while `EU_DST_UTC_MINUS_5` (Europe/London wall − 5 h) is exact on all of them.
+    The pinned identity is `cb565a65…` (mapping `b3f617ef…`, tzdata 2024b). It has 0 clock residuals, 8 source
+    residuals, and OHLC-exact rates of 1.0 / 1.0 / 0.99984 / 0.99926 / 0.99952 for 2020–2024
+    (`CLOCK_IDENTITY.md`). Rule: no study joins the lake to anything on the vendor label or with a hand
+    shift; it goes through `bar_source` (`admitted` or `lake_mapped`). The legacy `lake_label` TEST boundary
+    is on the label clock (4–5 h behind UTC); on this file it read no 2025 bar, by luck.
+
+20. **The hindsight optimum is set by the frequency cap, not by the expert's parameters (K13).** NSGA-II
+    v2 (pop 64 × 80 gen × 3 seeds, convergence by hypervolume) found these optima. Cap 1/day: D6/19.6/B3,
+    Sharpe 13.7–14.5. Cap 2: D5/11.7/B3, Sharpe 15.8–17.2. Cap 4: D3/40.7/B0, Sharpe 17.7/18.2/18.2. Raising
+    the cap moves the optimum more than any parameter does. A hindsight Sharpe is therefore quoted with its
+    cap, never alone.
+
+21. **Deviation is nearly irrelevant under MT semantics (K13).** Tied objective vectors collapse across wide
+    Deviation ranges, and Backstep 0 is a structural floor. Depth carries the timing. Search effort on
+    Deviation is wasted, and a "tuned Deviation" claim needs a tie-group report.
+
+22. **Executable fill is b+1 (K13; K12 finding).** The earliest executable fill of a signal decided on bar
+    b is the open of b+1. The selection adapter used to fill at b+2 (one bar of extra latency against k=2).
+    The confirmation v1 overestimated the lag by one bar. b+1 vs b+2 changes Sharpe by ≤ 0.1 here, but the
+    executable path is b+1 (additive) and is the one cited.
+
+23. **Label ≠ fill.** A pivot label names the bar where the hindsight extreme occurred. The fill is at
+    the earliest executable instant after the decision (bar start + 1 h availability, then b+1 open). Scoring
+    a strategy at the label bar's price is an exact-extreme artifact (item 12). Labels and fills are stored
+    as separate columns and are never collapsed.
+
+24. **2024 is already observed.** 2024 was looked at repeatedly (validation sweeps, ZigZag v2 reruns).
+    It is relabelled as previously observed DEVELOPMENT (@abbfaa6) and is no holdout for any later claim. Only
+    2025+ (TEST, refused by every loader) is unseen.
+
+25. **Selection v3: useful for classification, not for trading (K14).** TIMING_PROXY_SELECTION v3
+    (`b4da1012…`, 6 variables, on the v2 expert D3/40.7/B0 with b+1 execution) was compared with the 15 on
+    identical rows. PR-AUC was 0.38–0.40 vs 0.35–0.37 (base 0.20), and log-loss was significantly better in
+    both neural arms. Trading nearly always loses: Sharpe −4.0…+0.8, m2 2024 significantly worse, DSR
+    ≤ 0.057. A classification gain is not a strategy result. v3 also ran on the lake label clock, and
+    2023H1 there is missing 666 bars that the admitted root has (+27.2 %). The rerun on the admitted source
+    waits for Musashi's decision on v3.
