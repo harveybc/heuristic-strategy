@@ -49,3 +49,19 @@ def blend(truth, naive, w):
     if w == 1.0:
         return truth.copy()
     return naive + w * (truth - naive)
+
+
+def flip_to_accuracy(ft, eligible, u, target):
+    """Flip first-touch labels so accuracy on ``eligible`` rows is ``target`` exactly.
+
+    The k = round((1 - target) * n) eligible rows with the smallest ``u`` are
+    flipped, so a lower target flips a superset of a higher one (common random
+    numbers) and rows outside ``eligible`` are never touched.
+    """
+    ft = np.asarray(ft).astype(int)
+    idx = np.flatnonzero(np.asarray(eligible, bool))
+    k = int(round((1.0 - float(target)) * len(idx)))
+    order = idx[np.argsort(np.asarray(u)[idx], kind="stable")]
+    out = ft.copy()
+    out[order[:k]] = -out[order[:k]]
+    return out

@@ -66,6 +66,8 @@ def test_val24x_grid_contents():
     sweeps = {c["sweep"] for c in model}
     assert {"rfm_range", "rfm_firsttouch", "ft_at_naive_range", "ft_at_08_range",
             "range_abs_at_ft", "range_blend_at_ft"} <= sweeps
+    assert {"rfl_range", "rfl_firsttouch"} <= sweeps
+    assert {c["strategy"] for c in model if c["sweep"].startswith("rfl_")} == {"RF-L"}
     rfm = [c for c in model if c["sweep"] == "rfm_range"]
     assert {c["strategy"] for c in rfm} == {"RF-M"} and {c["ft_target"] for c in rfm} == {1.0}
     naive = [c for c in model if c["sweep"] == "ft_at_naive_range"]

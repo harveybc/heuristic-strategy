@@ -66,6 +66,9 @@ VAL_P = tuple(round(0.05 * k, 2) for k in range(11))
 VAL_JOINT_PIPS = (0.0, 5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 120.0, 200.0, 400.0)
 VAL_JOINT_P = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5)
 VAL_COSTS = (1.0, 2.0)
+# Coordinator follow-up 2026-10-19: participation, RF-M range sweep, realistic sweeps (val24x).
+VAL_FT_TARGETS = tuple(round(1 - 0.05 * k, 2) for k in range(11))
+VAL_FIXED_FT = (0.6, 0.7)
 CAPITAL = 10_000.0
 PIP = 1e-4
 LABEL = "DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT"
@@ -223,6 +226,24 @@ def cells(grid):
         out += [dict(grid=grid, sweep=sw, block_hours=24, strategy="RF-L", family="abs", level=x, p_flip=p,
                      seed=s, cost_mult=m) for (sw, x, p), s, m in itertools.product(sweeps, VAL_SEEDS, VAL_COSTS)]
         return out
+    if grid == "val24x":
+        out = [dict(grid=grid, sweep="baseline", block_hours=24, strategy=n, family="none", level=0.0,
+                    p_flip=0.0, ft_target=None, seed=0, cost_mult=m)
+               for n in ("NO_TRADE", "NAIVE_MEAN20_RF-L", "NAIVE_MEAN20_RF-M") for m in VAL_COSTS]
+        specs = []
+        for st in ("RF-M", "RF-L"):  # same participation accounting for both executions
+            tag = st[-1].lower()
+            specs += [(f"rf{tag}_range", st, "abs", x, 1.0) for x in VAL_RANGE_PIPS]
+            specs += [(f"rf{tag}_firsttouch", st, "abs", 0.0, a) for a in VAL_FT_TARGETS]
+        for st in ("RF-L", "RF-M"):
+            specs += [("ft_at_naive_range", st, "blend", 0.0, a) for a in VAL_FT_TARGETS]
+            specs += [("ft_at_08_range", st, "blend", 0.2, a) for a in VAL_FT_TARGETS]
+            specs += [("range_abs_at_ft", st, "abs", x, a) for x in VAL_RANGE_PIPS for a in VAL_FIXED_FT]
+            specs += [("range_blend_at_ft", st, "blend", w, a) for w in BLEND_W for a in VAL_FIXED_FT]
+        out += [dict(grid=grid, sweep=sw, block_hours=24, strategy=st, family=f, level=x, p_flip=0.0,
+                     ft_target=a, seed=s, cost_mult=m)
+                for (sw, st, f, x, a), s, m in itertools.product(specs, VAL_SEEDS, VAL_COSTS)]
+        return out
     raise ValueError(grid)
 
 
@@ -230,7 +251,7 @@ def run_cell(ctx, cell):
     costs = X.Costs().scaled(cell["cost_mult"])
     p = S.RangeFirstParams()
     st = cell["strategy"]
-    if cell["grid"] == "val24":
+    if cell["grid"] in ("val24", "val24x"):
         return run_val24_cell(ctx, cell, costs, p)
     if st in ("RF-M", "RF-L"):
         H_hat, L_hat = ctx.range_forecast(cell["family"], cell["level"], cell["seed"])
@@ -265,19 +286,27 @@ def run_val24_cell(ctx, cell, costs, p):
     """Business-day RF-L on VALIDATION 2024 only; achieved metrics on the same rows."""
     only = ("VALIDATION_2024",)
     st = cell["strategy"]
-    if st == "RF-L":
-        H_hat, L_hat = ctx.range_forecast("abs", cell["level"], cell["seed"])
-        flip = ctx.draws[cell["seed"]]["u_flip"] < cell["p_flip"]
-        ft_hat = np.where(flip, -ctx.ft_oracle, ctx.ft_oracle)
-        conf = 1.0 - cell["p_flip"]
-    elif st == "NAIVE_MEAN20_RF-L":
+    variant = st[-4:]
+    target = cell.get("ft_target")
+    if st in ("RF-L", "RF-M"):
+        H_hat, L_hat = ctx.range_forecast(cell["family"] if cell["grid"] == "val24x" else "abs",
+                                          cell["level"], cell["seed"])
+        u = ctx.draws[cell["seed"]]["u_flip"]
+        if target is not None and np.isfinite(target):
+            eligible = ctx.masks["VALIDATION_2024"] & (ctx.blocks.ft != B.AMBIGUOUS)
+            ft_hat = N.flip_to_accuracy(ctx.ft_oracle, eligible, u, target)
+            conf = float(target)
+        else:
+            ft_hat = np.where(u < cell["p_flip"], -ctx.ft_oracle, ctx.ft_oracle)
+            conf = 1.0 - cell["p_flip"]
+    elif st in ("NAIVE_MEAN20_RF-L", "NAIVE_MEAN20_RF-M"):
         H_hat, L_hat, ft_hat = ctx.naive["MEAN20"]
         conf = 1.0
     elif st == "NO_TRADE":
         return evaluate(ctx, [None] * len(ctx.blocks), costs, splits=only)
     else:
         raise ValueError(st)
-    orders = S.range_first_orders("RF-L", ctx.blocks, H_hat, L_hat, ft_hat, costs, p, CAPITAL)
+    orders = S.range_first_orders(variant, ctx.blocks, H_hat, L_hat, ft_hat, costs, p, CAPITAL)
 
     def acc(mask):
         out = accuracy(ctx, mask, H_hat, L_hat, ft_hat)
@@ -306,7 +335,8 @@ def run_grid(args, bars, cal, digest):
         for row, res in run_cell(ctxs[c["block_hours"]], c):
             rows.append({**c, **row, "label": LABEL})
             if args.save_equity:
-                key = "|".join(map(str, cell_key(c) + ((c["sweep"],) if "sweep" in c else ()) + (row["split"],)))
+                key = "|".join(map(str, cell_key(c) + ((c["sweep"],) if "sweep" in c else ()) +
+                                   ((c["ft_target"],) if "ft_target" in c else ()) + (row["split"],)))
                 curves[key] = res.daily_equity.to_numpy(np.float32)
                 curves[key + "|t0"] = np.array([res.daily_equity.index[0].value], dtype=np.int64)
     cpu = time.process_time() - t0
@@ -324,13 +354,13 @@ def merge(args):
     frames = [pd.read_csv(p) for p in sorted(out.glob("cells_*of*.csv"))]
     df = pd.concat(frames, ignore_index=True)
     grids = args.grids.split(",")
-    per_cell = {g: (1 if g == "val24" else len(SPLITS)) for g in grids}
+    per_cell = {g: (1 if g in ("val24", "val24x") else len(SPLITS)) for g in grids}
     expected = {g: len(cells(g)) * per_cell[g] for g in grids}
     got = df.groupby("grid").size().to_dict()
     if got != expected:
         raise SystemExit(f"incomplete population {got} != {expected}")
     keys = ["grid", "block_hours", "strategy", "family", "level", "p_flip", "seed", "cost_mult", "split"] + \
-        (["sweep"] if "sweep" in df.columns else [])
+        [k for k in ("sweep", "ft_target") if k in df.columns]
     if df.duplicated(keys).any():
         raise SystemExit("duplicate cells")
     df.to_csv(out / "cells.csv", index=False)
@@ -358,7 +388,7 @@ def main():
     ap.add_argument("stage", choices=["calendar", "pilot", "run", "merge"])
     ap.add_argument("--data", type=Path, help=f"lake file {LAKE_RELPATH}")
     ap.add_argument("--output", type=Path)
-    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs", "val24"])
+    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs", "val24", "val24x"])
     ap.add_argument("--grids", default="baselines,rf,comparator,costs", help="merge: grids expected")
     ap.add_argument("--chunk", default="0/1")
     ap.add_argument("--save-equity", action="store_true")

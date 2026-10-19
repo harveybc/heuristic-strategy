@@ -181,7 +181,7 @@ def _entry_bars(v, lo, hi, cutoff):
     return int(np.searchsorted(v[lo:hi], (cutoff - HOUR).value, side="right"))
 
 
-def _account(bars, trades, split, initial_capital, evaluated, refused):
+def _account(bars, trades, split, initial_capital, evaluated, refused, orders_submitted=None, unfilled=0):
     ts = bars.index
     a, b = (pd.Timestamp(x) for x in split)
     sel = np.flatnonzero((ts >= a) & (ts < b))
@@ -240,7 +240,14 @@ def _account(bars, trades, split, initial_capital, evaluated, refused):
          "exit_tp": int(sum(t["exit_reason"] == "TP" for t in trades)),
          "exit_sl": int(sum(t["exit_reason"] == "SL" for t in trades)),
          "exit_time": int(sum(t["exit_reason"] == "TIME" for t in trades)),
-         "evaluated_blocks": len(evaluated), "calendar_days": len(days)}
+         "evaluated_blocks": len(evaluated), "calendar_days": len(days),
+         # participation: an unfilled limit or a refused entry is an abstention, not a loss
+         "eligible_blocks": len(evaluated),
+         "orders_submitted": int(len(trades) + refused + unfilled if orders_submitted is None else orders_submitted),
+         "unfilled_orders": int(unfilled),
+         "fill_rate": float(len(trades) / len(evaluated)) if len(evaluated) else 0.0,
+         "net_per_eligible_block_usd": float((equity.iloc[-1] - initial_capital) / len(evaluated))
+         if len(evaluated) else 0.0}
     recon = m["gross_usd"] - sum(m[f"cost_{c}_usd"] for c in ("spread", "slippage", "commission", "financing"))
     if abs(recon - m["net_profit_usd"]) > 1e-6 * max(1.0, abs(recon)):
         raise AssertionError("cash ledger does not reconcile with trade costs")
@@ -252,22 +259,24 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs: Costs, calen
     v = bars.index.as_unit("ns").asi8
     arr = [bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE")]
     evaluated = list(np.flatnonzero(blocks.in_split(split)))
-    trades, refused = [], 0
+    trades, refused, submitted, unfilled = [], 0, 0, 0
     for k in evaluated:
         order = orders[k]
         if order is None or order.units <= 0:
             continue
+        submitted += 1
         lo, hi = blocks.bar_lo[k], blocks.bar_hi[k]
         seg = calendar.segments[blocks.segment[k]]
         fill = simulate_block(order, *(x[lo:hi] for x in arr),
                               entry_bars=_entry_bars(v, lo, hi, seg.entry_cutoff))
         if fill is None:
+            unfilled += 1
             continue
         if fill.refused:
             refused += 1
             continue
         trades.append(_trade_record(v, blocks.segment[k], lo, fill, costs, calendar, int(k)))
-    return _account(bars, trades, split, initial_capital, evaluated, refused)
+    return _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled)
 
 
 def run_segment_hold(bars, calendar, direction, costs, initial_capital, split, blocks,

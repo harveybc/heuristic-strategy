@@ -6,6 +6,46 @@ high/low/first-touch, then the same values with additive Gaussian noise and
 label flips. TEST (2025+) stays closed; the loader refuses it at read time.
 Owner follow-up of 2026-10-19 to [REQUIRED_ACCURACY_FRONTIER.md](REQUIRED_ACCURACY_FRONTIER.md).
 
+## How to read these curves (read this first)
+
+The first study added Gaussian noise to one input while keeping the other one
+perfect. That design **cannot produce a usable accuracy requirement for RF-L**.
+Two mechanical effects explain why. Both are measured in
+`results/validation_2024/validation_participation.png`.
+
+**(1) Free abstention.** As σ grows, noise pushes the predicted extreme outward
+about half the time.
+- RF-L's limit then sits beyond the true extreme and never fills. The block
+  simply has no trade, with no loss.
+- At σ 600 pips, RF-L submits 109 orders on 259 eligible blocks and only 14 fill;
+  95 are never reached. Win rate on the trades that remain stays around 0.71.
+- Net profit decays toward zero (1.03 USD per eligible block, against 149 USD
+  ideal) but cannot turn negative, because the strategy quietly stops trading.
+- RF-M uses market entry and has no unfilled orders. It still abstains at
+  decision time: its geometry and cost-edge checks read the truth-centred
+  forecast and drop blocks whose true move is small. Orders fall from 237 to 57
+  at σ 600 pips.
+
+**(2) Exact-extreme fill.** With the range perfect, RF-L's limit sits at the
+block's true extreme plus the inset.
+- Every fill is at nearly the block's best price.
+- The stop lies beyond an extreme that is never exceeded, so it can never be
+  hit: zero stop exits on the whole first-touch sweep.
+- Hence +22,749 USD and a win rate of 0.82 at a coin-flip first touch (achieved
+  0.498). The losers are block-end time exits, never stops.
+- RF-M shows the same property, not through the fill but through the bracket.
+  Its TP inside the true extreme is always reached and its stop beyond it never
+  is, so its win rate is 0.997 at a coin-flip first touch.
+- This is a property of perfect knowledge of the extremes, not robustness to
+  classification error.
+
+Consequences:
+- The one-input Gaussian sweeps below are kept for completeness. Their "no
+  break-even" results must not be quoted as requirements.
+- The requirements come from the sweeps in §"Requirements to quote", where the
+  other input is held at a realistic level (the naive range or 0.8× of it; a
+  first-touch accuracy of 0.60 or 0.70), not at perfection.
+
 ## What ran
 
 - **Strategy:** the recommended business-day RF-L from the contract. Blocks are
@@ -51,6 +91,12 @@ Owner follow-up of 2026-10-19 to [REQUIRED_ACCURACY_FRONTIER.md](REQUIRED_ACCURA
   panels against achieved first-touch accuracy (1.0 → 0.5).
 - `results/validation_2024/validation_degradation_joint.png`: heatmap of mean net
   profit with the 0-contour, at ×1 and ×2.
+- Follow-up figures (see §"Requirements to quote"):
+  `validation_participation.png` (fills and orders per eligible block, and net
+  profit per eligible block, for every one-input sweep);
+  `validation_degradation_rfm_range.png` (RF-M Gaussian range sweep with a
+  fill-rate panel); and `validation_degradation_realistic.png` (first-touch
+  sweeps at naive and 0.8× range; range sweeps at first touch 0.70 and 0.60).
 - `results/validation_2024/validation_equity_2024.png`: 2024 equity for the ideal
   forecast, light noise (σ 5 pips), medium noise (σ 30 pips), the joint cell
   closest to break-even (σ 400 pips, p 0.3), the naive-range baseline and
@@ -71,7 +117,55 @@ Owner follow-up of 2026-10-19 to [REQUIRED_ACCURACY_FRONTIER.md](REQUIRED_ACCURA
 
 At ×2 costs the ideal is 33,424 and the naive baseline −4,973.
 
-## Break-even levels read off the curves
+## Requirements to quote (follow-up: RF-M range sweep and realistic sweeps)
+
+Same data, costs, simulator and seeds (42–46): grid `val24x`, 2,366 cells, 34.4
+CPU-seconds in three bounded chunks. Each first-touch level is set **exactly**
+on the 2024 non-ambiguous blocks. The flips are nested, so lower accuracy flips a
+superset of the blocks flipped at higher accuracy. Range at "1.0×" is the
+NAIVE_MEAN20 forecast itself; "0.8×" is the blend `naive + 0.2·(truth − naive)`.
+Figures: `results/validation_2024/validation_degradation_realistic.png`,
+`results/validation_2024/validation_degradation_rfm_range.png` and
+`results/validation_2024/validation_participation.png`. Tables:
+`validation_break_even_realistic.json` and `validation_participation_summary.csv`.
+
+**(b) RF-M (market entry), Gaussian range noise, first touch perfect.** No
+crossing up to 26.2× naive MAE (+382 USD at ×1, +265 at ×2), because of
+decision-time abstention and the perfect first touch. The fill rate falls from
+0.92 to 0.22. Like RF-L, this sweep yields no requirement. The contract has no
+RF-L participation-floor variant, so none was run.
+
+**(c) Realistic sweeps: break-even read on the mean, and on the worst of 5 seeds
+(all seeds > 0).**
+
+| Required | Held fixed | RF-L ×1 mean (all seeds) | RF-L ×2 mean (all seeds) | RF-M ×1 mean (all seeds) | RF-M ×2 mean (all seeds) |
+|---|---|---:|---:|---:|---:|
+| first-touch accuracy ≥ | range = naive (1.0×) | **0.715** (0.731) | 0.816 (0.834) | **0.703** (0.766) | 0.875 (0.917) |
+| first-touch accuracy ≥ | range = 0.8× naive | **0.580** (0.596) | 0.726 (0.753) | **0.542** (0.623) | 0.685 (0.757) |
+| range MAE / naive ≤ | first touch 0.70 | **0.974×** (0.948×) | 0.752× (0.719×) | **0.995×** (0.918×) | 0.811× (0.766×) |
+| range MAE / naive ≤ | first touch 0.60 | **0.837×** (0.811×) | 0.609× (0.589×) | **0.877×** (0.762×) | 0.752× (0.709×) |
+
+Fill rate at the ×1 break-evens is about 0.36–0.45 for RF-L and 1.0 for RF-M.
+Range MAE in pips = ratio × 17.9; for example, 0.837× ≈ 15.0 pips.
+
+Plain reading for 2024 business days at base costs:
+- With no range skill, the first-touch classifier must be right on about
+  **70–72 %** of blocks to break even on average, or **73–77 %** to be
+  profitable on every seed.
+- A range forecast with 20 % less error than the naive lowers that to about
+  **54–58 %** (mean), or **60–62 %** (every seed).
+- At **60 %** first-touch accuracy, the range forecast must beat the naive's
+  MAE by about **12–16 %** (mean), or **19–24 %** (every seed).
+- **Doubling costs** raises every one of these requirements a lot: 0.82–0.92
+  first-touch accuracy with no range skill.
+- RF-L and RF-M need about the same accuracy. RF-L trades about 40 % of blocks
+  where RF-M trades all of them.
+
+Gaussian range noise at a fixed first touch still looks lenient (RF-L at FT 0.70
+breaks even at 15.0× naive MAE). That is free abstention again: the fill rate
+there is 0.07. It is reported in the JSON but must not be quoted.
+
+## Break-even levels from the first study (perfect-other-input sweeps; not requirements)
 
 Linear interpolation between grid points (`app/short_horizon/analysis.zero_crossing`).
 Accuracy is the measured value; ratio is achieved range MAE / naive MAE (17.9 pips).
@@ -94,7 +188,7 @@ at FT 0.52 / 2.6× (σ 60 pips, p 0.5) the mean is −111 USD at ×1 and −970 
 Doubling costs moves the contour roughly 40–80 % toward more accurate forecasts:
 1.5× instead of 2.5× at FT 0.52, and 3.2× instead of 16.1× at FT 0.71.
 
-## How to read this — the standing caveat
+## Additional caveat
 
 **Additive Gaussian noise centred on the truth is optimistic compared with a
 real model, because the truth stays inside the error distribution.**
@@ -127,7 +221,13 @@ at ×2. A model must beat that on identical rows before any of these curves matt
 ## Compute and limits
 
 - **Compute:** 984 cells, 13.9 backtest CPU-seconds in two
-  `crispdm-run -q -m 2G -t 120s` chunks. Reporting ran in one more bounded call.
+  `crispdm-run -q -m 2G -t 120s` chunks for the first study. The follow-up
+  (`val24x`) ran 2,366 cells in 34.4 CPU-seconds over three chunks. Reporting
+  ran in a few more bounded calls.
+- **Exact flips:** first-touch levels in the follow-up are set exactly by
+  flipping the k non-ambiguous 2024 blocks with the smallest seeded uniforms.
+  The realistic range levels are the naive itself or a blend toward the truth,
+  so the "realistic" sweeps are still constructions, not models.
 - **Development data:** 2024 only, one market path. Seeds vary only the noise,
   so the seed band is not a confidence interval. 2024 is DEVELOPMENT, not a holdout.
 - **Costs:** ASSUMED_NOT_BROKER_VERIFIED: 2 pip spread, 1 pip slippage per fill,
