@@ -22,7 +22,7 @@ def test_schema_has_bounds_and_defaults_for_every_parameter_and_rejects_out_of_b
         assert "default" in spec, name
         if spec["type"] == "number":
             assert spec["minimum"] <= spec["default"] <= spec["maximum"], name
-        elif spec["type"] == "integer":
+        elif spec["type"] == "integer" and "enum" not in spec:
             assert spec["minimum"] <= spec["default"] <= spec["maximum"], name
         else:
             assert spec["default"] in spec["enum"], name
