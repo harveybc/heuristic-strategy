@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from app.short_horizon.analysis import zero_crossing  # noqa: E402
 from tools.short_horizon_price_path_report import GRID, INK, PURPLE, RUST, TEAL, es  # noqa: E402
 
-PER_ES = {"DECISION_2020_2022": "Decisión 2020-2022", "VALIDATION_2023": "Validación 2023", "CONFIRM_2024": "Confirmación 2024 (una vez)"}
+PER_ES = {"DECISION_2020_2022": "Decisión 2020-2022", "VALIDATION_2023": "Validación 2023", "CONFIRM_2024": "2024 (desarrollo ya observado)"}
 
 
 def fig_front(front, choice, out):
@@ -74,7 +74,7 @@ def fig_gap(conf, det, seal, out):
     e = [float(d[d.period == p].sharpe_daily_sqrt365.iloc[0]) for p in periods]
     ax.bar(xs - w, a, w, color=PURPLE, label="(a) ZigZag con retrospectiva = experto (NO causal; TP = siguiente pivote)")
     ax.bar(xs, b, w, color=TEAL, label=f"(b) ZigZag confirmado causalmente (mismos parámetros; retardo mediano {es(c.lag_median.iloc[0], 0)} barras; TP = {es(c.k_tp.iloc[0], 1)}·σ̂)")
-    ax.bar(xs + w, e, w, color=RUST, label=f"(c) detector causal aprendido (MLP, k = {seal['k_bars']} barras, umbral {es(seal['threshold'], 1)}; rasgos sustitutos del lago)")
+    ax.bar(xs + w, e, w, color=RUST, label=f"(c) SMOKE_PROBE_WEAK_DETECTOR (MLP sin ventana, k = {seal['k_bars']} barras, umbral {es(seal['threshold'], 1)}, rasgos sustitutos, una semilla) — no es evidencia del techo alcanzable")
     for x, (va, vb, ve) in enumerate(zip(a, b, e)):
         ax.annotate(f"brecha (a)−(b) = {es(va - vb, 1)}", (x, max(va, 0) + 0.6), ha="center", fontsize=9, color=INK)
         for off, v in ((-w, va), (0, vb), (w, ve)):
@@ -146,7 +146,7 @@ def fig_noise(noise, conf, det, seal, out):
     ax.axvline(base, color=RUST, linestyle="--", linewidth=1.4, label=f"tasa base de pivote en k barras ({es(base, 2)})")
     ax.set_xlabel("Precisión del detector en el umbral (pivote correcto dentro de k barras)", color=INK)
     ax.set_ylabel("Sharpe anualizado (reversión; TP = k_tp·σ̂)", color=INK)
-    ax.set_title("Sharpe frente a la precisión de detección de pivotes del detector causal aprendido (puntos huecos: inválidos por frecuencia) · DESARROLLO",
+    ax.set_title("Sharpe frente a la precisión de detección de pivotes — SMOKE_PROBE_WEAK_DETECTOR (puntos huecos: inválidos por frecuencia) · DESARROLLO",
                  fontsize=9.5, color=INK, loc="left")
     ax.legend(fontsize=8, frameon=True, edgecolor="#d0d0d0")
     fig.tight_layout()
@@ -192,7 +192,7 @@ def tables(front, choice, conf, lags, noise, det, seal, man):
                                                         t=("trades_per_week", "mean"), v=("valid", "min")).reset_index()
     for _, r in g.iterrows():
         md.append(f"| {r.period} | {int(r.delay)} | {int(r.jitter)} | {es(r.x, 2)} | {es(r.s, 2)} | {es(r.t, 1)} | {'sí' if r.v else 'no'} |")
-    md.append("\n## Learned causal pivot detector (MLP 64-32, class-weighted CE, 30 epochs; trained 2020-2022, chosen 2023, confirmed 2024)\n")
+    md.append("\n## SMOKE_PROBE_WEAK_DETECTOR (MLP 64-32 without lookback window, class-weighted CE, 30 epochs, one seed; trained 2020-2022, chosen 2023, confirmed 2024) — not evidence about the achievable ceiling\n")
     md.append(f"Features: {len(seal['features'])} causal lake features ({seal['feature_source']}). Device {seal['gpu_name'] or seal['device']}, "
               f"peak VRAM {es(seal['peak_vram_mib'], 0)} MiB, training wall {es(seal['wall_seconds'], 1)} s. Predictions sealed sha256 `{seal['sha256'][:16]}…`.\n")
     md.append("| k | Threshold | Period | Signals | Precision | AUC valley / peak | Log-loss (base rate) | Sharpe | Orders/wk | Valid |")

@@ -102,7 +102,7 @@ k_tp chosen on 2020-2022 per parameter set: D3_dev36.3_B2: 0.5 → -1,41, 1.0 �
 | VALIDATION_2023 | 12 | 2 | 12,01 | 7,54 | 6,9 | sí |
 | VALIDATION_2023 | 12 | 4 | 11,99 | 7,61 | 6,6 | sí |
 
-## Learned causal pivot detector (MLP 64-32, class-weighted CE, 30 epochs; trained 2020-2022, chosen 2023, confirmed 2024)
+## SMOKE_PROBE_WEAK_DETECTOR (MLP 64-32 without lookback window, class-weighted CE, 30 epochs, one seed; trained 2020-2022, chosen 2023, confirmed 2024) — not evidence about the achievable ceiling
 
 Features: 19 causal lake features (SUBSTITUTE_CAUSAL_LAKE_FEATURES_NOT_MUSASHI_MANIFEST). Device NVIDIA GeForce RTX 4070 Laptop GPU, peak VRAM 35 MiB, training wall 5,7 s. Predictions sealed sha256 `79fddac0094801df…`.
 

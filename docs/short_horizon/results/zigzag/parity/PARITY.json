@@ -1,0 +1,138 @@
+{
+ "label": "PARITY_CHECK",
+ "period": [
+  "2024-01-01",
+  "2025-01-01"
+ ],
+ "units_fixed": 90000.0,
+ "initial_cash": 10000.0,
+ "expert_series_sha256": "352ddf6a55300864e11abe790b8bad396742abe4fd4d2aaef1012127ba544f76",
+ "probe_predictions_sha256": "79fddac0094801dffe51e9c887127899aa54d04f6707ca8a9f0ecd449bfa2359",
+ "bars_csv_sha256": "1b5f5159e2162e8ceebade0cf3c73bd9b4440bf9ee0d7005e24c59564d7a9adb",
+ "bars_rows": 6725,
+ "agent_multi_worker": "m5phet_policy/src/agent_multi_m5phet/sweep_worker.py @ e4d01fa0",
+ "gym_fx_head": "e287ea2",
+ "env_config": {
+  "date_column": "DATE_TIME",
+  "price_column": "CLOSE",
+  "headers": true,
+  "window_size": 32,
+  "feature_columns": [],
+  "include_price_window": true,
+  "include_agent_state": true,
+  "env_mode": "training",
+  "mode": "training",
+  "action_space_mode": "continuous",
+  "continuous_action_threshold": 0.1,
+  "continuous_action_contract": "legacy_directional_v1",
+  "initial_cash": 10000.0,
+  "min_equity": 0.0,
+  "position_size": 90000.0,
+  "commission": 3.1818181818181814e-05,
+  "slippage": 4.545454545454545e-05,
+  "leverage": 100.0,
+  "timeframe": "1h",
+  "simulation_engine": "backtrader",
+  "solvency_mode": "normal_realistic",
+  "data_feed_plugin": "default_data_feed",
+  "broker_plugin": "default_broker",
+  "strategy_plugin": "default_strategy",
+  "metrics_plugin": "default_metrics",
+  "preprocessor_plugin": "default_preprocessor",
+  "reward_plugin": "pnl_reward",
+  "reward_scale": 1.0
+ },
+ "ours_costs": {
+  "spread_price": 6e-05,
+  "slippage_price": 2e-05,
+  "commission_per_lot_round_trip": 7.0,
+  "financing_per_lot_per_rollover": 0.0,
+  "lot_units": 100000.0
+ },
+ "worker_seconds": 17.82005330399261,
+ "wall_seconds": 20.078638315200806,
+ "table": {
+  "expert": {
+   "ours_hourly_simulator_PARITY_ONLY": {
+    "net": 143407.800000003,
+    "sharpe": 12.919490035791666,
+    "max_dd_usd": 805.5,
+    "max_dd_pct": 3.9223031014648946,
+    "trades": 1279,
+    "exit_mix": {
+     "reversal_or_time": 1279,
+     "tp": 0,
+     "sl": 0
+    },
+    "blocks_clipped_at_session_close": 53,
+    "costs_usd": 19568.7,
+    "gross_usd": 162976.50000000017
+   },
+   "gym_fx_replay": {
+    "net": 147350.79702866776,
+    "sharpe": 13.797242280517878,
+    "max_dd_usd": 805.0941321367209,
+    "max_dd_pct": 3.9047660337502315,
+    "trades": 1287,
+    "position_changes": 1288,
+    "steps": 6725,
+    "stopped": "TERMINATED",
+    "termination_cause": "data_end"
+   },
+   "decisions_in_2024": 1288
+  },
+  "probe": {
+   "ours_hourly_simulator_PARITY_ONLY": {
+    "net": 3367.7999999999865,
+    "sharpe": 0.743670983271703,
+    "max_dd_usd": 5458.49999999998,
+    "max_dd_pct": 46.306154218114315,
+    "trades": 537,
+    "exit_mix": {
+     "reversal_or_time": 537,
+     "tp": 0,
+     "sl": 0
+    },
+    "blocks_clipped_at_session_close": 53,
+    "costs_usd": 8216.1,
+    "gross_usd": 11583.900000000009
+   },
+   "gym_fx_replay": {
+    "net": 8081.861801664596,
+    "sharpe": 1.3324925689735134,
+    "max_dd_usd": 4577.4253072406,
+    "max_dd_pct": 37.24975328586872,
+    "trades": 232,
+    "position_changes": 233,
+    "steps": 6725,
+    "stopped": "TERMINATED",
+    "termination_cause": "data_end"
+   },
+   "decisions_in_2024": 539
+  },
+  "flat": {
+   "gym_fx_replay": {
+    "net": 0.0,
+    "sharpe": 0.0,
+    "max_dd_usd": 0.0,
+    "max_dd_pct": 0.0,
+    "trades": 0,
+    "position_changes": 0,
+    "steps": 6725,
+    "stopped": "TERMINATED",
+    "termination_cause": "data_end"
+   }
+  }
+ },
+ "contract_differences": [
+  "latency: both fill a decision at the NEXT bar open (gym-fx: backtrader market order; ours: MARKET at bar lo open)",
+  "exits: gym-fx has no per-trade SL/TP (only fixed-pip brackets via direct_fixed_sltp), so the parity policy is hold-to-reversal; our strategy result uses per-trade TP = next pivot level and SL = 2 sigma and is NOT what is compared here",
+  "session calendar: ours force-flats at the session close (weekly gap) and refuses entries outside sessions; gym-fx holds through the gap",
+  "intrabar rule: ours = open first, stop before TP, limit trade-through; gym-fx (backtrader) evaluates bracket legs by its own order, unused here",
+  "spread: ours charges half the hour-dependent spread per fill (0,3 pip mean used here as a flat half spread for parity); gym-fx has no spread, emulated as slippage_perc",
+  "commission: ours 3,5 USD per lot per side in cash; gym-fx a fraction of notional (equal at price 1,1, drifts with price)",
+  "swap: ours debits financing per rollover with a triple day (disabled here, financing 0); gym-fx has no financing in the default broker",
+  "sizing: ours compounds rel_volume x balance x leverage (disabled here: fixed units); gym-fx position_size is fixed units per order",
+  "ruin / caps: ours stops at ruin, caps 4 orders/day and enforces the frequency rule (disabled here); gym-fx terminates at min_equity (0 here)"
+ ]
+}
