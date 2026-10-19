@@ -164,7 +164,9 @@ def reconstruct_path(ref, U, D, ft, B: int) -> np.ndarray:
 
 
 def score(ps: PredictionSet, m: Market, split, strategy: str, cost_mult: float = 1.0, cap: int = 4,
-          min_per_week: float = 3.0) -> dict:
+          min_per_week: float = 3.0, sizing: Optional[X.Sizing] = None) -> dict:
+    """``sizing``: owner sizing (units from rel_volume of the current balance); None keeps the earlier
+    1 %-risk reference sizing."""
     b = m.blocks
     rows = b.in_split(split) & ps.has
     eligible = b.in_split(split)
@@ -205,6 +207,11 @@ def score(ps: PredictionSet, m: Market, split, strategy: str, cost_mult: float =
            if ok.any() else np.nan,
            "mae_u_ratio_persist": float(np.mean(np.abs(Uh[ok] - U_true[ok])) / np.mean(np.abs(pU[ok] - U_true[ok])))
            if ok.any() else np.nan,
+           "mae_r_pips": float(np.mean(np.abs((Uh + Dh)[ok] - (U_true + D_true)[ok])) / PIP) if ok.any() else np.nan,
+           "mae_r_ratio_mean20": float(np.mean(np.abs((Uh + Dh)[ok] - (U_true + D_true)[ok]))
+                                       / np.mean(np.abs((nU + nD)[ok] - (U_true + D_true)[ok]))) if ok.any() else np.nan,
+           "mae_r_ratio_persist": float(np.mean(np.abs((Uh + Dh)[ok] - (U_true + D_true)[ok]))
+                                        / np.mean(np.abs((pU + pD)[ok] - (U_true + D_true)[ok]))) if ok.any() else np.nan,
            # accuracy over blocks where the forecast makes a call (a flat path makes none)
            "direction_accuracy": float(np.mean(ft_hat[called] == b.ft[called])) if called.any() else np.nan,
            "log_loss": float(np.mean(-(y * np.log(np.clip(prob[clear], 1e-6, 1)) +
@@ -216,13 +223,16 @@ def score(ps: PredictionSet, m: Market, split, strategy: str, cost_mult: float =
     sigma = S.causal_block_sigma(b)
     orders, rule_skipped = S.apply_order_rules(orders, b, sigma, X.OrderRules())
     res = X.run_backtest(m.bars, b, orders, profile, m.calendar, CAPITAL, split, profile=profile,
-                         max_orders_per_day=cap, ruin_floor=0.0, order_rules=X.OrderRules(), sigma_block=sigma)
+                         max_orders_per_day=cap, ruin_floor=0.0, order_rules=X.OrderRules(), sigma_block=sigma,
+                         sizing=sizing)
     out["rule_skipped_orders"] = rule_skipped
     mm = res.metrics
     out.update({k: mm[k] for k in ("net_profit_usd", "end_equity_usd", "max_drawdown_usd", "sharpe_daily_sqrt365",
                                     "sortino_daily_sqrt365", "trades", "win_rate", "profit_factor",
                                     "trades_per_week", "max_orders_per_day", "weeks_with_eligible_blocks")})
     out["ruined"] = bool(mm["ruined"])
+    out["leverage"], out["rel_volume"] = mm.get("leverage"), mm.get("rel_volume")
+    out["max_exposure_x_balance"], out["margin_call_events"] = mm.get("max_exposure_x_balance"), mm.get("margin_call_events")
     out["valid"] = bool(mm["trades_per_week"] >= min_per_week and mm["max_orders_per_day"] <= cap and not mm["ruined"])
     out["valid_4_per_week"] = bool(mm["trades_per_week"] >= 4.0 and mm["max_orders_per_day"] <= cap
                                    and not mm["ruined"])

@@ -182,3 +182,74 @@ def log_loss(p, y) -> float:
     p = np.clip(np.asarray(p, float), 1e-6, 1 - 1e-6)
     y = np.asarray(y, float)
     return float(np.mean(-(y * np.log(p) + (1 - y) * np.log(1 - p))))
+
+
+# ------------------------------------------------------------------ small gradient-boosted model
+def gbm_predict(t: pd.DataFrame, F: pd.DataFrame, target: str, cadence: str, cfg: dict, min_rows: int = 100,
+                predict_from=None, embargo=pd.Timedelta(0)) -> np.ndarray:
+    """Median (absolute-error) gradient boosting of U or D on causal features, refit at each group start on
+    rows completed before it (and at least ``embargo`` before it). Only groups starting at or after
+    ``predict_from`` are fitted. Fixed small capacity from ``cfg``."""
+    from sklearn.ensemble import HistGradientBoostingRegressor
+    X = F.to_numpy(float)
+    y = t[target].to_numpy(float)
+    out = np.full(len(t), np.nan)
+    for g, rows in refit_groups(t, cadence):
+        if predict_from is not None and t["start"].iloc[g] < predict_from:
+            continue
+        cutoff = t["start"].iloc[g] - embargo
+        train = np.flatnonzero((np.arange(len(t)) < g) & (t["start"] <= cutoff).to_numpy() & np.isfinite(y))
+        if len(train) < min_rows:
+            continue
+        model = HistGradientBoostingRegressor(loss="absolute_error", max_depth=cfg.get("max_depth", 2),
+                                              max_iter=cfg.get("max_iter", 100),
+                                              learning_rate=cfg.get("learning_rate", 0.05),
+                                              min_samples_leaf=cfg.get("min_samples_leaf", 30), random_state=0)
+        use = np.isfinite(X[train]).sum(axis=0) >= 10        # columns with data in this training window
+        if not use.any():
+            continue
+        model.fit(X[train][:, use], y[train])
+        out[rows] = model.predict(X[rows][:, use])
+    return out
+
+
+def choose_gbm_config(t: pd.DataFrame, F: pd.DataFrame, fit_end, decision_end, grid, embargo,
+                      cadence: str = "weekly", min_rows: int = 100):
+    """Pick the capacity with the lowest |U error| + |D error| on blocks in [fit_end, decision_end),
+    predicted with weekly refits on earlier blocks only (purged by ``embargo``). Rows at or after
+    ``decision_end`` are never read."""
+    sel = (t["start"] < decision_end).to_numpy()
+    tt, FF = t[sel].reset_index(drop=True), F[sel].reset_index(drop=True)
+    dec = (tt["start"] >= fit_end).to_numpy()
+    scores = {}
+    for cfg in grid:
+        u = gbm_predict(tt, FF, "U", cadence, cfg, min_rows, predict_from=fit_end, embargo=embargo)
+        d = gbm_predict(tt, FF, "D", cadence, cfg, min_rows, predict_from=fit_end, embargo=embargo)
+        ok = dec & np.isfinite(u) & np.isfinite(d)
+        scores[json_key(cfg)] = float(np.mean(np.abs(u[ok] - tt["U"].to_numpy()[ok]) + np.abs(d[ok] - tt["D"].to_numpy()[ok])))
+    best = min(grid, key=lambda c: scores[json_key(c)])
+    return best, scores
+
+
+def json_key(cfg: dict) -> str:
+    import json
+    return json.dumps(cfg, sort_keys=True)
+
+
+def linear_predict(t: pd.DataFrame, F: pd.DataFrame, target: str, cadence: str, min_rows: int = 100,
+                   predict_from=None) -> np.ndarray:
+    """HAR-X: least squares of U or D on the causal features (rows with complete features), weekly refit."""
+    X = np.column_stack([np.ones(len(F)), F.to_numpy(float)])
+    y = t[target].to_numpy(float)
+    okx = np.isfinite(X).all(axis=1)
+    out = np.full(len(t), np.nan)
+    for g, rows in refit_groups(t, cadence):
+        if predict_from is not None and t["start"].iloc[g] < predict_from:
+            continue
+        train = np.flatnonzero(okx[:g] & np.isfinite(y[:g]))
+        if len(train) < min_rows:
+            continue
+        beta = _ridge(X[train], y[train], lam=1e-6)
+        rr = [r for r in rows if okx[r]]
+        out[rr] = X[rr] @ beta
+    return out
