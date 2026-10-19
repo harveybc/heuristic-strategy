@@ -58,7 +58,8 @@ def labels(args):
     bar_ts = ctx.bars.index.as_unit("s").asi8
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(out / "labels_h1.npz", bar_ts=bar_ts, y=y, valid=valid)
+    np.savez_compressed(out / "labels_h1.npz", bar_ts=bar_ts, y=y, valid=valid, close=ctx.bars.CLOSE.to_numpy(float),
+                        high=ctx.bars.HIGH.to_numpy(float))
     doc = dict(label="HINDSIGHT_ZIGZAG_TARGETS_DEVELOPMENT_ONLY", params=p.__dict__, k_bars=K_BARS, bars=int(n),
                pivots=len(piv), data_sha256=ctx.digest, zigzag_module_sha256=sha(ROOT / "app/short_horizon/zigzag.py"),
                class_counts=np.bincount(y, minlength=3).tolist(), window=[str(ctx.bars.index[0]), str(ctx.bars.index[-1])],
@@ -159,8 +160,9 @@ def evaluate(args):
                 m = {k: v for k, v in m.items() if k != "period"}
                 rows.append(dict(model=model, seed=seed, temperature=T, threshold=tau, period=name, signals=n_sig,
                                  precision_at_threshold=prec, recall_at_threshold=rec, **metrics(Pc, y, masks[name], base), **m))
+    tag = ("_" + args.tag) if args.tag else ""
     det = pd.DataFrame(rows)
-    det.to_csv(out / "detector_real.csv", index=False)
+    det.to_csv(out / f"detector_real{tag}.csv", index=False)
     # operating threshold per model: best 2023 Sharpe (valid first), mean over seeds; 2024 reported once at that threshold
     choice, summary = {}, []
     for model in sorted(det.model.unique()):
@@ -176,13 +178,13 @@ def evaluate(args):
                                                                               "precision_at_threshold", "recall_at_threshold", "auc_valley",
                                                                               "auc_peak", "log_loss", "log_loss_base_rate", "win_rate")},
                                 sharpe_sd=float(d.sharpe_daily_sqrt365.std(ddof=0)), valid_all=bool(d.valid.all())))
-    pd.DataFrame(summary).to_csv(out / "detector_real_summary.csv", index=False)
+    pd.DataFrame(summary).to_csv(out / f"detector_real_summary{tag}.csv", index=False)
     # sealed predictions of the chosen operating points (calibrated)
     frames = []
     for (model, seed), d in preds.items():
         frames.append(pd.DataFrame(dict(model=model, seed=seed, origin_ts=d["origin_ts"], period=d["period"], y=d["y"],
                                         p_none=d["P"][:, 0], p_valley=d["P"][:, 1], p_peak=d["P"][:, 2])))
-    pred_path = out / "detector_real_predictions.csv.gz"
+    pred_path = out / f"detector_real_predictions{tag}.csv.gz"
     pd.concat(frames).to_csv(pred_path, index=False, float_format="%.6f")
     doc = dict(label="DEVELOPMENT_REAL_FEATURE_PIVOT_DETECTOR", predictions_sha256=sha(pred_path), gpu_seal=seal["files"],
                gpu_run=dict((k, runinfo[k]) for k in ("gpu_name", "tensorflow", "keras", "sklearn", "seeds", "wall_seconds",
@@ -190,7 +192,8 @@ def evaluate(args):
                data=runinfo["data"], operating_threshold=choice, temperatures={f"{m}_s{s}": d["T"] for (m, s), d in preds.items()},
                k_tp=k_tp, m_sl=2.0, chosen_on="VALIDATION_2023 (threshold by mean Sharpe over seeds, valid first)",
                confirm="CONFIRM_2024 once", lake_sha256=ctx.digest, expert_params=choice_params(run).__dict__, test_read=False)
-    (out / "DETECTOR_REAL_SEAL.json").write_text(json.dumps(doc, indent=1, default=float) + "\n")
+    doc["input_mode"] = runinfo.get("input_mode", "manifest19_population")
+    (out / f"DETECTOR_REAL_SEAL{tag}.json").write_text(json.dumps(doc, indent=1, default=float) + "\n")
     print(json.dumps(dict(choice=choice, summary=[s for s in summary if s["period"] != "DECISION_2020_2022"]), default=float))
 
 
@@ -201,7 +204,7 @@ def sanity(args):
     ctx = Ctx(args.data)
     piv = ctx.pivots(choice_params(run))
     k_tp = float(pd.read_csv(run / "confirmed.csv").query("chosen").k_tp.iloc[0])
-    with np.load(Path(args.gpu_out) / "pred_m1_s6102026.npz", allow_pickle=False) as z:
+    with np.load(Path(args.gpu_out) / "pred_m1_s6102026.npz", allow_pickle=False) as z:  # the run's own origins
         origin_ts, y, period = z["origin_ts"], z["y"], z["period"].astype(str)
     period = np.array([PERIOD_MAP[p] for p in period])
     bar_index = {int(t): i for i, t in enumerate(ctx.bars.index.as_unit("s").asi8)}
@@ -226,7 +229,7 @@ def sanity(args):
                 mm = {k: v for k, v in mm.items() if k != "period"}
                 rows.append(dict(period=name, precision=p, seed=seed, signals=len(sig), true_signals=len(pos),
                                  false_signals=len(false), base_rate=base, tp_mode="TP_2SIGMA_CAUSAL", **mm))
-    pd.DataFrame(rows).to_csv(out / "oracle_noise.csv", index=False)
+    pd.DataFrame(rows).to_csv(out / ("oracle_noise" + (("_" + args.tag) if args.tag else "") + ".csv"), index=False)
     print(pd.DataFrame(rows).groupby(["period", "tp_mode", "precision"]).sharpe_daily_sqrt365.mean().to_string())
 
 
@@ -242,6 +245,8 @@ def figures(args):
     sseal = json.loads((run / "DETECTOR_SEAL.json").read_text())
     smoke = smoke[(smoke.k_bars == sseal["k_bars"]) & (smoke.threshold == sseal["threshold"])]
     summ = pd.read_csv(out / "detector_real_summary.csv")
+    tag = ("_" + args.tag) if args.tag else ""
+    summ2 = pd.read_csv(out / f"detector_real_summary{tag}.csv") if args.tag and (out / f"detector_real_summary{tag}.csv").exists() else None
     periods = ["DECISION_2020_2022", "VALIDATION_2023", "CONFIRM_2024"]
     es = {"DECISION_2020_2022": "Decisión 2020–2022", "VALIDATION_2023": "Validación 2023", "CONFIRM_2024": "Confirmación 2024 (una vez)"}
     series = [("(a) experto con retrospectiva (NO causal)", [float(conf[conf.period == p].hind_sharpe_daily_sqrt365.iloc[0]) for p in periods], "#5b3f8c"),
@@ -252,7 +257,14 @@ def figures(args):
     for mdl in sorted(summ.model.unique()):
         series.append((labels_m[mdl] + f" · umbral {summ[summ.model == mdl].threshold.iloc[0]:.1f} · media de {int(summ[summ.model == mdl].seeds.iloc[0])} semillas",
                        [float(summ[(summ.model == mdl) & (summ.period == p)].sharpe_daily_sqrt365_mean.iloc[0]) for p in periods], cols[mdl]))
-    fig, ax = plt.subplots(figsize=(12, 6.5), facecolor="white")
+    labels_g = {"m1": "(g) m1 receta I6-DMO · 15 entradas núcleo admitido (13 obs × paso 2, z-score causal 256)",
+                "m2": "(h) m2 GRU · 15 entradas núcleo admitido", "m3": "(i) m3 gradient boosting · 15 entradas núcleo admitido"}
+    cols_g = {"m1": "#7aa6e0", "m2": "#7fcf9b", "m3": "#d4b35a"}
+    if summ2 is not None:
+        for mdl in sorted(summ2.model.unique()):
+            series.append((labels_g[mdl] + f" · umbral {summ2[summ2.model == mdl].threshold.iloc[0]:.1f}",
+                           [float(summ2[(summ2.model == mdl) & (summ2.period == p)].sharpe_daily_sqrt365_mean.iloc[0]) for p in periods], cols_g[mdl]))
+    fig, ax = plt.subplots(figsize=(14, 7), facecolor="white")
     xs, w = np.arange(len(periods)), 0.8 / len(series)
     for i, (lab, vals, col) in enumerate(series):
         off = (i - (len(series) - 1) / 2) * w
@@ -268,7 +280,10 @@ def figures(args):
     fig.savefig(out / "zigzag_brecha_detector.png", dpi=130)
     fig.savefig(out / "zigzag_brecha_detector.pdf")
     plt.close(fig)
-    on = pd.read_csv(out / "oracle_noise.csv")
+    on = pd.read_csv(out / ("oracle_noise" + tag + ".csv")) if args.tag and (out / ("oracle_noise" + tag + ".csv")).exists() else pd.read_csv(out / "oracle_noise.csv")
+    if summ2 is not None:
+        summ = summ2
+        cols = cols_g
     fig, axs = plt.subplots(1, 2, figsize=(14, 5.5), facecolor="white")
     for ax, name in zip(axs, ("VALIDATION_2023", "CONFIRM_2024")):
         for mode, col in (("TP_2SIGMA_CAUSAL", "#1f7a7a"),):
@@ -283,7 +298,7 @@ def figures(args):
         ax.set_title(f"Oráculo → ruido · {es[name]}", loc="left", fontsize=10)
         ax.legend(fontsize=7)
     fig.tight_layout()
-    fig.savefig(out / "oraculo_ruido_precision.png", dpi=130)
+    fig.savefig(out / f"oraculo_ruido_precision{tag}.png", dpi=130)
     plt.close(fig)
     # per-epoch curves (overfitting diagnostic): TRAIN running loss vs INNER weighted loss, their mean, INNER Sharpe
     runinfo = json.loads((Path(args.gpu_out) / "RUN.json").read_text())
@@ -309,13 +324,13 @@ def figures(args):
             ax.legend(fontsize=6)
     fig.suptitle("Curvas de entrenamiento: término TRAIN = pérdida en curso del propio entrenamiento; término INNER = misma pérdida en 2023 purgado; parada en la media · DESARROLLO", fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
-    fig.savefig(out / "curvas_entrenamiento.png", dpi=130)
+    fig.savefig(out / f"curvas_entrenamiento{tag}.png", dpi=130)
     plt.close(fig)
     rows = []
     for key, fit in sorted(fits.items()):
         for h in fit["history"]:
             rows.append(dict(fit=key, **{k: v for k, v in h.items()}))
-    pd.DataFrame(rows).to_csv(out / "training_curves.csv", index=False)
+    pd.DataFrame(rows).to_csv(out / f"training_curves{tag}.csv", index=False)
     print("figures written")
 
 
@@ -326,6 +341,7 @@ def main():
     ap.add_argument("--zigzag-run", default=str(ROOT / "docs/short_horizon/results/zigzag"))
     ap.add_argument("--out", default=str(ROOT / "docs/short_horizon/results/pivot_detector"))
     ap.add_argument("--gpu-out", help="fetched GPU-stage output directory (pred_*.npz, RUN.json, SEAL.json)")
+    ap.add_argument("--tag", default="", help="suffix for a second run's outputs (e.g. sel15)")
     a = ap.parse_args()
     {"labels": labels, "evaluate": evaluate, "sanity": sanity, "figures": figures}[a.stage](a)
 

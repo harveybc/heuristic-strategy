@@ -151,13 +151,107 @@ def load_arms(args):
                 period=period[sel], pop_split=pop_split[sel], effective=effective, meta=meta)
 
 
+def load_sel15(args):
+    """Musashi's admitted-core selection (identity 553fc047...): the prepared train.csv / validation.csv
+    (curated_rl_input.v1 receipts, bytes pinned) under his input contract: 13 observations at stride 2
+    OBSERVED bars including the current completed bar; causal rolling z-score over the 256 past rows
+    [step-256, step) (gym-fx feature_window_preprocessor rolling_zscore); the two files are concatenated
+    in time (TRAIN 2020-2023 then VALIDATION 2024) so the 2024 windows see their own past only.
+    The CSV clock is ``--clock-offset-hours`` ahead of the lake bar labels the ZigZag targets use (the
+    admitted core carries the repaired clock); each row is joined to the lake bar at DATE_TIME - offset
+    and the join is verified on OPEN/HIGH/CLOSE equality."""
+    import pandas as pd
+    base = Path(args.csv_dir)
+    frames, receipts = [], {}
+    for role in ("train", "validation"):
+        rec = json.loads((base / (role + ".json")).read_text())
+        if sha(base / (role + ".csv")) != rec["input_sha256"] or rec["status"] != "ADMITTED":
+            raise SystemExit("SEL15_INPUT_PIN:" + role)
+        df = pd.read_csv(base / (role + ".csv"), parse_dates=["DATE_TIME"])
+        if list(rec["feature_columns"]) != args.features or len(df) != rec["row_count"]:
+            raise SystemExit("SEL15_RECEIPT_MISMATCH:" + role)
+        df["role"] = role
+        frames.append(df)
+        receipts[role] = {k: rec[k] for k in ("input_sha256", "selection_sha256", "row_count", "period_start", "period_end",
+                                              "leading_source_warmup_rows_removed", "timestamp_semantics", "calendar_sha256")}
+    df = pd.concat(frames, ignore_index=True)
+    if not df.DATE_TIME.is_monotonic_increasing or df.DATE_TIME.duplicated().any():
+        raise SystemExit("SEL15_TIMESTAMPS")
+    X = df[args.features].to_numpy(float)
+    if not np.isfinite(X).all():
+        raise SystemExit("SEL15_NONFINITE")
+    n, W, stride, win = len(df), args.scaling_window, 2, 13
+    # causal rolling z-score: statistics of rows [i-W, i), never the current row
+    cs, cs2 = np.cumsum(np.vstack([np.zeros((1, X.shape[1])), X]), axis=0), np.cumsum(np.vstack([np.zeros((1, X.shape[1])), X ** 2]), axis=0)
+    lo = np.arange(n) - W
+    valid_scale = lo >= 0
+    lo = np.clip(lo, 0, None)
+    cnt = (np.arange(n) - lo)[:, None]
+    mean = (cs[np.arange(n)] - cs[lo]) / np.maximum(cnt, 1)
+    var = (cs2[np.arange(n)] - cs2[lo]) / np.maximum(cnt, 1) - mean ** 2
+    std = np.sqrt(np.maximum(var, 0.0))
+    Z = (X - mean) / np.where(std > 0, std, np.nan)
+    idx = np.arange(n)[:, None] - stride * np.arange(win - 1, -1, -1)[None, :]          # oldest .. current bar
+    ok = (idx[:, 0] >= 0) & valid_scale
+    idx = np.clip(idx, 0, n - 1)
+    xa = Z[idx]
+    ok &= np.isfinite(xa).all(axis=(1, 2))
+    ts = np.asarray([int(t.timestamp()) for t in pd.to_datetime(df.DATE_TIME, utc=True)], np.int64)   # unit-independent
+    slot_ts = ts[idx]
+    offsets = ((slot_ts - ts[:, None]) / HOUR).astype(np.float32)
+    elapsed = np.diff(slot_ts, axis=1) / HOUR
+    closure = np.concatenate([np.zeros((n, 1)), (elapsed > 2 * stride).astype(float)], axis=1).astype(np.float32)
+    ok &= (offsets[:, -1] == 0) & (elapsed >= 2).all(axis=1)
+    # join to the lake bar (ZigZag labels) at DATE_TIME - clock offset, verified on prices
+    with np.load(args.labels, allow_pickle=False) as z:
+        bar_ts, y_bar, valid_bar = np.asarray(z["bar_ts"], np.int64), np.asarray(z["y"], np.int64), np.asarray(z["valid"], bool)
+        bar_close, bar_high = np.asarray(z["close"], float), np.asarray(z["high"], float)
+    # the repaired clock of the admitted core is 5 or 6 h ahead of the lake label (DST): per row, the
+    # offset whose lake bar has the identical CLOSE and HIGH is the join; no match -> the row is dropped
+    pos = {int(t): i for i, t in enumerate(bar_ts)}
+    li, lake_ts, used = np.full(n, -1), ts.copy(), np.zeros(n, int)
+    c_csv, h_csv = df.CLOSE.to_numpy(float), df.HIGH.to_numpy(float)
+    for off in args.clock_offsets_hours:
+        cand = ts - off * HOUR
+        ci = np.array([pos.get(int(t), -1) for t in cand])
+        good = (li < 0) & (ci >= 0)
+        cc = np.clip(ci, 0, len(bar_close) - 1)
+        good &= (np.abs(bar_close[cc] - c_csv) < 1e-9) & (np.abs(bar_high[cc] - h_csv) < 1e-9)
+        li[good], lake_ts[good], used[good] = ci[good], cand[good], off
+    ok_l = li >= 0
+    offset_counts = {str(o): int((used == o).sum()) for o in args.clock_offsets_hours}
+    y = np.where(ok_l, y_bar[np.clip(li, 0, len(y_bar) - 1)], -1)
+    ok_l &= np.where(ok_l, valid_bar[np.clip(li, 0, len(valid_bar) - 1)], False)
+    cuts = [epoch(b) for _, b in CUTS.values()]
+    purged = np.zeros(n, bool)
+    for c in cuts:
+        purged |= (lake_ts >= c - K_BARS * HOUR) & (lake_ts < c)
+    period = np.full(n, "", object)
+    for name, (a, b) in CUTS.items():
+        period[(lake_ts >= epoch(a)) & (lake_ts < epoch(b))] = name
+    keep = ok & ok_l & ~purged & (period != "")
+    sel = np.flatnonzero(keep)
+    meta = dict(features=args.features, selection_sha256=receipts["train"]["selection_sha256"], receipts=receipts,
+                input_contract=dict(observations=win, stride_observed_bars=stride, includes_current_completed_bar=True,
+                                    scaling="causal rolling z-score over the %d past rows [step-W, step), per feature" % W,
+                                    closure_crossed="1 when the elapsed hours between adjacent slots exceed 2 x stride"),
+                clock_offsets_hours_tried=args.clock_offsets_hours, clock_offset_rows=offset_counts, labels_sha256=sha(args.labels), rows_total=int(n),
+                dropped=dict(window_or_scale_warmup=int((~ok).sum()), no_lake_bar_or_price_mismatch=int((~ok_l).sum()),
+                             purged_at_cut=int(purged.sum())),
+                kept=int(len(sel)), role_counts={r: int((df.role.to_numpy()[sel] == r).sum()) for r in ("train", "validation")},
+                period_counts={p: int((period[sel] == p).sum()) for p in CUTS},
+                class_counts={p: np.bincount(y[sel][period[sel] == p], minlength=3).tolist() for p in CUTS}, k_bars=K_BARS)
+    return dict(origin_ts=lake_ts[sel], xa=xa[sel].astype(np.float32), offsets=offsets[sel], closure=closure[sel], xb=xa[sel].astype(np.float32),
+                y=y[sel], period=period[sel], meta=meta)
+
+
 # ------------------------------------------------------------------------------------------- models
-def m1_classifier(effective, seed):
+def m1_classifier(effective, seed, features=None):
     """The I6-DMO network wired exactly as model.build_dmo (per-feature causal Conv1D branches via the registered
     dmo_branch component, weightless sequence_concat fusion, DynamicPhysicalTimeEncoder, dmo_core) with a
     softmax pivot head in place of the regression heads; same seeding (set_random_seed before the build)."""
     from predictor_plugins.modular_temporal import FeatureSelect
-    c = M.normalize_model_config(dict(effective["model"], seed=int(seed)))
+    c = M.normalize_model_config(dict(effective["model"], seed=int(seed), **({"features": list(features)} if features else {})))
     M.enable_determinism()
     keras.utils.set_random_seed(c["seed"])
     steps, n = c["slots"], len(c["features"])
@@ -186,9 +280,9 @@ def m1_classifier(effective, seed):
     return model, int(model.count_params())
 
 
-def m2_classifier(n_features, seed):
+def m2_classifier(n_features, seed, steps=48):
     keras.utils.set_random_seed(int(seed))
-    inp = keras.Input((48, n_features), name="window48")
+    inp = keras.Input((steps, n_features), name=f"window{steps}")
     h = keras.layers.GRU(32, name="gru")(inp)
     h = keras.layers.Dense(16, activation="relu")(h)
     out = keras.layers.Dense(3, activation="softmax", name="pivot_head")(h)
@@ -288,8 +382,11 @@ def run(args):
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     t_wall = time.time()
-    data = load_arms(args)
+    data = load_sel15(args) if args.csv_dir else load_arms(args)
+    print(json.dumps(dict(data=data["meta"]), default=str)[:3000], flush=True)
     y, per = data["y"], data["period"]
+    if not len(y):
+        raise SystemExit("NO_ROWS_KEPT")
     tr, se = per == "TRAIN_2020_2022", per == "SELECT_2023"
     gpus = tf.config.list_physical_devices("GPU")
     if args.device == "gpu" and not gpus:
@@ -303,14 +400,15 @@ def run(args):
     log = lambda m, s, ep, mon: print(json.dumps(dict(model=m, seed=s, epoch=ep, monitor=mon)), flush=True)  # noqa: E731
     with tf.device("/GPU:0" if args.device == "gpu" else "/CPU:0"):
         for seed in seeds:
-            model, n_params = m1_classifier(data["effective"], seed)
+            model, n_params = m1_classifier(data.get("effective") or D.effective_config(D.load_design(args.design)), seed,
+                                            features=args.features if args.csv_dir else None)
             r = fit_classifier(model, [a[tr] for a in XA], y[tr], XA, monitor, seed, max_epochs,
                                lambda ep, mon, s=seed: log("m1", s, ep, mon))
             P = model.predict(XA, batch_size=4096, verbose=0)
             np.savez_compressed(out / f"pred_m1_s{seed}.npz", origin_ts=data["origin_ts"], y=y, period=per.astype(str), probs=P)
             fits[f"m1_s{seed}"] = dict(r, params=int(model.count_params()), backbone_params=n_params)
             keras.backend.clear_session()
-            model = m2_classifier(XB.shape[2], seed)
+            model = m2_classifier(XB.shape[2], seed, steps=XB.shape[1])
             r = fit_classifier(model, XB[tr], y[tr], XB, monitor, seed, max_epochs, lambda ep, mon, s=seed: log("m2", s, ep, mon))
             P = model.predict(XB, batch_size=4096, verbose=0)
             np.savez_compressed(out / f"pred_m2_s{seed}.npz", origin_ts=data["origin_ts"], y=y, period=per.astype(str), probs=P)
@@ -347,6 +445,7 @@ def run(args):
                                    seconds=time.monotonic() - t0, class_weights=w.tolist())
     import importlib.metadata as im
     doc = dict(schema="pivot_detector_gpu_run.v1", measure=bool(args.measure), seeds=seeds, device=args.device,
+               input_mode="sel15_admitted_core" if args.csv_dir else "manifest19_population",
                gpu_devices=[d.name for d in gpus], gpu_name=(tf.config.experimental.get_device_details(gpus[0]).get("device_name") if gpus else None),
                tensorflow=tf.__version__, keras=im.version("keras"), sklearn=im.version("scikit-learn"),
                training=TRAINING, k_bars=K_BARS, cuts=CUTS, wall_seconds=time.time() - t_wall, cgroup_peak_bytes=cgroup_peak(),
@@ -360,9 +459,15 @@ def run(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--labels", required=True)
-    ap.add_argument("--population", required=True)
-    ap.add_argument("--population-digest", required=True)
-    ap.add_argument("--input-dir", required=True)
+    ap.add_argument("--population")
+    ap.add_argument("--population-digest")
+    ap.add_argument("--input-dir")
+    ap.add_argument("--csv-dir", help="Musashi's admitted-core selection: train.csv/validation.csv + receipts (sel15 mode)")
+    ap.add_argument("--features", nargs="*", default=["HIGH", "RAW_LOG_RANGE", "RAW_CLOSE_LOG_RETURN", "RAW_ELAPSED_HOURS", "ATR", "RSI",
+                                                      "MACD_Histogram", "ADX", "DI_minus", "Stochastic_D", "WilliamsR", "rolling_std_24",
+                                                      "hod_sin", "hod_cos", "dow_cos"])
+    ap.add_argument("--scaling-window", type=int, default=256)
+    ap.add_argument("--clock-offsets-hours", type=int, nargs="*", default=[6, 5], help="CSV clock minus lake label clock candidates (verified on prices per row)")
     ap.add_argument("--design", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--device", choices=("gpu", "cpu"), default="gpu")

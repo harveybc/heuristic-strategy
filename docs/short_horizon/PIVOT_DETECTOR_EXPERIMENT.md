@@ -181,3 +181,99 @@ Continual-learning arms are not part of this run and are to be compared later as
   study did); 2024 confirms once.
 - The hindsight labels near the 2022/2023 and 2023/2024 cuts depend on bars after the cut (repainting);
   that affects targets only, not inputs.
+
+## 9. Rerun on the admitted-core 15 inputs (Musashi's current selection)
+
+**Correction.** The 19-feature manifest `2ff34fa2…` used above is the OLD forecasting manifest, not
+Musashi's current RL selection. His admitted-core selection (2026-10-19, identity `553fc047…`;
+predictor `docs/tres_temas_entrevista/program_v3/SELECTED_CORE_RL_2026_10_19.md` @ `f1210cd2`;
+feature-selector `codex/curation-reset-20261018` `docs/ADMITTED_CORE_SELECTION.md`; selection op
+`9d4d06a`) is 15 ordered HOURLY variables: `HIGH, RAW_LOG_RANGE, RAW_CLOSE_LOG_RETURN,
+RAW_ELAPSED_HOURS, ATR, RSI, MACD_Histogram, ADX, DI_minus, Stochastic_D, WilliamsR, rolling_std_24,
+hod_sin, hod_cos, dow_cos`. The experiment was rerun on exactly those inputs under his input contract.
+Outputs carry the suffix `_sel15` (`detector_real_sel15.csv`, `detector_real_summary_sel15.csv`,
+`oracle_noise_sel15.csv`, `training_curves_sel15.csv`, sealed `detector_real_predictions_sel15.csv.gz`
++ `DETECTOR_REAL_SEAL_sel15.json`, `GPU_RUN_sel15.json`/`GPU_SEAL_sel15.json`, figures
+`curvas_entrenamiento_sel15.png`, `oraculo_ruido_precision_sel15.png`; `zigzag_brecha_detector.png`
+now carries the new points (g) m1, (h) m2, (i) m3).
+
+**Inputs (read-only).** His prepared `train.csv` / `validation.csv` with their `curated_rl_input.v1`
+receipts (`train.json` / `validation.json`, status ADMITTED, `input_sha256` `3d8a9dcd…` /
+`52ef0adc…`, selection `553fc047…`, row_count 24 862 / 6 221, 33 leading warm-up rows removed,
+`timestamp_semantics completed_bar_available_at`), located in the physical copy of his closed
+campaign root (contract `37e06192…`, runtime agent-multi `ab265fad` / gym-fx `df1b602`) under the
+coordinator's experiment storage; bytes verified against the receipts; nothing in that root was
+written, and his running queue on the preferred host was not touched.
+
+**Input contract (his).** 13 observations at stride 2 OBSERVED bars including the current completed
+bar; causal rolling z-score over the 256 past rows `[step − 256, step)` per feature (gym-fx
+`feature_window_preprocessor.rolling_zscore` semantics), computed over TRAIN 2020–2023 followed by
+VALIDATION 2024 so 2024 windows see only their own past; the first 256 rows are warm-up. All three
+models consume this one window (m3 on the flattened 13 × 15 = 195). The `DynamicPhysicalTimeEncoder`
+receives the actual signed slot offsets (hours) and `closure_crossed` = 1 where adjacent slots are
+more than 2 × stride hours apart. m1 is the same I6-DMO wiring with 15 branches (1 995 parameters);
+m2 GRU(32) (5 283); m3 boosting as before. Training recipe, seeds, the owner's monitor (running
+TRAIN loss + INNER-2023 loss, mean, patience 10, best restored), temperature calibration and
+threshold choice on 2023 with 2024 once: unchanged from §2.
+
+**Clock join.** The admitted core carries the repaired clock: its `DATE_TIME` is 5 h (17 693 rows)
+or 6 h (12 519 rows) ahead of the lake bar label the ZigZag targets use (DST). Each row was joined
+to the lake bar at `DATE_TIME − offset` only where OPEN/HIGH/CLOSE are identical; 872 rows matched no
+lake bar at either offset and were dropped. Kept origins (every hour, not only the population's
+2-h grid): TRAIN 2020–2022 18 366, INNER 2023 5 377, CONFIRM 2024 6 212 (0 purged at cuts); class
+counts none/valley/peak TRAIN 11 055 / 3 666 / 3 645, 2023 3 360 / 1 011 / 1 006, 2024 3 777 /
+1 227 / 1 208.
+
+**Results (mean of 3 seeds; τ chosen on 2023 = 0.5 for all three).**
+
+| Model | Period | AUC valley / peak | Log-loss (calibrated) / base rate | Precision / recall at τ 0.5 | Signals | Sharpe (sd) | Orders/wk | Max DD % | Valid |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| m1 | 2023 | 0.657 / 0.669 | 1.040 / 0.923 | 0.343 / 0.145 | 847 | **−2.08** (0.32) | 12.9 | 77 | yes |
+| m1 | 2024 (once) | 0.664 / 0.664 | 1.042 / 0.941 | 0.361 / 0.138 | 934 | **−3.54** (2.16) | 13.6 | 79 | yes |
+| m2 | 2023 | 0.659 / 0.669 | 1.036 / 0.923 | 0.363 / 0.129 | 717 | **−1.45** (0.52) | 11.0 | 73 | yes |
+| m2 | 2024 (once) | 0.661 / 0.661 | 1.045 / 0.941 | 0.362 / 0.127 | 856 | **−1.21** (0.33) | 12.4 | 60 | yes |
+| m3 | 2023 | 0.658 / 0.652 | 0.952 / 0.923 | 0.346 / 0.121 | 708 | **+0.07** (0.00) | 11.3 | 45 | yes |
+| m3 | 2024 (once) | 0.668 / 0.664 | 0.952 / 0.941 | 0.370 / 0.118 | 775 | **−1.98** (0.00) | 12.0 | 68 | yes |
+
+Other thresholds (`detector_real_sel15.csv`): τ 0.4 trades 18–19/week at precision 0.30–0.33 with
+Sharpe −3.4 … −5.3; τ 0.6 drops to 3–4/week (precision 0.37–0.43, Sharpe −2.0 … −0.4); τ 0.7
+emits 1.3–1.5/week (not valid) with Sharpe −0.3 … +1.1 on a handful of trades. The per-class base
+rate of valley/peak origins is 0.20 (TRAIN), 0.19 (2023), 0.20 (2024); the base rate of "any pivot"
+among signals is 0.375 / 0.392. On TRAIN 2020–2022, m3 reaches precision 0.99 and Sharpe +11.8
+(memorization; its TRAIN term falls 1.00 → 0.32 while INNER rises 1.04 → 1.10 and the loss-mean
+monitor again runs to 400 iterations); m1/m2 reach 0.43–0.49 / Sharpe −0.5 … +0.9 on TRAIN and
+stop at 60–71 epochs (best 50–61), INNER loss 1.04–1.05 at the best epoch.
+
+**Comparison with the 19-manifest run.**
+
+| | 19-manifest (§4) | admitted-core 15 (§9) |
+|---|---|---|
+| Origins | population 2-h grid, 21 642 | every hour, 29 955 |
+| AUC valley / peak, 2023 | 0.52–0.54 / 0.50–0.55 | 0.657–0.659 / 0.652–0.669 |
+| Calibrated log-loss vs base, 2023 | 1.09–1.10 vs 0.92 (m3 0.97) | 1.04 vs 0.92 (m3 0.95) |
+| Precision at the chosen τ, 2023 | no signals (m1/m2), 0.24 (m3) | 0.34–0.36 |
+| Sharpe 2023 / 2024 | 0 / 0 (no trades); m3 −0.71 / −1.99 | m1 −2.08 / −3.54; m2 −1.45 / −1.21; m3 +0.07 / −1.98 |
+| Temperatures | three fits at the grid ceiling (no information) | 1.19–1.83 (informative but miscalibrated) |
+
+Reading: the 15 admitted-core inputs (which carry price-path, range and oscillator information the
+old manifest lacked) rank pivot bars above chance (AUC ≈ 0.66, the same level the substitute-feature
+smoke probe reached), but the calibrated probabilities are still worse than the base rate and the
+precision at any threshold that satisfies the ≥ 3 orders/week rule is 0.30–0.37, below the "any
+pivot" base rate of the signal population and far below the ≈ 0.6–0.7 break-even of the oracle →
+noise curve on these origins (`oracle_noise_sel15.csv`: precision 1.0 → Sharpe 11.6 both years;
+0.8 → 6.4 / 6.0; 0.7 → 4.3 / 2.0; 0.6 → 0.7 / 1.2; 0.5 → −1.8 / −1.4). Trading these signals at
+10–19 orders/week loses money faster than the 19-manifest models, which mostly abstained. The gap to
+the hindsight expert (19.5 / 18.9) is untouched by the real selection as well.
+
+**Compute receipt (rerun).** GPU role option (1) again: the secondary worker's RTX 4090 Laptop
+(one `nvidia-smi` read before launch: 14 MiB used, 0 compute processes; 5090 never used). Measurement
+run: cgroup peak 2 316 537 856 B, 7.4 s wall → cap `crispdm-run -m 2762M -t 7200s` (1.25 ×). Full
+run: cgroup peak **2 465 157 120 B** (under the cap), wall **254.9 s** (m1 43 / 47 / 41 s, m2 26 /
+23 / 22 s, m3 17 s each). Same runtime (TF 2.21.0 / Keras 3.13.2 / sklearn 1.8.0), same staged tree
+`c34b1e48`; seeds 6102026–6102028. Coordinator CPU stages under `crispdm-run -m 3G`.
+
+**Limits specific to the rerun.** The clock join is price-verified but drops 872 rows (2.8 %) with
+no identical lake bar; his prepared files end 2023-12-29T21:00 / 2024-12-31T21:00 (repaired clock)
+and start 2020-01-03T10:00 / 2024-01-02T07:00; the hindsight labels are still computed on the
+lake clock. The window contract is reproduced from his documents, not by calling gym-fx's
+preprocessor. Continual-learning arms remain pending as in §7.
