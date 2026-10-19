@@ -76,7 +76,7 @@ following leg.
   (t, t+k]} from the hindsight pivots of the chosen parameters; k ∈ {2, 4} bars; one signal per k bars.
 - **Features at t only** — *substitute causal lake features*, not Musashi's 19-feature manifest: the
   I6-DMO input bundle (INPUT.npz with the 2ff34fa2… manifest) is resolved from a private deployment
-  spec and is **not present on this host** (`/var/tmp/i6dmo` is empty here; only test fixtures were
+  spec and is **not present on this host** (the local i6dmo scratch root is empty here; only test fixtures were
   found), so that arm is BLOCKED_ON_THIS_HOST and the detector uses 20 causal price features
   (multi-scale returns, position in the 24/120 h range, draw-down/up, Parkinson 6/24, efficiency ratio,
   hour/dow). Labelled SUBSTITUTE_CAUSAL_LAKE_FEATURES_NOT_MUSASHI_MANIFEST in the seal.
