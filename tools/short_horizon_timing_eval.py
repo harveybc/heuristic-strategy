@@ -569,7 +569,7 @@ def freeze(a):
                                    role={"TRAIN_2020_2022": "FIT_DIAGNOSTIC", "INNER_A_2023H1": "CHOICE_BLOCK",
                                          "INNER_B_2023H2": "FROZEN_SCORE"}[pname], **cls, **m))
                 if pname == "INNER_B_2023H2":
-                    pd.DataFrame({"r": daily_returns(res)}).to_parquet(shard / f"daily_INNER_B_s{s}.parquet")
+                    pd.DataFrame({"r": daily_returns(res)}).to_parquet(shard / f"daily_INNER_B_2023H2_s{s}.parquet")
         np.savez_compressed(shard / "frozen_calibrated_develop.npz", rows=rows, y=y, period=per,
                             **{f"s{s}": cal[s].astype(np.float32) for s in seeds})
     frozen.update(stage="freeze", thresholds_attempted=list(THRESHOLDS), periods_read=list(DEVELOP_PERIODS), reads_2024=False,
