@@ -89,7 +89,11 @@ def test_v1_trades_only_on_predicted_expansion_and_meets_the_rules():
     r = float(bl.ref[k])
     assert up.entry_price == pytest.approx(r + p.k_entry * 0.0040)
     assert dn.entry_price == pytest.approx(r - p.k_entry * 0.0035)
-    assert up.tp_offset == pytest.approx(p.k_tp * 0.0075) and up.trail == pytest.approx(p.k_trail * 0.0075)
+    # each leg is scaled by ITS side's predicted excursion, so the TP stays inside the predicted extreme
+    assert up.tp_offset == pytest.approx(p.k_tp * 0.0040) and up.trail == pytest.approx(p.k_trail * 0.0040)
+    assert dn.tp_offset == pytest.approx(p.k_tp * 0.0035) and dn.sl_offset_or_price == pytest.approx(p.k_sl * 0.0035)
+    assert up.take_profit < r + 0.0040 and dn.take_profit > r - 0.0035
+    assert p.k_entry + p.k_tp < 1.0
     V.check_oco(o, sigma[k], X.OrderRules())
 
 
