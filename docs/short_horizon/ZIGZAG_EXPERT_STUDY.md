@@ -6,7 +6,7 @@ gap a learned policy must close. Nothing here is trading-eligible.
 
 Tables: `results/zigzag/TABLAS_ZIGZAG.md`. Figures:
 - Pareto front: https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/zigzag/zigzag_frente_pareto.png
-- Hindsight vs confirmed vs learned detector (the gap): https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/zigzag/zigzag_brecha.png
+- Hindsight vs confirmed vs smoke-probe detector (the gap): https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/zigzag/zigzag_brecha.png
 - Sharpe vs pivot-timing error: https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/zigzag/zigzag_ruido_temporal.png
 - Sharpe vs pivot-detection precision: https://github.com/harveybc/heuristic-strategy/blob/satoshi/short-horizon-strategy-20261018/docs/short_horizon/results/zigzag/zigzag_deteccion.png
 - Demonstrations: `results/zigzag/demonstrations/expert_trades.csv` + `MANIFEST.json`
@@ -70,7 +70,12 @@ No break-even exists on the timing axis within 12 bars: with the future TP known
 pay. Any learned policy must therefore reproduce both the pivot timing and the **extent** of the
 following leg.
 
-## 5. Learned causal pivot detector (owner authorization: GPU)
+## 5. Causal pivot detector — SMOKE_PROBE_WEAK_DETECTOR (not evidence about the achievable ceiling)
+
+**Owner correction 2026-10-19.** What ran here is a 5,7-second MLP on 20 hand-made features at t with no
+lookback window, substitute data, 30 epochs and one seed: a smoke probe of the pipeline (seal, adapter,
+GPU admission, strategy wiring), **not an experiment about what a causal detector can achieve**. A proper
+windowed model on the selected features is pending. The numbers and the seal are kept as the probe's record.
 
 - **Target** (documented classifier target): y_t ∈ {none, valley within (t, t+k], peak within
   (t, t+k]} from the hindsight pivots of the chosen parameters; k ∈ {2, 4} bars; one signal per k bars.
@@ -96,9 +101,10 @@ following leg.
 | 2 | 2024 (once) | 0,671 / 0,673 | 1,061 (0,941) | 0,397 | **−0,61** | 8,7 | sí |
 | 4 | 2023 | 0,571 / 0,564 | 1,099 (1,097) | 0,37–0,39 | −4,4 … +0,2 | 1–14 | mostly no |
 
-The detector ranks pivot bars above chance (AUC 0,66–0,69) but its calibrated log-loss is worse than
-the base rate (class weighting) and its precision at the trade threshold is 0,36–0,43 against a
-k-bar base rate of 0,40: it closes **none** of the gap (−0,35 / −0,61 vs (b) −2,1 / −2,2 vs (a) 19).
+The probe ranks pivot bars above chance (AUC 0,66–0,69) but its calibrated log-loss is worse than the
+base rate (class weighting) and its precision at the trade threshold is 0,36–0,43 against a k-bar base
+rate of 0,40. **A weak probe did not close the gap (−0,35 / −0,61 vs (b) −2,1 / −2,2 vs (a) 19); a proper
+windowed model on the selected features is pending.** Nothing here bounds the achievable ceiling.
 
 ## 6. Demonstration dataset for Musashi
 
@@ -112,6 +118,5 @@ pivot level as TP and are not reproducible causally.
 - The MT ZigZag replication follows the published algorithm structure, not a byte-level diff.
 - One instrument; 2024 looked at once (DEVELOPMENT). Costs ASSUMED_NOT_BROKER_VERIFIED; clock under repair.
 - The learned arm on Musashi's 19-feature manifest is BLOCKED_ON_THIS_HOST (bundle absent); the
-  substitute-feature result is a lower bound for that arm only in the sense that a different feature
-  set was used, not a scientific statement about the manifest.
+  substitute-feature run is a SMOKE_PROBE_WEAK_DETECTOR and says nothing about the manifest or the ceiling.
 - Compute: NSGA 13 + 85 s, confirmed 89 s, noise 57 s, demos < 10 s CPU; GPU as above.

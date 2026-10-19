@@ -98,4 +98,7 @@ names the old failure, then the rule and how it is enforced here.
 18. **A hindsight expert's edge is half timing, half extent.** Delaying ZigZag pivots by their median
     confirmation lag keeps Sharpe ≈ 8–9 while the causally confirmed version with a vol-based TP is
     negative: the next-pivot level (the extent of the leg) carries as much information as the pivot
-    time. Demonstrations must be judged on both (`ZIGZAG_EXPERT_STUDY.md` §4).
+    time. Demonstrations must be judged on both (`ZIGZAG_EXPERT_STUDY.md` §4). The learned detector
+    run in that study is a SMOKE_PROBE_WEAK_DETECTOR (no lookback window, substitute features, one seed):
+    a weak probe did not close the gap; a proper windowed model on the selected features is pending, and
+    the probe is not evidence about the achievable ceiling.
