@@ -15,6 +15,7 @@ Roles: Propietario (decide negocio), Satoshi (lidera este plan), Musashi (RL y r
 | Gráficas | Sharpe y ganancia contra el MAE (y MAE/naive) de **cada** predicción consumida, un eje por error; estilo de la propuesta doctoral; puntos inválidos huecos; siempre link de GitHub y local. |
 | Rigor | Nada por debajo de un presupuesto real se presenta como resultado: declarar modelo, entradas reales/sustitutas, ventana, épocas, semillas, rangos, generaciones y choques con límites. Paridad en gym-fx para estrategias. |
 | Parada temprana | Promedio de la métrica de entrenamiento de la época (la que produce el entrenamiento) y la de validación interna (2023), paciencia 10, 1e-8, mejores pesos. |
+| Aditividad | Nunca dañar lo existente hecho para predicción: todo cambio en selección, features o estrategias entra como plugin nuevo + config JSON (arquitectura expandible de cada repo), registro/append-only, con prueba de que lo viejo queda byte-idéntico. Orden del propietario 2026-10-19. |
 | Causalidad | `available_time ≤ t`; prohibidos filtros centrados (STL, wavelets, loess) como entrada o target. Toda selección decide en 2023 y confirma una vez en 2024. |
 | Cierre | Cada cierre lleva tabla generada desde artefactos (error+escala, naive mismas filas, skill, literatura, comparabilidad); `NO_NEW_MEASUREMENT` si no hubo medición. |
 | GPU | 5090 = Musashi. Satoshi: 4090 si libre → 4070 de omega si cabe → 5070 Ti de gamma si hay memoria. Admisión `crispdm-run`, tope 1,25× pico medido, un trabajo pesado por host. |
