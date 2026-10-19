@@ -78,9 +78,25 @@ def load_chains(run, opt, wide=False):
     for r in rows:
         uniq.setdefault(json.dumps(r["p"], sort_keys=True), r)
     union = nondominated(list(uniq.values()), nobj)
+    # Many parameter sets give the SAME objective vector (MetaTrader's Deviation is nearly inert: it only
+    # gates the current bar's distance to the Depth-window extreme). Collapse ties to one representative
+    # and report a bound hit only when EVERY tied parameter set sits on that bound.
+    groups = {}
     for r in union:
-        r["on_bound"] = space.on_bound(r["p"])
-    return chains, union, space
+        groups.setdefault(tuple(round(x, 6) for x in r["obj"]), []).append(r)
+    reps = []
+    for _, rs in sorted(groups.items()):
+        rs.sort(key=lambda r: (r["p"]["depth"], r["p"]["backstep"], r["p"]["deviation_pips"], r["p"].get("k_tp", 0.0)))
+        rep = dict(rs[0])
+        common = set(space.on_bound(rs[0]["p"]))
+        for r in rs[1:]:
+            common &= set(space.on_bound(r["p"]))
+        rep["on_bound"] = [h for h in space.on_bound(rs[0]["p"]) if h in common]
+        rep["n_tied"] = len(rs)
+        rep["tied_ranges"] = {k: [min(r["p"][k] for r in rs), max(r["p"][k] for r in rs)]
+                              for k in ("depth", "deviation_pips", "backstep", "k_tp") if k in rs[0]["p"]}
+        reps.append(rep)
+    return chains, reps, space
 
 
 def evaluate(args):
@@ -108,8 +124,9 @@ def evaluate(args):
             else:
                 d, _ = ev.eval_B(p, "DECISION_2020_2022", cap=cap)
                 v, _ = ev.eval_B(p, "VALIDATION_2023", cap=cap)
-            row = {"p": p, "obj": r["obj"], "seed": r["seed"], "on_bound": r["on_bound"], "dec": d, "val": v}
-            if base_opt == "A4" and not wide:
+            row = {"p": p, "obj": r["obj"], "seed": r["seed"], "on_bound": r["on_bound"], "dec": d, "val": v,
+                   "n_tied": r["n_tied"], "tied_ranges": r["tied_ranges"]}
+            if base_opt == "A4":
                 ks = {k: ev.eval_B(p, "DECISION_2020_2022", k_tp=k)[0] for k in K_GRID}
                 okk = {k: m for k, m in ks.items() if m["valid"]} or ks
                 kb = max(okk, key=lambda k: okk[k]["sharpe"])
@@ -143,9 +160,10 @@ def extras(args):
     ev = ZO.Evaluator(bars, cal)
     h, l = ev.h, ev.l
     rows = []
-    b4 = final["B4"]["chosen"]["p"]
-    a4 = final["A4"]["chosen"]["p"]
-    a4_kb = next(x["b"]["k_tp"] for x in final["A4"]["front"] if x["p"] == a4)
+    A4, B4 = pick(final, "A4"), pick(final, "B4")
+    b4 = final[B4]["chosen"]["p"]
+    a4 = final[A4]["chosen"]["p"]
+    a4_kb = next(x["b"]["k_tp"] for x in final[A4]["front"] if x["p"] == a4)
     ZO.ledger(led, "VALIDATION_2023", "JOINT_DEVELOPMENT", "fill-path cost on chosen points and v1", n_points=3)
     for name, p, k in (("B4 chosen", b4, None), ("A4 chosen, its (b)", a4, a4_kb), ("v1 expert, its (b)", V1, 2.0)):
         for period in ("DECISION_2020_2022", "VALIDATION_2023"):
@@ -193,6 +211,11 @@ def extras(args):
     print(json.dumps({"lags": lags, "demo_sha": man["sha256"], "rows": man["rows"]}))
 
 
+def pick(final, opt):
+    """The widened rerun supersedes the first run of the same optimization when it exists."""
+    return opt + "_wide" if (opt + "_wide") in final else opt
+
+
 # ------------------------------------------------------------------ report
 CAP_COL = {1: PURPLE, 2: "#1f4e9c", 4: TEAL}
 
@@ -203,14 +226,15 @@ def figure(final, pub):
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(1, 3, figsize=(22, 7.4), facecolor="white")
     ax = axs[0]
-    for opt, cap in (("A1", 1), ("A2", 2), ("A4", 4)):
+    for opt0, cap in (("A1", 1), ("A2", 2), ("A4", 4)):
+        opt = pick(final, opt0)
         if opt not in final:
             continue
         f = final[opt]["front"]
         xs = [x["dec"]["max_dd_pct"] for x in f]
         ys = [x["dec"]["sharpe"] for x in f]
         ax.scatter(xs, ys, color=CAP_COL[cap], s=55, edgecolors=INK, linewidths=0.5, zorder=4,
-                   label=f"(A) tope {cap} órdenes/día: {len(f)} puntos del frente")
+                   label=f"(A) tope {cap} órdenes/día: {len(f)} vectores del frente" + (" (cotas ampliadas)" if opt.endswith("_wide") else ""))
         hit = [(x["dec"]["max_dd_pct"], x["dec"]["sharpe"]) for x in f if x["on_bound"]]
         if hit:
             ax.scatter(*zip(*hit), marker="x", color=RUST, s=90, zorder=5, label="punto sobre una cota" if cap == 4 else None)
@@ -223,8 +247,8 @@ def figure(final, pub):
     ax.grid(color=GRID, linewidth=0.8)
     ax.legend(fontsize=7.5, loc="lower right", frameon=True, edgecolor="#d0d0d0")
     ins = ax.inset_axes([0.08, 0.08, 0.38, 0.32])
-    for opt, cap in (("A1", 1), ("A2", 2), ("A4", 4)):
-        for ch in final.get(opt, {}).get("chains", []):
+    for opt0, cap in (("A1", 1), ("A2", 2), ("A4", 4)):
+        for ch in final.get(pick(final, opt0), {}).get("chains", []):
             hv = np.array(ch["hv"], float)
             ins.plot(hv / hv[-1], color=CAP_COL[cap], linewidth=0.9)
     ins.axvline(80, color=RUST, linestyle=":", linewidth=1)
@@ -232,8 +256,9 @@ def figure(final, pub):
     ins.tick_params(labelsize=6)
     # B
     ax = axs[1]
-    if "B4" in final:
-        f = final["B4"]["front"]
+    B4 = pick(final, "B4")
+    if B4 in final:
+        f = final[B4]["front"]
         sc = ax.scatter([x["dec"]["max_dd_pct"] for x in f], [x["dec"]["sharpe"] for x in f],
                         c=[x["dec"]["lag_median"] for x in f], cmap="viridis_r", s=60, edgecolors=INK, linewidths=0.5, zorder=4)
         cb = fig.colorbar(sc, ax=ax)
@@ -241,12 +266,12 @@ def figure(final, pub):
         hit = [(x["dec"]["max_dd_pct"], x["dec"]["sharpe"]) for x in f if x["on_bound"]]
         if hit:
             ax.scatter(*zip(*hit), marker="x", color=RUST, s=90, zorder=5, label="punto sobre una cota")
-        c = final["B4"]["chosen"]
+        c = final[B4]["chosen"]
         ax.scatter([c["dec"]["max_dd_pct"]], [c["dec"]["sharpe"]], marker="*", s=300, facecolors="none", edgecolors=RUST,
                    linewidths=2, zorder=6, label="elegido por Sharpe 2023")
         ax.axhline(0, color="#6b7378", linewidth=1)
         ins = ax.inset_axes([0.60, 0.08, 0.36, 0.30])
-        for ch in final["B4"]["chains"]:
+        for ch in final[B4]["chains"]:
             hv = np.array(ch["hv"], float)
             ins.plot(hv / hv[-1], color=TEAL, linewidth=0.9)
         ins.axvline(80, color=RUST, linestyle=":", linewidth=1)
@@ -259,7 +284,7 @@ def figure(final, pub):
     ax.grid(color=GRID, linewidth=0.8)
     # A4 front: (a) vs (b)
     ax = axs[2]
-    f = final.get("A4", {}).get("front", [])
+    f = final.get(pick(final, "A4"), {}).get("front", [])
     if f:
         sc = ax.scatter([x["dec"]["sharpe"] for x in f], [x["b"]["dec"]["sharpe"] for x in f], c=[x["b"]["dec"]["lag_median"] for x in f],
                         cmap="viridis_r", s=60, edgecolors=INK, linewidths=0.5)
@@ -304,16 +329,17 @@ def tables(final):
         kind = "B" if opt.startswith("B") else "A"
         md.append(f"## Front {opt} (union of 3 seeds, nondominated on 2020-2022; {len(v['front'])} points; bound hits: "
                   f"{sum(1 for x in v['front'] if x['on_bound'])})\n")
-        hdr = "| Parameters | Dec. Sharpe | Dec. DD % | Dec. orders/wk |" + (" Dec. lag median |" if kind == "B" else "") + \
-              " 2023 Sharpe | 2023 orders/wk | 2023 valid |" + (" (b) k_tp | (b) Sharpe 2020-22 | (b) lag median | (b) Sharpe 2023 |" if opt == "A4" else "") + " On bound |"
+        hdr = "| Parameters (representative) | Tied sets (Deviation range, pips) | Dec. Sharpe | Dec. DD % | Dec. orders/wk |" + (" Dec. lag median |" if kind == "B" else "") + \
+              " 2023 Sharpe | 2023 orders/wk | 2023 valid |" + (" (b) k_tp | (b) Sharpe 2020-22 | (b) lag median | (b) Sharpe 2023 |" if opt.startswith("A4") else "") + " On bound (all tied sets) |"
         md.append(hdr)
         md.append("|" + "---|" * (hdr.count("|") - 1))
         for x in sorted(v["front"], key=lambda r: -r["dec"]["sharpe"]):
-            line = f"| {fmt_p(x['p'])} | {es(x['dec']['sharpe'], 2)} | {es(x['dec']['max_dd_pct'], 2)} | {es(x['dec']['orders_per_week'], 1)} |"
+            tr = x.get("tied_ranges", {}).get("deviation_pips", [x["p"]["deviation_pips"]] * 2)
+            line = f"| {fmt_p(x['p'])} | {x.get('n_tied', 1)} ({es(tr[0], 1)}–{es(tr[1], 1)}) | {es(x['dec']['sharpe'], 2)} | {es(x['dec']['max_dd_pct'], 2)} | {es(x['dec']['orders_per_week'], 1)} |"
             if kind == "B":
                 line += f" {es(x['dec']['lag_median'], 1)} |"
             line += f" {es(x['val']['sharpe'], 2)} | {es(x['val']['orders_per_week'], 1)} | {'sí' if x['val']['valid'] else 'no'} |"
-            if opt == "A4":
+            if "b" in x:
                 bb = x["b"]
                 line += f" {es(bb['k_tp'], 1)} | {es(bb['dec']['sharpe'], 2)} | {es(bb['dec']['lag_median'], 1)} | {es(bb['val']['sharpe'], 2)} |"
             line += f" {', '.join(x['on_bound']) or '—'} |"
