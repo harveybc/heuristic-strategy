@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT))
 import numpy as np
 import pandas as pd
 
+from app.short_horizon import analysis as A
 from app.short_horizon import blocks as B
 from app.short_horizon import calendar as CAL
 from app.short_horizon import data as D
@@ -55,6 +56,16 @@ BLEND_W = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
 COST_MULTS = (0.0, 0.5, 1.5, 2.0, 3.0)
 COST_BLEND_W = (1.0, 0.7, 0.5, 0.3)
 COST_P = (0.0, 0.10, 0.20, 0.30)
+# Owner follow-up 2026-10-19: business-day RF-L degradation on VALIDATION 2024 only.
+VAL_SEEDS = (42, 43, 44, 45, 46)
+# Extended once after the first pass found no zero crossing up to 120 pips (owner: "up to where
+# performance is clearly lost"); common random numbers keep every earlier cell identical.
+VAL_RANGE_PIPS = (0.0, 1.0, 2.0, 3.0, 5.0, 7.5, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 60.0, 80.0, 100.0, 120.0,
+                  160.0, 200.0, 300.0, 400.0, 600.0)
+VAL_P = tuple(round(0.05 * k, 2) for k in range(11))
+VAL_JOINT_PIPS = (0.0, 5.0, 10.0, 20.0, 30.0, 40.0, 60.0, 80.0, 120.0, 200.0, 400.0)
+VAL_JOINT_P = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5)
+VAL_COSTS = (1.0, 2.0)
 CAPITAL = 10_000.0
 PIP = 1e-4
 LABEL = "DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT"
@@ -105,7 +116,7 @@ class Context:
         self.range = self.blocks.H - self.blocks.L
         self.horizons = S.comparator_horizons(hours)
         self.paths = S.comparator_targets(bars, self.blocks, self.horizons)
-        self.draws = {s: N.draws(s, n, len(self.horizons)) for s in SEEDS}
+        self.draws = {s: N.draws(s, n, len(self.horizons)) for s in sorted(set(SEEDS) | set(VAL_SEEDS))}
         self.masks = {name: self.blocks.in_split((utc(a), utc(b))) for name, (a, b) in SPLITS.items()}
         self.naive = {k: S.naive_range(self.blocks, k) for k in ("PERSIST", "MEAN20")}
 
@@ -136,7 +147,14 @@ def accuracy(ctx, mask, H_hat, L_hat, ft_hat):
     b = ctx.blocks
     ok = mask & np.isfinite(H_hat) & np.isfinite(L_hat)
     clear = mask & (b.ft != B.AMBIGUOUS)
-    return {"mae_high_pips": float(np.mean(np.abs(H_hat[ok] - b.H[ok])) / PIP) if ok.any() else np.nan,
+    nH, nL, _ = ctx.naive["MEAN20"]
+    nok = ok & np.isfinite(nH) & np.isfinite(nL)
+    naive = float((np.mean(np.abs(nH[nok] - b.H[nok])) + np.mean(np.abs(nL[nok] - b.L[nok]))) / 2 / PIP) \
+        if nok.any() else np.nan
+    model = float((np.mean(np.abs(H_hat[nok] - b.H[nok])) + np.mean(np.abs(L_hat[nok] - b.L[nok]))) / 2 / PIP) \
+        if nok.any() else np.nan
+    return {"naive_mean20_mae_pips": naive, "range_mae_ratio_to_naive": model / naive if naive else np.nan,
+            "mae_high_pips": float(np.mean(np.abs(H_hat[ok] - b.H[ok])) / PIP) if ok.any() else np.nan,
             "mae_low_pips": float(np.mean(np.abs(L_hat[ok] - b.L[ok])) / PIP) if ok.any() else np.nan,
             "first_touch_accuracy": float(np.mean(ft_hat[clear] == b.ft[clear])) if clear.any() else np.nan,
             "forecast_coverage": float(ok.sum() / mask.sum()) if mask.any() else np.nan,
@@ -158,9 +176,11 @@ def path_accuracy(ctx, mask, preds):
     return out
 
 
-def evaluate(ctx, orders, costs, extra_acc=None, segment_hold=None):
+def evaluate(ctx, orders, costs, extra_acc=None, segment_hold=None, splits=None):
     rows = []
     for name, (a, b) in SPLITS.items():
+        if splits is not None and name not in splits:
+            continue
         split = (utc(a), utc(b))
         if segment_hold is None:
             res = X.run_backtest(ctx.bars, ctx.blocks, orders, costs, ctx.cal, CAPITAL, split)
@@ -195,6 +215,14 @@ def cells(grid):
     if grid == "costs":
         return [dict(grid=grid, block_hours=h, strategy=v, family="blend", level=x, p_flip=p, seed=s, cost_mult=m)
                 for h, v, m, x, p, s in itertools.product(BLOCK_HOURS, VARIANTS, COST_MULTS, COST_BLEND_W, COST_P, SEEDS)]
+    if grid == "val24":
+        out = [dict(grid=grid, sweep="baseline", block_hours=24, strategy=n, family="none", level=0.0,
+                    p_flip=0.0, seed=0, cost_mult=m) for n in ("NO_TRADE", "NAIVE_MEAN20_RF-L") for m in VAL_COSTS]
+        sweeps = [("range", x, 0.0) for x in VAL_RANGE_PIPS] + [("firsttouch", 0.0, p) for p in VAL_P] + \
+            [("joint", x, p) for x in VAL_JOINT_PIPS for p in VAL_JOINT_P]
+        out += [dict(grid=grid, sweep=sw, block_hours=24, strategy="RF-L", family="abs", level=x, p_flip=p,
+                     seed=s, cost_mult=m) for (sw, x, p), s, m in itertools.product(sweeps, VAL_SEEDS, VAL_COSTS)]
+        return out
     raise ValueError(grid)
 
 
@@ -202,6 +230,8 @@ def run_cell(ctx, cell):
     costs = X.Costs().scaled(cell["cost_mult"])
     p = S.RangeFirstParams()
     st = cell["strategy"]
+    if cell["grid"] == "val24":
+        return run_val24_cell(ctx, cell, costs, p)
     if st in ("RF-M", "RF-L"):
         H_hat, L_hat = ctx.range_forecast(cell["family"], cell["level"], cell["seed"])
         flip = ctx.draws[cell["seed"]]["u_flip"] < cell["p_flip"]
@@ -231,6 +261,32 @@ def run_cell(ctx, cell):
     return evaluate(ctx, base[st], costs)
 
 
+def run_val24_cell(ctx, cell, costs, p):
+    """Business-day RF-L on VALIDATION 2024 only; achieved metrics on the same rows."""
+    only = ("VALIDATION_2024",)
+    st = cell["strategy"]
+    if st == "RF-L":
+        H_hat, L_hat = ctx.range_forecast("abs", cell["level"], cell["seed"])
+        flip = ctx.draws[cell["seed"]]["u_flip"] < cell["p_flip"]
+        ft_hat = np.where(flip, -ctx.ft_oracle, ctx.ft_oracle)
+        conf = 1.0 - cell["p_flip"]
+    elif st == "NAIVE_MEAN20_RF-L":
+        H_hat, L_hat, ft_hat = ctx.naive["MEAN20"]
+        conf = 1.0
+    elif st == "NO_TRADE":
+        return evaluate(ctx, [None] * len(ctx.blocks), costs, splits=only)
+    else:
+        raise ValueError(st)
+    orders = S.range_first_orders("RF-L", ctx.blocks, H_hat, L_hat, ft_hat, costs, p, CAPITAL)
+
+    def acc(mask):
+        out = accuracy(ctx, mask, H_hat, L_hat, ft_hat)
+        out["brier_calibrated"] = A.calibrated_brier(ft_hat[mask], ctx.blocks.ft[mask], conf)
+        out["stated_confidence"] = conf
+        return out
+    return evaluate(ctx, orders, costs, acc, splits=only)
+
+
 def cell_key(c):
     return (c["grid"], c["block_hours"], c["strategy"], c["family"], c["level"], c["p_flip"], c["seed"], c["cost_mult"])
 
@@ -250,7 +306,7 @@ def run_grid(args, bars, cal, digest):
         for row, res in run_cell(ctxs[c["block_hours"]], c):
             rows.append({**c, **row, "label": LABEL})
             if args.save_equity:
-                key = "|".join(map(str, cell_key(c) + (row["split"],)))
+                key = "|".join(map(str, cell_key(c) + ((c["sweep"],) if "sweep" in c else ()) + (row["split"],)))
                 curves[key] = res.daily_equity.to_numpy(np.float32)
                 curves[key + "|t0"] = np.array([res.daily_equity.index[0].value], dtype=np.int64)
     cpu = time.process_time() - t0
@@ -267,11 +323,14 @@ def merge(args):
     out = Path(args.output)
     frames = [pd.read_csv(p) for p in sorted(out.glob("cells_*of*.csv"))]
     df = pd.concat(frames, ignore_index=True)
-    expected = {g: len(cells(g)) * len(SPLITS) for g in ("baselines", "rf", "comparator", "costs")}
+    grids = args.grids.split(",")
+    per_cell = {g: (1 if g == "val24" else len(SPLITS)) for g in grids}
+    expected = {g: len(cells(g)) * per_cell[g] for g in grids}
     got = df.groupby("grid").size().to_dict()
     if got != expected:
         raise SystemExit(f"incomplete population {got} != {expected}")
-    keys = ["grid", "block_hours", "strategy", "family", "level", "p_flip", "seed", "cost_mult", "split"]
+    keys = ["grid", "block_hours", "strategy", "family", "level", "p_flip", "seed", "cost_mult", "split"] + \
+        (["sweep"] if "sweep" in df.columns else [])
     if df.duplicated(keys).any():
         raise SystemExit("duplicate cells")
     df.to_csv(out / "cells.csv", index=False)
@@ -299,7 +358,8 @@ def main():
     ap.add_argument("stage", choices=["calendar", "pilot", "run", "merge"])
     ap.add_argument("--data", type=Path, help=f"lake file {LAKE_RELPATH}")
     ap.add_argument("--output", type=Path)
-    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs"])
+    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs", "val24"])
+    ap.add_argument("--grids", default="baselines,rf,comparator,costs", help="merge: grids expected")
     ap.add_argument("--chunk", default="0/1")
     ap.add_argument("--save-equity", action="store_true")
     args = ap.parse_args()

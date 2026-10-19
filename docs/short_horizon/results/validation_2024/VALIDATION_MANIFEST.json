@@ -1,0 +1,10 @@
+{
+ "label": "DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT",
+ "cells_csv_sha256": "3b43b2dfe34a6c123e69b827392f7c25c7b3e935d6b650dea51b3df64c1f3d6c",
+ "rows": 984,
+ "data_sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+ "backtest_cpu_seconds": 13.9,
+ "chunks": 2,
+ "split": "VALIDATION_2024",
+ "test_rows_read": false
+}
