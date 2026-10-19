@@ -1,9 +1,11 @@
 """Direction-free strategies on predicted volatility (owner pivot, 2026-10-19). DEVELOPMENT.
 
 V1 OCO breakout (trades only on predicted expansion): buy-stop at r + k_entry*U_hat and sell-stop
-at r - k_entry*D_hat; the first fill cancels the other. Broker-side TP = fill +/- k_tp*R_hat and
-SL = fill -/+ k_sl*R_hat (R_hat = U_hat + D_hat), the SL MOVED as a trailing stop
-(close -/+ k_trail*R_hat, effective from the next bar, only ever tightened, never removed).
+at r - k_entry*D_hat; the first fill cancels the other. Each leg is scaled by ITS side's predicted
+excursion E (U_hat up, D_hat down): broker-side TP = fill +/- k_tp*E (k_entry + k_tp < 1 keeps the
+TP inside the predicted extreme, so it is effective), SL = fill -/+ k_sl*E, the SL MOVED as a
+trailing stop (close -/+ k_trail*E, effective from the next bar, only ever tightened, never removed).
+(Corrected after a pilot: scaling by the full range put the TP beyond the predicted extreme.)
 
 V2 range reversion (trades only on predicted contraction): resting OCO limits at a causal
 anchor (mean close of the previous B bars, never centred) +/- b*sigma_hat with
@@ -184,7 +186,7 @@ def check_oco(order: OcoOrder, sigma: float, rules: OrderRules, require_units: b
 class V1Params:
     expansion_threshold: float = 1.10   # trade only if R_hat / sigma_recent >= this
     k_entry: float = 0.5
-    k_tp: float = 0.5
+    k_tp: float = 0.4
     k_sl: float = 0.5
     k_trail: float = 0.35
 
@@ -205,8 +207,8 @@ def v1_order(blocks, k, U_hat, D_hat, sigma_recent, p: V1Params = V1Params()) ->
     if R / sigma_recent < p.expansion_threshold:
         return None
     r = float(blocks.ref[k])
-    up = Leg(1, "STOP", r + p.k_entry * U_hat, p.k_tp * R, p.k_sl * R, p.k_trail * R, relative=True)
-    dn = Leg(-1, "STOP", r - p.k_entry * D_hat, p.k_tp * R, p.k_sl * R, p.k_trail * R, relative=True)
+    up = Leg(1, "STOP", r + p.k_entry * U_hat, p.k_tp * U_hat, p.k_sl * U_hat, p.k_trail * U_hat, relative=True)
+    dn = Leg(-1, "STOP", r - p.k_entry * D_hat, p.k_tp * D_hat, p.k_sl * D_hat, p.k_trail * D_hat, relative=True)
     return OcoOrder((up, dn))
 
 

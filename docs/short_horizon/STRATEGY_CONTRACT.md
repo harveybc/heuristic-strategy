@@ -285,3 +285,37 @@ and writes only under its own output directory.
   non-compounding) is kept only as a labelled reference arm for the earlier studies.
 - **Every order record** in outputs carries units, `percentual_order_size`,
   `rel_volume`, side, entry, SL and TP.
+
+## 16. Direction-free strategies V1 and V2 (owner pivot, 2026-10-19)
+
+Inputs: the volatility predictor's excursions Û, D̂ (predicted R̂ = Û + D̂) and the
+causal block sigma σ̂_recent (mean range of the last 20 completed blocks). No
+direction forecast is consumed.
+
+**V1 OCO breakout** (`app/short_horizon/vstrategies.py`):
+- **Filter:** trades only if R̂ / σ̂_recent ≥ 1,10 (predicted expansion).
+- **Entries:** buy-stop at r + 0,5·Û and sell-stop at r − 0,5·D̂; the first fill
+  cancels the other.
+- **Levels:** each leg is scaled by its own side's excursion E (Û up, D̂ down).
+  - Broker-side TP = fill ± 0,4·E (inside the predicted extreme, so effective).
+  - SL = fill ∓ 0,5·E.
+  - The SL is moved as a trailing stop to close ∓ 0,35·E, effective from the
+    next bar, only ever tightened, never removed.
+- **Pilot correction:** the first geometry scaled the levels by the whole range
+  R̂. A pilot showed that put the TP beyond the predicted extreme by construction
+  (oracle TP share 0 %), so the geometry was corrected before the full grid.
+  This was a structural correction for TP effectiveness, not tuning.
+
+**V2 range reversion:**
+- **Filter:** trades only if R̂ / σ̂_recent ≤ 0,90 (predicted contraction).
+- **Entries:** resting OCO limits at a causal anchor (mean close of the B bars
+  before t0; never centred) ± 0,8·σ̂, with σ̂ = R̂/2. A leg that would be marketable
+  at t0 is not placed.
+- **Levels:** TP at the anchor; SL at the band ∓ 2·σ̂ (m = 2); time stop at block end.
+
+**Both strategies:**
+- A stop entry pays stop slippage.
+- Limits (entries and TPs) fill only when price trades through by 1 pip.
+- If both OCO legs trigger inside one bar, the worse outcome is taken (flagged).
+- All parameters were fixed a priori. A small sensitivity grid is shown on 2023
+  only and is never used to pick values on 2024.
