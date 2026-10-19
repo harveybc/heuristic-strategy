@@ -1,0 +1,150 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "VolTrendStrategy parameters",
+ "type": "object",
+ "additionalProperties": false,
+ "properties": {
+  "c_tp": {
+   "type": "number",
+   "minimum": 0.0,
+   "maximum": 3.0,
+   "default": 1.0,
+   "description": "vol multiple in the TP"
+  },
+  "m": {
+   "type": "number",
+   "minimum": 0.5,
+   "maximum": 4.0,
+   "default": 2.0,
+   "description": "SL = entry - m * sigma_hat"
+  },
+  "w_trend": {
+   "type": "number",
+   "minimum": 0.0,
+   "maximum": 2.0,
+   "default": 1.0,
+   "description": "weight of |trend_hat| in the TP"
+  },
+  "theta": {
+   "type": "number",
+   "minimum": 0.0,
+   "maximum": 50.0,
+   "default": 0.0,
+   "description": "abstain when |trend_hat| < theta * sigma_hat"
+  },
+  "tp_form": {
+   "type": "string",
+   "enum": [
+    "additive",
+    "clipped"
+   ],
+   "default": "additive"
+  },
+  "pos_a": {
+   "type": "number",
+   "minimum": 0.0,
+   "maximum": 1.0,
+   "default": 1.0
+  },
+  "pos_b": {
+   "type": "number",
+   "minimum": 0.0,
+   "maximum": 2.0,
+   "default": 0.0
+  },
+  "pos_c": {
+   "type": "number",
+   "minimum": 0.0,
+   "maximum": 2.0,
+   "default": 0.0
+  },
+  "pos_min": {
+   "type": "number",
+   "minimum": 0.05,
+   "maximum": 1.0,
+   "default": 0.25
+  },
+  "rel_volume": {
+   "type": "number",
+   "minimum": 0.01,
+   "maximum": 0.2,
+   "default": 0.1
+  },
+  "leverage": {
+   "type": "integer",
+   "enum": [
+    10,
+    50,
+    100
+   ],
+   "default": 100
+  },
+  "block_hours": {
+   "type": "integer",
+   "enum": [
+    6,
+    24
+   ],
+   "default": 24
+  },
+  "time_stop_hours": {
+   "type": "integer",
+   "minimum": 1,
+   "maximum": 24,
+   "default": 24,
+   "description": "<= block_hours; the block end is the forced flat"
+  },
+  "trend_model": {
+   "type": "string",
+   "enum": [
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "tx"
+   ],
+   "default": "t0"
+  },
+  "vol_model": {
+   "type": "string",
+   "enum": [
+    "MEAN20",
+    "HAR",
+    "ORACLE"
+   ],
+   "default": "HAR"
+  },
+  "max_orders_per_day": {
+   "type": "integer",
+   "minimum": 1,
+   "maximum": 4,
+   "default": 4
+  },
+  "min_trades_per_week": {
+   "type": "number",
+   "minimum": 0.0,
+   "maximum": 10.0,
+   "default": 3.0
+  }
+ },
+ "required": [
+  "c_tp",
+  "m",
+  "w_trend",
+  "theta",
+  "tp_form",
+  "pos_a",
+  "pos_b",
+  "pos_c",
+  "pos_min",
+  "rel_volume",
+  "leverage",
+  "block_hours",
+  "time_stop_hours",
+  "trend_model",
+  "vol_model",
+  "max_orders_per_day",
+  "min_trades_per_week"
+ ]
+}

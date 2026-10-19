@@ -1,0 +1,213 @@
+{
+ "block_hours": 24,
+ "generations_done": 25,
+ "population": 24,
+ "history": [
+  {
+   "generation": 1,
+   "front_size": 24,
+   "best_sharpe": -10.0,
+   "min_dd": 100.0
+  },
+  {
+   "generation": 2,
+   "front_size": 24,
+   "best_sharpe": -10.0,
+   "min_dd": 100.0
+  },
+  {
+   "generation": 3,
+   "front_size": 24,
+   "best_sharpe": -10.0,
+   "min_dd": 100.0
+  },
+  {
+   "generation": 4,
+   "front_size": 24,
+   "best_sharpe": -10.0,
+   "min_dd": 100.0
+  },
+  {
+   "generation": 5,
+   "front_size": 2,
+   "best_sharpe": -2.002978399645456,
+   "min_dd": 47.55434667038485
+  },
+  {
+   "generation": 6,
+   "front_size": 3,
+   "best_sharpe": -1.5390023251071043,
+   "min_dd": 47.39433523503596
+  },
+  {
+   "generation": 7,
+   "front_size": 4,
+   "best_sharpe": -1.5390023251071043,
+   "min_dd": 45.703687679288805
+  },
+  {
+   "generation": 8,
+   "front_size": 4,
+   "best_sharpe": -1.4544261385380264,
+   "min_dd": 44.25432583951936
+  },
+  {
+   "generation": 9,
+   "front_size": 2,
+   "best_sharpe": -1.2907164059169571,
+   "min_dd": 44.25432583951936
+  },
+  {
+   "generation": 10,
+   "front_size": 4,
+   "best_sharpe": -1.2275031766530924,
+   "min_dd": 43.957667274327285
+  },
+  {
+   "generation": 11,
+   "front_size": 2,
+   "best_sharpe": -1.031576194379618,
+   "min_dd": 39.36262544224759
+  },
+  {
+   "generation": 12,
+   "front_size": 2,
+   "best_sharpe": -1.031576194379618,
+   "min_dd": 39.29881709456476
+  },
+  {
+   "generation": 13,
+   "front_size": 5,
+   "best_sharpe": -1.031576194379618,
+   "min_dd": 38.351756184949956
+  },
+  {
+   "generation": 14,
+   "front_size": 4,
+   "best_sharpe": -1.031576194379618,
+   "min_dd": 36.979973016110605
+  },
+  {
+   "generation": 15,
+   "front_size": 2,
+   "best_sharpe": -0.9797198027205047,
+   "min_dd": 35.87299420047007
+  },
+  {
+   "generation": 16,
+   "front_size": 2,
+   "best_sharpe": -0.7538803964371948,
+   "min_dd": 30.861209781310183
+  },
+  {
+   "generation": 17,
+   "front_size": 3,
+   "best_sharpe": -0.7538803964371948,
+   "min_dd": 30.817480611123603
+  },
+  {
+   "generation": 18,
+   "front_size": 4,
+   "best_sharpe": -0.7248131257617926,
+   "min_dd": 30.817480611123603
+  },
+  {
+   "generation": 19,
+   "front_size": 6,
+   "best_sharpe": -0.7197752954151071,
+   "min_dd": 28.29609811529174
+  },
+  {
+   "generation": 20,
+   "front_size": 5,
+   "best_sharpe": -0.7109083524139813,
+   "min_dd": 28.29609811529174
+  },
+  {
+   "generation": 21,
+   "front_size": 3,
+   "best_sharpe": -0.7109083524139813,
+   "min_dd": 27.63979179811592
+  },
+  {
+   "generation": 22,
+   "front_size": 3,
+   "best_sharpe": -0.6753897833122957,
+   "min_dd": 27.63979179811592
+  },
+  {
+   "generation": 23,
+   "front_size": 4,
+   "best_sharpe": -0.6753897833122957,
+   "min_dd": 16.665314201222557
+  },
+  {
+   "generation": 24,
+   "front_size": 4,
+   "best_sharpe": -0.6753897833122957,
+   "min_dd": 16.28887116773368
+  },
+  {
+   "generation": 25,
+   "front_size": 4,
+   "best_sharpe": -0.6753897833122957,
+   "min_dd": 16.28887116773368
+  }
+ ],
+ "front_points": 4,
+ "front_valid_both": 0,
+ "chosen": {
+  "parameters": {
+   "c_tp": 0.44298078928897106,
+   "m": 1.2120825419100913,
+   "w_trend": 1.4431582660015048,
+   "theta": 0.07347915817367169,
+   "tp_form": "clipped",
+   "pos_a": 0.7025703837566117,
+   "pos_b": 1.0714594822827237,
+   "pos_c": 1.901900140750925,
+   "pos_min": 0.483182666752134,
+   "rel_volume": 0.1,
+   "leverage": 100,
+   "block_hours": 24,
+   "time_stop_hours": 24,
+   "trend_model": "t1",
+   "vol_model": "HAR",
+   "max_orders_per_day": 4,
+   "min_trades_per_week": 3.0
+  },
+  "manifest_sha256": "fab49c6bd04a1fcbb856267753fb7ec61abd7e86af34ec0782079966e64b120b",
+  "decision": {
+   "dec_sharpe": -0.6753897833122957,
+   "dec_max_dd_pct": 34.744861673302694,
+   "dec_net": -2536.669012325732,
+   "dec_orders_per_week": 3.2038216560509554,
+   "dec_valid": true
+  },
+  "validation_2023": {
+   "val_sharpe": -1.5964625984023104,
+   "val_max_dd_pct": 15.964375526883762,
+   "val_net": -1367.0852277162903,
+   "val_orders_per_week": 2.2884615384615383,
+   "val_valid": false
+  },
+  "confirm_2024": {
+   "sharpe": -2.0809168993734453,
+   "max_dd": 19.16229627735969,
+   "max_dd_usd": 1925.708558636672,
+   "net": -1553.460797559088,
+   "orders_per_week": 2.4339622641509435,
+   "trades": 129,
+   "valid": false,
+   "ruined": false,
+   "rule_skipped_orders": 0,
+   "share_exit_tp": 0.751937984496124,
+   "share_exit_sl": 0.20930232558139536,
+   "share_exit_time": 0.03875968992248062,
+   "max_orders_per_day": 1,
+   "seed": 0,
+   "manifest_sha256": "fab49c6bd04a1fcbb856267753fb7ec61abd7e86af34ec0782079966e64b120b"
+  }
+ },
+ "note": "optimized on 2020-2022 only; 2023 used to choose the point; 2024 evaluated once"
+}
