@@ -63,6 +63,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 11. [ ] DEAP sobre `VolTrendStrategy`/estrategia integrada con datos reales solo cuando exista un módulo con skill; nunca sobre 2024.
 12. [ ] Evaluación de TabICLv2 / Chronos-2 como proveedores M5PHET para rango y primer toque con contexto causal purgado (ver `jev-alternatives-evaluation`), condicionada a 4.
 13. [ ] Reporte de paridad gym-fx para cada estrategia nueva (regla permanente).
+14a. [x] 2026-10-19 Solicitud de auditoría del PLAN de selección publicada para Musashi (predictor `satoshi/rl-from-expert-note-20261019`, `AUDIT_REQUEST_TIMING_SELECTION_PLAN_2026_10_19.md`); el sello de A3 queda PRELIMINARY_PENDING_PLAN_AUDIT hasta incorporar sus hallazgos.
 14. [ ] Al cerrar A3: redactar SOLICITUD DE AUDITORÍA para Musashi (qué se seleccionó, target del experto, etapas corridas, decisión 2023 / confirmación 2024, limitaciones, qué atacar primero) y publicarla junto al manifiesto. Orden del propietario 2026-10-19.
 
 ## 5. Decisiones del propietario registradas
