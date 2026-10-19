@@ -311,11 +311,14 @@ def fit_arm(arm, cell, xa_tr, y_tr, xa_in, y_in, seed, F):
 
 
 def save_model(model, path: Path, arm):
+    """One file per fit: the suffix is APPENDED to the full key (``Path.with_suffix`` would cut a cell id such as
+    ``weight_decay0.0001`` at its decimal point and make different fits overwrite one file)."""
+    path = path.parent / (path.name + (".pkl" if arm == "m3_hgb" else ".keras"))
+    if path.exists():
+        raise SystemExit(f"MODEL_FILE_EXISTS: {path.name}")
     if arm == "m3_hgb":
-        path = path.with_suffix(".pkl")
         path.write_bytes(pickle.dumps(model))
     else:
-        path = path.with_suffix(".keras")
         model.save(path)
     return path
 

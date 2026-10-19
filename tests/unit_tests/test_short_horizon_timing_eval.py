@@ -96,3 +96,17 @@ def test_te08_deflated_sharpe_falls_as_trials_grow():
     few = TE.deflated_sharpe(0.1, 250, 0.0, 3.0, [0.0, 0.05])
     many = TE.deflated_sharpe(0.1, 250, 0.0, 3.0, list(np.linspace(-0.1, 0.1, 40)))
     assert few["dsr"] > many["dsr"]
+
+
+def test_te09_model_files_never_collide_across_cells_and_seeds(tmp_path):
+    _M = dict                                                          # any picklable object stands in for a model
+    names = set()
+    for cell in TE.GRID["m3_hgb"]:
+        for s in TE.SEEDS:
+            names.add(TE.save_model(_M(v=s), tmp_path / f"{TE.cell_id(cell)}__s{s}", "m3_hgb").name)
+    assert len(names) == len(TE.GRID["m3_hgb"]) * len(TE.SEEDS)
+    keys = {f"{TE.cell_id(c)}__s{s}" for c in TE.GRID["m2_gru"] for s in TE.SEEDS}
+    files = {(Path("x") / k).parent / (k + ".keras") for k in keys}
+    assert len(files) == len(keys) == 18
+    with pytest.raises(SystemExit, match="MODEL_FILE_EXISTS"):
+        TE.save_model(_M(v=0), tmp_path / f"{TE.cell_id(TE.GRID['m3_hgb'][0])}__s{TE.SEEDS[0]}", "m3_hgb")
