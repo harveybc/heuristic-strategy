@@ -44,7 +44,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 | --- | --- | --- | --- |
 | A1 | NSGA-II ZigZag completo (pop 64 × ≥80 gen × 3 semillas, genes log, Depth 2–200, Dev 1–300 pips, Backstep<Depth, hipervolumen, frentes retrospectivo y confirmado, sensibilidad tope diario) | heuristic-strategy `satoshi/short-horizon-strategy-20261018` | frente, convergencia, nuevas demostraciones selladas |
 | A2 | Detector de pivotes sobre las 15 variables reales de Musashi (I6-DMO clasif., GRU 48, HGB; 3 semillas; regla de parada) | heuristic-strategy `satoshi/pivot-detector-20261019` | E0 imitabilidad real; puntos g/h/i en la brecha |
-| A3 | Plugin de selección con target de sincronización (familia `timing_pivot` + adaptador causal + evaluador predictivo, en los dueños; fijado en dataset_selection) | predictor / causal-inference / dataset_selection | mapa del tooling, manifiesto sellado, tabla causal, E0 nuevo vs 15 de Musashi |
+| A3 | Selección de características PARA RL GUIADO POR EXPERTO (no para predicción de precio): target `timing_pivot` derivado de la señal ZigZag optimizada (sus picos y valles = tick de cierre de una orden y apertura de la siguiente) + adaptador causal + evaluador predictivo (detector de pivotes + Sharpe de la estrategia trivial). El código vive en los repos dueños de los motores (predictor `tools/`, causal-inference `provider/`) y se fija desde `dataset_selection`; eso es ubicación de código, no objetivo. | predictor / causal-inference / dataset_selection | mapa del tooling, manifiesto sellado, tabla causal, E0 nuevo vs 15 de Musashi; al cerrar → solicitud de auditoría a Musashi |
 | A4 | Características fractales causales de Retsu recalculadas para EURUSD H1 (ventanas 200/96/48) como plugin feature-eng; almacén fuera del lago; redundancia vs volatilidad | feature-eng `satoshi/causal-fractal-eurusd-20261019` | manifiesto, nota, tabla de redundancia |
 
 ## 4. Pendientes (ordenados; se tachan al cerrarse)
@@ -62,6 +62,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 11. [ ] DEAP sobre `VolTrendStrategy`/estrategia integrada con datos reales solo cuando exista un módulo con skill; nunca sobre 2024.
 12. [ ] Evaluación de TabICLv2 / Chronos-2 como proveedores M5PHET para rango y primer toque con contexto causal purgado (ver `jev-alternatives-evaluation`), condicionada a 4.
 13. [ ] Reporte de paridad gym-fx para cada estrategia nueva (regla permanente).
+14. [ ] Al cerrar A3: redactar SOLICITUD DE AUDITORÍA para Musashi (qué se seleccionó, target del experto, etapas corridas, decisión 2023 / confirmación 2024, limitaciones, qué atacar primero) y publicarla junto al manifiesto. Orden del propietario 2026-10-19.
 
 ## 5. Decisiones del propietario registradas
 
@@ -70,6 +71,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 | 2026-10-18 | PDT eliminado para el negocio; estrategia corto/largo a 72 h obsoleta; Satoshi = estrategias ML, Musashi = RL. |
 | 2026-10-19 | Primero volatilidad simulable (negativo), luego ZigZag como experto para RL con guía; SL+TP obligatorios y efectivos; unidades por `rel_volume`×`percentual_order_size`; apalancamiento 1:10/50/100; parada temprana training+validación; GPU 4090→4070→5070 Ti; calendario como inferencia causal (paciente/droga/efecto; selección de eventos). |
 | 2026-10-19 | Plan vivo obligatorio; actualizarlo en cada avance. |
+| 2026-10-19 | La selección nueva es para RL guiado por el experto ZigZag, no para predicción; al terminarla, solicitud de auditoría a Musashi. |
 
 ## 6. Cómo se actualiza
 
