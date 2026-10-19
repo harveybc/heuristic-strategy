@@ -1,5 +1,9 @@
 # Business-day RF-L on VALIDATION 2024: ideal predictions, then Gaussian noise
 
+> **Superseded axis (owner, 2026-10-19).** The owner rejected first-touch accuracy as an axis. The current
+> design consumes only a predicted price path and is reported against price MAE in
+> [PRICE_PATH_NOISE_SWEEP.md](PRICE_PATH_NOISE_SWEEP.md). This page is kept as the record of the earlier sweeps.
+
 **DEVELOPMENT · VALIDATION 2024 · oracle/noise study, not a model result.** No
 model was trained or selected. The forecasts are the realised 2024 block
 high/low/first-touch, then the same values with additive Gaussian noise and

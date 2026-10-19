@@ -191,3 +191,26 @@ def baseline_orders(blocks: Blocks, costs: Costs, p: RangeFirstParams, capital) 
             out[f"NAIVE_{kind}_{variant}"] = range_first_orders(variant, blocks, H_hat, L_hat, ft,
                                                                 costs, p, capital)
     return out
+
+
+# ------------------------------------------------------------------ price-path-only input (owner, 2026-10-19)
+def path_to_range(paths):
+    """Derive (H_hat, L_hat, first touch) from a predicted hourly price path.
+
+    H_hat = max, L_hat = min over the finite predicted prices; first touch is
+    the order of their first occurrences (argmax before argmin -> HIGH_FIRST).
+    A flat path or one with no finite price gives AMBIGUOUS (no trade).
+    """
+    P = np.asarray(paths, float)
+    n = len(P)
+    finite = np.isfinite(P)
+    has = finite.any(axis=1)
+    pmax = np.where(finite, P, -np.inf)
+    pmin = np.where(finite, P, np.inf)
+    ih, il = pmax.argmax(axis=1), pmin.argmin(axis=1)
+    rows = np.arange(n)
+    H_hat = np.where(has, pmax[rows, ih], np.nan)
+    L_hat = np.where(has, pmin[rows, il], np.nan)
+    ft = np.where(il < ih, LOW_FIRST, np.where(ih < il, HIGH_FIRST, AMBIGUOUS))
+    ft = np.where(has, ft, AMBIGUOUS).astype(int)
+    return H_hat, L_hat, ft

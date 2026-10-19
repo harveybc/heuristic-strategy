@@ -69,6 +69,9 @@ VAL_COSTS = (1.0, 2.0)
 # Coordinator follow-up 2026-10-19: participation, RF-M range sweep, realistic sweeps (val24x).
 VAL_FT_TARGETS = tuple(round(1 - 0.05 * k, 2) for k in range(11))
 VAL_FIXED_FT = (0.6, 0.7)
+# Owner redesign 2026-10-19: strategy consumes only a predicted hourly price path h = 1..B.
+PATH_SIGMAS = (0.0, 0.0001, 0.0002, 0.0003, 0.0005, 0.00075, 0.001, 0.0015, 0.002, 0.003, 0.004, 0.005,
+               0.0075, 0.01, 0.015, 0.02, 0.03, 0.04, 0.06)
 CAPITAL = 10_000.0
 PIP = 1e-4
 LABEL = "DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT"
@@ -122,6 +125,18 @@ class Context:
         self.draws = {s: N.draws(s, n, len(self.horizons)) for s in sorted(set(SEEDS) | set(VAL_SEEDS))}
         self.masks = {name: self.blocks.in_split((utc(a), utc(b))) for name, (a, b) in SPLITS.items()}
         self.naive = {k: S.naive_range(self.blocks, k) for k in ("PERSIST", "MEAN20")}
+
+    def path_targets(self):
+        """Realised closes of the bars labelled t0 + h - 1h, h = 1..B (NaN when absent)."""
+        if not hasattr(self, "_path"):
+            self._path = S.comparator_targets(self.bars, self.blocks, tuple(range(1, self.hours + 1)))
+        return self._path
+
+    def path_noise(self, seed):
+        cache = self.__dict__.setdefault("_path_noise", {})
+        if seed not in cache:
+            cache[seed] = N.path_draws(seed, len(self.blocks), self.hours)
+        return cache[seed]
 
     def range_forecast(self, family, level, seed):
         """(H_hat, L_hat) before the first-touch flip."""
@@ -226,6 +241,14 @@ def cells(grid):
         out += [dict(grid=grid, sweep=sw, block_hours=24, strategy="RF-L", family="abs", level=x, p_flip=p,
                      seed=s, cost_mult=m) for (sw, x, p), s, m in itertools.product(sweeps, VAL_SEEDS, VAL_COSTS)]
         return out
+    if grid == "pathx":
+        out = [dict(grid=grid, block_hours=h, strategy="PERSISTENCE", family="path", level=0.0, p_flip=0.0,
+                    seed=0, cost_mult=m) for h in BLOCK_HOURS for m in VAL_COSTS]
+        out += [dict(grid=grid, block_hours=h, strategy=st, family="path", level=x, p_flip=0.0, seed=s,
+                     cost_mult=m)
+                for h, st, x, s, m in itertools.product(BLOCK_HOURS, ("RF-M", "RF-L"), PATH_SIGMAS, VAL_SEEDS,
+                                                        VAL_COSTS)]
+        return out
     if grid == "val24x":
         out = [dict(grid=grid, sweep="baseline", block_hours=24, strategy=n, family="none", level=0.0,
                     p_flip=0.0, ft_target=None, seed=0, cost_mult=m)
@@ -251,6 +274,8 @@ def run_cell(ctx, cell):
     costs = X.Costs().scaled(cell["cost_mult"])
     p = S.RangeFirstParams()
     st = cell["strategy"]
+    if cell["grid"] == "pathx":
+        return run_path_cell(ctx, cell, costs, p)
     if cell["grid"] in ("val24", "val24x"):
         return run_val24_cell(ctx, cell, costs, p)
     if st in ("RF-M", "RF-L"):
@@ -316,6 +341,35 @@ def run_val24_cell(ctx, cell, costs, p):
     return evaluate(ctx, orders, costs, acc, splits=only)
 
 
+def run_path_cell(ctx, cell, costs, p):
+    """Range-first driven only by a predicted price path; both splits; achieved price MAE."""
+    T = ctx.path_targets()
+    naive = np.where(np.isfinite(T), ctx.blocks.ref[:, None], np.nan)
+    if cell["strategy"] == "PERSISTENCE":
+        preds, variant = naive, "RF-M"
+    else:
+        preds, variant = T + cell["level"] * ctx.path_noise(cell["seed"]), cell["strategy"]
+    H_hat, L_hat, ft_hat = S.path_to_range(preds)
+    orders = S.range_first_orders(variant, ctx.blocks, H_hat, L_hat, ft_hat, costs, p, CAPITAL)
+
+    def acc(mask):
+        m, nv = A.path_mae(preds, T, mask), A.path_mae(naive, T, mask)
+        b = ctx.blocks
+        clear = mask & (b.ft != B.AMBIGUOUS)
+        ok = mask & np.isfinite(H_hat)
+        out = {"path_mae": m["mae"], "naive_path_mae": nv["mae"],
+               "path_mae_ratio_to_naive": m["mae"] / nv["mae"] if nv["mae"] else np.nan,
+               "path_prices_scored": m["count"],
+               "derived_high_mae_pips": float(np.mean(np.abs(H_hat[ok] - b.H[ok])) / PIP) if ok.any() else np.nan,
+               "derived_low_mae_pips": float(np.mean(np.abs(L_hat[ok] - b.L[ok])) / PIP) if ok.any() else np.nan,
+               "derived_first_touch_accuracy": float(np.mean(ft_hat[clear] == b.ft[clear])) if clear.any() else np.nan}
+        for j in range(ctx.hours):
+            out[f"path_mae_h{j + 1}"] = float(m["per_h"][j])
+            out[f"naive_mae_h{j + 1}"] = float(nv["per_h"][j])
+        return out
+    return evaluate(ctx, orders, costs, acc)
+
+
 def cell_key(c):
     return (c["grid"], c["block_hours"], c["strategy"], c["family"], c["level"], c["p_flip"], c["seed"], c["cost_mult"])
 
@@ -354,7 +408,7 @@ def merge(args):
     frames = [pd.read_csv(p) for p in sorted(out.glob("cells_*of*.csv"))]
     df = pd.concat(frames, ignore_index=True)
     grids = args.grids.split(",")
-    per_cell = {g: (1 if g in ("val24", "val24x") else len(SPLITS)) for g in grids}
+    per_cell = {g: (1 if g in ("val24", "val24x") else len(SPLITS)) for g in grids}  # pathx: both splits
     expected = {g: len(cells(g)) * per_cell[g] for g in grids}
     got = df.groupby("grid").size().to_dict()
     if got != expected:
@@ -388,7 +442,7 @@ def main():
     ap.add_argument("stage", choices=["calendar", "pilot", "run", "merge"])
     ap.add_argument("--data", type=Path, help=f"lake file {LAKE_RELPATH}")
     ap.add_argument("--output", type=Path)
-    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs", "val24", "val24x"])
+    ap.add_argument("--grid", choices=["baselines", "rf", "comparator", "costs", "val24", "val24x", "pathx"])
     ap.add_argument("--grids", default="baselines,rf,comparator,costs", help="merge: grids expected")
     ap.add_argument("--chunk", default="0/1")
     ap.add_argument("--save-equity", action="store_true")

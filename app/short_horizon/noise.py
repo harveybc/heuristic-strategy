@@ -65,3 +65,8 @@ def flip_to_accuracy(ft, eligible, u, target):
     out = ft.copy()
     out[order[:k]] = -out[order[:k]]
     return out
+
+
+def path_draws(seed: int, n_blocks: int, horizons: int) -> np.ndarray:
+    """Standard normals for every predicted price of every block's path (own stream)."""
+    return np.random.default_rng([int(seed), int(horizons), 2026_10_19]).standard_normal((n_blocks, horizons))

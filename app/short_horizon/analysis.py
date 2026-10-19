@@ -35,3 +35,20 @@ def calibrated_brier(ft_hat, ft_true, confidence: float) -> float:
     prob_low = np.where(ft_hat[keep] == LOW_FIRST, confidence, 1.0 - confidence)
     outcome = (ft_true[keep] == LOW_FIRST).astype(float)
     return float(np.mean((prob_low - outcome) ** 2)) if keep.any() else float("nan")
+
+
+def path_mae(pred, target, rows):
+    """MAE over every available predicted price of the selected rows, and per horizon.
+
+    Only cells with a realised target count; a missing prediction where a target
+    exists is an error (no silent drop).
+    """
+    pred, target = np.asarray(pred, float), np.asarray(target, float)
+    valid = np.isfinite(target) & np.asarray(rows, bool)[:, None]
+    if not np.isfinite(pred[valid]).all():
+        raise ValueError("prediction missing where a target exists")
+    err = np.where(valid, np.abs(pred - target), np.nan)
+    with np.errstate(invalid="ignore"):
+        per_h = np.array([np.nanmean(err[:, j]) if valid[:, j].any() else np.nan for j in range(err.shape[1])])
+    return {"mae": float(np.nanmean(err)) if valid.any() else float("nan"), "per_h": per_h,
+            "count": int(valid.sum())}
