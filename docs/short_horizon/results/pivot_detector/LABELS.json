@@ -1,0 +1,25 @@
+{
+ "label": "HINDSIGHT_ZIGZAG_TARGETS_DEVELOPMENT_ONLY",
+ "params": {
+  "depth": 3,
+  "deviation_pips": 36.3,
+  "backstep": 2
+ },
+ "k_bars": 2,
+ "bars": 30854,
+ "pivots": 6371,
+ "data_sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+ "zigzag_module_sha256": "b30788e6fd591c6f49fb7661e2eb54373166131d9734b46efba7ebbffcb4d364",
+ "class_counts": [
+  18723,
+  6096,
+  6035
+ ],
+ "window": [
+  "2019-12-01 17:00:00+00:00",
+  "2024-12-31 16:00:00+00:00"
+ ],
+ "labels_sha256": "d7cf32bad839e6bac7c4e81e76aeb266d6badbfb706fca51cfcb253c18d94385",
+ "test_read": false,
+ "note": "pivots are the final repainted ZigZag over 2019-12..2024-12 (hindsight by construction; labels only)"
+}

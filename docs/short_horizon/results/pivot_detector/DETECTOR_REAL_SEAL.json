@@ -1,0 +1,152 @@
+{
+ "label": "DEVELOPMENT_REAL_FEATURE_PIVOT_DETECTOR",
+ "predictions_sha256": "df67a9dbf8c11f19ee3e86988c6259fdf20481ef18de12fe734f9b74ddcf803f",
+ "gpu_seal": {
+  "RUN.json": "0468b95ab607e7e5d7780c42b37f916ea5bf177ae0fd6b3a7b4007124779cb5e",
+  "pred_m1_s6102026.npz": "66891c5d57daaba4c57ae60a6b5986db65fb67d59c18cb007aaa16ac22926062",
+  "pred_m1_s6102027.npz": "a4a1aed958ec2b3aff8b260b02792545b2c9fad9743f33c996d0506cdbe08d30",
+  "pred_m1_s6102028.npz": "6fc478ce94c182174b98cf37442f4773e40b2c15bbe0d46dd3ad5c4d53b0c370",
+  "pred_m2_s6102026.npz": "d26313c1bd1adcf4706342b81e8cac39f709b7130cfbaa3386b98b0dd4c7dcb5",
+  "pred_m2_s6102027.npz": "5c372d8763ea276e3e1c3ef2277c3af2c761e4ff106c8908c925125a98ab3c6b",
+  "pred_m2_s6102028.npz": "887fc7e7c72f053842c53d36757595aaa14b4167d19491b95bf666edc19bd9f9",
+  "pred_m3_s6102026.npz": "5787679821acb595e9f8a8519598adfbaac9f2d489b63483b394d6831138f508",
+  "pred_m3_s6102027.npz": "5787679821acb595e9f8a8519598adfbaac9f2d489b63483b394d6831138f508",
+  "pred_m3_s6102028.npz": "5787679821acb595e9f8a8519598adfbaac9f2d489b63483b394d6831138f508"
+ },
+ "gpu_run": {
+  "gpu_name": "NVIDIA GeForce RTX 4090 Laptop GPU",
+  "tensorflow": "2.21.0",
+  "keras": "3.13.2",
+  "sklearn": "1.8.0",
+  "seeds": [
+   6102026,
+   6102027,
+   6102028
+  ],
+  "wall_seconds": 313.8495206832886,
+  "cgroup_peak_bytes": 2923282432,
+  "training": {
+   "batch_size": 256,
+   "learning_rate": 0.001,
+   "weight_decay": 0.0001,
+   "patience": 10,
+   "min_delta": 1e-08,
+   "max_epochs": 200
+  },
+  "k_bars": 2
+ },
+ "data": {
+  "features": [
+   "fred.inflation_expectations.t5yie.level",
+   "fred.rates.dgs3mo.diff_5d",
+   "fred.rates.dgs5.level",
+   "fred.rates.dgs7.logret_5d",
+   "fred.rates.dprime.logret_5d",
+   "fx.gbpusd.logret_1h",
+   "px.close_loc",
+   "px.log_co",
+   "px.rv5",
+   "rg.atr_ratio",
+   "yh.eem.logret_5d",
+   "yh.iyr.logret_1d",
+   "yh.kc_f.logret_1d",
+   "yh.n225.logret_1d",
+   "yh.si_f.logret_1d",
+   "yh.slv.logret_1d",
+   "yh.vnq.logret_1d",
+   "yh.xlc.logret_1d",
+   "yh.xlre.logret_1d"
+  ],
+  "population_digest": "ba01f87a14e1ceb39d1a5770d4d00f3803cd29748c64edf7254c1e6c57b249d1",
+  "scaler_feature_names": [
+   "fred.inflation_expectations.t5yie.level",
+   "fred.rates.dgs3mo.diff_5d",
+   "fred.rates.dgs5.level",
+   "fred.rates.dgs7.logret_5d",
+   "fred.rates.dprime.logret_5d",
+   "fx.gbpusd.logret_1h",
+   "px.close_loc",
+   "px.log_co",
+   "px.rv5",
+   "rg.atr_ratio",
+   "yh.eem.logret_5d",
+   "yh.iyr.logret_1d",
+   "yh.kc_f.logret_1d",
+   "yh.n225.logret_1d",
+   "yh.si_f.logret_1d",
+   "yh.slv.logret_1d",
+   "yh.vnq.logret_1d",
+   "yh.xlc.logret_1d",
+   "yh.xlre.logret_1d"
+  ],
+  "scaler_n_rows": 20717,
+  "scaler_fit_row_digest": "08f655df5abc0b1ee3ec6bc905e2c3e4a31da2ace8cab5268faa9a761796f4d1",
+  "input_sha256": "ef22ddb54921ee9f9c774a550731dcd522c9d712f2a1882f1bf4e6a35e3942b8",
+  "labels_sha256": "d7cf32bad839e6bac7c4e81e76aeb266d6badbfb706fca51cfcb253c18d94385",
+  "design_seal_sha256": "416c11563c30cc5cbc6345720d7a3d5521fc48d7fe5dae809e0aef33bd30a19e",
+  "origins_total": 21837,
+  "dropped": {
+   "no_arm_b": 175,
+   "arm_b_nonfinite": 175,
+   "no_label": 20,
+   "purged_at_cut": 0
+  },
+  "kept": 21642,
+  "pop_split_counts": {
+   "FIT": 16288,
+   "INNER": 700,
+   "DEVELOPMENT": 4654
+  },
+  "period_counts": {
+   "TRAIN_2020_2022": 14423,
+   "SELECT_2023": 2565,
+   "CONFIRM_2024": 4654
+  },
+  "class_counts": {
+   "TRAIN_2020_2022": [
+    8676,
+    2874,
+    2873
+   ],
+   "SELECT_2023": [
+    1611,
+    475,
+    479
+   ],
+   "CONFIRM_2024": [
+    2833,
+    915,
+    906
+   ]
+  },
+  "k_bars": 2,
+  "model_config_sha256": "005196037fc6e2f0f28b6231017380d641d3205f32f1b61bacb1b8c29a441572"
+ },
+ "operating_threshold": {
+  "m1": 0.7,
+  "m2": 0.7,
+  "m3": 0.4
+ },
+ "temperatures": {
+  "m1_s6102026": 1.8340080864093418,
+  "m1_s6102027": 7.999999999999998,
+  "m1_s6102028": 1.3542555469368924,
+  "m2_s6102026": 1.476826145939499,
+  "m2_s6102027": 7.999999999999998,
+  "m2_s6102028": 7.999999999999998,
+  "m3_s6102026": 1.3542555469368924,
+  "m3_s6102027": 1.3542555469368924,
+  "m3_s6102028": 1.3542555469368924
+ },
+ "k_tp": 2.0,
+ "m_sl": 2.0,
+ "chosen_on": "VALIDATION_2023 (threshold by mean Sharpe over seeds, valid first)",
+ "confirm": "CONFIRM_2024 once",
+ "lake_sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+ "expert_params": {
+  "depth": 3,
+  "deviation_pips": 36.3,
+  "backstep": 2
+ },
+ "test_read": false
+}
