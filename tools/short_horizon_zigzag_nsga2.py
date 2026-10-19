@@ -49,7 +49,7 @@ def key_of(p):
 
 def chunk(args):
     from deap import base, creator, tools
-    run = Path(args.run) / args.opt / f"seed{args.seed}"
+    run = Path(args.run) / (args.opt + ("_wide" if args.wide else "")) / f"seed{args.seed}"
     run.mkdir(parents=True, exist_ok=True)
     if (run / "DONE").exists():
         print(json.dumps({"done": True}))
