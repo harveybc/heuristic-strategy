@@ -1,0 +1,17 @@
+{"utc": "2026-10-19T20:31:43+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "A1 union front validation", "n_points": 5}
+{"utc": "2026-10-19T20:31:45+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "A1 chosen point, single read", "n_points": 1}
+{"utc": "2026-10-19T20:31:48+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "A2 union front validation", "n_points": 2}
+{"utc": "2026-10-19T20:31:49+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "A2 chosen point, single read", "n_points": 1}
+{"utc": "2026-10-19T20:31:52+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "A4 union front validation", "n_points": 3}
+{"utc": "2026-10-19T20:31:57+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "A4 chosen point, single read", "n_points": 1}
+{"utc": "2026-10-19T20:32:01+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "B4 union front validation", "n_points": 11}
+{"utc": "2026-10-19T20:32:04+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "B4 chosen point, single read", "n_points": 1}
+{"utc": "2026-10-19T21:12:03+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "A4_wide union front validation", "n_points": 4}
+{"utc": "2026-10-19T21:12:11+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "A4_wide chosen point, single read", "n_points": 1}
+{"utc": "2026-10-19T21:12:14+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "A2_wide union front validation", "n_points": 2}
+{"utc": "2026-10-19T21:12:15+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "A2_wide chosen point, single read", "n_points": 1}
+{"utc": "2026-10-19T21:12:19+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "B4_wide union front validation", "n_points": 20}
+{"utc": "2026-10-19T21:12:25+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "B4_wide chosen point, single read", "n_points": 1}
+{"utc": "2026-10-19T21:12:35+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "fill-path cost on chosen points and v1", "n_points": 3}
+{"utc": "2026-10-19T21:12:39+00:00", "period": "VALIDATION_2023", "status": "JOINT_DEVELOPMENT", "purpose": "demonstrations v2 trades 2023", "n_points": 1}
+{"utc": "2026-10-19T21:12:39+00:00", "period": "OBSERVED_2024", "status": "PREVIOUSLY_OBSERVED_DEVELOPMENT", "purpose": "demonstrations v2 trades 2024", "n_points": 1}

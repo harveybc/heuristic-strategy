@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from app.short_horizon.analysis import zero_crossing  # noqa: E402
 from tools.short_horizon_price_path_report import GRID, INK, PURPLE, RUST, TEAL, es  # noqa: E402
 
-PER_ES = {"DECISION_2020_2022": "Decisión 2020-2022", "VALIDATION_2023": "Validación 2023", "CONFIRM_2024": "Confirmación 2024 (una vez)"}
+PER_ES = {"DECISION_2020_2022": "Decisión 2020-2022", "VALIDATION_2023": "Validación 2023", "CONFIRM_2024": "2024 (desarrollo ya observado)"}
 
 
 def fig_front(front, choice, out):

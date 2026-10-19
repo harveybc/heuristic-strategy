@@ -270,7 +270,7 @@ def figure(final, pub):
         ax.scatter([c["dec"]["max_dd_pct"]], [c["dec"]["sharpe"]], marker="*", s=300, facecolors="none", edgecolors=RUST,
                    linewidths=2, zorder=6, label="elegido por Sharpe 2023")
         ax.axhline(0, color="#6b7378", linewidth=1)
-        ins = ax.inset_axes([0.60, 0.08, 0.36, 0.30])
+        ins = ax.inset_axes([0.06, 0.08, 0.36, 0.30])
         for ch in final[B4]["chains"]:
             hv = np.array(ch["hv"], float)
             ins.plot(hv / hv[-1], color=TEAL, linewidth=0.9)
