@@ -123,10 +123,15 @@ class OrderRules:
 class Sizing:
     """Owner rule: volume in integer base-currency (EUR) units from a share of the CURRENT balance.
 
-    units_max = floor(balance_USD * rel_volume * leverage / price_USD_per_EUR)  (basis "margin":
-    legacy heuristic-strategy convention max_from_cash = cash * rel_volume * leverage, with the
-    USD->EUR conversion that the legacy code omits), or without the leverage factor (basis
-    "notional"). units = floor(fraction * units_max). Leverage is an account scenario.
+    rel_volume: share of the CURRENT balance one order may use (margin basis; default 0.10).
+    percentual_order_size in (0, 1]: share of rel_volume this order uses, chosen per order by the
+    strategy's risk assessment (1.0 low risk ... e.g. 0.2 high risk).
+    units = floor(percentual_order_size * rel_volume * balance_USD * leverage / price_USD_per_EUR)
+    (legacy convention max_from_cash = cash * rel_volume * leverage, with the USD->EUR division the
+    legacy code omits); basis "notional" drops the leverage factor. Leverage is an account scenario.
+    Broker minimum: OANDA v20 minimumTradeSize = 1 unit, tradeUnitsPrecision = 0
+    (DOCUMENTED_GENERAL_NOT_ACCOUNT_VERIFIED). Required margin = units * price * marginRate,
+    marginRate = 1 / leverage; an order above the free margin is refused.
     """
     rel_volume: float = 0.10
     leverage: float = 100.0
@@ -148,15 +153,33 @@ class Sizing:
         factor = self.leverage if self.basis == "margin" else 1.0
         return max(0, int(math.floor(balance * self.rel_volume * factor / price)))
 
-    def units(self, balance: float, price: float, fraction: float = 1.0) -> int:
-        if not 0 < fraction <= 1:
-            raise ValueError("fraction must be in (0, 1]")
-        return int(math.floor(fraction * self.units_max(balance, price)))
+    def units(self, balance: float, price: float, percentual_order_size: float = 1.0) -> int:
+        if not 0 < percentual_order_size <= 1:
+            raise ValueError("percentual_order_size must be in (0, 1]")
+        return int(math.floor(percentual_order_size * self.units_max(balance, price)))
+
+    def required_margin(self, units: int, price: float) -> float:
+        return units * price / self.leverage
+
+    def order_units(self, balance: float, price: float, percentual_order_size: float = 1.0,
+                    risk_accepts_minimum: bool = False):
+        """Units for one order, or None (below the broker minimum without risk acceptance, or above
+        the free margin; the account is flat between blocks, so free margin = balance)."""
+        u = self.units(balance, price, percentual_order_size)
+        if u < self.min_units:
+            if not risk_accepts_minimum:
+                return None
+            u = self.min_units
+        if self.required_margin(u, price) > balance:
+            return None
+        return u
 
     @staticmethod
     def manifest() -> dict:
         return {"rel_volume": {"default": 0.10, "bounds": [0.0, 0.2], "tune_on": "inner validation 2023 only"},
-                "fraction": {"default": 1.0, "bounds": [0.0, 1.0], "tune_on": "inner validation 2023 only"},
+                "percentual_order_size": {"default": 1.0, "bounds": [0.0, 1.0],
+                                          "set_by": "per-order risk assessment"},
+                "min_units": {"default": 1, "status": "DOCUMENTED_GENERAL_NOT_ACCOUNT_VERIFIED"},
                 "rel_volume_basis": {"default": "margin", "choices": ["margin", "notional"]},
                 "leverage": {"default": 100, "scenarios": [10, 50, 100], "kind": "account setting, not tuned"}}
 
@@ -169,7 +192,7 @@ class BlockOrder:
     take_profit: float
     stop_loss: float
     units: Optional[float]
-    fraction: float = 1.0     # share of units_max when a Sizing is applied
+    percentual_order_size: float = 1.0   # share of rel_volume this order uses (with a Sizing)
 
 
 def check_order(order: BlockOrder, entry_ref: float, sigma: float, rules: OrderRules,
@@ -360,6 +383,8 @@ def _decorate(rec, order, sizing, fill=None):
         rec["stop_loss"], rec["take_profit"] = float(order.stop_loss), float(order.take_profit)
     rec["units"] = int(rec["units"]) if float(rec["units"]).is_integer() else rec["units"]
     rec["margin_usd"] = (abs(rec["units"]) * rec["entry_price"] / sizing.leverage) if sizing else 0.0
+    rec["percentual_order_size"] = float(order.percentual_order_size) if sizing else None
+    rec["rel_volume"] = sizing.rel_volume if sizing else None
     return rec
 
 
@@ -482,7 +507,7 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
     per_day, trades_day = {}, {}
     through = profile.limit_through if profile is not None else 0.0
     delay = profile.entry_delay_bars if profile is not None else 0
-    below_min, max_margin_pct, max_expo = 0, 0.0, 0.0
+    below_min, margin_refused, max_margin_pct, max_expo = 0, 0, 0.0, 0.0
     if order_rules is not None and sigma_block is None:
         raise OrderRuleError("order rules need the causal block sigma")
     for k in evaluated:
@@ -498,9 +523,13 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
             continue
         entry_ref = float(order.entry_price) if order.entry_type == "LIMIT" else float(blocks.ref[k])
         if sizing is not None:
-            units = sizing.units(realized, entry_ref, order.fraction)
-            if units < sizing.min_units:
-                below_min += 1
+            raw = sizing.units(realized, entry_ref, order.percentual_order_size)
+            units = sizing.order_units(realized, entry_ref, order.percentual_order_size)
+            if units is None:
+                if raw < sizing.min_units:
+                    below_min += 1
+                else:
+                    margin_refused += 1
                 continue
             order = replace(order, units=units)
             notional = units * entry_ref
@@ -537,7 +566,7 @@ def run_backtest(bars: pd.DataFrame, blocks: Blocks, orders, costs, calendar: Ca
         realized += trades[-1]["net_usd"]
     res = _account(bars, trades, split, initial_capital, evaluated, refused, submitted, unfilled,
                    margin_closeout=sizing.margin_closeout if sizing else 0.5)
-    res.metrics.update({"below_min_units": below_min,
+    res.metrics.update({"below_min_units": below_min, "margin_refused_orders": margin_refused,
                         "rel_volume": sizing.rel_volume if sizing else None,
                         "leverage": sizing.leverage if sizing else None,
                         "rel_volume_basis": sizing.basis if sizing else None,

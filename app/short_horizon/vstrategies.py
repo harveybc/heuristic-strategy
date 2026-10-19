@@ -54,7 +54,7 @@ class Leg:
 class OcoOrder:
     legs: Tuple[Leg, ...]
     units: Optional[float] = None
-    fraction: float = 1.0
+    percentual_order_size: float = 1.0
     entry_type: str = "OCO"
     entry_price: Optional[float] = None
     direction: int = 0

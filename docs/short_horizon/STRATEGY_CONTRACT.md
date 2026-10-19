@@ -238,12 +238,33 @@ and writes only under its own output directory.
 
 ## 15. Business rule: volume in units from `rel_volume` (owner, 2026-10-19)
 
+- **Names (owner):**
+  - `rel_volume` (default 0,10) = share of the CURRENT balance one order may use,
+    margin basis.
+  - `percentual_order_size` ∈ (0, 1] = share of `rel_volume` this order uses. The
+    strategy chooses it per order from its risk assessment: 1,0 at low risk, e.g.
+    0,2 at high risk. Vol-targeting, regime, anomaly and meta-label confidence
+    feed it.
+  - Effective share of the balance = `percentual_order_size × rel_volume`
+    (e.g. 0,2 × 0,10 = 2 %).
 - **Units are integer base-currency (EUR) units**, as the broker API takes them:
-  `units_max = floor(balance_USD · rel_volume · leverage / price_USD_per_EUR)` and
-  `units = floor(f · units_max)`, with f ∈ (0, 1].
+  `units = floor(percentual_order_size · rel_volume · balance_USD · leverage / price_USD_per_EUR)`.
+- **Broker minimum:** OANDA v20 `minimumTradeSize` = 1 unit, `tradeUnitsPrecision` = 0.
+  - Sources: the v20 primitives reference ("the smallest number of units allowed
+    to be traded for this instrument") and OANDA's minimum-trade-size FAQ (platform
+    minimum 1 unit; MT4 0,01 lots).
+  - These are general samples, so the value is DOCUMENTED_GENERAL_NOT_ACCOUNT_VERIFIED.
+  - The account's own `minimumTradeSize` and `marginRate` come later from the
+    instruments endpoint via the private configuration and are never called from
+    here.
+  - Below the minimum, the minimum is used only if the risk engine accepts it;
+    otherwise there is no trade (counted).
+- **Margin feasibility:** required margin = units × price × marginRate, with
+  marginRate = 1/leverage for the declared scenario. An order above the free
+  margin is refused (counted).
 - **Balance is the current balance at each entry**, so sizing compounds. Below
   the broker minimum units, the order is not traded (counted).
-- **`rel_volume`:** default 0,10, bounded (0, 0,20]. It and `f` are declared in a
+- **`rel_volume`:** default 0,10, bounded (0, 0,20]. It and `percentual_order_size` are declared in a
   manifest for a later sweep or DEAP search on the inner validation year only,
   never on 2024.
 - **`rel_volume_basis = margin`** (owner-confirmed legacy convention). `notional`,
@@ -262,4 +283,5 @@ and writes only under its own output directory.
   price is missing there. It is applied here.
 - **The old sizing** (1 % risk to the stop, notional ≤ 5× the *initial* capital,
   non-compounding) is kept only as a labelled reference arm for the earlier studies.
-- **Every order record** in outputs carries units, side, entry, SL and TP.
+- **Every order record** in outputs carries units, `percentual_order_size`,
+  `rel_volume`, side, entry, SL and TP.

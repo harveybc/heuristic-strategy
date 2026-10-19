@@ -40,7 +40,7 @@ def test_broker_minimum_bump_only_if_the_risk_engine_accepts_and_margin_feasibil
 
 
 def market_orders(bl, tp_off=0.003, sl_off=0.003, percentual_order_size=1.0):
-    return [X.BlockOrder(1, "MARKET", None, float(bl.ref[k]) + tp_off, float(bl.ref[k]) - sl_off, None, fraction)
+    return [X.BlockOrder(1, "MARKET", None, float(bl.ref[k]) + tp_off, float(bl.ref[k]) - sl_off, None, percentual_order_size)
             if bl.status[k] == B.OK else None for k in range(len(bl))]
 
 
