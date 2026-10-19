@@ -73,6 +73,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 | 2026-10-19 | Primero volatilidad simulable (negativo), luego ZigZag como experto para RL con guía; SL+TP obligatorios y efectivos; unidades por `rel_volume`×`percentual_order_size`; apalancamiento 1:10/50/100; parada temprana training+validación; GPU 4090→4070→5070 Ti; calendario como inferencia causal (paciente/droga/efecto; selección de eventos). |
 | 2026-10-19 | Plan vivo obligatorio; actualizarlo en cada avance. |
 | 2026-10-19 | La selección nueva es para RL guiado por el experto ZigZag, no para predicción; al terminarla, solicitud de auditoría a Musashi. |
+| 2026-10-19 | Sin entregas parciales: la selección se termina completa y a calidad plena (todas las etapas, PCMCI real, brazos neuronales, tablas completas) antes de avisar; el humano del "RL asistido" son los trades del ZigZag. |
 
 ## 6. Cómo se actualiza
 
