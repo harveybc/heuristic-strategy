@@ -1,0 +1,14 @@
+{
+ "DECISION_2011_2017": {
+  "drift_pips": null,
+  "direction_accuracy": 0.6606980258221115,
+  "vol_x_mean20": null,
+  "half_life_bars": null
+ },
+ "CONFIRM_2018_2020": {
+  "drift_pips": 31.03620345033485,
+  "direction_accuracy": 0.7162618668425832,
+  "vol_x_mean20": null,
+  "half_life_bars": null
+ }
+}

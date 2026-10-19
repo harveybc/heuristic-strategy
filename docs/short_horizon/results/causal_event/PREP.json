@@ -1,0 +1,152 @@
+{
+ "label": "FIXTURE_RESEARCH_ONLY",
+ "calendar_sha256": "5172b322bfaf7bb568a0bb37cc2f806e8bd18ed51c5703c1098c8609a6249383",
+ "prices_sha256": "62b298ef2857edf567e32473579b97793eed4862f7a83f7c455918f955bc700c",
+ "calendar_rows": 121658,
+ "calendar_span": [
+  "2011-01-01 09:00:00+00:00",
+  "2021-04-27 03:00:00+00:00"
+ ],
+ "bars": 93084,
+ "bars_span": [
+  "2005-05-02 00:00:00+00:00",
+  "2020-04-29 22:00:00+00:00"
+ ],
+ "clock": {
+  "offset_hours": 0,
+  "peak_label_hour": 13,
+  "release_hour_utc": 13,
+  "days": 47,
+  "vol_ratio_peak_vs_other_hours": 3.882905124156728,
+  "status": "CLOCK_DETECTED_NOT_VERIFIED"
+ },
+ "exporter_offset_switches": [
+  [
+   "2011-01-01",
+   5
+  ],
+  [
+   "2018-02-28",
+   4
+  ],
+  [
+   "2018-09-12",
+   5
+  ],
+  [
+   "2019-02-01",
+   4
+  ],
+  [
+   "2019-11-01",
+   5
+  ],
+  [
+   "2020-02-03",
+   4
+  ],
+  [
+   "2020-09-01",
+   5
+  ],
+  [
+   "2021-02-03",
+   4
+  ]
+ ],
+ "impacts": [
+  "High"
+ ],
+ "universe_rows": 4021,
+ "universe_with_windows": 3575,
+ "high_usd_eur_by_year": {
+  "EUR": {
+   "2011": 161,
+   "2012": 145,
+   "2013": 143,
+   "2014": 141,
+   "2015": 146,
+   "2016": 157,
+   "2017": 159,
+   "2018": 158,
+   "2019": 166,
+   "2020": 194,
+   "2021": 67
+  },
+  "USD": {
+   "2011": 322,
+   "2012": 325,
+   "2013": 318,
+   "2014": 326,
+   "2015": 328,
+   "2016": 326,
+   "2017": 349,
+   "2018": 318,
+   "2019": 371,
+   "2020": 398,
+   "2021": 130
+  }
+ },
+ "numeric_universe_by_year": {
+  "EUR": {
+   "2011": 101,
+   "2012": 104,
+   "2013": 103,
+   "2014": 104,
+   "2015": 107,
+   "2016": 108,
+   "2017": 108,
+   "2018": 114,
+   "2019": 114,
+   "2020": 110,
+   "2021": 35
+  },
+  "USD": {
+   "2011": 264,
+   "2012": 264,
+   "2013": 269,
+   "2014": 277,
+   "2015": 276,
+   "2016": 276,
+   "2017": 276,
+   "2018": 275,
+   "2019": 311,
+   "2020": 322,
+   "2021": 103
+  }
+ },
+ "families_top": {
+  "USD:Crude Oil Inventories": 538,
+  "EUR:CPI": 247,
+  "EUR:German Manufacturing PMI": 245,
+  "EUR:German Ifo Business Climate Index": 125,
+  "USD:New Home Sales": 125,
+  "USD:ADP Nonfarm Employment Change": 124,
+  "USD:Building Permits": 124,
+  "USD:Core CPI": 124,
+  "USD:Core Durable Goods Orders": 124,
+  "USD:ISM Non-Manufacturing PMI": 124,
+  "USD:Core Retail Sales": 124,
+  "USD:Existing Home Sales": 124,
+  "EUR:German Unemployment Change": 124,
+  "EUR:German ZEW Economic Sentiment": 124,
+  "USD:Unemployment Rate": 124,
+  "USD:Retail Sales": 124,
+  "USD:Philadelphia Fed Manufacturing Index": 124,
+  "USD:ISM Manufacturing PMI": 124,
+  "USD:Nonfarm Payrolls": 124,
+  "USD:PPI": 124,
+  "USD:CB Consumer Confidence": 123,
+  "USD:Pending Home Sales": 123,
+  "USD:GDP": 122,
+  "USD:Initial Jobless Claims": 99,
+  "EUR:ECB Interest Rate Decision": 99,
+  "USD:JOLTs Job Openings": 90,
+  "EUR:German GDP": 81,
+  "USD:Fed Interest Rate Decision": 81,
+  "EUR:Deposit Facility Rate": 50,
+  "EUR:ECB Marginal Lending Facility": 13
+ },
+ "nfp_release_bar_vol_ratio_vs_previous_day": 1.3571084158599416,
+ "nfp_events_with_windows": 111
+}

@@ -146,9 +146,10 @@ def surprise(events: pd.DataFrame, min_prior: int = 6) -> pd.DataFrame:
 # ------------------------------------------------------------------ post-release windows
 def event_windows(bars: pd.DataFrame, events: pd.DataFrame, max_window: int = 12) -> pd.DataFrame:
     """Per event: release bar, entry bar (next bar), forward drifts drift_h = close[entry+h-1] - open[entry]
-    for h = 1..max_window, realized vol over each window, per-event dissipation half-life (first h >= 1
-    with |ret_h| <= 0.5 |ret_release|, capped) and the release-bar jump. Events whose bars are missing
-    or not contiguous get NaN."""
+    for h = 1..bars_available (contiguous bars after the release, at most max_window, truncated at a
+    session gap), realized vol over each window, per-event dissipation half-life (first h >= 1 with
+    |ret_h| <= 0.5 |ret_release|, capped at the available bars) and the release-bar jump. Events with a
+    missing release bar or fewer than two following bars get NaN."""
     v = bars.index.as_unit("ns").asi8
     o, c = bars.OPEN.to_numpy(float), bars.CLOSE.to_numpy(float)
     ret = np.r_[np.nan, np.diff(c)]
@@ -156,24 +157,28 @@ def event_windows(bars: pd.DataFrame, events: pd.DataFrame, max_window: int = 12
     for r in events.release_utc:
         r_ns = pd.Timestamp(r).tz_convert("UTC").floor("h").value
         k = int(np.searchsorted(v, r_ns, side="left"))
-        rec = {"release_bar": -1, "entry_bar": -1, "jump": np.nan, "half_life": np.nan}
+        rec = {"release_bar": -1, "entry_bar": -1, "jump": np.nan, "half_life": np.nan, "bars_available": 0}
         for h in range(1, max_window + 1):
             rec[f"drift_{h}"] = np.nan
             rec[f"realized_vol_{h}"] = np.nan
-        if k < len(v) and v[k] == r_ns and k + max_window + 1 < len(v) and \
-                v[k + max_window + 1] - v[k] == (max_window + 1) * HOUR.value:
-            e = k + 1
-            rec.update({"release_bar": k, "entry_bar": e, "jump": c[k] - o[k]})
-            for h in range(1, max_window + 1):
-                rec[f"drift_{h}"] = c[e + h - 1] - o[e]
-                rec[f"realized_vol_{h}"] = float(np.sqrt(np.sum(ret[e:e + h] ** 2)))
-            j0 = abs(ret[k]) if np.isfinite(ret[k]) else abs(c[k] - o[k])
-            hl = max_window
-            for h in range(1, max_window + 1):
-                if abs(ret[k + h]) <= 0.5 * j0:
-                    hl = h
-                    break
-            rec["half_life"] = float(hl)
+        if k < len(v) and v[k] == r_ns:
+            # contiguous bars after the release bar, truncated at a session gap (e.g. the Friday close)
+            avail = 0
+            while k + avail + 1 < len(v) and avail < max_window and v[k + avail + 1] - v[k] == (avail + 1) * HOUR.value:
+                avail += 1
+            if avail >= 2:
+                e = k + 1
+                rec.update({"release_bar": k, "entry_bar": e, "jump": c[k] - o[k], "bars_available": avail})
+                for h in range(1, avail + 1):
+                    rec[f"drift_{h}"] = c[e + h - 1] - o[e]
+                    rec[f"realized_vol_{h}"] = float(np.sqrt(np.sum(ret[e:e + h] ** 2)))
+                j0 = abs(ret[k]) if np.isfinite(ret[k]) else abs(c[k] - o[k])
+                hl = avail
+                for h in range(1, avail + 1):
+                    if abs(ret[k + h]) <= 0.5 * j0:
+                        hl = h
+                        break
+                rec["half_life"] = float(hl)
         rows.append(rec)
     w = pd.DataFrame(rows)
     return pd.concat([events.reset_index(drop=True), w], axis=1)
@@ -240,6 +245,7 @@ def rolling_prior_mean(windows: pd.DataFrame, col: str, n: int = 20) -> np.ndarr
 # ------------------------------------------------------------------ blocks and orders
 def _blocks(bars, cal, lo_arr, time_stop, ref_bar_arr):
     v = bars.index
+    v_ns = v.as_unit("ns").asi8
     seg_of = cal.assign(v)
     close = bars.CLOSE.to_numpy(float)
     high, low = bars.HIGH.to_numpy(float), bars.LOW.to_numpy(float)
@@ -255,7 +261,7 @@ def _blocks(bars, cal, lo_arr, time_stop, ref_bar_arr):
             s = v[lo]
             fflat = cal.segments[si].force_flat
             e = min(s + max(ts, 1) * HOUR, fflat)
-            hi = int(np.searchsorted(v.as_unit("ns").asi8, (e - HOUR).value, side="right"))
+            hi = int(np.searchsorted(v_ns, (e - HOUR).value, side="right"))
             if hi <= lo or s >= cal.segments[si].entry_cutoff or seg_of[rb] != si or e <= s:
                 st = "INSUFFICIENT_BARS"
         start.append(s), end.append(e), seg.append(si), blo.append(lo), bhi.append(max(hi, lo + 1))
