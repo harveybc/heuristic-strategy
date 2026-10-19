@@ -111,3 +111,21 @@ def test_ac09_the_frequency_rule_marks_validity_and_never_adds_an_entry():
     P = np.tile([0.9, 0.05, 0.05], (120, 1))                          # nothing crosses any threshold
     m, res, sig = TE.strategy(ctx, [], P, np.arange(120), 0.4, 2, 2.0, "SYNTH_ALL")
     assert sig == [] and m["entries_filled"] == 0 and m["valid"] is False and m["sharpe_daily_sqrt365"] == 0.0
+
+
+def test_ac10_executable_path_fills_at_the_next_open_and_refuses_before_operational_start():
+    ZO = pytest.importorskip("app.short_horizon.zigzag_opt")
+    ctx = _ctx()
+    ZO.PERIODS["SYNTH_ALL"] = S.PERIODS["SYNTH_ALL"]
+    zo = ZO.Evaluator(ctx.bars, ctx.cal)
+    zo.sigma, zo.sigma_rule = ctx.sigma, ctx.sigma_rule                # the synthetic series is shorter than its rolling windows
+    TE._EXEC.update(executable=True, cap=4, zo=zo)
+    try:
+        P = np.tile([0.05, 0.9, 0.05], (120, 1))
+        origin = np.array([5, 90])                                     # 5: before operational start; 90: inside
+        m, res, sig = TE.strategy(ctx, [], P[origin], origin, 0.5, 2, 2.0, "SYNTH_ALL")
+        assert m["fill_path"] == "EXECUTABLE_B_PLUS_1" and m["refused_before_operational_start"] == 1
+        t = res.trades[0]
+        assert len(res.trades) == 1 and t["entry_bar_abs"] == 91 and t["entry_price"] == pytest.approx(ctx.bars.OPEN.iloc[91])
+    finally:
+        TE._EXEC.update(executable=False, cap=4, zo=None)

@@ -63,10 +63,19 @@ sys.path.insert(0, str(ROOT))
 from tools import short_horizon_pivot_detector as PD  # noqa: E402
 from tools import short_horizon_zigzag_study as STUDY  # noqa: E402
 from tools.short_horizon_zigzag_study import Ctx, params_of  # noqa: E402
+from app.short_horizon import zigzag as Z  # noqa: E402
+
+try:                                            # the v2 expert's executable fill path (abbfaa6); absent before it
+    from app.short_horizon import zigzag_opt as ZO  # noqa: E402
+except ImportError:  # pragma: no cover
+    ZO = None
+_EXEC = {"executable": False, "cap": 4, "zo": None}
 
 EVAL_PERIODS = {"TRAIN_2020_2022": ("2020-01-01", "2023-01-01"), "INNER_A_2023H1": ("2023-01-01", "2023-07-01"),
                 "INNER_B_2023H2": ("2023-07-01", "2024-01-01"), "REOBSERVED_2024": ("2024-01-01", "2025-01-01")}
 STUDY.PERIODS.update(EVAL_PERIODS)            # runtime registration of the evaluation splits (no adapter edit)
+if ZO is not None:
+    ZO.PERIODS.update(EVAL_PERIODS)
 DEVELOP_PERIODS = ("TRAIN_2020_2022", "INNER_A_2023H1", "INNER_B_2023H2")
 THRESHOLDS = (0.4, 0.5, 0.6, 0.7)
 ARMS = ("m1_dmo_class", "m2_gru", "m3_hgb")
@@ -444,11 +453,44 @@ def trade_breakdown(res, ctx):
             "gross_usd": m.get("gross_usd"), "ambiguous_stop_first": m.get("ambiguous_stop_first")}
 
 
+def setup_expert(sets_doc, ctx, zigzag_run):
+    """Expert pivots and the strategy rule.  From FEATURE_SETS.json when the driver wrote an ``expert`` block
+    (module digest verified against the loaded zigzag module); otherwise the legacy v1 CHOICE.json."""
+    exp, strat = sets_doc.get("expert"), sets_doc.get("strategy") or {}
+    if exp:
+        actual = sha(Path(Z.__file__))
+        if actual != exp["module_sha256"]:
+            raise SystemExit(f"EXPERT_MODULE_DIGEST: loaded zigzag {actual[:12]} != driver's {exp['module_sha256'][:12]}")
+        pp = exp["params"]
+        p = Z.Params(depth=int(pp["depth"]), deviation_pips=float(pp["deviation_pips"]), backstep=int(pp["backstep"]))
+        k_tp = float(strat.get("k_tp", 2.0))
+    else:
+        p = params_of(json.loads((Path(zigzag_run) / "CHOICE.json").read_text())["params"])
+        k_tp = float(pd.read_csv(Path(zigzag_run) / "confirmed.csv").query("chosen").k_tp.iloc[0])
+    _EXEC["executable"] = bool(strat.get("executable", False))
+    _EXEC["cap"] = int(strat.get("max_orders_per_day", 4))
+    if _EXEC["executable"]:
+        if ZO is None:
+            raise SystemExit("EXECUTABLE_PATH_ABSENT: zigzag_opt not importable")
+        _EXEC["zo"] = ZO.Evaluator(ctx.bars, ctx.cal)
+    return p, Z.hindsight_pivots(ctx.h, ctx.l, p), k_tp
+
+
 def strategy(ctx, piv, Pc, origin_bar, tau, k, k_tp, period):
     sig = PD.signals_from(Pc, origin_bar, tau, k)
-    sig, dropped = reopen_guard(sig, ctx)
-    m, res = ctx.run(sig, piv, period, mode="causal", k_tp=k_tp)
-    m = {kk: v for kk, v in m.items() if kk != "period"}
+    if _EXEC["executable"]:
+        # owner's executable path: decision after the completed bar b, fill at the open of b + 1
+        # (executable_profile, entry_delay 0); entries before the operational start are refused by the adapter
+        out, res = _EXEC["zo"].run(sig, piv, period, "causal", k_tp=k_tp, cap=_EXEC["cap"], executable=True)
+        m = {kk: res.metrics[kk] for kk in STUDY.KEEP}
+        m.update(valid=out["valid"], rule_skipped_orders=out["rule_skipped_orders"],
+                 refused_before_operational_start=out["refused_before_operational_start"], fill_path="EXECUTABLE_B_PLUS_1")
+        dropped = 0
+    else:
+        sig, dropped = reopen_guard(sig, ctx)
+        m, res = ctx.run(sig, piv, period, mode="causal", k_tp=k_tp)
+        m = {kk: v for kk, v in m.items() if kk != "period"}
+        m["fill_path"] = "LEGACY_B_PLUS_2_WITH_REOPEN_GUARD"
     m.update(trade_breakdown(res, ctx), signals_emitted=len(sig), signals_dropped_reopen_guard=dropped)
     return m, res, sig
 
@@ -520,9 +562,7 @@ def freeze(a):
     sets_doc, feats, targ, ts = load_inputs(ev, include_2024=False)
     k = int(sets_doc["k_bars"])
     ctx = Ctx(a.data)
-    p = params_of(json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"])
-    piv = ctx.pivots(p)
-    k_tp = float(pd.read_csv(Path(a.zigzag_run) / "confirmed.csv").query("chosen").k_tp.iloc[0])
+    p, piv, k_tp = setup_expert(sets_doc, ctx, a.zigzag_run)
     lake_ts = ctx.bars.index.as_unit("s").asi8
     if not np.array_equal(lake_ts[: len(ts)], ts.as_unit("s").asi8):
         raise SystemExit("EVAL_INPUT_GRID_DIFFERS_FROM_LAKE")
@@ -572,7 +612,9 @@ def freeze(a):
                     pd.DataFrame({"r": daily_returns(res)}).to_parquet(shard / f"daily_INNER_B_2023H2_s{s}.parquet")
         np.savez_compressed(shard / "frozen_calibrated_develop.npz", rows=rows, y=y, period=per,
                             **{f"s{s}": cal[s].astype(np.float32) for s in seeds})
-    frozen.update(stage="freeze", thresholds_attempted=list(THRESHOLDS), periods_read=list(DEVELOP_PERIODS), reads_2024=False,
+    frozen.update(stage="freeze", expert={"params": p.__dict__, "k_tp": k_tp, "fill_path": "EXECUTABLE_B_PLUS_1" if _EXEC["executable"]
+                                          else "LEGACY_B_PLUS_2_WITH_REOPEN_GUARD", "max_orders_per_day": _EXEC["cap"]},
+                  thresholds_attempted=list(THRESHOLDS), periods_read=list(DEVELOP_PERIODS), reads_2024=False,
                   rules={"cell": "lowest mean INNER_A loss, ties by gap", "threshold": "max mean INNER_A Sharpe over seeds among valid, else max",
                          "temperature": "per seed on INNER_A (log grid 0.25..8)"})
     frozen["freeze_sha256"] = canon(frozen)
@@ -594,9 +636,7 @@ def reconfirm(a):
     k = int(sets_doc["k_bars"])
     common, period, y_raw, sets, loss = common_rows(feats, targ, ts, sets_doc, k)
     ctx = Ctx(a.data)
-    p = params_of(json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"])
-    piv = ctx.pivots(p)
-    k_tp = float(pd.read_csv(Path(a.zigzag_run) / "confirmed.csv").query("chosen").k_tp.iloc[0])
+    p, piv, k_tp = setup_expert(sets_doc, ctx, a.zigzag_run)
     if not np.array_equal(ctx.bars.index.as_unit("s").asi8, ts.as_unit("s").asi8):
         raise SystemExit("EVAL_INPUT_GRID_DIFFERS_FROM_LAKE")
     rows = np.flatnonzero(common & (period == "REOBSERVED_2024"))
@@ -712,8 +752,9 @@ def seal(a):
             from scipy.stats import kurtosis, skew
             tsr = trials[(trials.set == fz["set"]) & (trials.arm == fz["arm"])].sharpe / math.sqrt(365)
             dsr[f"{key}__{pname}"] = deflated_sharpe(sr, len(r), float(skew(r)), float(kurtosis(r, fisher=False)), tsr)
-    trial_ledger = {"expert_configs": 1, "expert_params": json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"],
-                    "k_bars": 2, "selection_targets": ["timing_pivot_k2", "timing_action_confirmed", "timing_expert_leg_remaining_pips"],
+    exp = frozen.get("expert") or {"params": json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"]}
+    trial_ledger = {"expert_configs": 1, "expert_params": exp["params"], "fill_path": exp.get("fill_path"), "k_tp": exp.get("k_tp"),
+                    "k_bars": 2, "selection_targets": ["timing_pivot_k2", "timing_valley_k2", "timing_peak_k2"],
                     "evaluation_target": "timing_pivot_k2 (T1, primary)", "feature_sets": sorted({v["set"] for v in frozen["shards"].values()}),
                     "arms": sorted({v["arm"] for v in frozen["shards"].values()}), "regularization_grid": GRID, "primary_cells": PRIMARY,
                     "seeds": list(SEEDS), "thresholds": list(THRESHOLDS),

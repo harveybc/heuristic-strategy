@@ -110,3 +110,11 @@ def test_te09_model_files_never_collide_across_cells_and_seeds(tmp_path):
     assert len(files) == len(keys) == 18
     with pytest.raises(SystemExit, match="MODEL_FILE_EXISTS"):
         TE.save_model(_M(v=0), tmp_path / f"{TE.cell_id(TE.GRID['m3_hgb'][0])}__s{TE.SEEDS[0]}", "m3_hgb")
+
+
+def test_te10_expert_module_digest_must_match_the_driver():
+    class _Ctx:
+        h = l = np.ones(10)
+    with pytest.raises(SystemExit, match="EXPERT_MODULE_DIGEST"):
+        TE.setup_expert({"expert": {"module_sha256": "0" * 64, "params": {"depth": 3, "deviation_pips": 40.7, "backstep": 0}}},
+                        _Ctx(), ".")
