@@ -66,3 +66,31 @@ names the old failure, then the rule and how it is enforced here.
     `crispdm-run -m 2G -t 120s`, CPU only, in chunks (16 chunks, 333 CPU-s), from
     an isolated worktree with outputs under scratch; the dirty main checkout was
     never touched.
+
+## Added at the 2026-10-19 closure (see `ROUND_CLOSURE_2026_10_19.md`)
+
+11. **Per-side requirement, not total range.** Up and down errors partly cancel in the range, so
+    a range MAE at 0,85× MEAN20 coexists with 0,91–0,98× per side and a losing bracket. Quote and
+    check Û and D̂ separately (`CALENDAR_RANGE_EXPERIMENT.md` §4).
+
+12. **Free abstention and exact-extreme fills are artifacts.** Both are named, priced and tested
+    (participation metrics; limit trade-through ≥ 1 pip; one-bar latency).
+
+13. **Frequency rule inside the strategy.** ≥ 3 trades/week and ≤ 4 orders/day are enforced at
+    decision time; a configuration failing them is not a result and is hollow in every figure.
+
+14. **No centred or two-sided filters as inputs.** STL, centred moving averages and repainting
+    indicators (ZigZag) are non-causal; they may define labels or hindsight experts, never features.
+
+15. **Clocks are measured, never assumed.** The NFP POC assumed first-Friday 13:30 UTC on an
+    unverified bar clock; here the bar clock is detected from the release jump
+    (CLOCK_DETECTED_NOT_VERIFIED) and the calendar export's offsets are a measured per-period table,
+    not a DST rule.
+
+16. **Research-only data stays outside the repo.** The Investing.com fixture (ToS) is read in place;
+    only hashes and aggregates are published; it never feeds anything live.
+
+17. **The calendar is a risk filter.** Vol impulse real, trend only via surprise and too small/short
+    at hourly resolution, causal gate empty → abstain or widen stops around releases.
+
+**Branch state 2026-10-19: DEVELOPMENT; nothing trading-eligible.**
