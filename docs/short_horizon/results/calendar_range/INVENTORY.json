@@ -1,0 +1,69 @@
+{
+ "lake_objects_checked": {
+  "economic_calendar/scheduled_events/fxmacrodata/release_calendar.parquet": {
+   "rows": 896,
+   "first": "2026-02-05 12:00:00+00:00",
+   "last": "2027-07-14 18:00:00+00:00",
+   "covers_2020_2024": false,
+   "note": "upcoming-release calendar acquired 2026-05-01; forward only"
+  },
+  "economic_calendar/release_actuals/fxmacrodata/announcements.parquet": {
+   "rows": 18147,
+   "first": "2024-12-12 08:30:00+00:00",
+   "last": "2026-05-01 23:36:47+00:00",
+   "rows_2020_2024": 13,
+   "currencies_2020_2024": [
+    "CHF"
+   ],
+   "covers_2020_2024": false
+  },
+  "economic_calendar/scheduled_events/fred_release_date_proxy/scheduled_events.parquet": {
+   "rows": 1200,
+   "date_semantics": "FRED observation (reference-period) date, NOT the release instant",
+   "usable_as_scheduled_instant": false
+  },
+  "derivatives/implied_volatility_surfaces": {
+   "files": 0,
+   "covers": false
+  },
+  "macro_economic/fred/stress/vixcls": {
+   "note": "S&P 500 implied vol, not EUR/USD"
+  }
+ },
+ "implied_vol_eurusd": {
+  "status": "MISSING_OBJECT",
+  "series": "FRED EVZCLS (CBOE EuroCurrency ETF Volatility)",
+  "fetch_command_not_run": "add 'EVZCLS' to FRED_SERIES['stress'] in financial-data _scripts/workers/stage13 FRED follow-up worker (stage13_*_followup_worker.py), then run it with the governed FRED_API_KEY (the worker also refreshes other sources; a dedicated single-series call is preferable)"
+ },
+ "historical_schedule": {
+  "status": "MISSING_OBJECT",
+  "needed": "scheduled release instants 2020-2024 for USD/EUR (and GBP/JPY/CHF) with event family and a schedule vintage or a SCHEDULE_ASSUMED_KNOWN_IN_ADVANCE label",
+  "fetch_options_not_run": [
+   "financial-data _scripts/workers/stage15_fxmacrodata_worker.py --currencies USD EUR (provider history observed to start 2024-12; may not cover 2020-2023)",
+   "FRED release dates (fred/release/dates, realtime) for Employment Situation, CPI, GDP, Retail Sales: no existing adapter function; a small worker extension is needed",
+   "central-bank meeting calendars (FOMC, ECB) published in advance: no adapter in the lake"
+  ]
+ },
+ "calendar_fixture_outside_lake": {
+  "path": "feature-eng tests/data/economic_calendar_2011_2021.csv (test fixture, provenance undocumented)",
+  "first": "2011-01-01 04:00:00+00:00",
+  "last": "2021-04-26 23:00:00+00:00",
+  "fields_used": [
+   "scheduled date+time",
+   "country -> currency",
+   "event name",
+   "importance label"
+  ],
+  "fields_not_used": [
+   "actual",
+   "forecast/consensus",
+   "previous"
+  ],
+  "time_zone": "not documented: taken as given (TZ_ASSUMED)",
+  "importance_flag": "label text 'High/Moderate/Low Volatility Expected'; whether it was assigned before release is undocumented, so it may be retrospective (STATIC_UNVERIFIED)",
+  "schedule_vintage": "SCHEDULE_ASSUMED_KNOWN_IN_ADVANCE",
+  "high_impact_rows_2020_2024": 1529,
+  "usable_for_2023_decision": false,
+  "usable_for_2024_confirmation": false
+ }
+}

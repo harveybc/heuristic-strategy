@@ -157,8 +157,13 @@ def run(args):
     out = Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
     i, n = (int(x) for x in args.chunk.split("/"))
-    todo = (cells_sensitivity() if args.sensitivity else cells_main())[i::n]
-    tag = ("sens" if args.sensitivity else "main") + f"_{i}of{n}"
+    if args.inner:   # RF-M coin-direction curves on the inner year 2023 (reference for 2023 predictor markers)
+        base = [c for c in cells_main() if c["strategy"] == "RFM_COIN" and c["family"] in ("a1r", "a3r")]
+        todo, kind = base[i::n], "inner"
+    else:
+        todo = (cells_sensitivity() if args.sensitivity else cells_main())[i::n]
+        kind = "sens" if args.sensitivity else "main"
+    tag = kind + f"_{i}of{n}"
     target = out / f"cells_{tag}.csv"
     if target.exists():
         raise SystemExit(f"refusing to overwrite {target}")
@@ -172,8 +177,8 @@ def run(args):
         v1p = V.V1Params(**params) if c["strategy"] == "V1" else V.V1Params()
         v2p = V.V2Params(**params) if c["strategy"] == "V2" else V.V2Params()
         orders, skipped = st.orders(c["strategy"], Uh, Dh, rules, v1p, v2p)
-        splits = INNER if args.sensitivity else SPLITS
-        scen = ((100.0, 1.0),) if args.sensitivity else SCEN
+        splits = INNER if (args.sensitivity or args.inner) else SPLITS
+        scen = ((100.0, 1.0),) if (args.sensitivity or args.inner) else SCEN
         for name, split in splits.items():
             acc = st.accuracy(split, Uh, Dh)
             for lev, cost in scen:
@@ -197,6 +202,7 @@ def main():
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--chunk", default="0/1")
     ap.add_argument("--sensitivity", action="store_true")
+    ap.add_argument("--inner", action="store_true", help="RF-M coin-direction A1r/A3r curves on 2023 only")
     run(ap.parse_args())
 
 
