@@ -147,7 +147,7 @@ class Evaluator:
             zp = Z.Params(*key)
             piv = Z.hindsight_pivots(self.h, self.l, zp)
             conf = Z.confirmation_bars_fast(self.h, self.l, piv, zp)
-            if len(self._piv) > 4000:
+            if len(self._piv) > 32:
                 self._piv.clear()
             self._piv[key] = (piv, conf)
         return self._piv[key]
@@ -156,7 +156,7 @@ class Evaluator:
         a, b = (pd.Timestamp(x, tz="UTC").value for x in PERIODS[period])
         return a - margin_days * 86_400 * 10 ** 9, a, b
 
-    def run(self, signals, piv, period, mode, k_tp=1.0, cap=4, executable=True, leverage=100.0):
+    def run(self, signals, piv, period, mode, k_tp=1.0, cap=4, executable=True, leverage=100.0, entry_delay=None):
         lo_ns, a, b = self._window(period)
         sig = [(s, d) for s, d in signals if lo_ns <= self.idx_ns[s] < b]
         blocks = Z.signal_blocks(self.bars, self.cal, sig, executable=executable)
@@ -175,6 +175,8 @@ class Evaluator:
                 checked.append(None)
                 skipped += 1
         prof = self.prof_exec if executable else self.prof_v1
+        if entry_delay is not None:
+            prof = replace(prof, entry_delay_bars=int(entry_delay))
         res = X.run_backtest(self.bars, blocks, checked, prof, self.cal, self.capital,
                              (pd.Timestamp(a, tz="UTC"), pd.Timestamp(b, tz="UTC")), profile=prof,
                              max_orders_per_day=cap, ruin_floor=0.0, order_rules=X.OrderRules(), sigma_block=sig_blk,
@@ -198,17 +200,19 @@ class Evaluator:
         lags = [c - i for (i, _, _), c in zip(piv, conf) if c >= 0 and a <= self.idx_ns[i] < b]
         return (float(np.median(lags)) if lags else float("nan")), (float(np.mean(lags)) if lags else float("nan")), len(lags)
 
-    def eval_A(self, p, period="DECISION_2020_2022", cap=4, executable=True):
+    def eval_A(self, p, period="DECISION_2020_2022", cap=4, executable=True, entry_delay=None, leverage=100.0):
         piv, conf = self.pivots(p)
-        m, res = self.run(Z.signals_from_pivots(piv), piv, period, "hindsight", cap=cap, executable=executable)
+        m, res = self.run(Z.signals_from_pivots(piv), piv, period, "hindsight", cap=cap, executable=executable,
+                          entry_delay=entry_delay, leverage=leverage)
         m["pivots"] = len(piv)
         return m, res
 
-    def eval_B(self, p, period="DECISION_2020_2022", cap=4, executable=True, k_tp=None):
-        piv, conf = self.pivots(p)
+    def eval_B(self, p, period="DECISION_2020_2022", cap=4, executable=True, k_tp=None, entry_delay=None, conf=None):
+        piv, conf_fast = self.pivots(p)
+        conf = conf_fast if conf is None else conf
         sig = Z.signals_from_pivots(piv, conf=conf)
         m, res = self.run(sig, piv, period, "causal", k_tp=p.get("k_tp", 1.0) if k_tp is None else k_tp, cap=cap,
-                          executable=executable)
+                          executable=executable, entry_delay=entry_delay)
         med, mean, n = self.lag(piv, conf, period)
         m.update({"lag_median": med, "lag_mean": mean, "confirmed_pivots": n, "pivots": len(piv)})
         return m, res
