@@ -20,16 +20,26 @@ def test_units_max_currency_conversion_and_bases():
     s = X.Sizing(rel_volume=0.10, leverage=100.0, basis="margin")
     assert s.units_max(10_000.0, 1.10) == 90_909           # floor(10 000 * 0.10 * 100 / 1.10) EUR units
     assert X.Sizing(rel_volume=0.10, leverage=100.0, basis="notional").units_max(10_000.0, 1.10) == 909
-    assert s.units(10_000.0, 1.10, fraction=0.5) == 45_454
-    assert s.units(10_000.0, 1.10, fraction=1.0) <= s.units_max(10_000.0, 1.10)
+    assert s.units(10_000.0, 1.10, percentual_order_size=0.5) == 45_454
+    assert s.units(10_000.0, 1.10, percentual_order_size=1.0) <= s.units_max(10_000.0, 1.10)
     with pytest.raises(ValueError):
         X.Sizing(rel_volume=0.30)                          # declared bounds (0, 0.20]
     with pytest.raises(ValueError):
-        s.units(10_000.0, 1.10, fraction=1.5)
+        s.units(10_000.0, 1.10, percentual_order_size=1.5)
     assert X.Sizing.manifest()["rel_volume"]["bounds"] == [0.0, 0.2]
+    assert X.Sizing.manifest()["percentual_order_size"]["bounds"] == [0.0, 1.0]
+    assert X.Sizing().min_units == 1          # OANDA v20 minimumTradeSize, DOCUMENTED_GENERAL_NOT_ACCOUNT_VERIFIED
 
 
-def market_orders(bl, tp_off=0.003, sl_off=0.003, fraction=1.0):
+def test_broker_minimum_bump_only_if_the_risk_engine_accepts_and_margin_feasibility():
+    s = X.Sizing(rel_volume=0.01, leverage=10.0, min_units=1000)
+    assert s.order_units(1_000.0, 1.10, 0.5) is None                       # 45 units < 1000, not accepted
+    assert s.order_units(1_000.0, 1.10, 0.5, risk_accepts_minimum=True) == 1000
+    big = X.Sizing(rel_volume=0.01, leverage=10.0, min_units=100_000)     # minimum needs 11 000 USD margin
+    assert big.order_units(1_000.0, 1.10, 1.0, risk_accepts_minimum=True) is None
+
+
+def market_orders(bl, tp_off=0.003, sl_off=0.003, percentual_order_size=1.0):
     return [X.BlockOrder(1, "MARKET", None, float(bl.ref[k]) + tp_off, float(bl.ref[k]) - sl_off, None, fraction)
             if bl.status[k] == B.OK else None for k in range(len(bl))]
 
@@ -45,6 +55,7 @@ def test_sizing_compounds_on_current_balance_and_records_every_field():
     for t in sorted(res.trades, key=lambda r: r["entry_time"]):
         expected = sz.units(bal, float(bl.ref[t["block"]]), 1.0)
         assert t["units"] == expected and float(t["units"]).is_integer()
+        assert t["percentual_order_size"] == 1.0 and t["rel_volume"] == 0.10
         for key in ("units", "direction", "entry_price", "stop_loss", "take_profit"):
             assert key in t and np.isfinite(t[key])
         bal += t["net_usd"]
