@@ -7,6 +7,7 @@ FIXTURE_RESEARCH_ONLY: tests on the real file are skipped when it is absent and 
 from __future__ import annotations
 
 import io
+import os
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +19,7 @@ from app.short_horizon import events as EV
 from app.short_horizon import execution as X
 from tests.unit_tests.test_short_horizon import HOUR, calendar_for, synthetic_bars
 
-FIXTURE_DIR = Path(__file__).resolve().parents[3] / "feature-eng" / "tests" / "data"
+FIXTURE_DIR = Path(os.environ.get("HS_FIXTURE_DIR", Path(__file__).resolve().parents[3] / "feature-eng" / "tests" / "data"))
 CAL_FIXTURE = FIXTURE_DIR / "economic_calendar_2011_2021.csv"
 PX_FIXTURE = FIXTURE_DIR / "eurusd_hour_2005_2020_ohlc.csv"
 
@@ -102,7 +103,6 @@ def test_clock_offset_detected_from_the_nfp_jump_bar():
         j = lab.index.get_loc((r.tz_localize(None) + 2 * HOUR).floor("h"))
         lab.iloc[j, lab.columns.get_loc("CLOSE")] += 0.02
         lab.iloc[j, lab.columns.get_loc("HIGH")] += 0.02
-        lab.iloc[j + 1, lab.columns.get_loc("OPEN")] += 0.02
     info = EV.detect_clock_offset(lab, rel)
     assert info["offset_hours"] == 2 and info["status"] == "CLOCK_DETECTED_NOT_VERIFIED"
     utc = EV.bars_to_utc(lab, info["offset_hours"])
@@ -169,8 +169,8 @@ def test_event_blocks_and_orders_carry_units_sl_tp_and_never_pass_the_forced_fla
     assert o.direction == 1 and o.take_profit > blocks.ref[0] > o.stop_loss and o.percentual_order_size == 1.0
     X.check_order(o, float(blocks.ref[0]), float(sigma[0]), X.OrderRules())
     with pytest.raises(X.OrderRuleError):
-        X.check_order(EV.directional_orders(blocks, np.array([1]), np.array([0.00001]), np.array([0.003]),
-                                            np.array([1.0]))[0], float(blocks.ref[0]), float(sigma[0]), X.OrderRules())
+        X.check_order(EV.directional_orders(blocks, np.array([1, 1, 1]), np.full(3, 0.00001), np.full(3, 0.003),
+                                            np.ones(3))[0], float(blocks.ref[0]), float(sigma[0]), X.OrderRules())
     res = X.run_backtest(bars, blocks, orders, X.RealisticProfile(), cal, 10_000.0,
                          (bars.index[0], bars.index[-1] + HOUR), profile=EV.EventProfile(),
                          order_rules=X.OrderRules(), sigma_block=sigma, sizing=X.Sizing())
