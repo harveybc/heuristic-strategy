@@ -52,6 +52,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 | K10 | Fractales causales (Retsu) para EURUSD H1 — CERRADO 2026-10-19: plugin feature-eng `causal_fractal` (bit-idéntico al módulo de Retsu), almacén fuera del lago `/var/tmp/features-candidates/eurusd_h1_causal_fractal/` (TRAIN 24.097 / VAL 6.243 filas, sin TEST), ventanas 200/96/48; manifiesto sha 906578e1…; 21 pruebas (perturbación del futuro, replay de fila real). Redundancia baja con volatilidad (|r| ≤ 0,13; spectrum_width vs rv24 0,23–0,28); fractal_dimension_graph = −hurst_rs (redundante); hurst_rs sesgado arriba vs variograma. Candidatas listas para A3; ningún valor predictivo medido. | feature-eng `satoshi/causal-fractal-eurusd-20261019` @6c028aa |
 | K9 | Herramientas de selección: entrada pública `dataset_selection` (feature_selector); motores en predictor `tools/` y causal-inference `provider/`; un target nuevo requiere código en los dueños. Selección actual de Musashi para RL: 15 variables horarias (identidad 553fc047…). | `feature-selection-tooling-map` (memoria), `SELECTED_CORE_RL_2026_10_19.md`. |
 
+| K21 | Capacidad de los modelos E0–E2 (2026-10-20, hipótesis del propietario y Musashi: modelos demasiado grandes). Entrada = ventana 13 obs × 15 variables aplanada = 195 (+9 de estado = 204 en E1/E2). E0 MLP 195→128→64→3 = 33.539 parámetros; E1 204→128→64→{4 clases, 2 regresión} = 34.886; E2 SAC: extractor 204→128 (26.240, uno en el actor y otro en el crítico), actor [64,64]→3 media+3 log_std = 39.046, crítico 2 Q-nets [64,64] sobre 128+3 = 51.586; entrenables 90.632. La primera capa concentra 75–78 % (un peso por variable×rezago, sin estructura temporal compartida). ~18 k orígenes TRAIN → ~1,8 parámetros por fila en E0. Evaluadores de la selección v4 eran pequeños (m1 conv ≈2 k, m2 GRU ≈5,7 k) y tampoco ganaron al prior en log-loss: la capacidad no es la única causa. | heuristic-strategy `satoshi/expert-guided-rl-20261019` @a1cd331 (`learn.py`, `sac_demo.py`, `tools/expert_guided_e{0,1,2}.py`). |
+
 ## 3. Carriles activos (2026-10-19)
 
 | ID | Carril | Repo/rama | Entregable esperado |
@@ -82,6 +84,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 17. [x v4 sellada provisional, ver K20; pendiente revisión acotada de Musashi] v4 de la selección según la orden de Musashi (raíz admitida + máscara de elegibilidad compartida + screen dependiente + baselines prior/no-trade + snapshot real + publicación OLAP). Decisión v3: REVISE_BEFORE_BUSINESS_USE (predictor `codex/timing-selection-v3-audit-20261019` @f342d0d5).
 18. [x cerrada E0–E2, K17–K19] Carril RL guiado por experto (orden del propietario): E0 imitabilidad → E1 BC+DAgger → E2 SAC+demostraciones vs SAC sin demostraciones, 4090, reglas de negocio completas.
+
+19. [ ] 2026-10-20 Ablación de capacidad declarada (K21) en E0→E1→E2 sobre filas idénticas, mismas reglas de parada/regularización: lineal 195→3 (588 p), MLP 195→8→3 (1.595), 195→16→3 (3.187), tronco conv por variable compartido en el tiempo tipo I6-DMO (~2 k), y la referencia actual 128-64; SAC con extractor 32 y net_arch [16,16]/[32,32]. Se informa TRAIN/VAL A/VAL B, brecha TRAIN−VAL y frecuencia; 2024 solo para el elegido en VAL A. 4090, un trabajo a la vez.
 
 ## 5. Decisiones del propietario registradas
 
