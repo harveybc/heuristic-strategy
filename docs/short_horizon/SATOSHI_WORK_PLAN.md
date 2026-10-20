@@ -100,6 +100,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 | 2026-10-19 | La selección nueva es para RL guiado por el experto ZigZag, no para predicción; al terminarla, solicitud de auditoría a Musashi. |
 | 2026-10-19 | Sin entregas parciales: la selección se termina completa y a calidad plena (todas las etapas, PCMCI real, brazos neuronales, tablas completas) antes de avisar; el humano del "RL asistido" son los trades del ZigZag. |
 
+- 2026-10-20: primero generalización, después desempeño. Ningún barrido para mejorar Sharpe/capacidad/ventana antes de que un modelo mínimo muestre brecha TRAIN−VAL controlada y señal en INNER_B (puntos 19–20).
+
 ## 6. Cómo se actualiza
 
 Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link; (2) tachar o añadir pendientes en §4; (3) registrar decisiones nuevas en §5; (4) commit en la rama de este plan y link al propietario. Nada se borra: lo superado se marca SUPERSEDED con fecha.
