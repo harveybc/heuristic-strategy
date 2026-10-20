@@ -16,7 +16,8 @@ INNER_A loss per epoch, patience 10), 3 seeds.
   The final policy is round 3 (fixed in advance: no round is chosen on any score).
 
 Pre-registered gate (ledgered before the first fit):
-  I1  round-3 policy, its own INNER_B visited states: oracle-label log-loss < the TRAIN action-prior log-loss,
+  I1  round-3 policy, its own INNER_B visited states: oracle-label log-loss < the (Laplace-smoothed) TRAIN
+      action-prior log-loss of the aggregated round-3 labels,
       in >= 2 of 3 seeds;
   I2  round-3 INNER_B Sharpe, seed mean > confirmed expert AND > TRAIN-prior random policy (seed mean), same env;
   learnable signal = I1 AND I2 -> E2; else STOP at E1. Sharpe > 0 (no-trade) is reported, not gating.
@@ -26,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 import time
 from pathlib import Path
@@ -228,7 +228,7 @@ def run(a):
             r = {"round": rnd, "fit": info, "history": hist, "rows_train": int(len(D_tr[1])), "rows_inner": int(len(D_in[1])),
                  "label_counts_train": np.bincount(D_tr[1], minlength=4).tolist(), "class_weight": w.tolist(),
                  "trading": {}, "imitation": {}}
-            aprior = (np.bincount(D_tr[1], minlength=4) / len(D_tr[1])).tolist()
+            aprior = ((np.bincount(D_tr[1], minlength=4) + 1) / (len(D_tr[1]) + 4)).tolist()   # Laplace-smoothed TRAIN prior
             ledger(led, rung="E1", event="READ", seed=seed, round=rnd, periods=["TRAIN", "INNER_A", "INNER_B"],
                    purpose="diagnostic per round; no round is chosen on it")
             for p in eval_p:
