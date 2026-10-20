@@ -1,8 +1,17 @@
 {
   "schema": "modular_specialists_method.v1",
-  "current_stage": "S8_UNIT_TEST_DESIGN",
+  "current_stage": "S14_RELEASE_OPERATION",
   "requirements": "MODULAR_CONTROLLED_PLAN.md",
   "stages_passed": ["discovery", "requirements", "use_cases", "acceptance_design", "architecture", "system_design", "component_design", "integration_design"],
-  "next_allowed_actions": ["write failing acceptance tests", "implement", "verify", "deploy authorized finite sequence"],
-  "remaining_acceptance": ["MC01", "MC02", "MC03", "MC04", "MC05", "MC06", "MC07", "MC08", "MC09", "MC10"]
+  "next_allowed_actions": ["timers execute remaining fixed cells", "publish and independently collect closed artifacts", "read status on request"],
+  "remaining_acceptance": [],
+  "beta": "not required for finite internal experiment",
+  "runtime_commit": "f6ddd53c18c34a12f809498d124874ba82ee908f",
+  "spec_sha256": "fb808aa85830deac27cc838fad9cc326ac3d4bb57790b51e782f583250b946a6",
+  "evidence": {"focused_cpu_tests_local": 43, "focused_cpu_tests_worker": 43,
+    "subsequent_orchestration_and_analysis_tests": 7, "gpu_smoke_epochs": 2,
+    "gpu_reload": "BITWISE", "scientific_first_cell": "CLOSED", "automatic_successor": "RUNNING",
+    "warehouse_reports_read_back": 8, "warehouse_pending": 0, "warehouse_mismatch": 0,
+    "independent_copies_verified": 1},
+  "pending_execution": "Remaining cells and final campaign publication/copy close automatically; launch acceptance is not final scientific completion"
 }

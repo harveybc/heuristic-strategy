@@ -260,12 +260,16 @@ def collect(source,remote_root,destination):
                'SCIENTIFIC_COMPLETE.json','PUBLICATION_STATUS.json','PUBLICATION_COMPLETE.json')
         cmd=['rsync','-rt','--ignore-missing-args','--protect-args']
         subprocess.run(cmd+[f'{source}:{remote_root}/{n}' for n in names]+[str(dst)+'/'],check=True,timeout=120)
-        state=read(dst/'STATE.json');done=0
+        state=read(dst/'STATE.json');done=0;verified=[]
         for rec in state['cells']:
             if rec['state']!='CLOSED':continue
             remote=rec['attempts'][-1]['out'];local=dst/'runs'/rec['cell']['id'];local.mkdir(parents=True,exist_ok=True)
             subprocess.run(cmd+[source+':'+remote+'/',str(local)+'/'],check=True,timeout=180)
-            verify_close(local,rec['cell'],state['spec_sha256']);done+=1
+            verified.append(verify_close(local,rec['cell'],state['spec_sha256']));done+=1
+        from tools.modular_analysis import aggregate, markdown
+        summary=aggregate(verified)
+        write(dst/'ANALYSIS.json',summary)
+        (dst/'READOUT.md').write_text(markdown(summary))
         write(dst/'COLLECTION_STATUS.json',dict(copied=done,total=len(schedule()),time=time.time()))
         if (dst/'SCIENTIFIC_COMPLETE.json').exists() and (dst/'PUBLICATION_COMPLETE.json').exists():
             if done != sum(r['state']=='CLOSED' for r in state['cells']):raise ValueError('COLLECTION_INCOMPLETE')

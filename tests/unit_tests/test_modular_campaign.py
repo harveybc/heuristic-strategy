@@ -73,3 +73,18 @@ def test_atomic_json_rejects_unserializable_without_leaving_temp(tmp_path):
     p=tmp_path/'result.json';Q.write(p,{'valid':1})
     with pytest.raises(TypeError):Q.write(p,{'bad':object()})
     assert Q.read(p)=={'valid':1} and list(tmp_path.iterdir())==[p]
+
+
+def test_aggregation_uses_shared_seeds_not_best_seed():
+    from tools.modular_analysis import aggregate
+    def result(arm,seed,profit):
+        return dict(cell=dict(arm=arm,seed=seed,id=arm+str(seed)),metrics={'combined':{
+            'TRAIN':{'net_profit_usd':0.,'mean_daily_log_growth':.002},
+            'OBS_2024':{'net_profit_usd':profit,'mean_daily_log_growth':.001}}})
+    out=aggregate([result('JOINT16',20261019,-10),result('FULL',20261019,20),
+                   result('FULL',20261022,-100)])
+    both=next(g for g in out['groups'] if g['arm']=='FULL' and g['period']=='OBS_2024' and g['cohort']=='all_five')
+    assert both['metrics']['net_profit_usd']['mean']==-40
+    delta=next(r for r in out['paired_differences'] if r['period']=='OBS_2024')
+    assert delta['metrics']['net_profit_usd']==30
+    assert len(out['paired_differences'])==2
