@@ -186,7 +186,7 @@ def common_rows(feats, targ, ts, sets_doc, k, elig=None):
     the rows that set alone would have had (to report what the longest warm-up costs)."""
     sets = {n: c for n, c in sets_doc["sets"].items() if c}
     union = sorted({c for cols in sets.values() for c in cols})
-    y = targ[f"timing_pivot_k{k}"].to_numpy(float)
+    y = targ[sets_doc.get("target_column") or f"timing_pivot_k{k}"].to_numpy(float)   # v5: family-chosen column
     period = period_of(ts)
 
     if elig is not None and (np.isfinite(y) & ~elig).any():
@@ -888,8 +888,9 @@ def seal(a):
             dsr[f"{key}__{pname}"] = deflated_sharpe(sr, len(r), float(skew(r)), float(kurtosis(r, fisher=False)), tsr)
     exp = frozen.get("expert") or {"params": json.loads((Path(a.zigzag_run) / "CHOICE.json").read_text())["params"]}
     trial_ledger = {"expert_configs": 1, "expert_params": exp["params"], "fill_path": exp.get("fill_path"), "k_tp": exp.get("k_tp"),
-                    "k_bars": 2, "selection_targets": ["timing_pivot_k2", "timing_valley_k2", "timing_peak_k2"],
-                    "evaluation_target": "timing_pivot_k2 (T1, primary)", "feature_sets": sorted({v["set"] for v in frozen["shards"].values()}),
+                    "k_bars": sets_doc.get("k_bars", 2),
+                    "selection_targets": sets_doc.get("selection_targets") or ["timing_pivot_k2", "timing_valley_k2", "timing_peak_k2"],
+                    "evaluation_target": (sets_doc.get("target_column") or "timing_pivot_k2") + " (T1, primary)", "feature_sets": sorted({v["set"] for v in frozen["shards"].values()}),
                     "arms": sorted({v["arm"] for v in frozen["shards"].values()}), "regularization_grid": GRID, "primary_cells": PRIMARY,
                     "seeds": list(SEEDS), "thresholds": list(THRESHOLDS),
                     "cell_choices": {k_: v["cell_choice"] for k_, v in frozen["shards"].items()},
