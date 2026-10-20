@@ -862,6 +862,7 @@ def uncertainty(out: Path, periods, eval_input):
 def seal(a):
     out = Path(a.out)
     frozen = json.loads((out / "FROZEN.json").read_text())
+    sets_doc = json.loads((Path(a.eval_input) / "FEATURE_SETS.json").read_text())   # target column / k (v5 family)
     dev = pd.read_csv(out / "scores_develop.csv")
     rec = pd.read_csv(out / "scores_reobserved_2024.csv") if (out / "scores_reobserved_2024.csv").exists() else pd.DataFrame()
     allsc = pd.concat([dev, rec], ignore_index=True)
