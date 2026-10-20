@@ -91,6 +91,10 @@ def main():
          "observado, leído una sola vez después de congelar; TEST 2025 cerrado. Contrato: SL y TP efectivos en cada orden, "
          "unidades enteras con rel_volume 0,10 y apalancamiento 1:100, ≤ 4 entradas/día, ≥ 3 órdenes/semana, costos "
          "realistas (spread, slippage, comisión, swap) ASUMIDOS, no verificados con el broker. Capital 10 000 USD por periodo.", "",
+         "Cómo leer la ganancia: se capitaliza (el tamaño crece con el balance a 1:100), así que una política ganadora en "
+         "TRAIN (3 años) produce cifras astronómicas, y TRAIN (3 años) no es comparable en USD con VAL A/B (6 meses cada "
+         "una) ni con 2024 (1 año). Para comparar TRAIN contra validación, use el Sharpe (anualizado), el drawdown y "
+         "las órdenes por semana; la ganancia solo indica el signo y el orden de magnitud dentro de un mismo periodo.", "",
          f"Modelo elegido (regla fijada antes de leer la corrida B): **{sel['arm']}**, variables **{sel['features']}**, "
          f"**u = {sel['units']}** unidades por componente.", "",
          "Evidencia de la elección (pérdida INNER_A, media de semillas): " +
