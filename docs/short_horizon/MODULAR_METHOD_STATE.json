@@ -1,0 +1,8 @@
+{
+  "schema": "modular_specialists_method.v1",
+  "current_stage": "S8_UNIT_TEST_DESIGN",
+  "requirements": "MODULAR_CONTROLLED_PLAN.md",
+  "stages_passed": ["discovery", "requirements", "use_cases", "acceptance_design", "architecture", "system_design", "component_design", "integration_design"],
+  "next_allowed_actions": ["write failing acceptance tests", "implement", "verify", "deploy authorized finite sequence"],
+  "remaining_acceptance": ["MC01", "MC02", "MC03", "MC04", "MC05", "MC06", "MC07", "MC08", "MC09", "MC10"]
+}
