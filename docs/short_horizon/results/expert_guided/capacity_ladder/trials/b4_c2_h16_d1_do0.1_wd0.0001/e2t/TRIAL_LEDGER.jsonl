@@ -10,3 +10,12 @@
 {"utc": "2026-10-20T14:44:46+00:00", "rung": "E2T", "event": "FREEZE", "arm": "SAC", "seed": 20261021, "best_transitions": 95000, "stop": "budget"}
 {"utc": "2026-10-20T14:44:46+00:00", "rung": "E2T", "event": "READ", "arm": "SAC", "seed": 20261021, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
 {"utc": "2026-10-20T14:44:49+00:00", "rung": "E2T", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261019, "budget": 100000}
+{"utc": "2026-10-20T14:54:52+00:00", "rung": "E2T", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261019, "best_transitions": 50000, "stop": "patience"}
+{"utc": "2026-10-20T14:54:52+00:00", "rung": "E2T", "event": "READ", "arm": "SAC_DEMO", "seed": 20261019, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T14:54:56+00:00", "rung": "E2T", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261020, "budget": 100000}
+{"utc": "2026-10-20T15:05:10+00:00", "rung": "E2T", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261020, "best_transitions": 80000, "stop": "budget"}
+{"utc": "2026-10-20T15:05:10+00:00", "rung": "E2T", "event": "READ", "arm": "SAC_DEMO", "seed": 20261020, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T15:05:14+00:00", "rung": "E2T", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261021, "budget": 100000}
+{"utc": "2026-10-20T15:12:07+00:00", "rung": "E2T", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261021, "best_transitions": 15000, "stop": "patience"}
+{"utc": "2026-10-20T15:12:07+00:00", "rung": "E2T", "event": "READ", "arm": "SAC_DEMO", "seed": 20261021, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T15:12:10+00:00", "rung": "E2T", "event": "NO_READ", "periods": ["OBS_2024"], "purpose": "capacity sweep arm; 2024 not read"}
