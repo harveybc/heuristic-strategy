@@ -14,3 +14,18 @@
 {"utc": "2026-10-20T14:13:09+00:00", "rung": "E1T", "event": "FIT", "seed": 20261020, "round": 1, "rows_train": 36812, "rows_inner": 6210, "class_weight": [0.6766173755688841, 2.1113368278895943, 2.1732952676236077, 1.4217819011479327]}
 {"utc": "2026-10-20T14:13:37+00:00", "rung": "E1T", "event": "READ", "seed": 20261020, "round": 1, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "diagnostic per round; no round is chosen on it"}
 {"utc": "2026-10-20T14:13:46+00:00", "rung": "E1T", "event": "FIT", "seed": 20261020, "round": 2, "rows_train": 55218, "rows_inner": 9315, "class_weight": [0.6866006977979687, 2.4110324844186075, 2.4345706196691705, 1.3080102066922943]}
+{"utc": "2026-10-20T14:14:20+00:00", "rung": "E1T", "event": "READ", "seed": 20261020, "round": 2, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "diagnostic per round; no round is chosen on it"}
+{"utc": "2026-10-20T14:14:29+00:00", "rung": "E1T", "event": "FIT", "seed": 20261020, "round": 3, "rows_train": 73624, "rows_inner": 12420, "class_weight": [0.6868163211055075, 2.6936354278217047, 2.697920007162735, 1.370397600750199]}
+{"utc": "2026-10-20T14:15:09+00:00", "rung": "E1T", "event": "READ", "seed": 20261020, "round": 3, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "diagnostic per round; no round is chosen on it"}
+{"utc": "2026-10-20T14:15:13+00:00", "rung": "E1T", "event": "FREEZE", "seed": 20261020, "round": 3}
+{"utc": "2026-10-20T14:15:13+00:00", "rung": "E1T", "event": "FIT", "seed": 20261021, "round": 0, "rows_train": 18406, "rows_inner": 3105, "class_weight": [0.7323505191003816, 1.9168692306911765, 1.9145683425366145, 20.37229808188553]}
+{"utc": "2026-10-20T14:15:25+00:00", "rung": "E1T", "event": "READ", "seed": 20261021, "round": 0, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "diagnostic per round; no round is chosen on it"}
+{"utc": "2026-10-20T14:15:34+00:00", "rung": "E1T", "event": "FIT", "seed": 20261021, "round": 1, "rows_train": 36812, "rows_inner": 6210, "class_weight": [0.6759228419688137, 2.1303518415617875, 2.1456322580267835, 1.4359574777715605]}
+{"utc": "2026-10-20T14:16:20+00:00", "rung": "E1T", "event": "READ", "seed": 20261021, "round": 1, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "diagnostic per round; no round is chosen on it"}
+{"utc": "2026-10-20T14:16:29+00:00", "rung": "E1T", "event": "FIT", "seed": 20261021, "round": 2, "rows_train": 55218, "rows_inner": 9315, "class_weight": [0.684478028889005, 2.4406409635801483, 2.3868749051724323, 1.3357437908878385]}
+{"utc": "2026-10-20T14:17:05+00:00", "rung": "E1T", "event": "READ", "seed": 20261021, "round": 2, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "diagnostic per round; no round is chosen on it"}
+{"utc": "2026-10-20T14:17:14+00:00", "rung": "E1T", "event": "FIT", "seed": 20261021, "round": 3, "rows_train": 73624, "rows_inner": 12420, "class_weight": [0.6855605650602137, 2.715623675335691, 2.647832485709934, 1.3878200820103312]}
+{"utc": "2026-10-20T14:17:50+00:00", "rung": "E1T", "event": "READ", "seed": 20261021, "round": 3, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "diagnostic per round; no round is chosen on it"}
+{"utc": "2026-10-20T14:17:55+00:00", "rung": "E1T", "event": "FREEZE", "seed": 20261021, "round": 3}
+{"utc": "2026-10-20T14:17:55+00:00", "rung": "E1T", "event": "GATE", "I1": false, "I1_per_seed": [false, false, false], "I2": true, "inner_b_sharpe_mean": -1.4688507463644447, "confirmed": -3.639283261291801, "prior_random_mean": -3.2684977999791704, "beats_no_trade": false, "learnable_signal": false, "decision": "STOP_AT_E1"}
+{"utc": "2026-10-20T14:17:55+00:00", "rung": "E1T", "event": "NO_READ", "periods": ["OBS_2024"], "purpose": "capacity sweep arm; 2024 not read"}
