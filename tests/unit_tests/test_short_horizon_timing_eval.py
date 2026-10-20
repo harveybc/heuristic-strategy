@@ -2,6 +2,7 @@
 rule, a tiny CPU fit per arm, block bootstrap, DSR supplement (TE01-TE08)."""
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -118,3 +119,78 @@ def test_te10_expert_module_digest_must_match_the_driver():
     with pytest.raises(SystemExit, match="EXPERT_MODULE_DIGEST"):
         TE.setup_expert({"expert": {"module_sha256": "0" * 64, "params": {"depth": 3, "deviation_pips": 40.7, "backstep": 0}}},
                         _Ctx(), ".")
+
+
+def test_te11_daily_returns_start_from_initial_capital_on_a_nonzero_first_day():
+    import types
+    res = types.SimpleNamespace(daily_equity=pd.Series([110.0, 121.0], index=pd.date_range("2024-01-01", periods=2, tz="UTC")))
+    r = TE.daily_returns(res, initial=100.0)
+    assert np.allclose(r.to_numpy(), [0.10, 0.10])
+
+
+def _ev_dir(tmp_path, cap=4, depth=3):
+    ev = tmp_path / "eval_input"
+    ev.mkdir(parents=True, exist_ok=True)
+    ts = pd.date_range("2023-01-02", periods=60, freq="h", tz="UTC")
+    pd.DataFrame({"timestamp": ts, "f": np.arange(60.0)}).to_parquet(ev / "features_all.parquet", index=False)
+    pd.DataFrame({"timestamp": ts, "timing_pivot_k2": np.zeros(60)}).to_parquet(ev / "targets_all.parquet", index=False)
+    doc = {"sets": {"a": ["f"]}, "features_sha256": TE.sha(ev / "features_all.parquet"), "targets_sha256": TE.sha(ev / "targets_all.parquet"),
+           "k_bars": 2, "expert": {"params": {"depth": depth, "deviation_pips": 40.7, "backstep": 0}},
+           "strategy": {"executable": True, "max_orders_per_day": cap, "k_tp": 2.0}}
+    (ev / "FEATURE_SETS.json").write_text(json.dumps(doc))
+    return ev
+
+
+def test_te12_freeze_binding_refuses_cap_expert_and_label_drift_before_any_model_load(tmp_path, monkeypatch):
+    ev = _ev_dir(tmp_path)
+    frozen = {"input_identity": TE.input_identity(ev)}
+    TE.check_frozen_inputs(frozen, ev)                                        # unchanged -> accepted
+    for mutate in (lambda: _ev_dir(tmp_path, cap=3), lambda: _ev_dir(tmp_path, depth=4)):
+        mutate()
+        with pytest.raises(SystemExit, match="INPUT_IDENTITY_DRIFT"):
+            TE.check_frozen_inputs(frozen, ev)
+    _ev_dir(tmp_path)
+    pd.DataFrame({"timestamp": pd.date_range("2023-01-02", periods=60, freq="h", tz="UTC"),
+                  "timing_pivot_k2": np.ones(60)}).to_parquet(ev / "targets_all.parquet", index=False)     # labels changed
+    with pytest.raises(SystemExit, match="INPUT_IDENTITY_DRIFT"):
+        TE.check_frozen_inputs(frozen, ev)
+    # reconfirm itself: a changed cap stops BEFORE any model is loaded
+    _ev_dir(tmp_path)
+    out = tmp_path / "eval"
+    out.mkdir()
+    fz = {"input_identity": TE.input_identity(ev), "shards": {}}
+    fz["freeze_sha256"] = TE.canon(fz)
+    (out / "FROZEN.json").write_text(json.dumps(fz))
+    _ev_dir(tmp_path, cap=3)
+    monkeypatch.setattr(TE, "load_model", lambda *a, **k: (_ for _ in ()).throw(AssertionError("MODEL_LOADED")))
+    a = TE.argparse.Namespace(eval_input=str(ev), out=str(out), data=None, closures=None, zigzag_run=".")
+    with pytest.raises(SystemExit, match="INPUT_IDENTITY_DRIFT"):
+        TE.reconfirm(a)
+
+
+def test_te13_calendar_from_closures_applies_the_twelve_hour_rules():
+    idx = pd.date_range("2023-01-08 22:00", "2023-01-13 21:00", freq="h", tz="UTC")
+    cal = TE.calendar_from_closures([["2023-01-06 22:00:00+00:00", "2023-01-08 22:00:00+00:00"],
+                                     ["2023-01-13 22:00:00+00:00", "2023-01-15 22:00:00+00:00"]], idx)
+    seg = cal.segments[0]
+    assert seg.operational_start == pd.Timestamp("2023-01-09 10:00", tz="UTC")
+    assert seg.force_flat == pd.Timestamp("2023-01-13 10:00", tz="UTC") and seg.entry_cutoff == seg.force_flat
+    assert (cal.assign(idx) == 0).all()
+
+
+def test_te14_a_finite_label_on_an_ineligible_origin_is_refused():
+    ts = pd.date_range("2023-01-02", periods=60, freq="h", tz="UTC")
+    feats = pd.DataFrame({"f": np.arange(60.0)})
+    targ = pd.DataFrame({"timing_pivot_k2": np.zeros(60)})
+    elig = np.ones(60, bool)
+    elig[55] = False
+    with pytest.raises(SystemExit, match="ELIGIBILITY_LABEL_MISMATCH"):
+        TE.common_rows(feats, targ, ts, {"sets": {"a": ["f"]}}, 2, elig)
+
+
+def test_te15_train_prior_baseline_is_measured_on_the_same_rows():
+    y = np.array([0, 0, 0, 1, 2] * 40)
+    prior = np.bincount(y, minlength=3) / len(y)
+    P = np.tile(prior, (len(y), 1))
+    b = TE.classification_baselines([P, P], y, prior, np.ones(len(y), bool))
+    assert abs(b["log_loss_minus_train_prior"]) < 1e-12 and b["valley_pr_baseline_base_rate"] == pytest.approx(0.2)

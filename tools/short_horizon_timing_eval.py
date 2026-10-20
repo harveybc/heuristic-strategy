@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import types
 import json
 import math
 import os
@@ -141,8 +142,18 @@ def period_of(ts: pd.DatetimeIndex) -> np.ndarray:
     return period
 
 
+def input_identity(ev: Path) -> str:
+    """The full evaluation-input identity: the parsed FEATURE_SETS contract (sets, expert, strategy incl. the daily
+    cap, splits, source, eligibility digest) and the bytes of every input file it names."""
+    ev = Path(ev)
+    doc = json.loads((ev / "FEATURE_SETS.json").read_text())
+    files = {n: sha(ev / n) for n in ("features_all.parquet", "targets_all.parquet", "ELIGIBILITY.parquet") if (ev / n).exists()}
+    return canon({"feature_sets": doc, "files": files})
+
+
 def load_inputs(ev: Path, *, include_2024: bool):
-    """Features/targets with digests verified; without ``include_2024`` no row at or after 2024-01-01 is kept."""
+    """Features/targets (and the shared eligibility mask when the contract declares one) with digests verified;
+    without ``include_2024`` no row at or after 2024-01-01 is kept.  Returns (sets_doc, feats, targ, ts, elig)."""
     sets_doc = json.loads((ev / "FEATURE_SETS.json").read_text())
     if sha(ev / "features_all.parquet") != sets_doc["features_sha256"] or sha(ev / "targets_all.parquet") != sets_doc["targets_sha256"]:
         raise SystemExit("EVAL_INPUT_DIGEST")
@@ -152,13 +163,24 @@ def load_inputs(ev: Path, *, include_2024: bool):
     ts = ts.tz_localize("UTC") if ts.tz is None else ts.tz_convert("UTC")
     if (ts >= pd.Timestamp("2025-01-01", tz="UTC")).any():
         raise SystemExit("TEST_ROWS_FORBIDDEN")
+    elig = None
+    spec = sets_doc.get("eligibility")
+    if spec:
+        if sha(ev / spec["file"]) != spec["file_sha256"]:
+            raise SystemExit("ELIGIBILITY_DIGEST")
+        em = pd.read_parquet(ev / spec["file"])
+        ets = pd.DatetimeIndex(em["timestamp"]).tz_convert("UTC")
+        if not np.array_equal(ets.asi8, ts.asi8):
+            raise SystemExit("ELIGIBILITY_ROWS_MISALIGNED")
+        elig = em[spec["column"]].to_numpy(bool)
     if not include_2024:
         keep = ts < pd.Timestamp("2024-01-01", tz="UTC")
         feats, targ, ts = feats.loc[keep].reset_index(drop=True), targ.loc[keep].reset_index(drop=True), ts[keep]
-    return sets_doc, feats, targ, ts
+        elig = elig[np.asarray(keep)] if elig is not None else None
+    return sets_doc, feats, targ, ts, elig
 
 
-def common_rows(feats, targ, ts, sets_doc, k):
+def common_rows(feats, targ, ts, sets_doc, k, elig=None):
     """Identical rows for every set and arm: a full finite 48-bar window over the UNION of compared columns,
     a labelled T1 (support ledger already purged/censored), inside a declared period.  Also returns, per set,
     the rows that set alone would have had (to report what the longest warm-up costs)."""
@@ -167,10 +189,14 @@ def common_rows(feats, targ, ts, sets_doc, k):
     y = targ[f"timing_pivot_k{k}"].to_numpy(float)
     period = period_of(ts)
 
+    if elig is not None and (np.isfinite(y) & ~elig).any():
+        raise SystemExit("ELIGIBILITY_LABEL_MISMATCH: a finite label sits on an ineligible origin")
+    gate = elig if elig is not None else np.ones(len(y), bool)
+
     def ok_for(cols):
         fin = np.isfinite(feats[cols].to_numpy(float)).all(axis=1)
         win = pd.Series(fin).rolling(WINDOW).min().fillna(0).to_numpy().astype(bool)
-        return win & np.isfinite(y) & (period != "")
+        return win & np.isfinite(y) & (period != "") & gate
 
     common = ok_for(union)
     alone = {n: ok_for(cols) for n, cols in sets.items()}
@@ -355,9 +381,9 @@ def scaled(feats, cols, mu, sd):
 def develop(a):
     _set_threads()
     ev, out = Path(a.eval_input), Path(a.out)
-    sets_doc, feats, targ, ts = load_inputs(ev, include_2024=False)
+    sets_doc, feats, targ, ts, elig = load_inputs(ev, include_2024=False)
     k = int(sets_doc["k_bars"])
-    common, period, y_raw, sets, loss = common_rows(feats, targ, ts, sets_doc, k)
+    common, period, y_raw, sets, loss = common_rows(feats, targ, ts, sets_doc, k, elig)
     cols = sets[a.set]
     rows = np.flatnonzero(common)
     per = period[rows]
@@ -389,7 +415,8 @@ def develop(a):
                rows_by_period={p: int((per == p).sum()) for p in DEVELOP_PERIODS},
                common_rows_sha256=hashlib.sha256(rows.tobytes()).hexdigest(), rows_lost_to_union_warmup=loss[a.set],
                predictions_sha256=sha(shard / "develop_predictions.npz"), periods_read=list(DEVELOP_PERIODS),
-               reads_2024=False, eval_input={"features_sha256": sets_doc["features_sha256"], "targets_sha256": sets_doc["targets_sha256"]})
+               reads_2024=False, eval_input={"features_sha256": sets_doc["features_sha256"], "targets_sha256": sets_doc["targets_sha256"]},
+               input_identity=input_identity(ev), eligibility_applied=elig is not None)
     (shard / "DEVELOP.json").write_text(json.dumps(doc, indent=1, default=float) + "\n")
 
 
@@ -453,6 +480,76 @@ def trade_breakdown(res, ctx):
             "gross_usd": m.get("gross_usd"), "ambiguous_stop_first": m.get("ambiguous_stop_first")}
 
 
+def calendar_from_closures(closures, index, reopen_hours=12.0, preclose_hours=12.0):
+    """The adapter calendar for the admitted source: sessions = complements of the declared closure intervals,
+    with the business rules (entry delay after open, forced flat before close, no extra cutoff)."""
+    from app.short_horizon import calendar as CAL
+    cl = sorted((pd.Timestamp(a).tz_convert("UTC"), pd.Timestamp(b).tz_convert("UTC")) for a, b in closures)
+    lo, hi = index[0], index[-1] + pd.Timedelta(hours=1)
+    segs = []
+    for (a0, b0), (a1, b1) in zip(cl, cl[1:]):
+        if b0 < hi and a1 > lo:
+            segs.append({"segment_id": f"ADM-{b0:%Y%m%dT%H}", "market_open": str(b0), "market_close": str(a1)})
+    cfg = {"calendar_id": "ADMITTED_CLOSURE_INTERVALS", "version": "v1", "segments": segs,
+           "entry_delay_after_open_hours": float(reopen_hours), "force_flat_before_close_hours": float(preclose_hours),
+           "entry_cutoff_before_flat_hours": 0}
+    return CAL.load_calendar(cfg)
+
+
+def make_ctx(sets_doc, a, ts):
+    """Bars + calendar for the strategy.  Admitted source: bars through the clock lane's ``bar_source``
+    (admitted, UTC bar start, digest-pinned) and the calendar from the same CLOSURE_INTERVALS.json (pinned).
+    Legacy lake source: the pinned ``Ctx``."""
+    src = sets_doc.get("source") or {}
+    if src.get("kind") != "admitted":
+        return Ctx(a.data)
+    from app.short_horizon import bar_source as BS
+    if not a.closures:
+        raise SystemExit("ADMITTED_SOURCE_NEEDS_CLOSURES")
+    if sha(a.data) != src["sha256"] or sha(a.closures) != src["closures_sha256"]:
+        raise SystemExit("ADMITTED_SOURCE_DIGEST")
+    bars = BS.load_ohlc(a.data, ts[0], pd.Timestamp("2025-01-01", tz="UTC"), source="admitted")
+    bars.index = pd.DatetimeIndex(bars.index).tz_convert("UTC").rename("DATE_TIME")
+    bc = sets_doc.get("business_calendar") or {}
+    cal = calendar_from_closures(json.loads(Path(a.closures).read_text()), bars.index, bc.get("reopen_hours", 12), bc.get("preclose_hours", 12))
+    if not (sets_doc.get("strategy") or {}).get("executable"):
+        raise SystemExit("ADMITTED_SOURCE_NEEDS_EXECUTABLE_PATH")
+    return types.SimpleNamespace(bars=bars, cal=cal, h=bars.HIGH.to_numpy(float), l=bars.LOW.to_numpy(float), digest=src["sha256"])
+
+
+def check_frozen_inputs(frozen: dict, ev: Path):
+    """Refuse any drift of the evaluation inputs (expert, strategy incl. cap, sets, population, labels, data,
+    eligibility) since the freeze, BEFORE any data or model is loaded."""
+    want = frozen.get("input_identity")
+    if want is None:
+        raise SystemExit("FROZEN_WITHOUT_INPUT_IDENTITY")
+    got = input_identity(ev)
+    if got != want:
+        raise SystemExit(f"INPUT_IDENTITY_DRIFT: frozen {want[:12]} != current {got[:12]}")
+
+
+def classification_baselines(Ps, y, prior, mask):
+    """Ensemble (seed-mean) probabilities against the constant TRAIN-prior classifier on the same rows:
+    log-loss and its difference, per-direction PR-AUC with the base rate (its no-skill baseline, NONE in the
+    denominator), Brier score and expected calibration error (10 equal-width bins)."""
+    from sklearn.metrics import average_precision_score, log_loss
+    P = np.mean(Ps, axis=0)[mask]
+    yy = y[mask]
+    pr = np.tile(prior, (len(yy), 1))
+    out = {"rows": int(mask.sum()), "ensemble_log_loss": float(log_loss(yy, P, labels=[0, 1, 2])),
+           "train_prior_log_loss": float(log_loss(yy, pr, labels=[0, 1, 2]))}
+    out["log_loss_minus_train_prior"] = out["ensemble_log_loss"] - out["train_prior_log_loss"]
+    for c, name in ((1, "valley"), (2, "peak")):
+        pos = (yy == c).astype(float)
+        p = P[:, c]
+        bins = np.clip((p * 10).astype(int), 0, 9)
+        ece = sum(abs(pos[bins == b].mean() - p[bins == b].mean()) * (bins == b).mean() for b in range(10) if (bins == b).any())
+        out.update({f"{name}_pr_auc": float(average_precision_score(pos, p)) if pos.any() else np.nan,
+                    f"{name}_pr_baseline_base_rate": float(pos.mean()), f"{name}_brier": float(np.mean((p - pos) ** 2)),
+                    f"{name}_brier_train_prior": float(np.mean((prior[c] - pos) ** 2)), f"{name}_ece": float(ece)})
+    return out
+
+
 def setup_expert(sets_doc, ctx, zigzag_run):
     """Expert pivots and the strategy rule.  From FEATURE_SETS.json when the driver wrote an ``expert`` block
     (module digest verified against the loaded zigzag module); otherwise the legacy v1 CHOICE.json."""
@@ -495,7 +592,16 @@ def strategy(ctx, piv, Pc, origin_bar, tau, k, k_tp, period):
     return m, res, sig
 
 
-def daily_returns(res):
+def daily_returns(res, initial: float = None):
+    """Daily returns of the marked-to-market equity, the first day measured against the INITIAL capital (the
+    execution accounting's convention), not against the first daily close."""
+    d = res.daily_equity
+    base = float(STUDY.CAPITAL if initial is None else initial)
+    v = d.to_numpy(float)
+    return pd.Series(np.diff(np.r_[base, v]) / np.r_[base, v[:-1]], index=d.index)
+
+
+def _daily_returns_legacy(res):
     d = res.daily_equity
     return pd.Series(np.diff(np.r_[d.iloc[0], d.to_numpy()]) / np.r_[d.iloc[0], d.to_numpy()[:-1]], index=d.index)
 
@@ -559,18 +665,21 @@ def choose_cell(fits, arm):
 
 def freeze(a):
     ev, out = Path(a.eval_input), Path(a.out)
-    sets_doc, feats, targ, ts = load_inputs(ev, include_2024=False)
+    cur_identity = input_identity(ev)
+    sets_doc, feats, targ, ts, elig = load_inputs(ev, include_2024=False)
     k = int(sets_doc["k_bars"])
-    ctx = Ctx(a.data)
+    ctx = make_ctx(sets_doc, a, ts)
     p, piv, k_tp = setup_expert(sets_doc, ctx, a.zigzag_run)
     lake_ts = ctx.bars.index.as_unit("s").asi8
     if not np.array_equal(lake_ts[: len(ts)], ts.as_unit("s").asi8):
         raise SystemExit("EVAL_INPUT_GRID_DIFFERS_FROM_LAKE")
-    frozen, scored, trials = {"shards": {}}, [], []
+    frozen, scored, trials, baselines = {"shards": {}}, [], [], []
     for shard in sorted((out / "shards").iterdir()):
         dev = json.loads((shard / "DEVELOP.json").read_text())
         if sha(shard / "develop_predictions.npz") != dev["predictions_sha256"]:
             raise SystemExit("DEVELOP_PREDICTIONS_DIGEST:" + shard.name)
+        if dev.get("input_identity") is not None and dev["input_identity"] != cur_identity:
+            raise SystemExit("SHARD_INPUT_IDENTITY_DRIFT:" + shard.name)
         z = np.load(shard / "develop_predictions.npz", allow_pickle=False)
         rows, y, per = z["rows"], z["y"], z["period"].astype(str)
         win, cell_table, rule = choose_cell(dev["fits"], dev["arm"])
@@ -599,7 +708,12 @@ def freeze(a):
         frozen["shards"][key] = dict(set=dev["set"], arm=dev["arm"], cell=win["cell"], cell_choice=rule, cell_table=cell_table,
                                      temperatures={str(s): t for s, t in temps.items()}, threshold=tau, threshold_grid_inner_a=grid,
                                      models={str(s): {"file": m["model_file"], "sha256": m["model_sha256"]} for s, m in models.items()},
-                                     columns=dev["columns"], scaler=dev["scaler"], develop_sha256=sha(shard / "DEVELOP.json"))
+                                     columns=dev["columns"], scaler=dev["scaler"], scaler_sha256=canon(dev["scaler"]),
+                                     common_rows_sha256=dev["common_rows_sha256"], develop_sha256=sha(shard / "DEVELOP.json"))
+        prior = np.bincount(y[trn], minlength=3) / trn.sum()
+        frozen["shards"][key]["train_prior"] = prior.tolist()
+        for pname, mask in (("INNER_A_2023H1", ia), ("INNER_B_2023H2", ib)):
+            baselines.append(dict(set=dev["set"], arm=dev["arm"], period=pname, **classification_baselines([cal[s] for s in seeds], y, prior, mask)))
         # scoring with every choice frozen: TRAIN (diagnostic), INNER_A (where chosen), INNER_B (frozen)
         for pname, mask in (("TRAIN_2020_2022", trn), ("INNER_A_2023H1", ia), ("INNER_B_2023H2", ib)):
             for s in seeds:
@@ -612,7 +726,7 @@ def freeze(a):
                     pd.DataFrame({"r": daily_returns(res)}).to_parquet(shard / f"daily_INNER_B_2023H2_s{s}.parquet")
         np.savez_compressed(shard / "frozen_calibrated_develop.npz", rows=rows, y=y, period=per,
                             **{f"s{s}": cal[s].astype(np.float32) for s in seeds})
-    frozen.update(stage="freeze", expert={"params": p.__dict__, "k_tp": k_tp, "fill_path": "EXECUTABLE_B_PLUS_1" if _EXEC["executable"]
+    frozen.update(input_identity=cur_identity, eligibility_applied=elig is not None, stage="freeze", expert={"params": p.__dict__, "k_tp": k_tp, "fill_path": "EXECUTABLE_B_PLUS_1" if _EXEC["executable"]
                                           else "LEGACY_B_PLUS_2_WITH_REOPEN_GUARD", "max_orders_per_day": _EXEC["cap"]},
                   thresholds_attempted=list(THRESHOLDS), periods_read=list(DEVELOP_PERIODS), reads_2024=False,
                   rules={"cell": "lowest mean INNER_A loss, ties by gap", "threshold": "max mean INNER_A Sharpe over seeds among valid, else max",
@@ -621,6 +735,7 @@ def freeze(a):
     (out / "FROZEN.json").write_text(json.dumps(frozen, indent=1, default=float) + "\n")
     pd.DataFrame(scored).to_csv(out / "scores_develop.csv", index=False)
     pd.DataFrame(trials).to_csv(out / "trials_threshold_inner_a.csv", index=False)
+    pd.DataFrame(baselines).to_csv(out / "classification_baselines.csv", index=False)
     uncertainty(out, ["INNER_B_2023H2"], ev)
     print(json.dumps({"freeze_sha256": frozen["freeze_sha256"], "shards": {k_: (v["cell"], v["threshold"]) for k_, v in frozen["shards"].items()}}))
 
@@ -632,10 +747,19 @@ def reconfirm(a):
     frozen = json.loads((out / "FROZEN.json").read_text())
     if canon({k: v for k, v in frozen.items() if k != "freeze_sha256"}) != frozen["freeze_sha256"]:
         raise SystemExit("FROZEN_DIGEST")
-    sets_doc, feats, targ, ts = load_inputs(ev, include_2024=True)
+    check_frozen_inputs(frozen, ev)                       # before any data or model is loaded
+    sets_doc, feats, targ, ts, elig = load_inputs(ev, include_2024=True)
     k = int(sets_doc["k_bars"])
-    common, period, y_raw, sets, loss = common_rows(feats, targ, ts, sets_doc, k)
-    ctx = Ctx(a.data)
+    common, period, y_raw, sets, loss = common_rows(feats, targ, ts, sets_doc, k, elig)
+    for key, fz in frozen["shards"].items():              # population and scaler re-derived and compared before loading
+        z = np.load(out / "shards" / key / "develop_predictions.npz", allow_pickle=False)
+        if hashlib.sha256(z["rows"].tobytes()).hexdigest() != fz["common_rows_sha256"]:
+            raise SystemExit("POPULATION_DRIFT:" + key)
+        rows_tr = np.flatnonzero(common & (period == "TRAIN_2020_2022"))
+        mu, sd = scaler(feats, fz["columns"], rows_tr)
+        if canon({"mean": mu.tolist(), "sd": sd.tolist(), "fit_on": fz["scaler"]["fit_on"]}) != fz["scaler_sha256"]:
+            raise SystemExit("SCALER_DRIFT:" + key)
+    ctx = make_ctx(sets_doc, a, ts)
     p, piv, k_tp = setup_expert(sets_doc, ctx, a.zigzag_run)
     if not np.array_equal(ctx.bars.index.as_unit("s").asi8, ts.as_unit("s").asi8):
         raise SystemExit("EVAL_INPUT_GRID_DIFFERS_FROM_LAKE")
@@ -644,10 +768,12 @@ def reconfirm(a):
     mask = np.ones(len(rows), bool)
     scored = []
     tenc = time_encoding(ts)
+    baselines = []
     for key, fz in frozen["shards"].items():
         shard = out / "shards" / key
         Z = scaled(feats, fz["columns"], np.asarray(fz["scaler"]["mean"]), np.asarray(fz["scaler"]["sd"]))
         xa = arm_inputs(fz["arm"], Z, tenc, rows)
+        probs = []
         for s, m in fz["models"].items():
             path = shard / "models" / m["file"]
             if sha(path) != m["sha256"]:
@@ -660,7 +786,15 @@ def reconfirm(a):
                                **per_direction(Pc, y, sig, rows, mask), **met))
             pd.DataFrame({"r": daily_returns(res)}).to_parquet(shard / f"daily_REOBSERVED_2024_s{s}.parquet")
             np.savez_compressed(shard / f"reobserved_2024_s{s}.npz", rows=rows, y=y, P=Pc.astype(np.float32))
+            probs.append(Pc)
+        if "train_prior" in fz:
+            baselines.append(dict(set=fz["set"], arm=fz["arm"], period="REOBSERVED_2024",
+                                  **classification_baselines(probs, y, np.asarray(fz["train_prior"]), mask)))
     pd.DataFrame(scored).to_csv(out / "scores_reobserved_2024.csv", index=False)
+    if baselines:
+        b0 = out / "classification_baselines.csv"
+        prev = pd.read_csv(b0) if b0.exists() else pd.DataFrame()
+        pd.concat([prev, pd.DataFrame(baselines)], ignore_index=True).to_csv(b0, index=False)
     (out / "RECONFIRM.json").write_text(json.dumps(dict(stage="reconfirm", freeze_sha256=frozen["freeze_sha256"],
                                                         rows=int(len(rows)), rows_lost_to_union_warmup={n: v["REOBSERVED_2024"] for n, v in loss.items()},
                                                         decisions_changed=False), indent=1) + "\n")
@@ -761,7 +895,13 @@ def seal(a):
                     "cell_choices": {k_: v["cell_choice"] for k_, v in frozen["shards"].items()},
                     "threshold_choices": {k_: v["threshold"] for k_, v in frozen["shards"].items()},
                     "threshold_trials_rows": int(len(trials))}
+    bl = out / "classification_baselines.csv"
     seal_doc = dict(label="DEVELOPMENT_TIMING_PROXY_PREDICTIVE_VALIDATION", evaluator="heuristic-strategy tools/short_horizon_timing_eval.py",
+                    comparison=("two feature sets under a shared recipe and context: identical eligible rows, grid, seeds, budget, monitor "
+                                "and strategy; m1 also receives 4 shared origin time encodings (hour and weekday sin/cos of the bar start); "
+                                "model capacity scales with the number of features, so this is not a matched-parameter comparison"),
+                    classification_baselines=pd.read_csv(bl).to_dict(orient="records") if bl.exists() else None,
+                    input_identity=frozen.get("input_identity"), eligibility_applied=frozen.get("eligibility_applied"),
                     proxy_only=True, periods=EVAL_PERIODS, roles={"TRAIN_2020_2022": "fit", "INNER_A_2023H1": "choices (joint development)",
                                                                   "INNER_B_2023H2": "frozen score (joint development)",
                                                                   "REOBSERVED_2024": "previously observed reconfirmation, never pristine"},
@@ -769,6 +909,7 @@ def seal(a):
                     training=TRAINING, trial_ledger=trial_ledger, deflated_sharpe_supplement=dsr,
                     uncertainty=json.loads((out / "UNCERTAINTY.json").read_text()), summary=summ.to_dict(orient="records"),
                     files={n: sha(out / n) for n in ("FROZEN.json", "scores_develop.csv", "summary.csv", "UNCERTAINTY.json")
+                           + (("classification_baselines.csv",) if bl.exists() else ())
                            + (("scores_reobserved_2024.csv", "RECONFIRM.json") if (out / "RECONFIRM.json").exists() else ())},
                     test_read=False)
     (out / "SEAL.json").write_text(json.dumps(seal_doc, indent=1, default=float) + "\n")
@@ -781,6 +922,7 @@ def main(argv=None):
     ap.add_argument("--eval-input", required=True, help="directory with features_all.parquet, targets_all.parquet, FEATURE_SETS.json")
     ap.add_argument("--data", required=False, help="lake EUR/USD H1 parquet (pinned digest; freeze/reconfirm)")
     ap.add_argument("--zigzag-run", default=str(ROOT / "docs/short_horizon/results/zigzag"))
+    ap.add_argument("--closures", help="admitted CLOSURE_INTERVALS.json (freeze/reconfirm on the admitted source)")
     ap.add_argument("--out", required=True, help="evaluation directory (shards/, FROZEN.json, SEAL.json)")
     ap.add_argument("--set", help="develop: feature set name from FEATURE_SETS.json")
     ap.add_argument("--arm", choices=list(ARMS), help="develop: arm")
