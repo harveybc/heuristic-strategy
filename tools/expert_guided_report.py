@@ -232,13 +232,202 @@ def e0(a):
     tables(d, out, ["e0_brecha_imitabilidad.png", "e0_curvas_entrenamiento.png", "e0_prauc_exceso.png"])
 
 
+# ---------------------------------------------------------------------------------------------- E1
+RND_ES = ("BC", "DAgger 1", "DAgger 2", "DAgger 3")
+
+
+def _sh(m):
+    v = m.get("sharpe_daily_sqrt365")
+    return np.nan if v is None else v
+
+
+def e1_fig_rounds(d, out):
+    fig, axes = plt.subplots(1, 4, figsize=(18, 5.6), gridspec_kw={"width_ratios": [1, 1, 1, 0.8]})
+    cB = d["comparators"]
+    for ax, p in zip(axes[:3], PERIODS[:3]):
+        style(ax)
+        for j, (s, r) in enumerate(d["seeds"].items()):
+            ys = [_sh(rr["trading"][p]) for rr in r["rounds"]]
+            ax.plot(range(len(ys)), ys, color=C["dagger"], linewidth=2, alpha=0.5 + 0.2 * j, marker="o", markersize=8,
+                    label="Política BC → DAgger (3 semillas)" if j == 0 else None)
+        ax.axhline(_sh(cB[p]["expert_confirmed"]), color=C["confirmed"], linestyle="--", linewidth=2, label="Experto confirmado")
+        ax.axhline(np.mean([_sh(x) for x in cB[p]["train_prior_random"]]), color=C["prior"], linestyle=":", linewidth=2,
+                   label="Aleatoria previa TRAIN (media)")
+        ax.axhline(0, color=INK, linewidth=1)
+        ax.set_xticks(range(4))
+        ax.set_xticklabels(RND_ES, fontsize=10)
+        ax.set_title(f"{P_ES[p]}\nexperto {es(_sh(cB[p]['expert_demonstrations']))} · oráculo {es(_sh(cB[p]['oracle_leg_following']))}",
+                     fontsize=11.5, color=INK)
+        if p == "TRAIN":
+            ax.set_ylabel("Sharpe neto (diario, √365)", fontsize=12, color=INK)
+            ax.legend(frameon=False, fontsize=9.5, loc="upper left")
+    ax = axes[3]
+    style(ax)
+    p = "OBS_2024"
+    vals = [_sh(r["rounds"][-1]["trading"][p]) for r in d["seeds"].values()]
+    items = [("DAgger 3", np.mean(vals), C["dagger"], vals), ("Confirmado", _sh(cB[p]["expert_confirmed"]), C["confirmed"], None),
+             ("Previa", np.mean([_sh(x) for x in cB[p]["train_prior_random"]]), C["prior"],
+              [_sh(x) for x in cB[p]["train_prior_random"]]), ("Sin operar", 0.0, MUTED, None)]
+    for i, (n, v, col, pts) in enumerate(items):
+        ax.bar(i, v, color=col, width=0.7, edgecolor="white", linewidth=2)
+        if pts:
+            ax.scatter([i] * len(pts), pts, s=34, color="white", edgecolor=INK, zorder=3)
+        ax.annotate(es(v), (i, v), xytext=(0, 4 if v >= 0 else -14), textcoords="offset points", ha="center", fontsize=9.5)
+    ax.axhline(0, color=INK, linewidth=1)
+    ax.margins(y=0.15)
+    ax.set_xticks(range(len(items)))
+    ax.set_xticklabels([x[0] for x in items], fontsize=9.5)
+    ax.set_title(f"{P_ES[p]}\nexperto {es(_sh(cB[p]['expert_demonstrations']))} · oráculo {es(_sh(cB[p]['oracle_leg_following']))}",
+                 fontsize=11.5, color=INK)
+    g = d["gate_result"]
+    fig.suptitle("E1 · Clonación de comportamiento + DAgger en el entorno ejecutable (SL/TP en la acción, ≤ 4 entradas/día, costos realistas)\n"
+                 f"Compuerta: I1 {'sí' if g['I1'] else 'no'} · I2 {'sí' if g['I2'] else 'no'} → {g['decision']}; "
+                 f"INNER_B DAgger 3 = {es(g['inner_b_sharpe_mean'])} vs confirmado {es(g['confirmed'])} y previa {es(g['prior_random_mean'])}",
+                 fontsize=12.5, color=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.88))
+    for ext in ("png", "pdf"):
+        fig.savefig(out / f"e1_sharpe_por_ronda.{ext}", dpi=160)
+    plt.close(fig)
+
+
+def e1_fig_imitation(d, out):
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.2))
+    for ax, (key, title, ylab) in zip(axes, (("ll", "Imitación en los estados que visita la propia política",
+                                               "log-loss − previa TRAIN (nats)"),
+                                              ("opw", "Frecuencia de operación", "Entradas por semana"))):
+        style(ax)
+        for k, p in enumerate(PERIODS[:3]):
+            col = (C["expert"], C["confirmed"], C["dagger"])[k]
+            for j, r in enumerate(d["seeds"].values()):
+                ys = [rr["imitation"][p]["log_loss_minus_prior"] if key == "ll" else rr["trading"][p]["orders_per_week"]
+                      for rr in r["rounds"]]
+                ax.plot(range(len(ys)), ys, color=col, linewidth=2, alpha=0.45 + 0.2 * j, marker="o", markersize=7,
+                        label=P_ES[p] if j == 0 else None)
+        if key == "opw":
+            ax.axhline(3, color=INK, linestyle=":", linewidth=1.5, label="mínimo 3/semana")
+        ax.axhline(0, color=INK, linewidth=1) if key == "ll" else None
+        ax.set_xticks(range(4))
+        ax.set_xticklabels(RND_ES)
+        ax.set_title(title, fontsize=12, color=INK)
+        ax.set_ylabel(ylab, fontsize=11, color=INK)
+        ax.legend(frameon=False, fontsize=9.5)
+        if key == "ll":
+            ax.set_yscale("symlog", linthresh=0.1)
+    fig.suptitle("E1 · DAgger mejora la imitación ronda a ronda, pero la política opera ~15 veces/semana y pierde por costos",
+                 fontsize=12.5, color=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.savefig(out / "e1_imitacion_por_ronda.png", dpi=160)
+    plt.close(fig)
+
+
+def e1_fig_curves(d, out):
+    fig, axes = plt.subplots(1, 4, figsize=(18, 4.8), sharey=False)
+    for k, ax in enumerate(axes):
+        style(ax)
+        for j, r in enumerate(d["seeds"].values()):
+            h = r["rounds"][k]["history"]
+            ep = [x["epoch"] for x in h]
+            ax.plot(ep, [x["train_loss"] for x in h], color=C["expert"], linewidth=2, alpha=0.5 + 0.2 * j,
+                    label="TRAIN (inferencia)" if j == 0 else None)
+            ax.plot(ep, [x["inner_loss"] for x in h], color=C["confirmed"], linewidth=2, alpha=0.5 + 0.2 * j,
+                    label="INNER_A" if j == 0 else None)
+            ax.axvline(r["rounds"][k]["fit"]["best_epoch"], color=MUTED, linestyle=":", linewidth=1)
+        ax.set_title(RND_ES[k], fontsize=12, color=INK)
+        ax.set_xlabel("Época", fontsize=11, color=INK)
+        if k == 0:
+            ax.set_ylabel("Pérdida ponderada (CE + Huber SL/TP)", fontsize=11, color=INK)
+            ax.legend(frameon=False, fontsize=9.5)
+    fig.suptitle("E1 · Curvas TRAIN e INNER_A por ronda (monitor = media de ambas, paciencia 10; punteada = mejor época)",
+                 fontsize=12.5, color=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.9))
+    fig.savefig(out / "e1_curvas_entrenamiento.png", dpi=160)
+    plt.close(fig)
+
+
+def env_row(name, ms):
+    def mean(k):
+        v = [m.get(k) for m in ms if m.get(k) is not None]
+        v = [x for x in v if isinstance(x, (int, float)) and math.isfinite(x)]
+        return float(np.mean(v)) if v else None
+    cost = sum((mean(k) or 0.0) for k in ("cost_spread_usd", "cost_slippage_usd", "cost_commission_usd", "cost_financing_usd"))
+    return (f"| {name} | {es(mean('net_profit_usd'))} | {es(mean('sharpe_daily_sqrt365'))} | {es(mean('sortino_daily_sqrt365'))} | "
+            f"{es(mean('max_drawdown_pct'))} | {es(mean('n_entries'), 0)} / {es(mean('n_closes'), 0)} | "
+            f"{es(mean('n_close_TP'), 0)} / {es(mean('n_close_SL'), 0)} / {es(mean('n_close_AGENT_CLOSE'), 0)} / "
+            f"{es(mean('n_close_REVERSAL'), 0)} / {es(mean('n_close_FORCED_FLAT'), 0)} | {es(100 * (mean('win_rate') or 0), 1)} | "
+            f"{es(mean('gross_usd'))} | {es(cost)} ({es(mean('cost_spread_usd'))} / {es(mean('cost_slippage_usd'))} / "
+            f"{es(mean('cost_commission_usd'))} / {es(mean('cost_financing_usd'))}) | {es(mean('orders_per_week'))} | "
+            f"{es(mean('n_refused_DAILY_CAP'), 0)} | {sum(bool(m.get('valid')) for m in ms)}/{len(ms)} |")
+
+
+def e1_tables(d, out, figs):
+    L = ["# E1 · Clonación de comportamiento + DAgger-lite desde el experto ZigZag v2 (generado)", "",
+         "DESARROLLO. Mismos periodos, datos y reglas de negocio que E0, ahora en el entorno barra a barra "
+         "(`app/short_horizon/expert_guided/env.py`): acción {mantener, largo, corto, cerrar} + múltiplos σ de TP y SL "
+         "(siempre fijados; recortados a la banda efectiva), decisión tras la barra completa y llenado en la apertura "
+         "siguiente, cerrar-y-revertir = 1 cierre + 1 entrada, ≤ 4 entradas por día hábil, sin entradas 12 h tras "
+         "reapertura, plano forzado 12 h antes del cierre, unidades = ⌊1,0 × 0,10 × saldo × 100 / precio⌋, costos "
+         "RealisticProfile. Ronda 0 = BC sobre la trayectoria propia del experto (demostraciones); rondas 1–3 = la política "
+         "actúa y el oráculo retrospectivo (`LegOracle`) reetiqueta cada estado visitado. Política final = ronda 3 "
+         "(fijada de antemano). 2024 leído una vez tras congelar.", "",
+         "Paridad del entorno: el experto reproducido en este entorno da el mismo Sharpe que el simulador por bloques del "
+         "estudio v2 (INNER_A 18,58 / INNER_B 20,24 / 2024 18,07 en ambos).", ""]
+    for f in figs:
+        L.append(f"![{f}]({REPO}docs/short_horizon/results/expert_guided/e1/{f}) — [{f}]({REPO}docs/short_horizon/results/expert_guided/e1/{f})")
+    g = d["gate_result"]
+    L += ["", "## Compuerta pre-registrada", "",
+          f"- I1 (log-loss de imitación en sus propios estados INNER_B < previa TRAIN suavizada): **{'sí' if g['I1'] else 'no'}** {g['I1_per_seed']}",
+          f"- I2 (Sharpe INNER_B media de semillas > confirmado y > aleatoria previa): **{'sí' if g['I2'] else 'no'}** "
+          f"({es(g['inner_b_sharpe_mean'])} vs {es(g['confirmed'])} y {es(g['prior_random_mean'])}); supera no operar: {'sí' if g['beats_no_trade'] else 'no'}",
+          f"- Decisión: **{g['decision']}**", ""]
+    hdr = ("| Política | Neto USD | Sharpe | Sortino | DD máx % | Entradas / cierres | Cierres TP / SL / agente / reversión / plano forzado | "
+           "Acierto % | Bruto USD | Costos USD (spread / desl. / com. / swap) | Entradas/sem | Rechazos por tope diario | Válidas |")
+    for p in PERIODS:
+        cB = d["comparators"][p]
+        L += [f"## {P_ES[p]}", "", hdr, "|---|---:|---:|---:|---:|---|---|---:|---:|---|---:|---:|---:|"]
+        L.append(env_row("Experto (demostraciones)", [cB["expert_demonstrations"]]))
+        L.append(env_row("Oráculo de tramo (reetiquetador)", [cB["oracle_leg_following"]]))
+        L.append(env_row("Experto confirmado", [cB["expert_confirmed"]]))
+        if p != "OBS_2024":
+            L.append(env_row("BC ronda 0 (media 3 semillas)", [r["rounds"][0]["trading"][p] for r in d["seeds"].values()]))
+        L.append(env_row("DAgger ronda 3 (media 3 semillas)", [r["rounds"][-1]["trading"][p] for r in d["seeds"].values()]))
+        for s, r in d["seeds"].items():
+            L.append(env_row(f"  DAgger ronda 3, semilla {s}", [r["rounds"][-1]["trading"][p]]))
+        L.append(env_row("Aleatoria previa TRAIN (media 3 semillas)", cB["train_prior_random"]))
+        L.append(env_row("Sin operar", [cB["no_trade"]]))
+        L.append("")
+    L += ["## Entrenamiento e imitación por ronda", "",
+          "| Semilla | Ronda | Filas TRAIN | Épocas | Mejor | Causa | Pérdida TRAIN | Pérdida INNER_A | Brecha | log-loss − previa INNER_B | Acierto INNER_B | Etiquetas INNER_B (M/L/C/Cerrar) | Predichas |",
+          "|---|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---|---|"]
+    for s, r in d["seeds"].items():
+        for rr in r["rounds"]:
+            h = rr["history"][rr["fit"]["best_epoch"] - 1]
+            im = rr["imitation"]["INNER_B"]
+            L.append(f"| {s} | {RND_ES[rr['round']]} | {rr['rows_train']} | {rr['fit']['epochs']} | {rr['fit']['best_epoch']} | "
+                     f"{rr['fit']['stop_reason']} | {es(h['train_loss'], 4)} | {es(h['inner_loss'], 4)} | {es(h['gap_inner_minus_train'], 4)} | "
+                     f"{es(im['log_loss_minus_prior'], 3)} | {es(im['accuracy'], 3)} | {im['label_counts']} | {im['pred_counts']} |")
+    (out / "E1_TABLAS.md").write_text("\n".join(L) + "\n")
+
+
+def e1(a):
+    d = json.loads((Path(a.run) / "E1.json").read_text())
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    e1_fig_rounds(d, out)
+    e1_fig_imitation(d, out)
+    e1_fig_curves(d, out)
+    e1_tables(d, out, ["e1_sharpe_por_ronda.png", "e1_imitacion_por_ronda.png", "e1_curvas_entrenamiento.png"])
+
+
+STAGES = {"e0": e0, "e1": e1}
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["e0"])
+    ap.add_argument("stage", choices=["e0", "e1"])
     ap.add_argument("--run", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"e0": e0}[a.stage](a)
+    STAGES[a.stage](a)
 
 
 if __name__ == "__main__":
