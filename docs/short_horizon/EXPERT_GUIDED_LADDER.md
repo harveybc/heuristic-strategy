@@ -4,8 +4,10 @@ DEVELOPMENT only. TEST 2025 never read. No order sent anywhere. No DOIN change, 
 or campaign. Terminology: learning from hindsight-expert demonstrations / interactive imitation (DAgger), not
 human-preference RLHF.
 
-**Outcome: E0 shows a learnable statistical signal (gate passed); E1 does not (gate failed) → the ladder STOPS at
-E1. E2 (SAC + demonstrations in gym-fx) was not run, by the order's stop rule.**
+**Outcome: E0 shows a learnable statistical signal (gate passed); E1 does not (gate failed) → the pre-registered
+ladder STOPS at E1. E2 was then run as a DECLARED DEVIATION by lead decision ("E2 run by lead decision after E1
+gate failure; not a gate pass"): demonstrations do not make SAC profitable or consistently better — SAC+demo beats
+plain SAC on INNER_B (−2.89 vs −3.72) but loses on 2024 (−3.08 vs −2.56); both overfit TRAIN (Sharpe 8–9).**
 
 ## Inputs and pins
 
@@ -86,20 +88,51 @@ Figures: [Sharpe by round](https://github.com/harveybc/heuristic-strategy/blob/s
 [curves per round](https://github.com/harveybc/heuristic-strategy/blob/satoshi/expert-guided-rl-20261019/docs/short_horizon/results/expert_guided/e1/e1_curvas_entrenamiento.png),
 [tables](https://github.com/harveybc/heuristic-strategy/blob/satoshi/expert-guided-rl-20261019/docs/short_horizon/results/expert_guided/e1/E1_TABLAS.md).
 
-## E2 — not run
+## E2 — SAC with vs without demonstrations (DECLARED DEVIATION, not a gate pass)
 
-Stopped by the ladder rule at E1. Nothing was built in agent-multi or gym-fx; the gym-fx df1b602 / agent-multi
-ab265fad protections were not inspected for this lane. Shaping, privileged critic and Q-filtered BC were not used
-anywhere, so no boundary proof is owed.
+Lead decision after the E1 gate failure: the owner's question is whether expert guidance helps SAC versus SAC
+without it, and E2 learns from reward. Fixed design ledgered before the first fit (`e2/run/TRIAL_LEDGER.jsonl`,
+event `DECLARED_DEVIATION`); nothing tuned on INNER_B or 2024. Same bar env, inputs, business rules and costs as
+E0/E1; episode = one random TRAIN week, capital 10,000 USD; reward = net mark-to-market change, UNSHAPED; action =
+[target position with a 1/3 dead band, TP σ in [0.25, 3], SL σ in [0.5, 3]]. SB3 2.9.0 SAC (no sb3_contrib),
+`DemoSAC` subclass (`app/short_horizon/expert_guided/sac_demo.py`): with zeros it is SAC's own update (arm SAC);
+arm SAC_DEMO adds a demo replay (25 % of each batch, linear decay to 0 over 50k updates) and a Q-filtered BC actor
+term (λ 1.0, same decay) on the expert's trajectory (admitted clock, 18,255 TRAIN transitions). Extractor
+Linear(204,128)+ReLU+Dropout 0.1, [64, 64], AdamW wd 1e-4, no BatchNorm; 100k transitions, 3 seeds; early stopping
+on the frozen-checkpoint mean of TRAIN and INNER_A net Sharpe every 5k, patience 10.
+
+| Policy (bar env, Sharpe) | TRAIN | INNER_A | INNER_B | 2024 (1 read) | 2024 net USD | 2024 entries/wk | 2024 gross / costs USD |
+|---|---:|---:|---:|---:|---:|---:|---|
+| SAC without demonstrations (3 seeds) | 7.82 | −1.37 | −3.72 | −2.56 | −6,917 | 12.3 | −1,185 / 5,732 |
+| SAC + demonstrations (3 seeds) | 8.54 | −0.85 | −2.89 | −3.08 | −7,418 | 12.8 | −779 / 6,639 |
+| E0 hindsight student (reference, same accounting) | 4.96 | −0.16 | 0.10 | 1.23 | +5,239 | **2.6 (invalid < 3/wk)** | 8,531 / 3,293 |
+| Confirmed expert | −1.55 | −0.80 | −3.64 | −3.83 | −8,262 | 16.0 | 994 / 9,256 |
+| Random at the TRAIN action prior | −1.29 | 0.31 | −3.27 | −1.64 | −5,957 | 10.7 | 151 / 6,108 |
+| Expert as representable in the action space | 16.68 | 16.58 | 18.33 | 16.44 | — | 16.2 | — |
+
+- Per seed, INNER_B: SAC −4.80 / −3.43 / −2.94; SAC_DEMO −2.90 / −2.38 / −3.39. 2024: SAC_DEMO −1.7 / −2.6 / −5.0
+  (see `E2_TABLAS.md`). The INNER_B advantage of the demo arm does not hold on 2024: no consistent benefit.
+- Both arms churn: in 2024 about 650–680 entries, most closed by the agent or by reversal (SAC 255 + 218, SAC_DEMO
+  146 + 429 of 679); gross is already negative before costs.
+- Early stopping never triggered (patience 10 not reached); the chosen checkpoints are late (80k–100k) because the
+  rising TRAIN Sharpe dominates the mean; TRAIN − INNER_A gap −7.4 to −11.5 Sharpe at the chosen checkpoint.
+- Q-filter: it kept about half of the demo rows early (26–34 of 64 at update 0) and fewer as the weight decayed.
+- The E0 student in the bar env keeps a positive 2024 (+1.23) but trades 2.6 entries/week (fails the ≥ 3/week rule
+  in this accounting; in E0's block simulator it traded 3.8/week): it is a reference, not a valid strategy.
+- gym-fx parity: NOT done (not cheap: gym-fx df1b602 uses a different action contract and envelope); the
+  agent-multi ab265fad / gym-fx df1b602 protections were not inspected. No change was made to either repository.
+Figures: [SAC with vs without demonstrations](https://github.com/harveybc/heuristic-strategy/blob/satoshi/expert-guided-rl-20261019/docs/short_horizon/results/expert_guided/e2/e2_sac_con_sin_demostraciones.png),
+[early-stopping curves](https://github.com/harveybc/heuristic-strategy/blob/satoshi/expert-guided-rl-20261019/docs/short_horizon/results/expert_guided/e2/e2_curvas_parada_temprana.png),
+[tables](https://github.com/harveybc/heuristic-strategy/blob/satoshi/expert-guided-rl-20261019/docs/short_horizon/results/expert_guided/e2/E2_TABLAS.md).
 
 ## Limits (read before using any number)
 
 1. 2023 is joint development (it chose the expert); 2024 was already observed in earlier studies. No pristine
    confirmation exists. The E0 2024 result (+0.94) is one read of 3 seeds with about 200 trades and no Sharpe
    interval; it is a lead, not evidence of an edge.
-2. Two E0 measurement pilots (2 and 6 epochs) and none of E1 also scored INNER_B / 2024 with throw-away models;
-   nothing was chosen from them; their ledgers are kept (`e0/run/PILOT_MEASURE_*`). The E1 pilot used `--measure`
-   (TRAIN/INNER_A only).
+2. Two E0 measurement pilots (2 and 6 epochs) also scored INNER_B / 2024 with throw-away models; nothing was
+   chosen from them; their ledgers are kept (`e0/run/PILOT_MEASURE_*`). The E1 and E2 pilots used `--measure`
+   (TRAIN/INNER_A only). E2 is a declared deviation from the pre-registered stop, not a gate pass.
 3. E0 students execute in the block simulator (hold until the next signal, SL, TP or forced flat, as the expert);
    E1 policies in the bar env with a CLOSE action. Same costs, rules and sizing; parity of the expert is exact.
 4. I1 compares a class-weighted fit's probabilities with an unweighted prior: it is strict on calibration. I2 fails
@@ -114,12 +147,14 @@ anywhere, so no boundary proof is owed.
 ## Resources and reproduction
 
 Secondary worker RTX 4090 (one nvidia-smi read: 14 MiB used), `crispdm-run`, one job at a time. cgroup peaks:
-E0 1.24 GB (cap 1600M = 1.25 × measured), E1 1.55 GB (pilot 1.47 GB, cap 1840M); wall 20 s and 80 s. Coordinator:
+E0 1.24 GB (cap 1600M = 1.25 × measured), E1 1.55 GB (pilot 1.47 GB, cap 1840M), E2 1.86 GB (pilot 1.60 GB,
+cap 2000M); wall 20 s, 80 s and 45 min. Coordinator:
 tests, reports and the demonstrations seal only, each under a 2G cap.
 
 ```bash
 python tools/expert_guided_e0.py run --admitted <ADMITTED_ROOT> --csv-dir <SEL15_DIR> --out <run>/e0
 python tools/expert_guided_e1.py run --admitted <ADMITTED_ROOT> --csv-dir <SEL15_DIR> --out <run>/e1
-python tools/expert_guided_report.py e0|e1 --run <run> --out docs/short_horizon/results/expert_guided/e0|e1
+python tools/expert_guided_e2.py run --admitted <ADMITTED_ROOT> --csv-dir <SEL15_DIR> --e0-run <run>/e0 --out <run>/e2
+python tools/expert_guided_report.py e0|e1|e2 --run <run>/eN --out docs/short_horizon/results/expert_guided/eN
 python tools/expert_guided_demonstrations.py --admitted <ADMITTED_ROOT> --csv-dir <SEL15_DIR> --out <dir>
 ```

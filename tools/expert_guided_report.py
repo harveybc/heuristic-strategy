@@ -418,12 +418,142 @@ def e1(a):
     e1_tables(d, out, ["e1_sharpe_por_ronda.png", "e1_imitacion_por_ronda.png", "e1_curvas_entrenamiento.png"])
 
 
-STAGES = {"e0": e0, "e1": e1}
+# ---------------------------------------------------------------------------------------------- E2
+def _mean_sh(ms):
+    return float(np.mean([_sh(m) for m in ms]))
+
+
+def e2_rows(d, p):
+    runs = d["runs"]
+    ref = d["references"][p]
+    rows = [("SAC sin demostraciones", "prior", [r["trading"][p] for r in runs.values() if r["arm"] == "SAC"]),
+            ("SAC + demostraciones (replay + BC con filtro Q)", "sac", [r["trading"][p] for r in runs.values() if r["arm"] == "SAC_DEMO"]),
+            ("Estudiante E0 del experto retrospectivo (referencia)", "student_h", ref["E0_hindsight_student"]),
+            ("Experto confirmado", "confirmed", [ref["expert_confirmed"]]),
+            ("Aleatoria previa TRAIN", "student_c", ref["train_prior_random"])]
+    return rows
+
+
+def e2_fig(d, out):
+    fig, axes = plt.subplots(1, 4, figsize=(18, 6))
+    for ax, p in zip(axes, PERIODS):
+        style(ax)
+        rows = e2_rows(d, p)
+        for i, (n, key, ms) in enumerate(rows):
+            vals = [_sh(m) for m in ms]
+            mu = float(np.mean(vals))
+            col = {"prior": "#2a78d6", "sac": "#008300"}.get(key, C[key])
+            ax.bar(i, mu, width=0.72, color=col, edgecolor="white", linewidth=2)
+            if len(vals) > 1:
+                ax.scatter([i] * len(vals), vals, s=34, color="white", edgecolor=INK, zorder=3)
+            ax.annotate(es(mu), (i, mu), xytext=(0, 4 if mu >= 0 else -14), textcoords="offset points", ha="center", fontsize=9.5)
+        ax.axhline(0, color=INK, linewidth=1)
+        ax.margins(y=0.15)
+        ax.set_xticks(range(len(rows)))
+        ax.set_xticklabels([str(i + 1) for i in range(len(rows))])
+        ref = d["references"][p]
+        ax.set_title(f"{P_ES[p]}\nexperto {es(_sh(ref['expert_demonstrations']))} · representable {es(_sh(ref['expert_representable_in_action_space']))}",
+                     fontsize=11.5, color=INK)
+        if p == "TRAIN":
+            ax.set_ylabel("Sharpe neto (diario, √365)", fontsize=12, color=INK)
+    rows = e2_rows(d, "TRAIN")
+    cols = [{"prior": "#2a78d6", "sac": "#008300"}.get(k, C[k]) for _, k, _ in rows]
+    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in cols], [f"{i + 1}. {n}" for i, (n, _, _) in enumerate(rows)],
+               loc="lower center", ncol=3, fontsize=10.5, frameon=False)
+    fig.suptitle("E2 · ¿Ayuda la guía del experto a SAC? Mismo entorno, entradas, reglas, semillas y presupuesto (100k transiciones, 3 semillas)\n"
+                 "Desviación declarada: E2 corrido por decisión del líder tras fallar la compuerta de E1 (no es un pase de compuerta); recompensa neta sin moldeo",
+                 fontsize=12.5, color=INK)
+    fig.tight_layout(rect=(0, 0.1, 1, 0.88))
+    for ext in ("png", "pdf"):
+        fig.savefig(out / f"e2_sac_con_sin_demostraciones.{ext}", dpi=160)
+    plt.close(fig)
+
+
+def e2_fig_curves(d, out):
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.4), sharey=True)
+    for ax, (arm, title) in zip(axes, (("SAC", "SAC sin demostraciones"), ("SAC_DEMO", "SAC + demostraciones"))):
+        style(ax)
+        for j, r in enumerate([r for r in d["runs"].values() if r["arm"] == arm]):
+            x = [c["transitions"] / 1000 for c in r["curve"]]
+            ax.plot(x, [c["train_sharpe"] for c in r["curve"]], color=C["expert"], linewidth=2, alpha=0.5 + 0.2 * j,
+                    marker="o", markersize=5, label="TRAIN" if j == 0 else None)
+            ax.plot(x, [c["inner_a_sharpe"] for c in r["curve"]], color=C["confirmed"], linewidth=2, alpha=0.5 + 0.2 * j,
+                    marker="o", markersize=5, label="INNER_A" if j == 0 else None)
+            ax.axvline(r["best_transitions"] / 1000, color=MUTED, linestyle=":", linewidth=1)
+        ax.axhline(0, color=INK, linewidth=1)
+        ax.set_title(title, fontsize=12, color=INK)
+        ax.set_xlabel("Transiciones (miles)", fontsize=11, color=INK)
+        ax.set_ylabel("Sharpe neto del punto congelado", fontsize=11, color=INK)
+        ax.legend(frameon=False, fontsize=10)
+    fig.suptitle("E2 · Parada temprana: media de Sharpe neto TRAIN e INNER_A del punto congelado cada 5k transiciones, paciencia 10 "
+                 "(punteada = punto elegido)", fontsize=12.5, color=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.savefig(out / "e2_curvas_parada_temprana.png", dpi=160)
+    plt.close(fig)
+
+
+def e2_tables(d, out, figs):
+    L = ["# E2 · SAC con y sin demostraciones del experto ZigZag v2 (generado)", "",
+         "**Desviación declarada: E2 corrido por decisión del líder tras fallar la compuerta de E1; no es un pase de compuerta.** "
+         "Diseño fijado antes del primer ajuste; nada se ajustó con INNER_B ni con 2024.", "",
+         "Entorno barra a barra de E0/E1 (mismas reglas de negocio y costos); episodio = una semana de sesión al azar de TRAIN con "
+         "capital 10.000 USD; recompensa = 100 × Δ capital marcado a mercado / 10.000, neta de todos los costos, SIN moldeo; "
+         "acción continua [posición objetivo con banda muerta 1/3, TP σ ∈ [0,25; 3], SL σ ∈ [0,5; 3]]. SB3 2.9 SAC (sin "
+         "sb3_contrib): lr 3e-4, buffer 100k, lote 256, τ 0,005, γ 0,99, entropía automática; extractor Linear(204,128)+ReLU+"
+         "Dropout 0,1, capas [64, 64], AdamW wd 1e-4, sin BatchNorm. Brazo con demostraciones: 25 % de cada lote del buffer de "
+         "demostraciones al inicio con decaimiento lineal a 0 en 50k actualizaciones, más BC con filtro Q (λ 1,0, mismo "
+         "decaimiento) sobre la trayectoria del experto recalculado en el reloj admitido. Parada temprana: cada 5k transiciones, "
+         "punto congelado determinista sobre TRAIN e INNER_A completos, puntuación = media de los dos Sharpe netos, paciencia 10.", ""]
+    for f in figs:
+        L.append(f"![{f}]({REPO}docs/short_horizon/results/expert_guided/e2/{f}) — [{f}]({REPO}docs/short_horizon/results/expert_guided/e2/{f})")
+    L.append("")
+    hdr = ("| Política | Neto USD | Sharpe | Sortino | DD máx % | Entradas / cierres | Cierres TP / SL / agente / reversión / plano forzado | "
+           "Acierto % | Bruto USD | Costos USD (spread / desl. / com. / swap) | Entradas/sem | Rechazos por tope diario | Válidas |")
+    for p in PERIODS:
+        ref = d["references"][p]
+        L += [f"## {P_ES[p]}", "", hdr, "|---|---:|---:|---:|---:|---|---|---:|---:|---|---:|---:|---:|"]
+        L.append(env_row("Experto (demostraciones)", [ref["expert_demonstrations"]]))
+        L.append(env_row("Experto representable en el espacio de acción", [ref["expert_representable_in_action_space"]]))
+        for name, _, ms in e2_rows(d, p):
+            L.append(env_row(name + (" (media)" if len(ms) > 1 else ""), ms))
+            if name.startswith("SAC"):
+                arm = "SAC_DEMO" if "+" in name else "SAC"
+                for k, r in d["runs"].items():
+                    if r["arm"] == arm:
+                        L.append(env_row(f"  {k}", [r["trading"][p]]))
+        L.append(env_row("Sin operar", [ref["no_trade"]]))
+        L.append("")
+    L += ["## Parada temprana por corrida", "", "| Corrida | Transiciones | Causa | Mejor punto | Puntuación | Sharpe TRAIN | Sharpe INNER_A | Brecha INNER_A − TRAIN | Segundos |",
+          "|---|---:|---|---:|---:|---:|---:|---:|---:|"]
+    for k, r in d["runs"].items():
+        b = next((c for c in r["curve"] if c["transitions"] == r["best_transitions"]), {})
+        L.append(f"| {k} | {r['transitions']} | {r['stop']} | {r['best_transitions']} | {es(r['best_score'])} | {es(b.get('train_sharpe'))} | "
+                 f"{es(b.get('inner_a_sharpe'))} | {es(b.get('gap_inner_minus_train'))} | {es(r['seconds'], 0)} |")
+    L += ["", "## Filtro Q del brazo con demostraciones (cada 1.000 actualizaciones)", "",
+          "| Corrida | Actualización | Fracción demo | λ BC | Filas demo | Conservadas por el filtro Q | Pérdida BC |", "|---|---:|---:|---:|---:|---:|---:|"]
+    for k, r in d["runs"].items():
+        for x in r["demo_log"]:
+            if x["n_demo"] and x["update"] % 10000 == 0:
+                L.append(f"| {k} | {x['update']} | {es(x['demo_frac'], 3)} | {es(x['bc_lambda'], 3)} | {x['n_demo']} | {x['qfilter_kept']} | {es(x['bc_loss'], 4)} |")
+    L += ["", f"Demostraciones (TRAIN): {d['demo']['transitions']} transiciones; suma de recompensa {es(d['demo']['reward_sum'])}."]
+    (out / "E2_TABLAS.md").write_text("\n".join(L) + "\n")
+
+
+def e2(a):
+    d = json.loads((Path(a.run) / "E2.json").read_text())
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    e2_fig(d, out)
+    e2_fig_curves(d, out)
+    e2_tables(d, out, ["e2_sac_con_sin_demostraciones.png", "e2_curvas_parada_temprana.png"])
+
+
+STAGES = {"e0": e0, "e1": e1, "e2": e2}
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["e0", "e1"])
+    ap.add_argument("stage", choices=["e0", "e1", "e2"])
     ap.add_argument("--run", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
