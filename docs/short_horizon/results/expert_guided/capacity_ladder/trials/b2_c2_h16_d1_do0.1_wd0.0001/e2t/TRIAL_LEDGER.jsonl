@@ -13,3 +13,9 @@
 {"utc": "2026-10-20T13:52:03+00:00", "rung": "E2T", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261019, "best_transitions": 35000, "stop": "patience"}
 {"utc": "2026-10-20T13:52:03+00:00", "rung": "E2T", "event": "READ", "arm": "SAC_DEMO", "seed": 20261019, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
 {"utc": "2026-10-20T13:52:07+00:00", "rung": "E2T", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261020, "budget": 100000}
+{"utc": "2026-10-20T14:01:54+00:00", "rung": "E2T", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261020, "best_transitions": 40000, "stop": "patience"}
+{"utc": "2026-10-20T14:01:54+00:00", "rung": "E2T", "event": "READ", "arm": "SAC_DEMO", "seed": 20261020, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T14:01:57+00:00", "rung": "E2T", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261021, "budget": 100000}
+{"utc": "2026-10-20T14:10:03+00:00", "rung": "E2T", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261021, "best_transitions": 25000, "stop": "patience"}
+{"utc": "2026-10-20T14:10:03+00:00", "rung": "E2T", "event": "READ", "arm": "SAC_DEMO", "seed": 20261021, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T14:10:06+00:00", "rung": "E2T", "event": "NO_READ", "periods": ["OBS_2024"], "purpose": "capacity sweep arm; 2024 not read"}
