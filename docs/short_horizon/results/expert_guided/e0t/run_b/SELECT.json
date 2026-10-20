@@ -1,0 +1,48 @@
+{
+ "arm": "T2_core15",
+ "features": "core15",
+ "units": 2,
+ "evidence": {
+  "T4_v4": {
+   "inner_a_log_loss_seed_mean": 0.642328179126598,
+   "params": 327
+  },
+  "T2_core15": {
+   "inner_a_log_loss_seed_mean": 0.5517090960375297,
+   "params": 325
+  }
+ },
+ "ladder": {
+  "rule": "start u=2; accept the next u only if seed-mean calibrated INNER_A log-loss is lower AND max(seed-mean (INNER_A - TRAIN) gap, 0) is not larger; stop at the first refusal",
+  "steps": [
+   {
+    "from": "T2_v4",
+    "to": "T4_v4",
+    "inner_a_ll": [
+     0.6589987032750947,
+     0.642328179126598
+    ],
+    "gap": [
+     0.0,
+     0.0
+    ],
+    "accepted": true
+   },
+   {
+    "from": "T4_v4",
+    "to": "T8_v4",
+    "inner_a_ll": [
+     0.642328179126598,
+     0.6514805270424651
+    ],
+    "gap": [
+     0.0,
+     0.024158850965415295
+    ],
+    "accepted": false
+   }
+  ],
+  "chosen": "T4_v4"
+ },
+ "rule": "Choose features and units for E1-T / E2-T from E0-T run B (rule fixed 2026-10-20 BEFORE run B was read).\n\n1. Capacity inside the v4 four: the arm chosen by run B's ladder (rule v2).\n2. Feature set: that arm versus T2_core15, by seed-mean calibrated INNER_A log-loss on the hindsight target (same\n   rows, same target); the lower wins; an exact tie goes to fewer parameters. INNER_B and 2024 are never used.\n"
+}
