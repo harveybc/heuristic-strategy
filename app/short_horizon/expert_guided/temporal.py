@@ -15,6 +15,7 @@ trunk, never mixed into the window. No BatchNorm.
 """
 from __future__ import annotations
 
+import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -99,3 +100,61 @@ def param_table(model: nn.Module) -> list[dict]:
             rows.append({"layer": name, "type": type(m).__name__, "params": int(sum(p.numel() for p in own))})
     rows.append({"layer": "TOTAL", "type": "", "params": int(sum(p.numel() for p in model.parameters() if p.requires_grad))})
     return rows
+
+
+class TorchPolicy:
+    """Numpy-in/numpy-out eval-mode wrapper of a trained TemporalPolicyNet (same call contract as NumpyPolicy)."""
+
+    def __init__(self, model: nn.Module):
+        self.m = model.cpu().eval()
+
+    def __call__(self, x):
+        with torch.no_grad():
+            lg, rg = self.m(torch.as_tensor(np.asarray(x, np.float32)))
+        return lg.numpy(), (None if rg is None else rg.numpy())
+
+
+try:                                              # SB3 is optional for E0/E1
+    from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+
+    class TemporalExtractor(BaseFeaturesExtractor):
+        """SB3 features extractor: flat obs [win*n_feat window, n_state agent state] -> reshaped (win, n_feat) ->
+        temporal trunk -> concat(state). features_dim = units + n_state."""
+
+        def __init__(self, observation_space, n_feat: int, win: int, n_state: int = 9, units: int = 2,
+                     dropout: float = 0.1):
+            super().__init__(observation_space, units + n_state)
+            self.n_feat, self.win, self.n_state = n_feat, win, n_state
+            self.trunk = TemporalTrunk(n_feat, units, dropout)
+
+        def forward(self, obs):
+            w = obs[:, : self.win * self.n_feat].reshape(-1, self.win, self.n_feat)
+            return torch.cat([self.trunk(w), obs[:, self.win * self.n_feat:]], 1)
+except ImportError:                               # pragma: no cover
+    TemporalExtractor = None
+
+
+class TorchActor:
+    """Frozen deterministic SAC actor: tanh(mu(latent_pi(extractor(x)))) rebuilt from an actor state_dict (the SB3
+    actor itself is not deep-copyable); eval mode, so dropout is off."""
+
+    def __init__(self, sd, n_feat: int, win: int, n_state: int, units: int, net_arch, act_dim: int = 3):
+        import gymnasium as gym
+        space = gym.spaces.Box(-np.inf, np.inf, (win * n_feat + n_state,), np.float32)
+        self.ext = TemporalExtractor(space, n_feat, win, n_state, units)
+        self.ext.load_state_dict({k[len("features_extractor."):]: v for k, v in sd.items() if k.startswith("features_extractor.")})
+        layers, d = [], self.ext.features_dim
+        for h in net_arch:
+            layers += [nn.Linear(d, h), nn.ReLU()]
+            d = h
+        self.lat = nn.Sequential(*layers)
+        self.lat.load_state_dict({k[len("latent_pi."):]: v for k, v in sd.items() if k.startswith("latent_pi.")})
+        self.mu = nn.Linear(d, act_dim)
+        self.mu.load_state_dict({k[len("mu."):]: v for k, v in sd.items() if k.startswith("mu.")})
+        for m in (self.ext, self.lat, self.mu):
+            m.cpu().eval()
+
+    def __call__(self, x):
+        with torch.no_grad():
+            z = torch.as_tensor(np.asarray(x, np.float32)).reshape(1, -1)
+            return torch.tanh(self.mu(self.lat(self.ext(z)))).numpy()[0]

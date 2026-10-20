@@ -65,3 +65,32 @@ def test_fit_accepts_the_temporal_factory():
     assert info["architecture"] == "TemporalPolicyNet" and info["params"] == 105 and info["hidden"] is None
     P, _ = L.predict(model, X[200:])
     assert P.shape == (100, 3) and np.allclose(P.sum(1), 1, atol=1e-5)
+
+
+def test_sb3_extractor_and_frozen_actor_match_the_live_actor():
+    gym = pytest.importorskip("gymnasium")
+    pytest.importorskip("stable_baselines3")
+    from stable_baselines3 import SAC
+
+    class Toy(gym.Env):
+        observation_space = gym.spaces.Box(-np.inf, np.inf, (13 * 4 + 9,), np.float32)
+        action_space = gym.spaces.Box(-1.0, 1.0, (3,), np.float32)
+
+        def reset(self, *, seed=None, options=None):
+            return np.zeros(61, np.float32), {}
+
+        def step(self, a):
+            return np.random.randn(61).astype(np.float32), 0.0, True, False, {}
+
+    m = SAC("MlpPolicy", Toy(), seed=0, device="cpu", learning_starts=10,
+            policy_kwargs=dict(features_extractor_class=T.TemporalExtractor,
+                               features_extractor_kwargs=dict(n_feat=4, win=13, n_state=9, units=2), net_arch=[2]))
+    assert n_params(m.actor) == 96 + 42 == 138
+    assert n_params(m.critic) == 96 + 2 * 33 == 162
+    m.learn(64)
+    fa = T.TorchActor(m.actor.state_dict(), 4, 13, 9, 2, [2])
+    x = np.random.default_rng(3).standard_normal(61).astype(np.float32)
+    m.actor.eval()
+    with torch.no_grad():
+        live = m.actor(torch.as_tensor(x)[None], deterministic=True).numpy()[0]
+    assert np.allclose(fa(x), live, atol=1e-6)
