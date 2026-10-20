@@ -44,6 +44,12 @@ PINS = {
     "validation_csv_sha256": "52ef0adc908339a3bdbb02787a9304ae510daeaa5519a3ca46a585319f2948d3",
     "demonstrations_v2_lake_sha256": "38125b0b368a29b425b4f4ac192fe380b343894fbceedfe17c1e9b85c6564a24",
 }
+PINS_V4 = {
+    "features_all_sha256": "2cbe26e069a9c44912958bbd6d3d06d53524c38b4134b959145b5e6948e88cfb",
+    "frozen_subset_sha256": "300cbc6e9f75182999401d4830926f45f78eb45c810165339c486f7035dc841c",
+    "selection_manifest_sha256": "ceba29e938bc882ee09002919a02903238aa3eb336c97632c4e5ab752fbe401c",
+}
+FEATURES_V4 = ["RAW_BAR_LOG_RETURN", "cal.utc_session_us", "hurst_spectrum_width_w200", "px.close_loc_2"]
 FEATURES = ["HIGH", "RAW_LOG_RANGE", "RAW_CLOSE_LOG_RETURN", "RAW_ELAPSED_HOURS", "ATR", "RSI", "MACD_Histogram",
             "ADX", "DI_minus", "Stochastic_D", "WilliamsR", "rolling_std_24", "hod_sin", "hod_cos", "dow_cos"]
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
@@ -159,26 +165,64 @@ def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01") -> Dataset:
     return build(bars, cal, csv_dir)
 
 
-def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True) -> Dataset:
-    csv_dir = Path(csv_dir)
-    frames, rec = [], {}
-    for role in ("train", "validation"):
-        df = pd.read_csv(csv_dir / f"{role}.csv")
-        if receipts and (csv_dir / f"{role}.json").exists():
-            r = json.loads((csv_dir / f"{role}.json").read_text())
-            if list(r["feature_columns"]) != FEATURES or len(df) != r["row_count"] or r["status"] != "ADMITTED":
-                raise ValueError(f"SEL15_RECEIPT:{role}")
-            rec[role] = {k: r.get(k) for k in ("input_sha256", "selection_sha256", "row_count", "period_start",
-                                               "period_end", "timestamp_semantics", "calendar_sha256")}
-        frames.append(df)
-    df = pd.concat(frames, ignore_index=True)
+def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01") -> Dataset:
+    """Same population rules as ``load`` but the observation features are the four TIMING_PROXY_SELECTION v4
+    inputs (frozen subset read from the snapshot, never hard-coded). The v4 matrix is stamped at bar start;
+    the observation becomes available at bar close, so DATE_TIME = timestamp + 1 h (verified on OHLC)."""
+    admitted_dir, v4_dir = Path(admitted_dir), Path(v4_dir)
+    pq, clp = admitted_dir / "eurusd.parquet", admitted_dir / "CLOSURE_INTERVALS.json"
+    fp, sp = v4_dir / "eval_input" / "features_all.parquet", v4_dir / "FROZEN_SUBSET.json"
+    if verify:
+        if sha256(pq) != PINS["admitted_sha256"] or sha256(clp) != PINS["closure_sha256"]:
+            raise ValueError("ADMITTED_PIN")
+        if sha256(fp) != PINS_V4["features_all_sha256"] or sha256(sp) != PINS_V4["frozen_subset_sha256"]:
+            raise ValueError("V4_PIN")
+    feats = list(json.loads(sp.read_text())["selected"])
+    if feats != FEATURES_V4:
+        raise ValueError(f"V4_SUBSET:{feats}")
+    raw = pd.read_parquet(fp, columns=["timestamp", "OPEN", "HIGH", "LOW", "CLOSE"] + feats)
+    raw = raw[raw["timestamp"] < pd.Timestamp(end, tz="UTC")]
+    fin = np.isfinite(raw[feats].to_numpy(float)).all(1)
+    first = int(np.argmax(fin))                 # declared warm-up (hurst w200, close_loc_2) is leading only
+    if not fin[first:].all():
+        raise ValueError(f"V4_INTERIOR_NONFINITE:{int((~fin[first:]).sum())}")
+    raw = raw.iloc[first:]
+    df = raw.drop(columns="timestamp")
+    df.insert(0, "DATE_TIME", (raw["timestamp"] + pd.Timedelta(hours=1)).dt.strftime("%Y-%m-%dT%H:%M:%S+00:00").values)
+    bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
+    cal = calendar_from_closures(json.loads(clp.read_text()))
+    cal.assign(bars.index)
+    return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats,
+                 frame_meta={"source": "TIMING_PROXY_SELECTION v4", "pins": PINS_V4})
+
+
+def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
+          frame_meta=None) -> Dataset:
+    features = FEATURES if features is None else list(features)
+    rec = {}
+    if frame is not None:
+        df = frame
+        rec = {"frame": frame_meta}
+    else:
+        csv_dir = Path(csv_dir)
+        frames = []
+        for role in ("train", "validation"):
+            df = pd.read_csv(csv_dir / f"{role}.csv")
+            if receipts and (csv_dir / f"{role}.json").exists():
+                r = json.loads((csv_dir / f"{role}.json").read_text())
+                if list(r["feature_columns"]) != FEATURES or len(df) != r["row_count"] or r["status"] != "ADMITTED":
+                    raise ValueError(f"SEL15_RECEIPT:{role}")
+                rec[role] = {k: r.get(k) for k in ("input_sha256", "selection_sha256", "row_count", "period_start",
+                                                   "period_end", "timestamp_semantics", "calendar_sha256")}
+            frames.append(df)
+        df = pd.concat(frames, ignore_index=True)
     ts = pd.DatetimeIndex(pd.to_datetime(df["DATE_TIME"], utc=True))
     ts_ns = np.array([t.value for t in ts], np.int64)
     if not (np.diff(ts_ns) > 0).all():
         raise ValueError("SEL15_TIMESTAMPS")
-    X = df[FEATURES].to_numpy(float)
-    if not np.isfinite(X).all():
-        raise ValueError("SEL15_NONFINITE")
+    X = df[features].to_numpy(float)
+    if frame is None and not np.isfinite(X).all():
+        raise ValueError("SEL15_NONFINITE")      # the v4 matrix has a declared fractal warm-up (NaN -> window not ok)
     windows, row_ok = causal_rolling_windows(X)
     # join: DATE_TIME = availability = bar start + 1 h, verified on OHLC
     v = bars.index.as_unit("ns").asi8
@@ -230,7 +274,7 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True) -> Dataset:
             "confirmed": int(sum(1 for x in conf if x >= 0)), "confirmation_collisions": int(collisions)},
             "rows_total": int(len(df)), "rows_eligible": {p: int((eligible & (period == p)).sum()) for p in PERIODS},
             "input_contract": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True,
-                               "scaling": f"causal rolling z-score over rows [i-{SCALE_W}, i)", "features": FEATURES},
+                               "scaling": f"causal rolling z-score over rows [i-{SCALE_W}, i)", "features": features},
             "periods": PERIODS, "period_status": PERIOD_STATUS}
     return Dataset(bars, cal, sigma, sigma_rule, piv, conf, y_h, y_c, sup, row_bar, ts_ns, windows, row_ok, period,
                    eligible, excl, meta, reasons)

@@ -79,10 +79,12 @@ def _loss(model, X, y, R, Rm, w, device, batch=8192, train=False):
 
 def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, class_weight=None, hidden=(128, 64),
         dropout=0.1, lr=1e-3, wd=1e-4, batch=256, max_epochs=200, patience=10, min_delta=1e-8, device="cpu",
-        log_every=None, init_state=None):
+        log_every=None, init_state=None, net=None):
+    """``net``: optional zero-argument factory returning a model with PolicyNet's forward contract (e.g. the
+    temporal trunk of ``temporal.py``); default None keeps the MLP path unchanged."""
     set_seed(seed)
     n_reg = 0 if R is None else R.shape[1]
-    model = PolicyNet(X.shape[1], n_cls, n_reg, hidden, dropout).to(device)
+    model = (PolicyNet(X.shape[1], n_cls, n_reg, hidden, dropout) if net is None else net()).to(device)
     if init_state is not None:
         model.load_state_dict(init_state)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=wd)
@@ -129,7 +131,9 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
     info = {"epochs": len(hist), "best_epoch": best_ep, "best_score": best, "stop_reason": stop,
             "max_epochs": max_epochs, "patience": patience, "min_delta": min_delta, "seconds": time.time() - t0,
             "monitor": "0.5*(TRAIN loss + INNER_A loss), both inference mode at the epoch end",
-            "optimizer": {"name": "AdamW", "lr": lr, "weight_decay": wd}, "dropout": dropout, "hidden": list(hidden),
+            "optimizer": {"name": "AdamW", "lr": lr, "weight_decay": wd}, "dropout": dropout,
+            "hidden": list(hidden) if net is None else None, "architecture": type(model).__name__,
+            "params": int(sum(p.numel() for p in model.parameters() if p.requires_grad)),
             "batchnorm": False, "batch": batch, "class_weight": None if class_weight is None else list(map(float, class_weight))}
     return model, hist, info
 
