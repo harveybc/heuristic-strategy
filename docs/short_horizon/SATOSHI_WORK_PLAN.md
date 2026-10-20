@@ -94,6 +94,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 21. [ ] 2026-10-20 ORDEN DEL PROPIETARIO: automatizar hasta los resultados de RL guiado (E1-T BC+DAgger y E2-T SAC ± demostraciones) con el tronco temporal; cadena automática: corrida B de E0-T (coordinador, CPU) → selección con regla fijada antes de leerla (escalera v2 en v4; luego v4 elegido vs T2_core15 por pérdida INNER_A) → E1-T (1.000 épocas) → E2-T (100k transiciones, 3 semillas, net_arch [u], parada temprana con checkpoint inválido = −10) → reporte (ganancia, Sharpe, drawdown, órdenes, TRAIN vs validación, 2024 una vez, sensibilidad con el contrato de Musashi ≤1/día 1:50) en el host de la 4090, en serie. Diferencias con el SAC de Musashi registradas (periodos TRAIN 2020–22 vs 2020–23; ≤4/día 1:100 vs ≤1/día 1:50; su evaluación 375 s por par).
 
+22. [ ] 2026-10-20 Barrido de capacidad ANTES que el de ventanas (propietario: buscar la complejidad que mejora el desempeño con sobreajuste aceptable). Extremos medidos: u=2 (388 p) no sobreajusta pero pierde también en TRAIN (subajuste); MLP 35k p gana en TRAIN y pierde en validación (sobreajuste). E1-T con u ∈ {4, 8, 16, 32} (≈1k, 3,6k, 13k, 51k p en el tronco) sobre las 15 de Musashi, sin leer 2024; regla fijada antes: u = argmax del Sharpe medio en VAL A entre los u con las 3 semillas válidas por frecuencia (empate → menor u); VAL B confirma; brecha TRAIN−VAL A reportada como medida del sobreajuste; 2024 una sola vez solo para el elegido; luego E2-T solo con el u elegido; luego ventanas/stride. En cola automática tras E2-T.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
