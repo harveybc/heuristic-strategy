@@ -273,19 +273,22 @@ def run(a):
                           "confirmed": conf, "prior_random_mean": prr, "beats_no_trade": bool(sh > 0),
                           "learnable_signal": bool(I1 and I2), "decision": "CONTINUE_TO_E2" if (I1 and I2) else "STOP_AT_E1"}
     ledger(led, rung="E1T", event="GATE", **res["gate_result"])
-    # 2024 once
-    ledger(led, rung="E1T", event="READ", periods=["OBS_2024"], purpose="single read of the frozen round-3 policies + comparators")
-    comparators(["OBS_2024"])
-    for s in SEEDS:
-        pol, aprior = finals[s]
-        m, vis = cx.rollout("OBS_2024", cx.student(pol), collect=True)
-        fr = res["seeds"][str(s)]["rounds"][-1]
-        fr["trading"]["OBS_2024"] = summary(m)
-        fr["imitation"]["OBS_2024"] = imitation_scores(pol, cx.relabel(vis), aprior)
-        res.setdefault("musashi_contract_sensitivity", {})[str(s)] = {
-            p: summary(cx.rollout(p, cx.student(pol), MUSASHI_CFG)[0]) for p in ("TRAIN", "INNER_A", "INNER_B", "OBS_2024")}
-        eq = m["daily_equity"]
-        np.savez_compressed(out / f"equity_2024_{s}.npz", t=eq.index.asi8, v=eq.to_numpy())
+    # 2024 once (skipped in the capacity sweep: 2024 is read only for the arm chosen on INNER_A)
+    if a.skip_2024:
+        ledger(led, rung="E1T", event="NO_READ", periods=["OBS_2024"], purpose="capacity sweep arm; 2024 not read")
+    else:
+        ledger(led, rung="E1T", event="READ", periods=["OBS_2024"], purpose="single read of the frozen round-3 policies + comparators")
+        comparators(["OBS_2024"])
+        for s in SEEDS:
+            pol, aprior = finals[s]
+            m, vis = cx.rollout("OBS_2024", cx.student(pol), collect=True)
+            fr = res["seeds"][str(s)]["rounds"][-1]
+            fr["trading"]["OBS_2024"] = summary(m)
+            fr["imitation"]["OBS_2024"] = imitation_scores(pol, cx.relabel(vis), aprior)
+            res.setdefault("musashi_contract_sensitivity", {})[str(s)] = {
+                p: summary(cx.rollout(p, cx.student(pol), MUSASHI_CFG)[0]) for p in ("TRAIN", "INNER_A", "INNER_B", "OBS_2024")}
+            eq = m["daily_equity"]
+            np.savez_compressed(out / f"equity_2024_{s}.npz", t=eq.index.asi8, v=eq.to_numpy())
     res["wall_seconds"] = time.time() - t0
     (out / "E1T.json").write_text(json.dumps(jsonable(res), indent=1))
     print(json.dumps({"gate": res["gate_result"], "wall": round(res["wall_seconds"], 1)}))
@@ -303,6 +306,7 @@ def main():
     ap.add_argument("--features", choices=["v4", "core15"], required=True)
     ap.add_argument("--v4-dir", default="")
     ap.add_argument("--units", type=int, required=True)
+    ap.add_argument("--skip-2024", action="store_true", help="capacity sweep: never read 2024")
     run(ap.parse_args())
 
 
