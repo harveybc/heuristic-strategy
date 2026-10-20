@@ -548,6 +548,189 @@
     "INNER_A": -3.4791100607164354,
     "INNER_B": -4.461087929642009
    }
+  },
+  "b2_c2_h8_d1_do0.1_wd0.0001": {
+   "arch": {
+    "branch": 2,
+    "core": 2,
+    "head": 8,
+    "depth": 1,
+    "dropout": 0.1,
+    "wd": 0.0001
+   },
+   "status": "DONE",
+   "dir": "/var/tmp/expert-guided-ladder-20261020/ladder/trials/b2_c2_h8_d1_do0.1_wd0.0001",
+   "runs": {
+    "SAC_20261019": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.49197994721766,
+      "net_profit_usd": -8045.637402732601,
+      "max_drawdown_pct": 91.18984399513042,
+      "orders_per_week": 4.375796178343949,
+      "trades": 687,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 0.11747526938917371,
+      "net_profit_usd": -659.1867869733996,
+      "max_drawdown_pct": 36.552407129559995,
+      "orders_per_week": 4.346153846153846,
+      "trades": 113,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -1.1433122759585828,
+      "net_profit_usd": -3152.225632946649,
+      "max_drawdown_pct": 52.05355912405955,
+      "orders_per_week": 4.037037037037037,
+      "trades": 109,
+      "valid": true
+     }
+    },
+    "SAC_20261020": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.5151196838345399,
+      "net_profit_usd": -8015.489809164434,
+      "max_drawdown_pct": 94.8731313819104,
+      "orders_per_week": 4.579617834394904,
+      "trades": 719,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 0.23386687148769061,
+      "net_profit_usd": -288.6694233054095,
+      "max_drawdown_pct": 35.072928494808394,
+      "orders_per_week": 4.423076923076923,
+      "trades": 115,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -2.325061617986764,
+      "net_profit_usd": -5412.3813382271865,
+      "max_drawdown_pct": 68.41561346534907,
+      "orders_per_week": 4.481481481481482,
+      "trades": 121,
+      "valid": true
+     }
+    },
+    "SAC_20261021": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": 0.35757755991555845,
+      "net_profit_usd": 185.852920919202,
+      "max_drawdown_pct": 59.44677006815204,
+      "orders_per_week": 3.7961783439490446,
+      "trades": 596,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 0.2900972125065311,
+      "net_profit_usd": -346.34383270657963,
+      "max_drawdown_pct": 44.64355035122064,
+      "orders_per_week": 3.923076923076923,
+      "trades": 102,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -0.04584265915271148,
+      "net_profit_usd": -984.0040173579237,
+      "max_drawdown_pct": 29.255854414119792,
+      "orders_per_week": 3.962962962962963,
+      "trades": 107,
+      "valid": true
+     }
+    },
+    "SAC_DEMO_20261019": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.68625194038421,
+      "net_profit_usd": -8536.955047067615,
+      "max_drawdown_pct": 94.9652181185067,
+      "orders_per_week": 6.8789808917197455,
+      "trades": 1080,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 0.24201834135714365,
+      "net_profit_usd": -303.8349828029004,
+      "max_drawdown_pct": 37.439261914433004,
+      "orders_per_week": 7.038461538461538,
+      "trades": 183,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -2.6936020054764764,
+      "net_profit_usd": -5578.953896570033,
+      "max_drawdown_pct": 68.61795195136756,
+      "orders_per_week": 7.555555555555555,
+      "trades": 204,
+      "valid": true
+     }
+    },
+    "SAC_DEMO_20261020": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.28732173103559056,
+      "net_profit_usd": -7438.946581378662,
+      "max_drawdown_pct": 82.63816842323881,
+      "orders_per_week": 3.1337579617834397,
+      "trades": 492,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 1.6691514856379803,
+      "net_profit_usd": 5888.577367849764,
+      "max_drawdown_pct": 30.145229146707692,
+      "orders_per_week": 3.4615384615384617,
+      "trades": 90,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -0.10199789951705665,
+      "net_profit_usd": -1239.5669133917672,
+      "max_drawdown_pct": 39.67746312759848,
+      "orders_per_week": 3.185185185185185,
+      "trades": 86,
+      "valid": true
+     }
+    },
+    "SAC_DEMO_20261021": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": 0.5076704590465431,
+      "net_profit_usd": 3914.5643332285035,
+      "max_drawdown_pct": 43.14205188055253,
+      "orders_per_week": 4.961783439490445,
+      "trades": 779,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 1.153335692448348,
+      "net_profit_usd": 3302.1204663019053,
+      "max_drawdown_pct": 31.7968242435973,
+      "orders_per_week": 5.3076923076923075,
+      "trades": 138,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -0.078676734404421,
+      "net_profit_usd": -1050.4941510315475,
+      "max_drawdown_pct": 37.7242511484827,
+      "orders_per_week": 4.7407407407407405,
+      "trades": 128,
+      "valid": true
+     }
+    }
+   },
+   "params_e2_actor_plus_critic": 1040,
+   "params_e1": 466,
+   "val_a_sharpe_mean": 0.6176574788044779,
+   "train_sharpe_mean": -0.18590421391831646,
+   "val_b_sharpe_mean": -1.064748865416002,
+   "gap_train_minus_val_a": -0.8035616927227944,
+   "val_a_dd_mean": 35.94170021338783,
+   "val_a_all_valid": true,
+   "e1": {
+    "TRAIN": -1.341600673594738,
+    "INNER_A": -2.3682496090644305,
+    "INNER_B": -2.5229221945955103
+   }
   }
  },
  "stages": [
@@ -618,6 +801,43 @@
     "wd": 0.0001
    },
    "promoted": false
+  },
+  {
+   "stage": "S2_head",
+   "incumbent_before": {
+    "branch": 2,
+    "core": 2,
+    "head": 0,
+    "depth": 1,
+    "dropout": 0.1,
+    "wd": 0.0001
+   },
+   "candidates": [
+    {
+     "arch": {
+      "branch": 2,
+      "core": 2,
+      "head": 8,
+      "depth": 1,
+      "dropout": 0.1,
+      "wd": 0.0001
+     },
+     "judge": {
+      "improve": true,
+      "paired": false,
+      "pairs_better": 3,
+      "gap": true,
+      "risk": true,
+      "valid": true,
+      "eligible": false,
+      "rescue_candidate": false
+     },
+     "val_a": 0.6176574788044779,
+     "train": -0.18590421391831646,
+     "val_b": -1.064748865416002
+    }
+   ],
+   "partial": true
   }
  ]
 }
