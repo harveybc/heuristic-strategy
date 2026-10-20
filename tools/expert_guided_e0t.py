@@ -45,8 +45,15 @@ LADDER = ("T2_v4", "T4_v4", "T8_v4")
 TRAIN_CFG = {"dropout": 0.1, "optimizer": "AdamW", "lr": 1e-3, "weight_decay": 1e-4, "batch": 256, "max_epochs": 200,
              "patience": 10, "min_delta": 1e-8, "loss": "unweighted CE", "batchnorm": False,
              "monitor": "0.5*(TRAIN loss + INNER_A loss), inference mode at the epoch end"}
-LADDER_RULE = ("start u=2; accept the next u only if seed-mean calibrated INNER_A log-loss is lower AND the "
-               "seed-mean (INNER_A - TRAIN) loss gap is not larger; stop at the first refusal")
+LADDER_RULES = {
+    "v1": ("start u=2; accept the next u only if seed-mean calibrated INNER_A log-loss is lower AND the "
+           "seed-mean (INNER_A - TRAIN) loss gap is not larger; stop at the first refusal"),
+    # v2 amendment (declared 2026-10-20 after run 1): a NEGATIVE gap (INNER_A better than TRAIN) is not
+    # overfitting, so v1 refused u=4 for moving -0.010 -> -0.005. v2 compares only the positive part.
+    "v2": ("start u=2; accept the next u only if seed-mean calibrated INNER_A log-loss is lower AND "
+           "max(seed-mean (INNER_A - TRAIN) gap, 0) is not larger; stop at the first refusal"),
+}
+LADDER_RULE = LADDER_RULES["v1"]
 
 
 def common_rows(a, b):
@@ -71,6 +78,10 @@ def run(a):
     t0 = time.time()
     dv4 = DG.load_v4(a.admitted, a.v4_dir)
     d15 = DG.load(a.admitted, a.csv_dir)
+    global ARMS, LADDER_RULE
+    if a.arms:
+        ARMS = {k: v for k, v in ARMS.items() if k in a.arms.split(",")}
+    LADDER_RULE = LADDER_RULES[a.ladder_rule]
     ra, rb = common_rows(dv4, d15)
     W = {"v4": dv4.windows[ra], "core15": d15.windows[rb]}
     row_bar, row_ts, period = dv4.row_bar[ra], dv4.row_ts[ra], dv4.period[ra]
@@ -82,7 +93,7 @@ def run(a):
             else L.PolicyNet(DG.WIN * nf, 3, 0, tuple(cfg["hidden"]))
         arch[name] = {"input": [DG.WIN, nf] if cfg["kind"] == "temporal" else [DG.WIN * nf], "layers": T.param_table(m)}
     ledger(led, rung="E0T", event="PREREGISTRATION", gate=GATE, arms=ARMS, ladder=LADDER, ladder_rule=LADDER_RULE,
-           train=TRAIN_CFG, architectures=arch, seeds=SEEDS, rate_grid=RATE_GRID, device=device,
+           train=dict(TRAIN_CFG, max_epochs=a.max_epochs), architectures=arch, seeds=SEEDS, rate_grid=RATE_GRID, device=device,
            rows={p: int(len(r)) for p, r in rows.items()}, features={"v4": dv4.meta["input_contract"]["features"],
                                                                      "core15": DG.FEATURES})
     weeks = {p: len(np.unique(SC.week_keys(row_ts[r]))) for p, r in rows.items()}
@@ -90,7 +101,7 @@ def run(a):
     elig_bars = set(int(b) for b in row_bar)
     res = {"meta": {"v4": dv4.meta, "core15": d15.meta, "common_rows": {p: int(len(r)) for p, r in rows.items()},
                     "dropped_only_core15": int(d15.eligible.sum() - len(rb)), "dropped_only_v4": int(dv4.eligible.sum() - len(ra))},
-           "arms": ARMS, "architectures": arch, "train": TRAIN_CFG, "ladder_rule": LADDER_RULE, "weeks": weeks,
+           "arms": ARMS, "architectures": arch, "train": dict(TRAIN_CFG, max_epochs=a.max_epochs), "ladder_rule": LADDER_RULE, "weeks": weeks,
            "device": device, "students": {}, "comparators": {}}
 
     def execute(sig, p):
@@ -168,7 +179,8 @@ def run(a):
         st = res["students"][name]["hindsight"]
         if key == "ll":
             return float(np.mean([st[str(s)]["losses"]["INNER_A"] for s in SEEDS]))
-        return float(np.mean([st[str(s)]["losses"]["INNER_A"] - st[str(s)]["losses"]["TRAIN"] for s in SEEDS]))
+        g = float(np.mean([st[str(s)]["losses"]["INNER_A"] - st[str(s)]["losses"]["TRAIN"] for s in SEEDS]))
+        return max(g, 0.0) if a.ladder_rule == "v2" else g
     steps, chosen = [], LADDER[0]
     for nxt in LADDER[1:]:
         better = arm_mean(nxt, "ll") < arm_mean(chosen, "ll")
@@ -226,6 +238,8 @@ def main():
     ap.add_argument("--max-epochs", type=int, default=200)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--cpu", action="store_true")
+    ap.add_argument("--arms", default="", help="comma list of arm names (default: all)")
+    ap.add_argument("--ladder-rule", default="v1", choices=sorted(LADDER_RULES))
     run(ap.parse_args())
 
 
