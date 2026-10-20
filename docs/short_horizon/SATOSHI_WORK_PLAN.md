@@ -92,6 +92,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 20. [ ] 2026-10-20 Barrido de complejidad SOLO después de que aparezca algo de generalización (E0-T): unidades 2→4→8→16, ventana (13/25/49 slots) y submuestreo (stride 1/2/4) con el campo receptivo ajustado por dilatación (no por unidades); diagnóstico de sub/sobreajuste por curvas de validación (pérdida TRAIN vs INNER por capacidad), curvas de aprendizaje por tamaño de datos y un control positivo sintético (señal plantada de complejidad conocida que el modelo pequeño debe aprender); decisión en INNER_A con ledger de todas las configuraciones y corrección por comparaciones múltiples (DSR/PBO) antes de cualquier lectura de 2024.
 
+21. [ ] 2026-10-20 ORDEN DEL PROPIETARIO: automatizar hasta los resultados de RL guiado (E1-T BC+DAgger y E2-T SAC ± demostraciones) con el tronco temporal; cadena automática: corrida B de E0-T (coordinador, CPU) → selección con regla fijada antes de leerla (escalera v2 en v4; luego v4 elegido vs T2_core15 por pérdida INNER_A) → E1-T (1.000 épocas) → E2-T (100k transiciones, 3 semillas, net_arch [u], parada temprana con checkpoint inválido = −10) → reporte (ganancia, Sharpe, drawdown, órdenes, TRAIN vs validación, 2024 una vez, sensibilidad con el contrato de Musashi ≤1/día 1:50) en el host de la 4090, en serie. Diferencias con el SAC de Musashi registradas (periodos TRAIN 2020–22 vs 2020–23; ≤4/día 1:100 vs ≤1/día 1:50; su evaluación 375 s por par).
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
