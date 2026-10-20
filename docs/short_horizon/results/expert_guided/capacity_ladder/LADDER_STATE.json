@@ -1,0 +1,188 @@
+{
+ "trials": {
+  "b2_c2_h0_d1_do0.1_wd0.0001": {
+   "arch": {
+    "branch": 2,
+    "core": 2,
+    "head": 0,
+    "depth": 1,
+    "dropout": 0.1,
+    "wd": 0.0001
+   },
+   "status": "DONE",
+   "dir": "/var/tmp/expert-guided-t-20261020/runs",
+   "runs": {
+    "SAC_20261019": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -1.040656425202921,
+      "net_profit_usd": -8185.900396447774,
+      "max_drawdown_pct": 84.90687347628595,
+      "orders_per_week": 5.738853503184713,
+      "trades": 901,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 1.8680867942858108,
+      "net_profit_usd": 4293.764388040718,
+      "max_drawdown_pct": 28.088287715212047,
+      "orders_per_week": 5.6923076923076925,
+      "trades": 148,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": 0.08900007139654507,
+      "net_profit_usd": -185.13666360833122,
+      "max_drawdown_pct": 25.372068535708227,
+      "orders_per_week": 5.111111111111111,
+      "trades": 138,
+      "valid": true
+     }
+    },
+    "SAC_20261020": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.5950672805185335,
+      "net_profit_usd": -8493.637702247182,
+      "max_drawdown_pct": 93.2608805730367,
+      "orders_per_week": 3.929936305732484,
+      "trades": 617,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 0.4946800771332621,
+      "net_profit_usd": 545.1094003363978,
+      "max_drawdown_pct": 37.22141918702098,
+      "orders_per_week": 3.6538461538461537,
+      "trades": 95,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -1.162926853335313,
+      "net_profit_usd": -3579.128342964159,
+      "max_drawdown_pct": 58.00170996472601,
+      "orders_per_week": 3.6296296296296298,
+      "trades": 98,
+      "valid": true
+     }
+    },
+    "SAC_20261021": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.38398930264059405,
+      "net_profit_usd": -7916.599888922797,
+      "max_drawdown_pct": 86.94160141655702,
+      "orders_per_week": 3.2229299363057327,
+      "trades": 506,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": -0.6139475723968927,
+      "net_profit_usd": -2861.1491382225786,
+      "max_drawdown_pct": 47.72334239829311,
+      "orders_per_week": 3.1538461538461537,
+      "trades": 82,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": 0.3313715524768008,
+      "net_profit_usd": 70.57440087376926,
+      "max_drawdown_pct": 34.77306431474203,
+      "orders_per_week": 3.185185185185185,
+      "trades": 86,
+      "valid": true
+     }
+    },
+    "SAC_DEMO_20261019": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.3275779136467083,
+      "net_profit_usd": -7456.301065666725,
+      "max_drawdown_pct": 90.3225840712075,
+      "orders_per_week": 4.987261146496815,
+      "trades": 783,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 0.7159586690850697,
+      "net_profit_usd": 1325.2381620540727,
+      "max_drawdown_pct": 30.483140014951598,
+      "orders_per_week": 5.0,
+      "trades": 130,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -2.490558894680847,
+      "net_profit_usd": -5489.96515115039,
+      "max_drawdown_pct": 66.82084545658698,
+      "orders_per_week": 4.518518518518518,
+      "trades": 122,
+      "valid": true
+     }
+    },
+    "SAC_DEMO_20261020": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.36759483231363,
+      "net_profit_usd": -7921.639232034446,
+      "max_drawdown_pct": 86.28164543295547,
+      "orders_per_week": 3.2229299363057327,
+      "trades": 506,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": -1.1234807787648509,
+      "net_profit_usd": -3993.895687074575,
+      "max_drawdown_pct": 57.640596128691115,
+      "orders_per_week": 3.269230769230769,
+      "trades": 85,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -0.07048595898312787,
+      "net_profit_usd": -1136.4999803852006,
+      "max_drawdown_pct": 38.70777183437069,
+      "orders_per_week": 3.0,
+      "trades": 81,
+      "valid": true
+     }
+    },
+    "SAC_DEMO_20261021": {
+     "TRAIN": {
+      "sharpe_daily_sqrt365": -0.6156608599330624,
+      "net_profit_usd": -8631.600182386008,
+      "max_drawdown_pct": 94.01401297971958,
+      "orders_per_week": 3.878980891719745,
+      "trades": 609,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe_daily_sqrt365": 0.35865898641901134,
+      "net_profit_usd": 71.28153639175798,
+      "max_drawdown_pct": 37.00535259866709,
+      "orders_per_week": 3.730769230769231,
+      "trades": 97,
+      "valid": true
+     },
+     "INNER_B": {
+      "sharpe_daily_sqrt365": -0.8674767043554025,
+      "net_profit_usd": -2985.916040040229,
+      "max_drawdown_pct": 55.044351647333855,
+      "orders_per_week": 3.4814814814814814,
+      "trades": 94,
+      "valid": true
+     }
+    }
+   },
+   "params_e2_actor_plus_critic": null,
+   "params_e1": 388,
+   "val_a_sharpe_mean": 0.2833260292935684,
+   "train_sharpe_mean": -0.5550911023759082,
+   "val_b_sharpe_mean": -0.6951794645802241,
+   "gap_train_minus_val_a": -0.8384171316694765,
+   "val_a_dd_mean": 39.69368967380599,
+   "val_a_all_valid": true,
+   "e1": {
+    "TRAIN": -1.922848792548396,
+    "INNER_A": -1.0564245955435865,
+    "INNER_B": -3.125969910908213
+   }
+  }
+ },
+ "stages": []
+}
