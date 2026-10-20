@@ -62,13 +62,28 @@ def sharpe(m):
     return -10.0 if s is None or not np.isfinite(s) else float(s)
 
 
-def actor_policy(cx, actor):
-    import torch as th
+class NumpyActor:
+    """Deterministic SB3 SAC actor in numpy (eval mode: dropout off): tanh(mu(latent_pi(extractor(x))))."""
 
+    def __init__(self, sd):
+        g = {k: v.detach().cpu().numpy() for k, v in sd.items()}
+        self.ext = (g["features_extractor.net.0.weight"].T, g["features_extractor.net.0.bias"])
+        self.lat, i = [], 0
+        while f"latent_pi.{i}.weight" in g:
+            self.lat.append((g[f"latent_pi.{i}.weight"].T, g[f"latent_pi.{i}.bias"]))
+            i += 2
+        self.mu = (g["mu.weight"].T, g["mu.bias"])
+
+    def __call__(self, x):
+        z = np.maximum(x @ self.ext[0] + self.ext[1], 0)
+        for W, b in self.lat:
+            z = np.maximum(z @ W + b, 0)
+        return np.tanh(z @ self.mu[0] + self.mu[1])
+
+
+def actor_policy(cx, actor):
     def f(bar, r, st, env):
-        x = np.r_[cx.Xw[r], st].astype(np.float32)[None, :]
-        with th.no_grad():
-            a = actor(th.as_tensor(x), deterministic=True).numpy()[0]
+        a = actor(np.r_[cx.Xw[r], st].astype(np.float32))
         return A.decode(a, int(st[0]))
     return f
 
@@ -172,7 +187,7 @@ def run(a):
                     n = self.num_timesteps
                     if n % eval_every:
                         return True
-                    actor = copy.deepcopy(model.actor).cpu().eval()
+                    actor = NumpyActor(model.actor.state_dict())
                     mt = summary(cx.rollout("TRAIN", actor_policy(cx, actor))[0])
                     mi = summary(cx.rollout("INNER_A", actor_policy(cx, actor))[0])
                     score = 0.5 * (sharpe(mt) + sharpe(mi))
@@ -193,7 +208,7 @@ def run(a):
             model.learn(total_timesteps=budget, callback=ES())
             stop = "patience" if best["wait"] >= 10 else "budget"
             model.actor.load_state_dict(best["state"])
-            actor = copy.deepcopy(model.actor).cpu().eval()
+            actor = NumpyActor(model.actor.state_dict())
             frozen[key] = actor
             th.save(best["state"], out / f"actor_{key}.pt")
             ledger(led, rung="E2", event="FREEZE", arm=arm, seed=seed, best_transitions=best["step"], stop=stop)
