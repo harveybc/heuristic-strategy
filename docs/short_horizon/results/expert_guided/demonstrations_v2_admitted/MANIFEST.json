@@ -1,0 +1,69 @@
+{
+ "label": "HINDSIGHT_NON_CAUSAL_EXPERT",
+ "sha256": "25f898567dfeaf3c029371200c513411b59c01c12f232fde0399f1bbdb7953b1",
+ "rows": 4237,
+ "params": {
+  "depth": 3,
+  "deviation_pips": 40.7,
+  "backstep": 0
+ },
+ "data_sha256": "c80847bb149c7af1ad50e42301b5cd70608e6c37702ce8cc6a7b9eb70f36d2ca",
+ "costs": {
+  "profile": "RealisticProfile, entry_delay_bars = 0 (executable path)",
+  "sizing": "rel_volume 0.10, percentual_order_size 1.0, leverage 100",
+  "sl": "2 x causal 24 h vol",
+  "tp": "next hindsight pivot level -/+ 1 pip",
+  "daily_cap": 4
+ },
+ "warning": "Trades use the final repainted ZigZag pivots and the NEXT pivot level as TP: not reproducible causally; demonstrations only.",
+ "version": "v2-admitted",
+ "source": "admitted (UTC bar start, +1 h availability)",
+ "calendar": "complement of CLOSURE_INTERVALS.json (71078e8f...), 12 h / 12 h",
+ "sibling": "demonstrations v2 on the lake label clock, sha256 38125b0b368a29b425b4f4ac192fe380b343894fbceedfe17c1e9b85c6564a24",
+ "periods": {
+  "DECISION_2020_2022": [
+   [
+    "2020-01-01",
+    "2023-01-01"
+   ],
+   "DECISION"
+  ],
+  "VALIDATION_2023": [
+   [
+    "2023-01-01",
+    "2024-01-01"
+   ],
+   "JOINT_DEVELOPMENT"
+  ],
+  "OBSERVED_2024": [
+   [
+    "2024-01-01",
+    "2025-01-01"
+   ],
+   "PREVIOUSLY_OBSERVED_DEVELOPMENT"
+  ]
+ },
+ "per_period": {
+  "DECISION_2020_2022": {
+   "sharpe": 18.36995939514767,
+   "trades": 2537,
+   "orders_per_week": 16.159235668789808,
+   "max_dd_pct": 7.208182049466837,
+   "valid": true
+  },
+  "VALIDATION_2023": {
+   "sharpe": 19.2751526638013,
+   "trades": 838,
+   "orders_per_week": 16.115384615384617,
+   "max_dd_pct": 5.307852927445414,
+   "valid": true
+  },
+  "OBSERVED_2024": {
+   "sharpe": 18.15289626744824,
+   "trades": 862,
+   "orders_per_week": 16.264150943396228,
+   "max_dd_pct": 2.3516106673747905,
+   "valid": true
+  }
+ }
+}
