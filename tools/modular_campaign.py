@@ -227,7 +227,7 @@ def publish(root):
                         key=rec['cell']['id']+'-'+control+'-'+period
                         source_role='validation' if period=='OBS_2024' else 'train'
                         split='train' if period=='TRAIN' else 'validation'
-                        report=dict(experiment_key='mc-'+key,experiment_set_key='modular-controlled-'+state['spec_sha256'][:12],
+                        report=dict(experiment_key='mc-'+state['spec_sha256'][:12]+'-'+key,experiment_set_key='modular-controlled-'+state['spec_sha256'][:12],
                             actor=pub['actor'],lake=pub['lake'],lineage='UNVERIFIED',project='heuristic-strategy',
                             phase='MODULAR_CONTROLLED_DEVELOPMENT',config_sha256=result['config_sha256'],code_commit=spec['runtime'],
                             tags=dict(period=period,control=control,arm=rec['cell']['arm'],seed=str(rec['cell']['seed']),

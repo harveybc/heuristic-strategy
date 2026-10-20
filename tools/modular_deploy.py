@@ -23,7 +23,7 @@ def timer(name,seconds):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('action',choices=['prepare','render','render-collector'])
+    p=argparse.ArgumentParser();p.add_argument('action',choices=['prepare','render','render-collector','reseal-prelaunch'])
     p.add_argument('--root',required=True);p.add_argument('--baseline');p.add_argument('--admitted');p.add_argument('--agent-runtime')
     p.add_argument('--environment-file');p.add_argument('--source');p.add_argument('--remote-root');p.add_argument('--destination')
     a=p.parse_args();root=Path(a.root).resolve();cwd=Path(__file__).resolve().parents[1]
@@ -39,6 +39,14 @@ def main():
         write(root/'DEPLOY.private.json',config)
         from tools.modular_campaign import prepare
         prepare(root,root/'DEPLOY.private.json')
+    elif a.action=='reseal-prelaunch':
+        from tools.modular_campaign import identity, digest
+        state=read(root/'STATE.json')
+        if state['cells'] or (root/'runs').exists():raise ValueError('PRELAUNCH_ONLY')
+        spec=read(root/'SPEC.json');old=spec['runtime']
+        write(root/('PRELAUNCH_SPEC_'+old[:12]+'.json'),spec)
+        spec['runtime']=identity();write(root/'SPEC.json',spec)
+        state['spec_sha256']=digest(root/'SPEC.json');write(root/'STATE.json',state)
     elif a.action=='render':
         for suffix,action,seconds,condition in [('worker','work',15,'SCIENTIFIC_COMPLETE.json'),
                                                ('publication','publish',120,'PUBLICATION_COMPLETE.json')]:
