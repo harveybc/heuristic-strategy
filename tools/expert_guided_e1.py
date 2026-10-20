@@ -62,6 +62,7 @@ class Ctx:
     def __init__(self, ds):
         self.ds = ds
         self.rob = ds.row_of_bar()
+        self.v = ds.bars.index.as_unit("ns").asi8
         self.obs_ok = ds.observable()
         self.lab_ok = ds.labelled()
         self.Xw = ds.windows.reshape(len(ds.windows), -1).astype(np.float32)

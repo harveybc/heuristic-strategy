@@ -272,3 +272,38 @@ def test_calendar_from_closures_is_the_exact_complement():
     assert s.market_open == pd.Timestamp("2020-01-05T22:00:00+00:00")
     assert s.market_close == pd.Timestamp("2020-01-10T22:00:00+00:00")
     assert s.operational_start == s.market_open + 12 * HOUR and s.force_flat == s.market_close - 12 * HOUR
+
+
+# ------------------------------------------------------------------ E2 continuous action contract
+from app.short_horizon.expert_guided import actions as A  # noqa: E402
+
+
+def test_continuous_action_decode_and_encode_round_trip():
+    for pos in (-1, 0, 1):
+        for act in (E.HOLD, E.LONG, E.SHORT, E.CLOSE):
+            if act == E.CLOSE and pos == 0:
+                continue
+            if (act == E.LONG and pos == 1) or (act == E.SHORT and pos == -1):
+                continue
+            x = A.encode(act, pos, 1.7, 2.0)
+            a, tp, sl = A.decode(x, pos)
+            assert a == act and abs(tp - 1.7) < 1e-6 and abs(sl - 2.0) < 1e-6
+    assert A.decode(np.array([0.2, -1, -1]), 0)[0] == E.HOLD
+    assert A.decode(np.array([0.2, -1, -1]), 1)[0] == E.CLOSE
+    a, tp, sl = A.decode(np.array([5.0, 9.0, -9.0]), 0)
+    assert a == E.LONG and tp == 3.0 and sl == 0.5
+
+
+def test_mark_to_market_increments_sum_to_the_net_profit():
+    bars, cal, env = _env(tp_bounds=(2.9, 3.0), sl_bounds=(2.9, 3.0))
+    rng = np.random.default_rng(4)
+    eq0 = A.mark_to_market(env, env.first)
+    total = 0.0
+    for b in range(env.first, env.last):
+        before = A.mark_to_market(env, b)
+        x = rng.uniform(-1, 1, 3)
+        pos = 0 if env.pos is None else env.pos.direction
+        env.step(b, *A.decode(x, pos))
+        total += A.mark_to_market(env, b + 1) - before
+    m = env.result()
+    assert math.isclose(eq0 + total, 10_000.0 + m["net_profit_usd"], rel_tol=0, abs_tol=1e-6)
