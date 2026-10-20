@@ -120,6 +120,23 @@ class Dataset:
     eligible: np.ndarray        # per row (final population)
     exclusions: dict
     meta: dict
+    masks: dict = None          # per row: the exclusion masks by reason
+
+    def row_of_bar(self) -> np.ndarray:
+        out = np.full(len(self.bars), -1, np.int64)
+        ok = self.row_bar >= 0
+        out[self.row_bar[ok]] = np.flatnonzero(ok)
+        return out
+
+    def observable(self) -> np.ndarray:
+        """Rows the agent can act on: joined, window/scale complete, causal sigma known (labels not needed)."""
+        m = self.masks
+        return ~(m["not_joined"] | m["window_or_scale_warmup"] | m["no_causal_sigma"])
+
+    def labelled(self) -> np.ndarray:
+        """Rows usable as training/monitor/score examples: observable, label final and inside its period."""
+        m = self.masks
+        return self.observable() & ~(m["label_censored"] | m["label_support_crosses_period_end"] | m["outside_periods"])
 
     def rows(self, period: str) -> np.ndarray:
         return np.flatnonzero(self.eligible & (self.period == period))
@@ -216,4 +233,4 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True) -> Dataset:
                                "scaling": f"causal rolling z-score over rows [i-{SCALE_W}, i)", "features": FEATURES},
             "periods": PERIODS, "period_status": PERIOD_STATUS}
     return Dataset(bars, cal, sigma, sigma_rule, piv, conf, y_h, y_c, sup, row_bar, ts_ns, windows, row_ok, period,
-                   eligible, excl, meta)
+                   eligible, excl, meta, reasons)
