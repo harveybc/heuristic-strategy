@@ -38,20 +38,32 @@ class CausalConv1d(nn.Conv1d):
 
 
 class TemporalTrunk(nn.Module):
-    def __init__(self, n_feat: int, units: int = 2, dropout: float = 0.1):
+    """``units`` sets every width (the registered u-design). Coordinate-ladder overrides (Musashi's order: core ->
+    heads -> branches -> depth): ``branch`` filters per feature branch, ``core`` width of the fusion and core convs,
+    ``depth`` number of core convs after the fusion (1 = the registered structure; each extra conv doubles the
+    dilation: 8, 16, ...). Defaults reproduce the u-design exactly, including the state_dict names."""
+
+    def __init__(self, n_feat: int, units: int = 2, dropout: float = 0.1, branch: int | None = None,
+                 core: int | None = None, depth: int = 1):
         super().__init__()
-        self.n_feat, self.units = n_feat, units
-        self.branch = CausalConv1d(n_feat, n_feat * units, KERNEL, DILATIONS[0], groups=n_feat)
+        b = units if branch is None else branch
+        c = units if core is None else core
+        self.n_feat, self.units, self.b, self.c, self.depth = n_feat, units, b, c, depth
+        self.branch = CausalConv1d(n_feat, n_feat * b, KERNEL, DILATIONS[0], groups=n_feat)
         self.drop = nn.Dropout(dropout)
-        self.fuse = CausalConv1d(n_feat * units, units, KERNEL, DILATIONS[1])
-        self.core = CausalConv1d(units, units, KERNEL, DILATIONS[2])
-        self.out_dim = units
+        self.fuse = CausalConv1d(n_feat * b, c, KERNEL, DILATIONS[1])
+        self.core = CausalConv1d(c, c, KERNEL, DILATIONS[2])
+        for k in range(2, depth + 1):           # core2 (dilation 8), core3 (16), ...
+            setattr(self, f"core{k}", CausalConv1d(c, c, KERNEL, DILATIONS[2] * 2 ** (k - 1)))
+        self.out_dim = c
 
     def forward(self, w):                       # w: (B, T, n_feat)
         x = w.transpose(1, 2)
         x = self.drop(F.gelu(self.branch(x)))
         x = F.gelu(self.fuse(x))
         x = F.gelu(self.core(x))
+        for k in range(2, self.depth + 1):
+            x = F.gelu(getattr(self, f"core{k}")(x))
         return x[:, :, -1]
 
 
@@ -60,11 +72,16 @@ class TemporalPolicyNet(nn.Module):
     Same forward contract as ``learn.PolicyNet``: returns (logits, reg or None)."""
 
     def __init__(self, n_feat: int, win: int, n_cls: int, n_reg: int = 0, n_state: int = 0, units: int = 2,
-                 dropout: float = 0.1, reg_bounds=((0.25, 3.0), (0.5, 3.0))):
+                 dropout: float = 0.1, reg_bounds=((0.25, 3.0), (0.5, 3.0)), branch: int | None = None,
+                 core: int | None = None, depth: int = 1, head: int = 0):
         super().__init__()
         self.n_feat, self.win, self.n_state = n_feat, win, n_state
-        self.trunk = TemporalTrunk(n_feat, units, dropout)
+        self.trunk = TemporalTrunk(n_feat, units, dropout, branch=branch, core=core, depth=depth)
         d = self.trunk.out_dim + n_state
+        self.head = head
+        if head:                                 # optional hidden head layer (ladder stage "heads"); 0 = registered
+            self.hidden = nn.Sequential(nn.Linear(d, head), nn.GELU())
+            d = head
         self.cls = nn.Linear(d, n_cls)
         self.n_reg = n_reg
         if n_reg:
@@ -85,6 +102,8 @@ class TemporalPolicyNet(nn.Module):
         z = self.trunk(w)
         if self.n_state:
             z = torch.cat([z, s], 1)
+        if self.head:
+            z = self.hidden(z)
         logits = self.cls(z)
         if not self.n_reg:
             return logits, None
@@ -122,10 +141,11 @@ try:                                              # SB3 is optional for E0/E1
         temporal trunk -> concat(state). features_dim = units + n_state."""
 
         def __init__(self, observation_space, n_feat: int, win: int, n_state: int = 9, units: int = 2,
-                     dropout: float = 0.1):
-            super().__init__(observation_space, units + n_state)
+                     dropout: float = 0.1, branch: int | None = None, core: int | None = None, depth: int = 1):
+            c = units if core is None else core
+            super().__init__(observation_space, c + n_state)
             self.n_feat, self.win, self.n_state = n_feat, win, n_state
-            self.trunk = TemporalTrunk(n_feat, units, dropout)
+            self.trunk = TemporalTrunk(n_feat, units, dropout, branch=branch, core=core, depth=depth)
 
         def forward(self, obs):
             w = obs[:, : self.win * self.n_feat].reshape(-1, self.win, self.n_feat)
@@ -138,10 +158,11 @@ class TorchActor:
     """Frozen deterministic SAC actor: tanh(mu(latent_pi(extractor(x)))) rebuilt from an actor state_dict (the SB3
     actor itself is not deep-copyable); eval mode, so dropout is off."""
 
-    def __init__(self, sd, n_feat: int, win: int, n_state: int, units: int, net_arch, act_dim: int = 3):
+    def __init__(self, sd, n_feat: int, win: int, n_state: int, units: int, net_arch, act_dim: int = 3,
+                 branch: int | None = None, core: int | None = None, depth: int = 1):
         import gymnasium as gym
         space = gym.spaces.Box(-np.inf, np.inf, (win * n_feat + n_state,), np.float32)
-        self.ext = TemporalExtractor(space, n_feat, win, n_state, units)
+        self.ext = TemporalExtractor(space, n_feat, win, n_state, units, branch=branch, core=core, depth=depth)
         self.ext.load_state_dict({k[len("features_extractor."):]: v for k, v in sd.items() if k.startswith("features_extractor.")})
         layers, d = [], self.ext.features_dim
         for h in net_arch:

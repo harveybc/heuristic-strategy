@@ -184,10 +184,13 @@ def run(a):
     ds = DG.load(a.admitted, a.csv_dir) if a.features == "core15" else DG.load_v4(a.admitted, a.v4_dir)
     cx = Ctx(ds)
     nf = ds.windows.shape[2]
-    MODEL.update(features=a.features, feature_names=ds.meta["input_contract"]["features"], units=a.units,
-                 params=int(sum(p.numel() for p in T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=len(E.STATE_NAMES), units=a.units).parameters())),
-                 layers=T.param_table(T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=len(E.STATE_NAMES), units=a.units)))
-    factory = lambda: T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=len(E.STATE_NAMES), units=a.units,  # noqa: E731
+    MODEL.update(dropout=a.dropout, weight_decay=a.wd)
+    ARCH = dict(units=a.units, branch=a.branch, core=a.core, depth=a.depth, head=a.head)
+    MODEL.update(features=a.features, feature_names=ds.meta["input_contract"]["features"], arch=ARCH,
+                 units=a.units,
+                 params=int(sum(p.numel() for p in T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=len(E.STATE_NAMES), **ARCH).parameters())),
+                 layers=T.param_table(T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=len(E.STATE_NAMES), **ARCH)))
+    factory = lambda: T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=len(E.STATE_NAMES), **ARCH,  # noqa: E731
                                           dropout=MODEL["dropout"])
     ledger(led, rung="E1T", event="PREREGISTRATION", gate=GATE, model=MODEL, seeds=SEEDS, periods=DG.PERIODS,
            student_env=str(STUDENT_CFG), expert_env=str(EXPERT_CFG), max_epochs=a.max_epochs, device=device)
@@ -307,6 +310,12 @@ def main():
     ap.add_argument("--v4-dir", default="")
     ap.add_argument("--units", type=int, required=True)
     ap.add_argument("--skip-2024", action="store_true", help="capacity sweep: never read 2024")
+    ap.add_argument("--branch", type=int, default=None, help="filters per feature branch (default: units)")
+    ap.add_argument("--core", type=int, default=None, help="fusion/core width (default: units)")
+    ap.add_argument("--depth", type=int, default=1, help="core convs after the fusion (1 = registered)")
+    ap.add_argument("--head", type=int, default=0, help="hidden head layer width (0 = registered: none)")
+    ap.add_argument("--dropout", type=float, default=0.1)
+    ap.add_argument("--wd", type=float, default=1e-4, help="AdamW weight decay")
     run(ap.parse_args())
 
 

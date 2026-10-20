@@ -94,3 +94,50 @@ def test_sb3_extractor_and_frozen_actor_match_the_live_actor():
     with torch.no_grad():
         live = m.actor(torch.as_tensor(x)[None], deterministic=True).numpy()[0]
     assert np.allclose(fa(x), live, atol=1e-6)
+
+
+def test_coordinate_ladder_widths_depth_and_registered_defaults():
+    reg = T.TemporalPolicyNet(15, 13, 4, n_reg=2, n_state=9, units=2)
+    same = T.TemporalPolicyNet(15, 13, 4, n_reg=2, n_state=9, units=2, branch=2, core=2, depth=1, head=0)
+    assert list(reg.state_dict()) == list(same.state_dict())          # registered names preserved
+    assert n_params(reg) == 388
+    m = T.TemporalPolicyNet(15, 13, 4, n_reg=2, n_state=9, units=2, branch=4, core=16, depth=2, head=8)
+    b, c = 4, 16
+    trunk = 15 * b * 4 + (3 * 15 * b * c + c) + 2 * (3 * c * c + c)
+    heads = ((c + 9) * 8 + 8) + (8 * 4 + 4) + (8 * 2 + 2)
+    assert n_params(m) == trunk + heads
+    tr = T.TemporalTrunk(15, units=2, dropout=0.0, branch=4, core=8, depth=2).eval()
+    assert T.receptive_field(dilations=(1, 2, 4, 8)) == 31 >= 13
+    w = torch.randn(1, 13, 15)
+    base = tr(w)
+    w2 = w.clone()
+    w2[0, 0, :] += 5.0
+    assert not torch.allclose(tr(w2), base)                            # oldest slot still reaches t
+
+
+def test_frozen_actor_parity_with_head_and_depth():
+    gym = pytest.importorskip("gymnasium")
+    pytest.importorskip("stable_baselines3")
+    from stable_baselines3 import SAC
+
+    class Toy(gym.Env):
+        observation_space = gym.spaces.Box(-np.inf, np.inf, (13 * 15 + 9,), np.float32)
+        action_space = gym.spaces.Box(-1.0, 1.0, (3,), np.float32)
+
+        def reset(self, *, seed=None, options=None):
+            return np.zeros(204, np.float32), {}
+
+        def step(self, a):
+            return np.random.randn(204).astype(np.float32), 0.0, True, False, {}
+
+    kw = dict(units=2, branch=4, core=8, depth=2)
+    m = SAC("MlpPolicy", Toy(), seed=0, device="cpu", learning_starts=10,
+            policy_kwargs=dict(features_extractor_class=T.TemporalExtractor,
+                               features_extractor_kwargs=dict(n_feat=15, win=13, n_state=9, **kw), net_arch=[16]))
+    m.learn(64)
+    fa = T.TorchActor(m.actor.state_dict(), 15, 13, 9, 2, [16], branch=4, core=8, depth=2)
+    x = np.random.default_rng(5).standard_normal(204).astype(np.float32)
+    m.actor.eval()
+    with torch.no_grad():
+        live = m.actor(torch.as_tensor(x)[None], deterministic=True).numpy()[0]
+    assert np.allclose(fa(x), live, atol=1e-6)

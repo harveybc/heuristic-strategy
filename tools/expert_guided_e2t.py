@@ -112,8 +112,10 @@ def run(a):
     cx = Ctx(ds)
     nf, u = ds.windows.shape[2], a.units
     NS = len(E.STATE_NAMES)
+    HEAD = [a.head or u]                              # registered: net_arch [u]
+    EXT = dict(units=u, branch=a.branch, core=a.core, depth=a.depth)
     DESIGN["network"].update(features=a.features, feature_names=ds.meta["input_contract"]["features"], units=u,
-                             net_arch=[u])
+                             net_arch=HEAD, extractor_arch=EXT, dropout=a.dropout, weight_decay=a.wd)
     budget = a.budget
     seeds = SEEDS[:1] if a.measure else SEEDS
     arms = {"SAC_DEMO": ARMS["SAC_DEMO"]} if a.measure else ARMS
@@ -132,7 +134,7 @@ def run(a):
     for s in SEEDS:
         if a.measure and not (Path(a.e1_run) / f"policy_{s}.pt").exists():
             continue
-        net = T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=NS, units=u)
+        net = T.TemporalPolicyNet(nf, DG.WIN, 4, n_reg=2, n_state=NS, **EXT, head=a.head)
         net.load_state_dict(th.load(Path(a.e1_run) / f"policy_{s}.pt"))
         e1pol[s] = cx.student(T.TorchPolicy(net))
 
@@ -166,9 +168,9 @@ def run(a):
                             learning_rate=3e-4, buffer_size=100_000, learning_starts=1000, batch_size=256, tau=0.005,
                             gamma=0.99, train_freq=1, gradient_steps=1, ent_coef="auto", seed=seed, device=device, verbose=0,
                             policy_kwargs=dict(features_extractor_class=T.TemporalExtractor,
-                                               features_extractor_kwargs=dict(n_feat=nf, win=DG.WIN, n_state=NS, units=u),
-                                               net_arch=[u],
-                                               optimizer_class=th.optim.AdamW, optimizer_kwargs=dict(weight_decay=1e-4)),
+                                               features_extractor_kwargs=dict(n_feat=nf, win=DG.WIN, n_state=NS, dropout=a.dropout, **EXT),
+                                               net_arch=HEAD,
+                                               optimizer_class=th.optim.AdamW, optimizer_kwargs=dict(weight_decay=a.wd)),
                             **kw)
             curve, best = [], {"score": -np.inf, "state": None, "step": 0, "wait": 0}
 
@@ -177,7 +179,7 @@ def run(a):
                     n = self.num_timesteps
                     if n % eval_every:
                         return True
-                    actor = T.TorchActor(model.actor.state_dict(), nf, DG.WIN, NS, u, [u])
+                    actor = T.TorchActor(model.actor.state_dict(), nf, DG.WIN, NS, u, HEAD, branch=a.branch, core=a.core, depth=a.depth)
                     mt = summary(cx.rollout("TRAIN", actor_policy(cx, actor))[0])
                     mi = summary(cx.rollout("INNER_A", actor_policy(cx, actor))[0])
                     score = 0.5 * (es_sharpe(mt) + es_sharpe(mi))
@@ -199,10 +201,12 @@ def run(a):
             model.learn(total_timesteps=budget, callback=ES())
             stop = "patience" if best["wait"] >= 10 else "budget"
             model.actor.load_state_dict(best["state"])
-            actor = T.TorchActor(model.actor.state_dict(), nf, DG.WIN, NS, u, [u])
+            actor = T.TorchActor(model.actor.state_dict(), nf, DG.WIN, NS, u, HEAD, branch=a.branch, core=a.core, depth=a.depth)
             frozen[key] = actor
             th.save(best["state"], out / f"actor_{key}.pt")
             ledger(led, rung="E2T", event="FREEZE", arm=arm, seed=seed, best_transitions=best["step"], stop=stop)
+            res["params_actor_plus_critic"] = int(sum(p.numel() for p in model.actor.parameters()) +
+                                                  sum(p.numel() for p in model.critic.parameters()))
             rec = {"arm": arm, "seed": seed, "curve": curve, "best_transitions": best["step"], "best_score": best["score"],
                    "stop": stop, "transitions": int(model.num_timesteps), "seconds": time.time() - tf,
                    "demo_log": model.demo_log, "trading": {}}
@@ -243,6 +247,12 @@ def main():
     ap.add_argument("--v4-dir", default="")
     ap.add_argument("--units", type=int, required=True)
     ap.add_argument("--skip-2024", action="store_true", help="capacity sweep: never read 2024")
+    ap.add_argument("--branch", type=int, default=None)
+    ap.add_argument("--core", type=int, default=None)
+    ap.add_argument("--depth", type=int, default=1)
+    ap.add_argument("--head", type=int, default=0, help="actor/critic hidden width (0 = registered [units]); E1 hidden head")
+    ap.add_argument("--dropout", type=float, default=0.1)
+    ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--out", required=True)
     ap.add_argument("--budget", type=int, default=100_000)
     ap.add_argument("--eval-every", type=int, default=5000)
