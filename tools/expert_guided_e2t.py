@@ -218,8 +218,12 @@ def run(a):
         (out / "E2_MEASURE.json").write_text(json.dumps(jsonable(res), indent=1))
         print(json.dumps({"measure_only": True, "wall": round(time.time() - t0, 1)}))
         return
-    ledger(led, rung="E2T", event="READ", periods=["OBS_2024"], purpose="single read of every frozen E2 run and the references")
-    references(["OBS_2024"])
+    if a.skip_2024:
+        ledger(led, rung="E2T", event="NO_READ", periods=["OBS_2024"], purpose="capacity sweep arm; 2024 not read")
+        frozen = {}
+    else:
+        ledger(led, rung="E2T", event="READ", periods=["OBS_2024"], purpose="single read of every frozen E2 run and the references")
+        references(["OBS_2024"])
     for key, actor in frozen.items():
         res["runs"][key]["trading"]["OBS_2024"] = summary(cx.rollout("OBS_2024", actor_policy(cx, actor))[0])
         res["runs"][key]["musashi_contract_sensitivity"] = {
@@ -238,6 +242,7 @@ def main():
     ap.add_argument("--features", choices=["v4", "core15"], required=True)
     ap.add_argument("--v4-dir", default="")
     ap.add_argument("--units", type=int, required=True)
+    ap.add_argument("--skip-2024", action="store_true", help="capacity sweep: never read 2024")
     ap.add_argument("--out", required=True)
     ap.add_argument("--budget", type=int, default=100_000)
     ap.add_argument("--eval-every", type=int, default=5000)
