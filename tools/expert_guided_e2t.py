@@ -52,7 +52,7 @@ DESIGN = {"deviation": "E2-T runs after E1-T by owner order 2026-10-20, whatever
                   "train_freq": 1, "gradient_steps": 1},
           "network": {"extractor": "TemporalExtractor (temporal.py)", "net_arch": "[u]", "optimizer": "AdamW",
                       "weight_decay": 1e-4, "batchnorm": False},
-          "early_stopping": {"every": 5000, "score": "mean(net daily Sharpe TRAIN, INNER_A), frozen deterministic checkpoint",
+          "early_stopping": {"every": 5000, "score": "mean(net daily Sharpe TRAIN, INNER_A), frozen deterministic checkpoint; a checkpoint failing the frequency rule or ruined scores -10 (amendment 2026-10-20)",
                              "patience_evals": 10, "ruined_sharpe": -10.0},
           "episode": "one random TRAIN calendar segment (week); capital 10,000 USD per episode",
           "reward": "100 x delta mark-to-market equity / 10,000, net of all costs, UNSHAPED",
@@ -63,6 +63,13 @@ DESIGN = {"deviation": "E2-T runs after E1-T by owner order 2026-10-20, whatever
 def sharpe(m):
     s = m.get("sharpe_daily_sqrt365")
     return -10.0 if s is None or not np.isfinite(s) else float(s)
+
+
+def es_sharpe(m):
+    """Early-stopping score only (E2-T amendment, declared 2026-10-20 after the pilot picked a no-trade checkpoint):
+    a checkpoint that breaks the frequency rule (>= 3 orders/week, <= 4/day) or is ruined scores -10, because a
+    policy that does not trade is not a result (owner rule). Reports keep the raw Sharpe."""
+    return sharpe(m) if m.get("valid") and not m.get("ruined") else -10.0
 
 
 def actor_policy(cx, actor):
@@ -173,9 +180,10 @@ def run(a):
                     actor = T.TorchActor(model.actor.state_dict(), nf, DG.WIN, NS, u, [u])
                     mt = summary(cx.rollout("TRAIN", actor_policy(cx, actor))[0])
                     mi = summary(cx.rollout("INNER_A", actor_policy(cx, actor))[0])
-                    score = 0.5 * (sharpe(mt) + sharpe(mi))
+                    score = 0.5 * (es_sharpe(mt) + es_sharpe(mi))
                     curve.append({"transitions": n, "train_sharpe": sharpe(mt), "inner_a_sharpe": sharpe(mi), "score": score,
                                   "gap_inner_minus_train": sharpe(mi) - sharpe(mt), "train_trades": mt["trades"],
+                                  "train_valid": bool(mt.get("valid")), "inner_a_valid": bool(mi.get("valid")),
                                   "inner_a_trades": mi["trades"], "train_opw": mt["orders_per_week"],
                                   "train_net": mt["net_profit_usd"], "inner_a_net": mi["net_profit_usd"]})
                     if score > best["score"] + 1e-9:
