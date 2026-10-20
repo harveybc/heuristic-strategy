@@ -11,6 +11,7 @@ Orden núcleo → cabezas → ramas → profundidad; 3 semillas por brazo; elecc
 | b2_c2_h16_d1_do0.1_wd0.0001 | 1440 | -1.05 / -3.46 / -2.68 | 0.03 | 0.93 | -0.58 | -0.90 | 35.6 | sí |
 | b4_c2_h16_d1_do0.1_wd0.0001 | 2040 | -1.46 / -1.87 / -1.47 | 0.13 | 0.90 | -1.42 | -0.77 | 37.7 | sí |
 | b8_c2_h16_d1_do0.1_wd0.0001 | 3240 | -2.34 / -3.91 / -4.98 | -0.27 | 0.71 | -1.79 | -0.98 | 34.3 | sí |
+| b2_c2_h16_d2_do0.1_wd0.0001 | 1468 | 0.10 / -2.04 / -1.78 | -0.17 | 0.70 | -0.03 | -0.87 | 36.2 | sí |
 
 ## Etapas
 
@@ -23,3 +24,7 @@ Orden núcleo → cabezas → ramas → profundidad; 3 semillas por brazo; elecc
 - **S3_branch**: titular antes b2_c2_h16_d1_do0.1_wd0.0001 → después b2_c2_h16_d1_do0.1_wd0.0001 (promovido: False)
   - b4_c2_h16_d1_do0.1_wd0.0001: VAL A 0.90, TRAIN 0.13, VAL B -1.42; criterios {"improve": false, "paired": true, "pairs_better": 4, "gap": true, "risk": false, "valid": true, "eligible": false}
   - b8_c2_h16_d1_do0.1_wd0.0001: VAL A 0.71, TRAIN -0.27, VAL B -1.79; criterios {"improve": false, "paired": false, "pairs_better": 3, "gap": true, "risk": true, "valid": true, "eligible": false}
+- **S4_depth**: titular antes b2_c2_h16_d1_do0.1_wd0.0001 → después b2_c2_h16_d1_do0.1_wd0.0001 (promovido: False)
+  - b2_c2_h16_d2_do0.1_wd0.0001: VAL A 0.70, TRAIN -0.17, VAL B -0.03; criterios {"improve": false, "paired": false, "pairs_better": 3, "gap": true, "risk": true, "valid": true, "eligible": false}
+
+Finalista: **b2_c2_h16_d1_do0.1_wd0.0001**.
