@@ -13,3 +13,5 @@
 2026-10-20T12:21:26+00:00 start e2t_b2_c2_h8_d1_do0.1_wd0.0001 attempt 1
 2026-10-20T13:12:40+00:00 end e2t_b2_c2_h8_d1_do0.1_wd0.0001 attempt 1 rc=0
 2026-10-20T13:12:40+00:00 start e1t_b2_c2_h16_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T13:21:06+00:00 end e1t_b2_c2_h16_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T13:21:06+00:00 start e2t_b2_c2_h16_d1_do0.1_wd0.0001 attempt 1
