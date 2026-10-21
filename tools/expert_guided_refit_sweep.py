@@ -43,8 +43,8 @@ CADENCES = {"monthly": "MS", "weekly": "W-MON"}
 SUPER = {"1y": pd.DateOffset(years=1), "2y": pd.DateOffset(years=2), "all": None}
 INITS = ("warm", "scratch")
 ARMS = [f"{c}|{w}|{i}" for c in ("monthly", "weekly") for w in SUPER for i in INITS]
-DAGGER_ROUNDS = 1
-HOLDOUT_SHARE = 0.10
+DAGGER_ROUNDS = 1          # default of run 1; run 2 uses --dagger-rounds 3 (= the static E3-M fit)
+HOLDOUT_SHARE = 0.10       # default of run 1; run 2 uses --holdout-share 0.25
 
 
 def _utc(x):
@@ -59,7 +59,7 @@ def refit_dates(start, end, cadence):
     return list(d) + [_utc(end)]
 
 
-def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T, L):
+def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T, L, tau_fixed=None):
     """One refit of the four FULL modules on [win_a, win_b): BC from the expert + exploration positions, then
     DAGGER_ROUNDS with the composed policy; labels only when final before win_b. Returns (policies, tau, info)."""
     import torch
@@ -73,7 +73,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
 
     def split(Dm):
         n = len(Dm[1])
-        k = max(int(n * (1 - HOLDOUT_SHARE)), 1)
+        k = max(int(n * (1 - a.holdout_share)), 1)
         return tuple(x[:k] for x in Dm), tuple(x[k:] for x in Dm)
 
     def fit_mod(m, Dm, init_state):
@@ -91,7 +91,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
         return T.TorchPolicy(model), {k: info[k] for k in ("epochs", "best_epoch", "params", "stop_reason")}
 
     comp = None
-    for rnd in range(DAGGER_ROUNDS + 1):
+    for rnd in range(a.dagger_rounds + 1):
         if rnd > 0:
             vis = collect(cx, (win_a, win_b), comp(cx))[1]
             for m, Dm in build_sets("FULL", vis, cx, False, final_before_bar=cap).items():
@@ -106,8 +106,10 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
         if any(m not in pols for m in MODULES["FULL"]):
             return None, None, {"skipped": "MODULE_MISSING", "have": sorted(pols)}
         comp = Composed("FULL", pols, "prob", tau=0.5)
-    # tau on the holdout rows of the window (last 10 % of the window's bars), via the prob arbiter rate grid
-    ho_a = cx.v[int(cap - max(int((cap - np.searchsorted(cx.v, _utc(win_a).value)) * HOLDOUT_SHARE), 24))]
+    if tau_fixed is not None:                     # run 2: the static seed's own tau (chosen once on INNER_A by E3-M), declared
+        return pols, float(tau_fixed), {"fits": {f"{m}_r{r}": v for (m, r), v in infos.items()}, "rows": {m: int(len(D[m][1])) for m in D}, "tau": float(tau_fixed), "tau_mode": "static"}
+    # tau on the holdout rows of the window (last holdout_share of the window's bars), via the prob arbiter rate grid
+    ho_a = cx.v[int(cap - max(int((cap - np.searchsorted(cx.v, _utc(win_a).value)) * a.holdout_share), 24))]
     ho_rows = np.flatnonzero((cx.ds.row_ts >= ho_a) & (cx.ds.row_ts < _utc(win_b).value) & cx.obs_ok)
     pm = comp.open_scores(cx, ho_rows) if len(ho_rows) else np.array([0.5])
     best, best_sh = 0.5, -np.inf
@@ -117,7 +119,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
         sh = m_["sharpe_daily_sqrt365"]
         if sh is not None and math.isfinite(sh) and sh > best_sh:
             best, best_sh = tau, sh
-    return pols, best, {"fits": {f"{m}_r{r}": v for (m, r), v in infos.items()}, "rows": {m: int(len(D[m][1])) for m in D}, "tau": best}
+    return pols, best, {"fits": {f"{m}_r{r}": v for (m, r), v in infos.items()}, "rows": {m: int(len(D[m][1])) for m in D}, "tau": best, "tau_mode": "holdout"}
 
 
 def a_init_warm(a):
@@ -180,7 +182,7 @@ def run(a):
             mods[mname] = T.TorchPolicy(net)
         static[seed] = (mods, e3["trials"]["FULL"][str(seed)]["arbiter"].get("tau"))
     arms = [x for x in ARMS if (not a.arms or x in a.arms.split(","))]
-    ledger(led, rung="REFIT", event="PREREGISTRATION", arms=arms, dagger_rounds=DAGGER_ROUNDS, holdout_share=HOLDOUT_SHARE,
+    ledger(led, rung="REFIT", event="PREREGISTRATION", arms=arms, dagger_rounds=a.dagger_rounds, holdout_share=a.holdout_share, tau_mode=a.tau_mode,
            seeds=SEEDS, arch=arch, device=device, choice="highest seed-mean VAL A Sharpe among arms valid on VAL A; VAL B reported; 2024 once")
     res_p = out / "REFIT.json"
     res = json.loads(res_p.read_text()) if res_p.exists() else {"arms": {}, "static_reference": {}}
@@ -206,7 +208,8 @@ def run(a):
             segs, refits, prev = [], [], (static[seed][0] if init == "warm" else None)
             for d0, d1 in zip(dates, dates[1:]):
                 win_a = _utc("2020-01-01") if SUPER[sw] is None else max(_utc("2020-01-01"), d0 - SUPER[sw])
-                pols, tau, info = fit_full(cx, ds, nf, NS, arch, a, seed, win_a, d0, prev if init == "warm" else None, device, T, L)
+                pols, tau, info = fit_full(cx, ds, nf, NS, arch, a, seed, win_a, d0, prev if init == "warm" else None, device, T, L,
+                                           tau_fixed=(static[seed][1] if a.tau_mode == "static" else None))
                 if pols is None:
                     refits.append({"refit_at": str(d0), **info})
                     m_ = rollout_range(cx, lambda *x: (E.HOLD, 1.5, 2.0), d0, d1)
@@ -244,7 +247,8 @@ def run(a):
                 segs, prev = [], static[seed][0]
                 for d0, d1 in zip(dates, dates[1:]):
                     win_a = _utc("2020-01-01") if SUPER[sw] is None else max(_utc("2020-01-01"), d0 - SUPER[sw])
-                    pols, tau, info = fit_full(cx, ds, nf, NS, arch, a, seed, win_a, d0, prev if init == "warm" else None, device, T, L)
+                    pols, tau, info = fit_full(cx, ds, nf, NS, arch, a, seed, win_a, d0, prev if init == "warm" else None, device, T, L,
+                                               tau_fixed=(static[seed][1] if a.tau_mode == "static" else None))
                     if pols is not None:
                         prev = pols
                     m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau)(cx) if pols else (lambda *x: (E.HOLD, 1.5, 2.0)), d0, d1)
@@ -282,6 +286,9 @@ def main():
     ap.add_argument("--read-2024", action="store_true")
     ap.add_argument("--cpu", action="store_true")
     ap.add_argument("--smoke", action="store_true", help="plumbing: 1 seed, 2 refit dates, few epochs")
+    ap.add_argument("--tau-mode", choices=["holdout", "static"], default="holdout")
+    ap.add_argument("--dagger-rounds", type=int, default=DAGGER_ROUNDS)
+    ap.add_argument("--holdout-share", type=float, default=HOLDOUT_SHARE)
     a = ap.parse_args()
     a.init = "warm"
     run(a)
