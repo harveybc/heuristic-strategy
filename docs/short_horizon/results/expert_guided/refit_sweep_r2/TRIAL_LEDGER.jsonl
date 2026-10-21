@@ -28,3 +28,7 @@
 {"utc": "2026-10-21T21:43:46+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|warm", "seed": 20261020}
 {"utc": "2026-10-21T21:55:19+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|warm", "seed": 20261020, "inner_a": -3.12285391261001}
 {"utc": "2026-10-21T21:55:19+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|warm", "seed": 20261021}
+{"utc": "2026-10-21T22:06:14+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|warm", "seed": 20261021, "inner_a": -0.773482672249945}
+{"utc": "2026-10-21T22:06:14+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|scratch", "seed": 20261019}
+{"utc": "2026-10-21T22:29:29+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|scratch", "seed": 20261019, "inner_a": -2.3494319855271453}
+{"utc": "2026-10-21T22:29:29+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|scratch", "seed": 20261020}
