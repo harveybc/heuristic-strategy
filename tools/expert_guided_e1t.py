@@ -75,7 +75,7 @@ class Ctx:
         self.oracle = OR.LegOracle(ds.bars.CLOSE.to_numpy(float), ds.pivots)
 
     def rollout(self, period, act, cfg=STUDENT_CFG, collect=False):
-        a, b = DG.PERIODS[period]
+        a, b = DG.PERIODS[period] if isinstance(period, str) else period      # explicit (start, end) allowed (refit sweep)
         env = E.BarEnv(self.ds.bars, self.ds.cal, self.ds.sigma, self.ds.sigma_rule, a, b, cfg)
         vis = []
         for bar in range(env.first, env.last):

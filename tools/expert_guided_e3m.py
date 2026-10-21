@@ -98,8 +98,9 @@ MODULES = {"JOINT": {"joint": (4, 2)}, "TASK": {"opener": (3, 2), "closer": (2, 
 
 
 def collect(cx, period, act, cfg=STUDENT_CFG):
-    """Like Ctx.rollout(collect=True) but every positioned row also carries (direction, entry, sl, tp, ff_bar)."""
-    a, b = DG.PERIODS[period]
+    """Like Ctx.rollout(collect=True) but every positioned row also carries (direction, entry, sl, tp, ff_bar).
+    ``period`` is a DG.PERIODS name or an explicit (start, end) pair (refit sweep, 2026-10-21)."""
+    a, b = DG.PERIODS[period] if isinstance(period, str) else period
     env = E.BarEnv(cx.ds.bars, cx.ds.cal, cx.ds.sigma, cx.ds.sigma_rule, a, b, cfg)
     vis = []
     for bar in range(env.first, env.last):
@@ -134,11 +135,31 @@ def exit_label(cx, bar, info):
     return int(d * (c[k] - entry) < 0)
 
 
-def build_sets(variant, vis, cx, from_expert):
+def exit_resolution_bar(cx, bar, info):
+    """Bar at which the open order's label becomes final (first touch or forced flat), or -1 if beyond the data."""
+    d, entry, sl, tp, ffb = info
+    h, l = cx.h, cx.l
+    for k in range(bar + 1, min(ffb, len(cx.c))):
+        if ((l[k] <= sl) if d > 0 else (h[k] >= sl)) or ((h[k] >= tp) if d > 0 else (l[k] <= tp)):
+            return k
+    return min(ffb, len(cx.c)) - 1 if ffb <= len(cx.c) else -1
+
+
+def build_sets(variant, vis, cx, from_expert, final_before_bar=None):
     """vis rows -> {module: (X, y, R, Rm)}; flat labels from the expert's issued action (round 0) or the oracle,
-    positioned labels from ``exit_label``."""
+    positioned labels from ``exit_label``. With ``final_before_bar`` (refit sweep) a row is used only when its label
+    is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows)."""
     acc = {m: ([], [], [], []) for m in MODULES[variant]}
     for r, bar, st, a_exp, tp_exp, sl_exp, info in vis:
+        if final_before_bar is not None:
+            if info is not None:
+                rb = exit_resolution_bar(cx, bar, info)
+                if rb < 0 or rb >= final_before_bar:
+                    continue
+            else:
+                se = int(cx.ds.support_end[bar])
+                if se < 0 or se >= final_before_bar:
+                    continue
         if info is not None:
             a, tp, sl = (E.CLOSE if exit_label(cx, bar, info) else E.HOLD), 1.5, 2.0
         elif from_expert:
