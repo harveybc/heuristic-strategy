@@ -12,3 +12,9 @@
 {"utc": "2026-10-21T20:17:17+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|scratch", "seed": 20261021}
 {"utc": "2026-10-21T20:25:02+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|scratch", "seed": 20261021, "inner_a": -0.7217244133923535}
 {"utc": "2026-10-21T20:25:02+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|warm", "seed": 20261019}
+{"utc": "2026-10-21T20:33:21+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|warm", "seed": 20261019, "inner_a": -2.7652914601553826}
+{"utc": "2026-10-21T20:33:21+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|warm", "seed": 20261020}
+{"utc": "2026-10-21T20:41:24+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|warm", "seed": 20261020, "inner_a": -2.2779268121033915}
+{"utc": "2026-10-21T20:41:24+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|warm", "seed": 20261021}
+{"utc": "2026-10-21T20:48:55+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|warm", "seed": 20261021, "inner_a": -4.690725595580102}
+{"utc": "2026-10-21T20:48:55+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|scratch", "seed": 20261019}
