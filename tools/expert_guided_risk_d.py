@@ -21,6 +21,7 @@ plan reserves optimisation for a module with skill; a small grid is fixed here b
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import itertools
 import json
 import math
@@ -89,8 +90,8 @@ def risk_wrap(policy_fn, p_hit_bar, sigma, sig_med, gate, size, levels):
         if new_entry:
             kind, k = size
             s = sigma[bar + 1] if bar + 1 < len(sigma) else np.nan
-            env.cfg.percentual_order_size = 1.0 if kind == "fixed" or not (np.isfinite(s) and s > 0) else \
-                float(np.clip(k * sig_med / s, 0.1, 1.0))
+            pos_size = 1.0 if kind == "fixed" or not (np.isfinite(s) and s > 0) else float(np.clip(k * sig_med / s, 0.1, 1.0))
+            env.cfg = dataclasses.replace(env.cfg, percentual_order_size=pos_size)     # EnvConfig is frozen
             return a, tp * tpx, sl * slx
         return a, tp, sl
     return f
