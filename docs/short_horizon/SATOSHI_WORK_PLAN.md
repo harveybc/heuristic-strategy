@@ -137,6 +137,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 31. [EN COLA en la 4090 detrás del barrido de reajuste; código @ec6ef4b] E4-Q, DECIDIR LA ORDEN Y NO LA DIRECCIÓN (aclaración del propietario 2026-10-21: en cada tick se evalúan las órdenes candidatas de compra y de venta, se predice su ganancia/riesgo y se ejecuta la mejor o ninguna, como en la era de los predictores): 32 órdenes candidatas (lado × TP ∈ {1,1.5,2,3}σ × SL ∈ {1,1.5,2,3}σ) etiquetadas con su resultado neto ejecutable en cada tick elegible (hindsight, solo etiquetas, finalidad antes de cada corte); modelo de cuantiles (0,1/0,5/0,9) sobre el tronco de los especialistas; utilidad = q50 − λ·(q50 − q10) − margen, abstención si las semillas discrepan; rejilla (λ, dispersión máx., margen) elegida en VAL A, VAL B reporte, 2024 una vez; diagnósticos: ninguna orden FIJA paga en TRAIN (−0,03…−0,09σ, el costo) y ¿la condición al estado crea ventaja? Siguientes ideas en cola (ver respuesta al propietario): arbitro aprendido con el experto ZigZag, incertidumbre por ensamble/conformal, cerradores del FULL sobre la orden elegida, premio por diferir.
 
+32. [EN COLA en la 4090 detrás de E4-Q; código heuristic-strategy @HEAD] E5-B, ENSAMBLE BAYESIANO + BOOTSTRAP con experto NOP (pedido del propietario 2026-10-21): cabezas bayesianas (reparametrización local, la idea de DenseFlipout del predictor) + MC-dropout en el tronco → media y desviación de cada predicción; 5 miembros por bootstrap de bloques semanales; experto NOP/BUY/SELL desde la mejor orden retrospectiva (margen 0,1σ); la incertidumbre entra a la decisión (abstención) y al tamaño de la orden; figura con la banda de incertidumbre vs resultado real; rejilla (κ, P(NOP) máx., margen, tamaño) en VAL A, VAL B reporte, 2024 una vez. Luego: árbitro imitado del ZigZag sobre el espacio de órdenes; conformal sobre la banda; cerradores del FULL sobre la orden elegida; 'diferir' como candidata.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
@@ -147,6 +149,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 | 2026-10-19 | La selección nueva es para RL guiado por el experto ZigZag, no para predicción; al terminarla, solicitud de auditoría a Musashi. |
 | 2026-10-19 | Sin entregas parciales: la selección se termina completa y a calidad plena (todas las etapas, PCMCI real, brazos neuronales, tablas completas) antes de avisar; el humano del "RL asistido" son los trades del ZigZag. |
 
+- 2026-10-21: la dirección NO es una señal externa: es nuestra decisión en cada tick entre las órdenes candidatas de compra y venta (y no operar) por ganancia/riesgo predichos con su incertidumbre; nada de pesimismo: miles de experimentos negativos son el camino si cada uno reduce el sobreajuste y acumula mejoras.
 - 2026-10-20: primero generalización, después desempeño. Ningún barrido para mejorar Sharpe/capacidad/ventana antes de que un modelo mínimo muestre brecha TRAIN−VAL controlada y señal en INNER_B (puntos 19–20).
 
 ## 6. Cómo se actualiza
