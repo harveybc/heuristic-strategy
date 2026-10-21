@@ -206,6 +206,8 @@ def run_cell(spec, cell, out):
         max_epochs=1000,patience=10,min_delta=1e-8,lr=.001,weight_decay=.0001,dropout=.1,
         batch=256,monitor='.5*(TRAIN + INNER_A inference losses)',rates=RATES,
         device=torch.cuda.get_device_name(0),torch_version=torch.__version__,gap_penalty=gap_penalty)
+    if gap_penalty:
+        effective['monitor'] += ' + .25*max(0,INNER_A_loss-TRAIN_loss)'
     write(out/'CONFIG.json',effective)
     write(out/'DATA_REPORT.json',ds.meta)
     cfg=business_config()
