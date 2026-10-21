@@ -1,9 +1,14 @@
 {
   "schema": "monitor_generalization_method.v1",
-  "current_stage": "S10_INTEGRATION_VERIFICATION",
+  "current_stage": "S14_RELEASE_OPERATION",
   "requirements": "MONITOR_GENERALIZATION_PLAN.md",
   "tests_designed_before_implementation": true,
-  "next_allowed_actions": ["finish focused tests", "verify source gate and worker GPU", "deploy authorized ten-cell finite study"],
+  "next_allowed_actions": ["timers execute ten paired cells", "publish and independently copy all terminal results", "read status on request"],
   "source_finding": "2023H1 common OHLC identical; candidate holes invalidate unequal-interval return diagnostic",
-  "runtime_state": "NOT_DEPLOYED_YET"
+  "runtime_state": "FIRST_FULL_MEAN_FIT_RUNNING",
+  "runtime_commit": "d41d588ed1989e43a43c5d62895e8564ca14080b",
+  "spec_sha256": "30bfbe92010959b77a1048bcf4d74d55ddec1a109eed8dbdca0955686178b6ae",
+  "verification": {"focused_cpu_suite": 52, "additional_parity_and_gate_tests": "17 focused tests pass locally and on worker", "curve_audit_test": 1,
+    "gpu_smoke": "2 epochs; gap penalty active; bitwise reload", "source_audit": "2436 shared H1 bars in 2023H1; zero OHLC mismatch cells;675 candidate absences",
+    "historical_curves": "20 of20 final modules select after internal-validation minimum; no historical weights reselected"}
 }
