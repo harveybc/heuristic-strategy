@@ -1,12 +1,12 @@
 {
- "decisions": 5,
- "entry_decisions": 5,
+ "decisions": 6,
+ "entry_decisions": 6,
  "by_model": {},
  "status_counts": {
-  "PENDING": 5
+  "PENDING": 6
  },
  "outcome_counts": {
-  "null": 5
+  "null": 6
  },
- "scored_utc": "2026-10-21 13:50:43.639208+00:00"
+ "scored_utc": "2026-10-21 14:50:44.170492+00:00"
 }
