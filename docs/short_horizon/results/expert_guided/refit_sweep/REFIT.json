@@ -21514,6 +21514,2694 @@
       "tau": 0.38971009850502014
      }
     ]
+   },
+   "20261020": {
+    "INNER_A": {
+     "trades": 276,
+     "net_profit_usd": -13016.036389560113,
+     "max_drawdown_pct": 42.71978950600334,
+     "orders_per_week": 9.200000000000001,
+     "max_entries_per_day": 4,
+     "sharpe_daily_sqrt365": -5.42812152185871,
+     "valid": true
+    },
+    "INNER_B": {
+     "trades": 268,
+     "net_profit_usd": -6389.716405592307,
+     "max_drawdown_pct": 28.270742262293343,
+     "orders_per_week": 8.466666666666667,
+     "max_entries_per_day": 4,
+     "sharpe_daily_sqrt365": -2.631669512092901,
+     "valid": true
+    },
+    "segments": [
+     {
+      "net_profit_usd": -1963.7199985742636,
+      "sharpe_daily_sqrt365": -5.16187832051446,
+      "sortino_daily_sqrt365": -5.952631722866538,
+      "max_drawdown_pct": 25.2625602969523,
+      "max_drawdown_usd": 2582.700678470431,
+      "trades": 42,
+      "win_rate": 0.2619047619047619,
+      "profit_factor": 0.5855210149302602,
+      "orders_per_week": 8.4,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -1348.484333574263,
+      "cost_spread_usd": 191.47926,
+      "cost_slippage_usd": 123.19428,
+      "cost_commission_usd": 237.59379,
+      "cost_financing_usd": 62.968335,
+      "exposure_bar_share": 0.7696737044145874,
+      "ruined": false,
+      "n_entries": 42,
+      "n_closes": 42,
+      "n_close_TP": 8,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 24,
+      "n_close_REVERSAL": 6,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 3,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 15,
+      "n_levels_clipped": 0,
+      "n_decisions": 520,
+      "entries": 42,
+      "closes": 42,
+      "segment": [
+       "2023-01-01 00:00:00+00:00",
+       "2023-02-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -1188.608612134176,
+      "sharpe_daily_sqrt365": -1.8904501317421392,
+      "sortino_daily_sqrt365": -2.6344009704550695,
+      "max_drawdown_pct": 23.3347986415582,
+      "max_drawdown_usd": 2635.771125572717,
+      "trades": 47,
+      "win_rate": 0.3191489361702128,
+      "profit_factor": 0.7997752652049143,
+      "orders_per_week": 9.4,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -433.077527134177,
+      "cost_spread_usd": 245.130845,
+      "cost_slippage_usd": 146.47718,
+      "cost_commission_usd": 291.80333,
+      "cost_financing_usd": 72.11972999999999,
+      "exposure_bar_share": 0.7354166666666667,
+      "ruined": false,
+      "n_entries": 47,
+      "n_closes": 47,
+      "n_close_TP": 13,
+      "n_close_SL": 1,
+      "n_close_FORCED_FLAT": 3,
+      "n_close_AGENT_CLOSE": 28,
+      "n_close_REVERSAL": 2,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 12,
+      "n_refused_DAILY_CAP": 3,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 19,
+      "n_levels_clipped": 0,
+      "n_decisions": 479,
+      "entries": 47,
+      "closes": 47,
+      "segment": [
+       "2023-02-01 00:00:00+00:00",
+       "2023-03-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -4094.8583159093305,
+      "sharpe_daily_sqrt365": -8.169055044566575,
+      "sortino_daily_sqrt365": -8.012579935996904,
+      "max_drawdown_pct": 42.71978950600334,
+      "max_drawdown_usd": 4404.076164732645,
+      "trades": 50,
+      "win_rate": 0.28,
+      "profit_factor": 0.41153898696225316,
+      "orders_per_week": 10.0,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -3477.9601009093312,
+      "cost_spread_usd": 163.971405,
+      "cost_slippage_usd": 131.79397,
+      "cost_commission_usd": 257.12372,
+      "cost_financing_usd": 64.00912,
+      "exposure_bar_share": 0.7745454545454545,
+      "ruined": false,
+      "n_entries": 50,
+      "n_closes": 50,
+      "n_close_TP": 12,
+      "n_close_SL": 1,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 27,
+      "n_close_REVERSAL": 6,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 5,
+      "n_refused_DAILY_CAP": 2,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 42,
+      "n_levels_clipped": 0,
+      "n_decisions": 549,
+      "entries": 50,
+      "closes": 50,
+      "segment": [
+       "2023-03-01 00:00:00+00:00",
+       "2023-04-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -3111.477476980407,
+      "sharpe_daily_sqrt365": -10.110609957920254,
+      "sortino_daily_sqrt365": -9.911371824859458,
+      "max_drawdown_pct": 33.00051270375029,
+      "max_drawdown_usd": 3300.051270375029,
+      "trades": 41,
+      "win_rate": 0.21951219512195122,
+      "profit_factor": 0.3729810372021288,
+      "orders_per_week": 8.2,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -2566.9871869804083,
+      "cost_spread_usd": 153.673215,
+      "cost_slippage_usd": 110.19812,
+      "cost_commission_usd": 213.05025,
+      "cost_financing_usd": 67.568705,
+      "exposure_bar_share": 0.7039337474120083,
+      "ruined": false,
+      "n_entries": 41,
+      "n_closes": 41,
+      "n_close_TP": 8,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 30,
+      "n_close_REVERSAL": 3,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 6,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 34,
+      "n_levels_clipped": 0,
+      "n_decisions": 482,
+      "entries": 41,
+      "closes": 41,
+      "segment": [
+       "2023-04-01 00:00:00+00:00",
+       "2023-05-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -2045.330694176444,
+      "sharpe_daily_sqrt365": -5.64351968161724,
+      "sortino_daily_sqrt365": -6.638667648805612,
+      "max_drawdown_pct": 29.53182645652112,
+      "max_drawdown_usd": 3277.274361253766,
+      "trades": 52,
+      "win_rate": 0.28846153846153844,
+      "profit_factor": 0.6160869824906824,
+      "orders_per_week": 10.4,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -1273.8269291764445,
+      "cost_spread_usd": 241.771245,
+      "cost_slippage_usd": 158.37156000000002,
+      "cost_commission_usd": 313.42409,
+      "cost_financing_usd": 57.93687,
+      "exposure_bar_share": 0.7644927536231884,
+      "ruined": false,
+      "n_entries": 52,
+      "n_closes": 52,
+      "n_close_TP": 12,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 5,
+      "n_close_AGENT_CLOSE": 27,
+      "n_close_REVERSAL": 8,
+      "n_refused_BEFORE_OPERATIONAL_START": 8,
+      "n_refused_ENTRY_CUTOFF": 17,
+      "n_refused_DAILY_CAP": 10,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 21,
+      "n_levels_clipped": 0,
+      "n_decisions": 551,
+      "entries": 52,
+      "closes": 52,
+      "segment": [
+       "2023-05-01 00:00:00+00:00",
+       "2023-06-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -612.0412917854919,
+      "sharpe_daily_sqrt365": -1.7286525098263745,
+      "sortino_daily_sqrt365": -2.203698734331607,
+      "max_drawdown_pct": 9.249391716614575,
+      "max_drawdown_usd": 931.4348146952834,
+      "trades": 44,
+      "win_rate": 0.4772727272727273,
+      "profit_factor": 0.8786432057331591,
+      "orders_per_week": 8.8,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 24.696583214507413,
+      "cost_spread_usd": 179.201445,
+      "cost_slippage_usd": 124.19804,
+      "cost_commission_usd": 273.91588,
+      "cost_financing_usd": 59.422509999999996,
+      "exposure_bar_share": 0.7390476190476191,
+      "ruined": false,
+      "n_entries": 44,
+      "n_closes": 44,
+      "n_close_TP": 20,
+      "n_close_SL": 1,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 15,
+      "n_close_REVERSAL": 4,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 9,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 41,
+      "n_levels_clipped": 0,
+      "n_decisions": 524,
+      "entries": 44,
+      "closes": 44,
+      "segment": [
+       "2023-06-01 00:00:00+00:00",
+       "2023-07-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -2035.7024904053287,
+      "sharpe_daily_sqrt365": -5.010396971898517,
+      "sortino_daily_sqrt365": -5.524684298054081,
+      "max_drawdown_pct": 27.66478608095591,
+      "max_drawdown_usd": 2931.46727016159,
+      "trades": 41,
+      "win_rate": 0.34146341463414637,
+      "profit_factor": 0.5951427924461056,
+      "orders_per_week": 6.833333333333333,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -1450.621580405329,
+      "cost_spread_usd": 170.980365,
+      "cost_slippage_usd": 112.98094,
+      "cost_commission_usd": 228.75384,
+      "cost_financing_usd": 72.365765,
+      "exposure_bar_share": 0.7790927021696252,
+      "ruined": false,
+      "n_entries": 41,
+      "n_closes": 41,
+      "n_close_TP": 13,
+      "n_close_SL": 1,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 22,
+      "n_close_REVERSAL": 3,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 3,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 21,
+      "n_levels_clipped": 0,
+      "n_decisions": 506,
+      "entries": 41,
+      "closes": 41,
+      "segment": [
+       "2023-07-01 00:00:00+00:00",
+       "2023-08-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 14.15053190011713,
+      "sharpe_daily_sqrt365": 0.29412507409716687,
+      "sortino_daily_sqrt365": 0.4058728126371694,
+      "max_drawdown_pct": 15.750803052435803,
+      "max_drawdown_usd": 1872.1948514663472,
+      "trades": 62,
+      "win_rate": 0.4032258064516129,
+      "profit_factor": 1.0022139388956526,
+      "orders_per_week": 12.4,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 1084.9407669001187,
+      "cost_spread_usd": 346.80593999999996,
+      "cost_slippage_usd": 201.41712,
+      "cost_commission_usd": 423.14279,
+      "cost_financing_usd": 99.424385,
+      "exposure_bar_share": 0.7952898550724637,
+      "ruined": false,
+      "n_entries": 62,
+      "n_closes": 62,
+      "n_close_TP": 21,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 32,
+      "n_close_REVERSAL": 5,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 8,
+      "n_refused_DAILY_CAP": 3,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 17,
+      "n_levels_clipped": 0,
+      "n_decisions": 551,
+      "entries": 62,
+      "closes": 62,
+      "segment": [
+       "2023-08-01 00:00:00+00:00",
+       "2023-09-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -1412.1601335293944,
+      "sharpe_daily_sqrt365": -3.5413831822962023,
+      "sortino_daily_sqrt365": -4.278480358868274,
+      "max_drawdown_pct": 19.818179872575588,
+      "max_drawdown_usd": 2026.3066281808933,
+      "trades": 44,
+      "win_rate": 0.3181818181818182,
+      "profit_factor": 0.6453728505416042,
+      "orders_per_week": 8.8,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -675.9192035293948,
+      "cost_spread_usd": 252.87258,
+      "cost_slippage_usd": 135.07354,
+      "cost_commission_usd": 269.57056,
+      "cost_financing_usd": 78.72425,
+      "exposure_bar_share": 0.7345309381237525,
+      "ruined": false,
+      "n_entries": 44,
+      "n_closes": 44,
+      "n_close_TP": 11,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 29,
+      "n_close_REVERSAL": 2,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 8,
+      "n_refused_DAILY_CAP": 4,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 20,
+      "n_levels_clipped": 0,
+      "n_decisions": 500,
+      "entries": 44,
+      "closes": 44,
+      "segment": [
+       "2023-09-01 00:00:00+00:00",
+       "2023-10-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -2827.0742262293343,
+      "sharpe_daily_sqrt365": -8.370979870633008,
+      "sortino_daily_sqrt365": -8.498589158155687,
+      "max_drawdown_pct": 28.270742262293343,
+      "max_drawdown_usd": 2827.0742262293343,
+      "trades": 43,
+      "win_rate": 0.27906976744186046,
+      "profit_factor": 0.43389945017844117,
+      "orders_per_week": 7.166666666666667,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -2183.437966229334,
+      "cost_spread_usd": 255.10264999999998,
+      "cost_slippage_usd": 125.34852000000001,
+      "cost_commission_usd": 248.76222,
+      "cost_financing_usd": 14.42287,
+      "exposure_bar_share": 0.6911487758945386,
+      "ruined": false,
+      "n_entries": 43,
+      "n_closes": 43,
+      "n_close_TP": 10,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 26,
+      "n_close_REVERSAL": 3,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 9,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 29,
+      "n_levels_clipped": 0,
+      "n_decisions": 530,
+      "entries": 43,
+      "closes": 43,
+      "segment": [
+       "2023-10-01 00:00:00+00:00",
+       "2023-11-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -213.15299085408515,
+      "sharpe_daily_sqrt365": -0.4454477707086126,
+      "sortino_daily_sqrt365": -0.6069936107692876,
+      "max_drawdown_pct": 12.798185162749581,
+      "max_drawdown_usd": 1436.3678143203742,
+      "trades": 42,
+      "win_rate": 0.38095238095238093,
+      "profit_factor": 0.9491727201648243,
+      "orders_per_week": 8.4,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 452.73428914591545,
+      "cost_spread_usd": 206.514315,
+      "cost_slippage_usd": 134.33402,
+      "cost_commission_usd": 281.84135,
+      "cost_financing_usd": 43.19759499999999,
+      "exposure_bar_share": 0.7514231499051234,
+      "ruined": false,
+      "n_entries": 42,
+      "n_closes": 42,
+      "n_close_TP": 14,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 23,
+      "n_close_REVERSAL": 1,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 3,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 16,
+      "n_levels_clipped": 0,
+      "n_decisions": 526,
+      "entries": 42,
+      "closes": 42,
+      "segment": [
+       "2023-11-01 00:00:00+00:00",
+       "2023-12-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 84.22290352571872,
+      "sharpe_daily_sqrt365": 0.4551359122480936,
+      "sortino_daily_sqrt365": 0.6026715179560727,
+      "max_drawdown_pct": 14.237737585594973,
+      "max_drawdown_usd": 1481.1846777161027,
+      "trades": 36,
+      "win_rate": 0.4166666666666667,
+      "profit_factor": 1.0229604419156713,
+      "orders_per_week": 7.2,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 636.3286535257199,
+      "cost_spread_usd": 137.18375,
+      "cost_slippage_usd": 106.00040000000001,
+      "cost_commission_usd": 225.68616,
+      "cost_financing_usd": 83.23544,
+      "exposure_bar_share": 0.7457264957264957,
+      "ruined": false,
+      "n_entries": 36,
+      "n_closes": 36,
+      "n_close_TP": 13,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 16,
+      "n_close_REVERSAL": 3,
+      "n_refused_BEFORE_OPERATIONAL_START": 7,
+      "n_refused_ENTRY_CUTOFF": 4,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 30,
+      "n_levels_clipped": 0,
+      "n_decisions": 467,
+      "entries": 36,
+      "closes": 36,
+      "segment": [
+       "2023-12-01 00:00:00+00:00",
+       "2024-01-01 00:00:00+00:00"
+      ]
+     }
+    ],
+    "refits": [
+     {
+      "refit_at": "2023-01-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-01-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 166,
+        "best_epoch": 156,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 199,
+        "best_epoch": 189,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 75,
+        "best_epoch": 65,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 33,
+        "best_epoch": 23,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 59,
+        "best_epoch": 49,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 64,
+        "best_epoch": 54,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 54,
+        "best_epoch": 44,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 44,
+        "best_epoch": 34,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 15859,
+       "open_s": 15859,
+       "close_l": 17877,
+       "close_s": 16355
+      },
+      "tau": 0.35098183155059814
+     },
+     {
+      "refit_at": "2023-02-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-02-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 208,
+        "best_epoch": 198,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 139,
+        "best_epoch": 129,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 65,
+        "best_epoch": 55,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 83,
+        "best_epoch": 73,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 81,
+        "best_epoch": 71,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 52,
+        "best_epoch": 42,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 89,
+        "best_epoch": 79,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 61,
+        "best_epoch": 51,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 16160,
+       "open_s": 16160,
+       "close_l": 17282,
+       "close_s": 18019
+      },
+      "tau": 0.39146310091018677
+     },
+     {
+      "refit_at": "2023-03-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-03-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 184,
+        "best_epoch": 174,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 166,
+        "best_epoch": 156,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 33,
+        "best_epoch": 23,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 67,
+        "best_epoch": 57,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 76,
+        "best_epoch": 66,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 98,
+        "best_epoch": 88,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 46,
+        "best_epoch": 36,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 60,
+        "best_epoch": 50,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 16841,
+       "open_s": 16841,
+       "close_l": 17182,
+       "close_s": 18738
+      },
+      "tau": 0.3889831006526947
+     },
+     {
+      "refit_at": "2023-04-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-04-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 152,
+        "best_epoch": 142,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 170,
+        "best_epoch": 160,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 74,
+        "best_epoch": 64,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 14,
+        "best_epoch": 4,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 65,
+        "best_epoch": 55,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 135,
+        "best_epoch": 125,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 29,
+        "best_epoch": 19,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 43,
+        "best_epoch": 33,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 17424,
+       "open_s": 17424,
+       "close_l": 19912,
+       "close_s": 16972
+      },
+      "tau": 0.4140104353427887
+     },
+     {
+      "refit_at": "2023-05-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-05-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 211,
+        "best_epoch": 201,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 164,
+        "best_epoch": 154,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 46,
+        "best_epoch": 36,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 55,
+        "best_epoch": 45,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 156,
+        "best_epoch": 146,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 120,
+        "best_epoch": 110,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 34,
+        "best_epoch": 24,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 45,
+        "best_epoch": 35,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 17875,
+       "open_s": 17875,
+       "close_l": 18691,
+       "close_s": 19080
+      },
+      "tau": 0.30934256315231323
+     },
+     {
+      "refit_at": "2023-06-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-06-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 199,
+        "best_epoch": 189,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 135,
+        "best_epoch": 125,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 56,
+        "best_epoch": 46,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 32,
+        "best_epoch": 22,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 83,
+        "best_epoch": 73,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 56,
+        "best_epoch": 46,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 28,
+        "best_epoch": 18,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 30,
+        "best_epoch": 20,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 18359,
+       "open_s": 18359,
+       "close_l": 19545,
+       "close_s": 19225
+      },
+      "tau": 0.37840259075164795
+     },
+     {
+      "refit_at": "2023-07-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-07-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 222,
+        "best_epoch": 212,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 139,
+        "best_epoch": 129,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 50,
+        "best_epoch": 40,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 43,
+        "best_epoch": 33,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 53,
+        "best_epoch": 43,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 57,
+        "best_epoch": 47,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 45,
+        "best_epoch": 35,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 40,
+        "best_epoch": 30,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 18825,
+       "open_s": 18825,
+       "close_l": 19538,
+       "close_s": 20231
+      },
+      "tau": 0.3553650379180908
+     },
+     {
+      "refit_at": "2023-08-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-08-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 180,
+        "best_epoch": 170,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 166,
+        "best_epoch": 156,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 28,
+        "best_epoch": 18,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 30,
+        "best_epoch": 20,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 64,
+        "best_epoch": 54,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 82,
+        "best_epoch": 72,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 36,
+        "best_epoch": 26,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 31,
+        "best_epoch": 21,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 19407,
+       "open_s": 19407,
+       "close_l": 20538,
+       "close_s": 20008
+      },
+      "tau": 0.4107745587825775
+     },
+     {
+      "refit_at": "2023-09-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-09-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 160,
+        "best_epoch": 150,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 140,
+        "best_epoch": 130,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 29,
+        "best_epoch": 19,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 13,
+        "best_epoch": 3,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 86,
+        "best_epoch": 76,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 61,
+        "best_epoch": 51,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 35,
+        "best_epoch": 25,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 51,
+        "best_epoch": 41,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 19851,
+       "open_s": 19851,
+       "close_l": 22451,
+       "close_s": 19126
+      },
+      "tau": 0.32926487922668457
+     },
+     {
+      "refit_at": "2023-10-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-10-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 205,
+        "best_epoch": 195,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 137,
+        "best_epoch": 127,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 44,
+        "best_epoch": 34,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 13,
+        "best_epoch": 3,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 69,
+        "best_epoch": 59,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 111,
+        "best_epoch": 101,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 40,
+        "best_epoch": 30,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 36,
+        "best_epoch": 26,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 20256,
+       "open_s": 20256,
+       "close_l": 22971,
+       "close_s": 19557
+      },
+      "tau": 0.37830302119255066
+     },
+     {
+      "refit_at": "2023-11-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-11-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 223,
+        "best_epoch": 213,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 118,
+        "best_epoch": 108,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 30,
+        "best_epoch": 20,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 14,
+        "best_epoch": 4,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 33,
+        "best_epoch": 23,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 86,
+        "best_epoch": 76,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 37,
+        "best_epoch": 27,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 16,
+        "best_epoch": 6,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 20587,
+       "open_s": 20587,
+       "close_l": 23293,
+       "close_s": 20314
+      },
+      "tau": 0.38851386308670044
+     },
+     {
+      "refit_at": "2023-12-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-12-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 210,
+        "best_epoch": 200,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 148,
+        "best_epoch": 138,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 28,
+        "best_epoch": 18,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 14,
+        "best_epoch": 4,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 77,
+        "best_epoch": 67,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 54,
+        "best_epoch": 44,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 18,
+        "best_epoch": 8,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 29,
+        "best_epoch": 19,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 21451,
+       "open_s": 21451,
+       "close_l": 23785,
+       "close_s": 20418
+      },
+      "tau": 0.31373199820518494
+     }
+    ]
+   },
+   "20261021": {
+    "INNER_A": {
+     "trades": 162,
+     "net_profit_usd": -1148.0014382680338,
+     "max_drawdown_pct": 25.450492309996285,
+     "orders_per_week": 5.3999999999999995,
+     "max_entries_per_day": 4,
+     "sharpe_daily_sqrt365": -0.2919786537640228,
+     "valid": true
+    },
+    "INNER_B": {
+     "trades": 112,
+     "net_profit_usd": 906.9540031521356,
+     "max_drawdown_pct": 16.23483655291793,
+     "orders_per_week": 3.522222222222222,
+     "max_entries_per_day": 4,
+     "sharpe_daily_sqrt365": 0.030970701571758345,
+     "valid": true
+    },
+    "segments": [
+     {
+      "net_profit_usd": -84.68666692059924,
+      "sharpe_daily_sqrt365": 0.04717242609376118,
+      "sortino_daily_sqrt365": 0.07056333686937424,
+      "max_drawdown_pct": 18.132110680788514,
+      "max_drawdown_usd": 1898.2222231111973,
+      "trades": 23,
+      "win_rate": 0.43478260869565216,
+      "profit_factor": 0.9689351587472469,
+      "orders_per_week": 4.6,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 280.6654730793997,
+      "cost_spread_usd": 106.736475,
+      "cost_slippage_usd": 66.49668000000001,
+      "cost_commission_usd": 140.39592,
+      "cost_financing_usd": 51.723065,
+      "exposure_bar_share": 0.5604606525911708,
+      "ruined": false,
+      "n_entries": 23,
+      "n_closes": 23,
+      "n_close_TP": 8,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 13,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 8,
+      "n_levels_clipped": 0,
+      "n_decisions": 520,
+      "entries": 23,
+      "closes": 23,
+      "segment": [
+       "2023-01-01 00:00:00+00:00",
+       "2023-02-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 152.0710540038017,
+      "sharpe_daily_sqrt365": 0.6352621296629692,
+      "sortino_daily_sqrt365": 0.858785509263751,
+      "max_drawdown_pct": 9.713973990462145,
+      "max_drawdown_usd": 1061.6872100000091,
+      "trades": 28,
+      "win_rate": 0.42857142857142855,
+      "profit_factor": 1.0418678627648206,
+      "orders_per_week": 5.6,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 597.0837390038026,
+      "cost_spread_usd": 141.87157,
+      "cost_slippage_usd": 88.48378000000001,
+      "cost_commission_usd": 187.72585999999998,
+      "cost_financing_usd": 26.931474999999995,
+      "exposure_bar_share": 0.5625,
+      "ruined": false,
+      "n_entries": 28,
+      "n_closes": 28,
+      "n_close_TP": 10,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 3,
+      "n_close_AGENT_CLOSE": 15,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 12,
+      "n_levels_clipped": 0,
+      "n_decisions": 479,
+      "entries": 28,
+      "closes": 28,
+      "segment": [
+       "2023-02-01 00:00:00+00:00",
+       "2023-03-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -1875.0632759564423,
+      "sharpe_daily_sqrt365": -4.973806899215378,
+      "sortino_daily_sqrt365": -5.673534941873281,
+      "max_drawdown_pct": 25.450492309996285,
+      "max_drawdown_usd": 2624.8713225364627,
+      "trades": 33,
+      "win_rate": 0.3333333333333333,
+      "profit_factor": 0.5811999623390941,
+      "orders_per_week": 6.6,
+      "max_entries_per_day": 3,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -1406.7466509564422,
+      "cost_spread_usd": 145.073295,
+      "cost_slippage_usd": 91.92366000000001,
+      "cost_commission_usd": 188.57874,
+      "cost_financing_usd": 42.74093,
+      "exposure_bar_share": 0.6654545454545454,
+      "ruined": false,
+      "n_entries": 33,
+      "n_closes": 33,
+      "n_close_TP": 10,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 1,
+      "n_close_AGENT_CLOSE": 19,
+      "n_close_REVERSAL": 3,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 40,
+      "n_levels_clipped": 0,
+      "n_decisions": 549,
+      "entries": 33,
+      "closes": 33,
+      "segment": [
+       "2023-03-01 00:00:00+00:00",
+       "2023-04-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 361.57430826875316,
+      "sharpe_daily_sqrt365": 1.0357607672778733,
+      "sortino_daily_sqrt365": 1.7242430693980733,
+      "max_drawdown_pct": 13.069808566327207,
+      "max_drawdown_usd": 1523.2094899999756,
+      "trades": 23,
+      "win_rate": 0.5217391304347826,
+      "profit_factor": 1.1193698982847864,
+      "orders_per_week": 4.6,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 746.9131232687529,
+      "cost_spread_usd": 105.429825,
+      "cost_slippage_usd": 69.05694000000001,
+      "cost_commission_usd": 158.14582000000001,
+      "cost_financing_usd": 52.70623,
+      "exposure_bar_share": 0.4782608695652174,
+      "ruined": false,
+      "n_entries": 23,
+      "n_closes": 23,
+      "n_close_TP": 11,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 1,
+      "n_close_AGENT_CLOSE": 11,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 12,
+      "n_levels_clipped": 0,
+      "n_decisions": 482,
+      "entries": 23,
+      "closes": 23,
+      "segment": [
+       "2023-04-01 00:00:00+00:00",
+       "2023-05-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -524.5947842206551,
+      "sharpe_daily_sqrt365": -1.374199011119653,
+      "sortino_daily_sqrt365": -1.8197811753636712,
+      "max_drawdown_pct": 14.995381938495237,
+      "max_drawdown_usd": 1505.4545468164451,
+      "trades": 18,
+      "win_rate": 0.4444444444444444,
+      "profit_factor": 0.7578949889668759,
+      "orders_per_week": 3.6,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -244.53987922065411,
+      "cost_spread_usd": 64.64622,
+      "cost_slippage_usd": 50.10694,
+      "cost_commission_usd": 108.22203,
+      "cost_financing_usd": 57.079715,
+      "exposure_bar_share": 0.4166666666666667,
+      "ruined": false,
+      "n_entries": 18,
+      "n_closes": 18,
+      "n_close_TP": 7,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 11,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 3,
+      "n_levels_clipped": 0,
+      "n_decisions": 551,
+      "entries": 18,
+      "closes": 18,
+      "segment": [
+       "2023-05-01 00:00:00+00:00",
+       "2023-06-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 822.6979265571081,
+      "sharpe_daily_sqrt365": 2.6723206726048327,
+      "sortino_daily_sqrt365": 4.195525278728205,
+      "max_drawdown_pct": 6.3988378492615805,
+      "max_drawdown_usd": 643.7193199999892,
+      "trades": 37,
+      "win_rate": 0.4864864864864865,
+      "profit_factor": 1.2677030728877978,
+      "orders_per_week": 7.4,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 1392.7395715571074,
+      "cost_spread_usd": 162.692655,
+      "cost_slippage_usd": 109.90656000000001,
+      "cost_commission_usd": 244.78041,
+      "cost_financing_usd": 52.662020000000005,
+      "exposure_bar_share": 0.5123809523809524,
+      "ruined": false,
+      "n_entries": 37,
+      "n_closes": 37,
+      "n_close_TP": 16,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 3,
+      "n_close_AGENT_CLOSE": 18,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 18,
+      "n_levels_clipped": 0,
+      "n_decisions": 524,
+      "entries": 37,
+      "closes": 37,
+      "segment": [
+       "2023-06-01 00:00:00+00:00",
+       "2023-07-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -237.63869495403378,
+      "sharpe_daily_sqrt365": -0.42519999309339146,
+      "sortino_daily_sqrt365": -0.5527291117757979,
+      "max_drawdown_pct": 16.23483655291793,
+      "max_drawdown_usd": 1792.723314355977,
+      "trades": 29,
+      "win_rate": 0.4827586206896552,
+      "profit_factor": 0.923571681362314,
+      "orders_per_week": 4.833333333333333,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 204.56651004596543,
+      "cost_spread_usd": 136.076965,
+      "cost_slippage_usd": 85.21436000000001,
+      "cost_commission_usd": 187.76317,
+      "cost_financing_usd": 33.15071,
+      "exposure_bar_share": 0.46548323471400394,
+      "ruined": false,
+      "n_entries": 29,
+      "n_closes": 29,
+      "n_close_TP": 12,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 1,
+      "n_close_AGENT_CLOSE": 14,
+      "n_close_REVERSAL": 2,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 22,
+      "n_levels_clipped": 0,
+      "n_decisions": 506,
+      "entries": 29,
+      "closes": 29,
+      "segment": [
+       "2023-07-01 00:00:00+00:00",
+       "2023-08-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -1160.6291509193197,
+      "sharpe_daily_sqrt365": -3.788441083074006,
+      "sortino_daily_sqrt365": -4.248925781577623,
+      "max_drawdown_pct": 15.842767959434067,
+      "max_drawdown_usd": 1597.3242508734493,
+      "trades": 35,
+      "win_rate": 0.3142857142857143,
+      "profit_factor": 0.672740712867751,
+      "orders_per_week": 7.0,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": -682.0526909193185,
+      "cost_spread_usd": 143.13223,
+      "cost_slippage_usd": 97.53380000000001,
+      "cost_commission_usd": 201.62002,
+      "cost_financing_usd": 36.29041,
+      "exposure_bar_share": 0.40217391304347827,
+      "ruined": false,
+      "n_entries": 35,
+      "n_closes": 35,
+      "n_close_TP": 11,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 20,
+      "n_close_REVERSAL": 2,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 3,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 20,
+      "n_levels_clipped": 0,
+      "n_decisions": 551,
+      "entries": 35,
+      "closes": 35,
+      "segment": [
+       "2023-08-01 00:00:00+00:00",
+       "2023-09-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 162.5712066473261,
+      "sharpe_daily_sqrt365": 1.051010191034317,
+      "sortino_daily_sqrt365": 1.481012782886527,
+      "max_drawdown_pct": 4.370696325294799,
+      "max_drawdown_usd": 464.47595999999976,
+      "trades": 8,
+      "win_rate": 0.5,
+      "profit_factor": 1.2157063274916622,
+      "orders_per_week": 1.6,
+      "max_entries_per_day": 3,
+      "valid": false,
+      "valid_weekly_rule": false,
+      "gross_usd": 275.6025116473257,
+      "cost_spread_usd": 30.617565,
+      "cost_slippage_usd": 23.460300000000004,
+      "cost_commission_usd": 54.42129,
+      "cost_financing_usd": 4.53215,
+      "exposure_bar_share": 0.18762475049900199,
+      "ruined": false,
+      "n_entries": 8,
+      "n_closes": 8,
+      "n_close_TP": 4,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 4,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 0,
+      "n_levels_clipped": 0,
+      "n_decisions": 500,
+      "entries": 8,
+      "closes": 8,
+      "segment": [
+       "2023-09-01 00:00:00+00:00",
+       "2023-10-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 533.689773228838,
+      "sharpe_daily_sqrt365": 2.2226835513488994,
+      "sortino_daily_sqrt365": 5.4199982063100745,
+      "max_drawdown_pct": 4.882953354724159,
+      "max_drawdown_usd": 540.7602278446684,
+      "trades": 9,
+      "win_rate": 0.5555555555555556,
+      "profit_factor": 1.6564942023991296,
+      "orders_per_week": 1.5,
+      "max_entries_per_day": 3,
+      "valid": false,
+      "valid_weekly_rule": false,
+      "gross_usd": 654.441033228838,
+      "cost_spread_usd": 33.216465,
+      "cost_slippage_usd": 26.445140000000002,
+      "cost_commission_usd": 63.56588,
+      "cost_financing_usd": -2.476225,
+      "exposure_bar_share": 0.09792843691148775,
+      "ruined": false,
+      "n_entries": 9,
+      "n_closes": 9,
+      "n_close_TP": 5,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 4,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 2,
+      "n_levels_clipped": 0,
+      "n_decisions": 530,
+      "entries": 9,
+      "closes": 9,
+      "segment": [
+       "2023-10-01 00:00:00+00:00",
+       "2023-11-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": -195.0567881034567,
+      "sharpe_daily_sqrt365": -1.3984515312052668,
+      "sortino_daily_sqrt365": -1.903418817970042,
+      "max_drawdown_pct": 4.620563173742303,
+      "max_drawdown_usd": 474.47657396849354,
+      "trades": 6,
+      "win_rate": 0.3333333333333333,
+      "profit_factor": 0.69832958570039,
+      "orders_per_week": 1.2,
+      "max_entries_per_day": 2,
+      "valid": false,
+      "valid_weekly_rule": false,
+      "gross_usd": -113.3556381034558,
+      "cost_spread_usd": 22.22343,
+      "cost_slippage_usd": 18.57598,
+      "cost_commission_usd": 38.98944,
+      "cost_financing_usd": 1.9122999999999997,
+      "exposure_bar_share": 0.13282732447817835,
+      "ruined": false,
+      "n_entries": 6,
+      "n_closes": 6,
+      "n_close_TP": 2,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 4,
+      "n_close_REVERSAL": 0,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 0,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 5,
+      "n_levels_clipped": 0,
+      "n_decisions": 526,
+      "entries": 6,
+      "closes": 6,
+      "segment": [
+       "2023-11-01 00:00:00+00:00",
+       "2023-12-01 00:00:00+00:00"
+      ]
+     },
+     {
+      "net_profit_usd": 1804.0176572527816,
+      "sharpe_daily_sqrt365": 5.1349372792061,
+      "sortino_daily_sqrt365": 19.565201275275587,
+      "max_drawdown_pct": 6.541591241130469,
+      "max_drawdown_usd": 736.1219300000066,
+      "trades": 25,
+      "win_rate": 0.48,
+      "profit_factor": 2.061932005525817,
+      "orders_per_week": 5.0,
+      "max_entries_per_day": 4,
+      "valid": true,
+      "valid_weekly_rule": true,
+      "gross_usd": 2254.116407252782,
+      "cost_spread_usd": 120.78992,
+      "cost_slippage_usd": 75.97498,
+      "cost_commission_usd": 174.1621,
+      "cost_financing_usd": 79.17175,
+      "exposure_bar_share": 0.344017094017094,
+      "ruined": false,
+      "n_entries": 25,
+      "n_closes": 25,
+      "n_close_TP": 12,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 10,
+      "n_close_REVERSAL": 3,
+      "n_refused_BEFORE_OPERATIONAL_START": 0,
+      "n_refused_ENTRY_CUTOFF": 0,
+      "n_refused_DAILY_CAP": 3,
+      "n_refused_UNITS": 0,
+      "n_refused_LEVELS": 0,
+      "n_refused_GAP_BEYOND_LEVEL": 0,
+      "n_refused_NO_SIGMA": 0,
+      "n_refused_SESSION_END": 0,
+      "n_refused_RUIN": 0,
+      "n_ignored_same_direction": 4,
+      "n_levels_clipped": 0,
+      "n_decisions": 467,
+      "entries": 25,
+      "closes": 25,
+      "segment": [
+       "2023-12-01 00:00:00+00:00",
+       "2024-01-01 00:00:00+00:00"
+      ]
+     }
+    ],
+    "refits": [
+     {
+      "refit_at": "2023-01-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-01-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 243,
+        "best_epoch": 233,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 300,
+        "best_epoch": 296,
+        "params": 576,
+        "stop_reason": "max_epochs"
+       },
+       "close_l_r0": {
+        "epochs": 50,
+        "best_epoch": 40,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 80,
+        "best_epoch": 70,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 74,
+        "best_epoch": 64,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 43,
+        "best_epoch": 33,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 26,
+        "best_epoch": 16,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 76,
+        "best_epoch": 66,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 15926,
+       "open_s": 15926,
+       "close_l": 16283,
+       "close_s": 17592
+      },
+      "tau": 0.5812326669692993
+     },
+     {
+      "refit_at": "2023-02-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-02-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 219,
+        "best_epoch": 209,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 236,
+        "best_epoch": 226,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 37,
+        "best_epoch": 27,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 47,
+        "best_epoch": 37,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 53,
+        "best_epoch": 43,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 52,
+        "best_epoch": 42,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 76,
+        "best_epoch": 66,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 53,
+        "best_epoch": 43,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 16222,
+       "open_s": 16222,
+       "close_l": 17001,
+       "close_s": 17929
+      },
+      "tau": 0.5511686205863953
+     },
+     {
+      "refit_at": "2023-03-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-03-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 140,
+        "best_epoch": 130,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 231,
+        "best_epoch": 221,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 39,
+        "best_epoch": 29,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 26,
+        "best_epoch": 16,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 50,
+        "best_epoch": 40,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 71,
+        "best_epoch": 61,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 36,
+        "best_epoch": 26,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 76,
+        "best_epoch": 66,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 16853,
+       "open_s": 16853,
+       "close_l": 18662,
+       "close_s": 16952
+      },
+      "tau": 0.49183157086372375
+     },
+     {
+      "refit_at": "2023-04-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-04-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 137,
+        "best_epoch": 127,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 249,
+        "best_epoch": 239,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 37,
+        "best_epoch": 27,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 51,
+        "best_epoch": 41,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 78,
+        "best_epoch": 68,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 62,
+        "best_epoch": 52,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 45,
+        "best_epoch": 35,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 16,
+        "best_epoch": 6,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 17352,
+       "open_s": 17352,
+       "close_l": 18441,
+       "close_s": 18164
+      },
+      "tau": 0.6347314715385437
+     },
+     {
+      "refit_at": "2023-05-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-05-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 250,
+        "best_epoch": 240,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 164,
+        "best_epoch": 154,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 31,
+        "best_epoch": 21,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 29,
+        "best_epoch": 19,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 52,
+        "best_epoch": 42,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 122,
+        "best_epoch": 112,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 84,
+        "best_epoch": 74,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 38,
+        "best_epoch": 28,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 18037,
+       "open_s": 18037,
+       "close_l": 19778,
+       "close_s": 17494
+      },
+      "tau": 0.6005175113677979
+     },
+     {
+      "refit_at": "2023-06-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-06-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 194,
+        "best_epoch": 184,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 231,
+        "best_epoch": 221,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 35,
+        "best_epoch": 25,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 29,
+        "best_epoch": 19,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 42,
+        "best_epoch": 32,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 49,
+        "best_epoch": 39,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 46,
+        "best_epoch": 36,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 58,
+        "best_epoch": 48,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 18644,
+       "open_s": 18644,
+       "close_l": 19832,
+       "close_s": 18258
+      },
+      "tau": 0.5690993070602417
+     },
+     {
+      "refit_at": "2023-07-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-07-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 263,
+        "best_epoch": 253,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 166,
+        "best_epoch": 156,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 25,
+        "best_epoch": 15,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 23,
+        "best_epoch": 13,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 63,
+        "best_epoch": 53,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 56,
+        "best_epoch": 46,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 46,
+        "best_epoch": 36,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 76,
+        "best_epoch": 66,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 19665,
+       "open_s": 19665,
+       "close_l": 19537,
+       "close_s": 19032
+      },
+      "tau": 0.6171175837516785
+     },
+     {
+      "refit_at": "2023-08-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-08-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 155,
+        "best_epoch": 145,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 175,
+        "best_epoch": 165,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 20,
+        "best_epoch": 10,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 22,
+        "best_epoch": 12,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 47,
+        "best_epoch": 37,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 50,
+        "best_epoch": 40,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 79,
+        "best_epoch": 69,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 59,
+        "best_epoch": 49,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 19773,
+       "open_s": 19773,
+       "close_l": 20581,
+       "close_s": 19218
+      },
+      "tau": 0.5920813083648682
+     },
+     {
+      "refit_at": "2023-09-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-09-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 171,
+        "best_epoch": 161,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 185,
+        "best_epoch": 175,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 19,
+        "best_epoch": 9,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 46,
+        "best_epoch": 36,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 38,
+        "best_epoch": 28,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 59,
+        "best_epoch": 49,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 35,
+        "best_epoch": 25,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 19,
+        "best_epoch": 9,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 19735,
+       "open_s": 19735,
+       "close_l": 19530,
+       "close_s": 21792
+      },
+      "tau": 0.6468642354011536
+     },
+     {
+      "refit_at": "2023-10-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-10-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 160,
+        "best_epoch": 150,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 175,
+        "best_epoch": 165,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 22,
+        "best_epoch": 12,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 51,
+        "best_epoch": 41,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 45,
+        "best_epoch": 35,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 44,
+        "best_epoch": 34,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 63,
+        "best_epoch": 53,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 61,
+        "best_epoch": 51,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 20202,
+       "open_s": 20202,
+       "close_l": 20216,
+       "close_s": 22008
+      },
+      "tau": 0.6756712198257446
+     },
+     {
+      "refit_at": "2023-11-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-11-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 169,
+        "best_epoch": 159,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 202,
+        "best_epoch": 192,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 21,
+        "best_epoch": 11,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 25,
+        "best_epoch": 15,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 61,
+        "best_epoch": 51,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 73,
+        "best_epoch": 63,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 41,
+        "best_epoch": 31,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 31,
+        "best_epoch": 21,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 20897,
+       "open_s": 20897,
+       "close_l": 21002,
+       "close_s": 21954
+      },
+      "tau": 0.6118080019950867
+     },
+     {
+      "refit_at": "2023-12-01 00:00:00+00:00",
+      "window": [
+       "2020-01-01 00:00:00+00:00",
+       "2023-12-01 00:00:00+00:00"
+      ],
+      "fits": {
+       "open_l_r0": {
+        "epochs": 154,
+        "best_epoch": 144,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r0": {
+        "epochs": 169,
+        "best_epoch": 159,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r0": {
+        "epochs": 18,
+        "best_epoch": 8,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r0": {
+        "epochs": 76,
+        "best_epoch": 66,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "open_l_r1": {
+        "epochs": 83,
+        "best_epoch": 73,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "open_s_r1": {
+        "epochs": 47,
+        "best_epoch": 37,
+        "params": 576,
+        "stop_reason": "patience"
+       },
+       "close_l_r1": {
+        "epochs": 69,
+        "best_epoch": 59,
+        "params": 542,
+        "stop_reason": "patience"
+       },
+       "close_s_r1": {
+        "epochs": 88,
+        "best_epoch": 78,
+        "params": 542,
+        "stop_reason": "patience"
+       }
+      },
+      "rows": {
+       "open_l": 20859,
+       "open_s": 20859,
+       "close_l": 20809,
+       "close_s": 23651
+      },
+      "tau": 0.6291786432266235
+     }
+    ]
    }
   }
  },
@@ -21776,5 +24464,46 @@
     "closes": 88
    }
   }
- }
+ },
+ "decision": {
+  "means": {
+   "static": {
+    "val_a": 0.8649101995037891,
+    "val_b": -1.4692666684366331,
+    "valid_a": true
+   },
+   "monthly|1y|warm": {
+    "val_a": -2.4090116791460248,
+    "val_b": -3.6409065849333637,
+    "valid_a": false
+   },
+   "monthly|1y|scratch": {
+    "val_a": -2.729594820908888,
+    "val_b": -2.1638331758809186,
+    "valid_a": true
+   },
+   "monthly|2y|warm": {
+    "val_a": -2.672424349868208,
+    "val_b": -2.720992816188359,
+    "valid_a": true
+   },
+   "monthly|2y|scratch": {
+    "val_a": -1.9429725828201814,
+    "val_b": -0.7993655209493231,
+    "valid_a": true
+   },
+   "monthly|all|warm": {
+    "val_a": -4.415742606840411,
+    "val_b": -1.2715831747437265,
+    "valid_a": true
+   },
+   "monthly|all|scratch": {
+    "val_a": -3.270358271718891,
+    "val_b": -2.019887860448574,
+    "valid_a": true
+   }
+  },
+  "chosen": "static"
+ },
+ "wall_seconds": 4932.878047704697
 }
