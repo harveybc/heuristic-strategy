@@ -13,5 +13,11 @@
     "gpu_reload": "BITWISE", "scientific_first_cell": "CLOSED", "automatic_successor": "RUNNING",
     "warehouse_reports_read_back": 8, "warehouse_pending": 0, "warehouse_mismatch": 0,
     "independent_copies_verified": 1},
-  "pending_execution": "Remaining cells and final campaign publication/copy close automatically; launch acceptance is not final scientific completion"
+  "pending_execution": "NONE: 15/15 cells closed at first attempt; 160/160 warehouse readbacks; 15 independent verified copies",
+  "execution_state": "COMPLETE_NO_PROFITABLE_MEAN_VALIDATION_RESULT",
+  "closure": {"finished_utc": "2026-10-20T21:00:58Z", "wall_seconds": 1755.2391951084137,
+    "fits": 15, "attempts": 15, "reports": 160, "copies": 15,
+    "full_train_return_pct": 23.151044429253158, "full_validation_return_pct": -7.40600161155533,
+    "full_validation_net_usd": -740.600161155533, "full_validation_sharpe": -1.048044276956356,
+    "full_validation_drawdown_pct": 11.862466410995665}
 }
