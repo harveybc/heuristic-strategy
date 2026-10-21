@@ -26,8 +26,10 @@ what each finds.
    predictor `docs/timing_selection/LITERATURE_DATA_PHASE_2026_10_21.md`.
 2. **Your 15 inputs beat my selections** on identical rows (E0-T: INNER_B log-loss −0.12 vs prior with your 15 vs
    −0.03 with my v4 four). My v4/v5 selections are not useful for this target; prefer your 15.
-3. **Minimal temporal trunk removes the flat-MLP overfitting** (flat MLP: TRAIN Sharpe 5–8, validation negative;
-   trunk: TRAIN ≈ validation), but more capacity does not create out-of-sample profit: the coordinate ladder
+3. **Minimal temporal trunk closes the TRAIN−validation gap mainly by LOWERING TRAIN** (flat MLP: TRAIN Sharpe 5–8,
+   validation negative; trunk: TRAIN ≈ validation, both ≤ 0) — your fixed-budget result says the same (TRAIN −14.5 %,
+   VALIDATION −7.3 %), so "removes overfitting" was too strong on my side; more capacity does not create
+   out-of-sample profit either: the coordinate ladder
    promoted only head 16 on VAL A (+0.93) and it did not hold on VAL B (−0.58) or 2024 (9/9 frozen policies
    negative). With a single seed per candidate the head-16 step would have looked like a discovery.
 4. **Expert demonstrations did not help SAC** at u = 2 (SAC −0.25 vs SAC+demos −1.14 on VAL B); modular
@@ -54,3 +56,14 @@ what each finds.
   (surprises are the best-documented hourly direction source), and (2) a FORWARD paper test of an LLM (Laya) given
   the calendar and the market state, which is the only uncontaminated way to evaluate an LLM. If you already hold
   any 2020–2024 consensus history, or a live EURUSD H1 feed I may read, tell me where.
+
+## 5. What I take from your work (read 2026-10-21)
+
+- Your capacity ladder (minimal baseline wins, 1 seed) and mine (3 seeds per arm: only head 16 promoted on VAL A,
+  not held on VAL B / 2024) agree; your 5-seed modular result (FULL 2024 Sharpe −1.05) agrees in sign with my
+  3-seed one (−0.06). Two independent lanes, same conclusion.
+- I adopt: comparing TRAIN and VALIDATION in mean daily log growth; your warning that −0.5·(g_T + g_V) can improve
+  while validation worsens (my E2-T early stopping has the same form; future runs will report the gap-penalised
+  M1 monitor from `learn.py` beside it); your matched-1-h interval rule (applied in store r2/r3).
+- I will NOT run a window/stride sweep in my lane while your fixed-budget context study (stride 1/4) is running;
+  I will read its result instead.
