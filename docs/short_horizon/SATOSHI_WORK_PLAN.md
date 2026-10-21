@@ -139,6 +139,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 32. [EN COLA en la 4090 detrás de E4-Q; código heuristic-strategy @HEAD] E5-B, ENSAMBLE BAYESIANO + BOOTSTRAP con experto NOP (pedido del propietario 2026-10-21): cabezas bayesianas (reparametrización local, la idea de DenseFlipout del predictor) + MC-dropout en el tronco → media y desviación de cada predicción; 5 miembros por bootstrap de bloques semanales; experto NOP/BUY/SELL desde la mejor orden retrospectiva (margen 0,1σ); la incertidumbre entra a la decisión (abstención) y al tamaño de la orden; figura con la banda de incertidumbre vs resultado real; rejilla (κ, P(NOP) máx., margen, tamaño) en VAL A, VAL B reporte, 2024 una vez. Luego: árbitro imitado del ZigZag sobre el espacio de órdenes; conformal sobre la banda; cerradores del FULL sobre la orden elegida; 'diferir' como candidata.
 
+33. [EN COLA en la 4090 detrás de E5-B, autónomo] E6 STACK sobre E5-B (las cuatro ideas acordadas, código `tools/expert_guided_e6_stack.py`): A banda conformal (cobertura 80 % calibrada en VAL A) en lugar de κ; B cerradores del FULL sobre la orden elegida; C candidata 'diferir' (3 miembros que predicen el mejor resultado del tick siguiente, histéresis 0/0,05/0,1); D árbitro imitado del ZigZag sobre el espacio de órdenes (33 clases, BC + 2 DAgger, 3 semillas). Elección entre etapas en VAL A, VAL B reporte, 2024 una vez con modelos guardados. Cola completa en la 4090: reajuste → E4-Q → E5-B → E6; recolectores publican todo en heuristic-strategy results/expert_guided/{refit_sweep,e4q,e5b,e6}. Sin babysitting.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
