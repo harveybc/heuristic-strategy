@@ -113,7 +113,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
     best, best_sh = 0.5, -np.inf
     for rate in RATE_GRID:
         tau = float(np.quantile(pm, 1 - rate))
-        m_ = summary(cx.rollout((pd.Timestamp(ho_a, unit="ns", tz="UTC"), _utc(win_b)), Composed("FULL", pols, "prob", tau)(cx), STUDENT_CFG)[0])
+        m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau)(cx), pd.Timestamp(ho_a, unit="ns", tz="UTC"), _utc(win_b))
         sh = m_["sharpe_daily_sqrt365"]
         if sh is not None and math.isfinite(sh) and sh > best_sh:
             best, best_sh = tau, sh
@@ -124,13 +124,24 @@ def a_init_warm(a):
     return a.init == "warm"
 
 
+EMPTY = {"net_profit_usd": 0.0, "sharpe_daily_sqrt365": 0.0, "max_drawdown_pct": 0.0, "trades": 0, "orders_per_week": 0.0,
+         "max_entries_per_day": 0, "valid": False, "empty_segment": True}
+
+
 def rollout_range(cx, pol, a, b):
-    return summary(cx.rollout((a, b), pol, STUDENT_CFG)[0])
+    """Segment metrics; a segment without market bars (e.g. a holiday week start) is an EMPTY record, not an error."""
+    try:
+        return summary(cx.rollout((a, b), pol, STUDENT_CFG)[0])
+    except ValueError as exc:
+        if "no bars" in str(exc):
+            return dict(EMPTY)
+        raise
 
 
 def concat_metrics(segs: list[dict]) -> dict:
     """Prequential aggregate of consecutive segments: sum of trades / net, max of drawdowns, Sharpe from the pooled
     daily returns when the segment returns are available; else trade-weighted mean of segment Sharpes (declared)."""
+    segs = [s_ for s_ in segs if not s_.get("empty_segment")]
     if not segs:
         return {"trades": 0, "net_profit_usd": 0.0, "max_drawdown_pct": 0.0, "orders_per_week": 0.0, "max_entries_per_day": 0,
                 "sharpe_daily_sqrt365": 0.0, "valid": False, "empty": True}
