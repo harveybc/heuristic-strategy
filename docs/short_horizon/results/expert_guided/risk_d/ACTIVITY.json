@@ -1,0 +1,43 @@
+{
+ "features": [
+  "cal.utc_dow_cos@0",
+  "cal.utc_dow_cos@1",
+  "cal.utc_dow_cos@120",
+  "cal.utc_dow_sin@24",
+  "cal.utc_dow_sin@48",
+  "dly.dax.ret_5d@48",
+  "dly.spx.ret_1d@48",
+  "dow_cos@0",
+  "dow_cos@1",
+  "dow_cos@120",
+  "dow_sin@48",
+  "ev.tokyo_fix.hours_since@8",
+  "ev.tokyo_fix.hours_to@8",
+  "px.hours_since_session_open@2"
+ ],
+ "train_prior": 0.31316197800715107,
+ "TRAIN": {
+  "rows": 14823,
+  "log_loss": 0.40268404953237996,
+  "prior_log_loss": 0.6216072965340607,
+  "minus_prior": -0.2189232470016807
+ },
+ "INNER_A": {
+  "rows": 2487,
+  "log_loss": 0.554423857864764,
+  "prior_log_loss": 0.6219755622654475,
+  "minus_prior": -0.06755170440068348
+ },
+ "2023H2": {
+  "rows": 2462,
+  "log_loss": 0.5423401432018206,
+  "prior_log_loss": 0.6254337682310396,
+  "minus_prior": -0.08309362502921902
+ },
+ "2024": {
+  "rows": 4925,
+  "log_loss": 0.5630824217827161,
+  "prior_log_loss": 0.6013034444850459,
+  "minus_prior": -0.038221022702329854
+ }
+}
