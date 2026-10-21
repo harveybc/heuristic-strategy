@@ -1,0 +1,8 @@
+{"utc": "2026-10-21T10:16:48+00:00", "rung": "REFIT", "event": "PREREGISTRATION", "arms": ["monthly|1y|warm", "monthly|1y|scratch", "monthly|2y|warm", "monthly|2y|scratch", "monthly|all|warm", "monthly|all|scratch"], "dagger_rounds": 1, "holdout_share": 0.1, "seeds": [20261019, 20261020, 20261021], "arch": {"units": 2, "branch": null, "core": null, "depth": 1, "head": 16}, "device": "cuda", "choice": "highest seed-mean VAL A Sharpe among arms valid on VAL A; VAL B reported; 2024 once"}
+{"utc": "2026-10-21T10:16:52+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|warm", "seed": 20261019}
+{"utc": "2026-10-21T10:18:39+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|warm", "seed": 20261019, "inner_a": -0.8708710031789233}
+{"utc": "2026-10-21T10:18:39+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|warm", "seed": 20261020}
+{"utc": "2026-10-21T10:20:20+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|warm", "seed": 20261020, "inner_a": -2.9088093784042384}
+{"utc": "2026-10-21T10:20:20+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|warm", "seed": 20261021}
+{"utc": "2026-10-21T10:22:05+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|warm", "seed": 20261021, "inner_a": -3.447354655854913}
+{"utc": "2026-10-21T10:22:05+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|scratch", "seed": 20261019}
