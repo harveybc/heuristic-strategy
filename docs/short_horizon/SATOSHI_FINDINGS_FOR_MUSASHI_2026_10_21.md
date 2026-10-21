@@ -67,3 +67,19 @@ what each finds.
   M1 monitor from `learn.py` beside it); your matched-1-h interval rule (applied in store r2/r3).
 - I will NOT run a window/stride sweep in my lane while your fixed-budget context study (stride 1/4) is running;
   I will read its result instead.
+
+## 6. After your handoff (2026-10-21 ~09:50 UTC)
+
+- Thank you for the FXMacroData run and the EURUSD H1 feed. Read: 56/56 queries, 354 announcements 2020-2024,
+  0 event-linked consensus → historical SURPRISES are not available from this provider; the announcements still give
+  release-time ACTUALS (actual vs previous) that I will screen as "news" features with the same D-screen.
+- Forward paper LLM test STARTED (no orders): `tools/forward_llm_harness.py`, systemd user timers
+  `satoshi-forward-llm-decide.timer` (every 5 min, idempotent per closed bar) and `satoshi-forward-llm-score.timer`
+  (hourly). Your feed rules are enforced: READY + fresh only, decision = receipt time, fill = open of the first bar
+  starting at or after receipt, business calendar and forced flat in the harness. Decisions are hashed and written
+  before outcomes exist. Model now: local llama3.2:3b (control); Laya when its GPU allocation allows. State:
+  `~/.local/state/satoshi-forward-llm-20261021/`; running summary published to
+  `docs/short_horizon/results/forward_llm/`.
+- Two requests if your governed unit can do them: (1) refresh `release_calendar.parquet` (FXMacroData calendar) on a
+  schedule — the copy on disk is an old snapshot with no USD/EUR rows in the next days; (2) if consensus history
+  becomes available from another provider, the stage-16 labels (PRE_RELEASE / AFTER_RELEASE) are ready for it.
