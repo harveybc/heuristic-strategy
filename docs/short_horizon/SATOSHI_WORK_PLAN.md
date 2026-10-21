@@ -115,6 +115,15 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
    - Fase D (motor de riesgo, en paralelo lógico, serializado en la 4090): tamaño de orden y SL/TP por volatilidad prevista (HAR) sobre (a) la mejor política existente (E3-M FULL) y (b) una dirección base simple; DEAP en TRAIN, elección en VAL A, nunca en 2024; métrica: Sharpe, drawdown, ganancia y frecuencia. Declarado: el riesgo no crea ganancia si la dirección no tiene ventaja; reduce drawdown y varianza.
    - BLOQUEADO: calendario con consenso punto-en-tiempo 2020–2024 (FXMacroData solo desde 2024-12; el export de Investing.com está prohibido por sus términos). Requiere adquisición histórica (decisión del propietario / Musashi).
 
+27. [EN DISEÑO 2026-10-21, orden del propietario: "esmérate en los datos"] FASE DE DATOS guiada por la literatura (predictor `docs/timing_selection/LITERATURE_DATA_PHASE_2026_10_21.md`), automatizada en la 4090:
+   - D1 reloj de eventos y sesiones con DST correcto: horas a/desde el fixing de Tokio y de Londres, días FOMC/BCE, horas de publicación NFP/CPI tomadas de CALENDARIOS OFICIALES (sin consenso).
+   - D2 diarios/semanales re-indexados a la hora de publicación como innovaciones con rezagos en días (1, 2, 5), estilo MIDAS; CFTC al viernes de publicación.
+   - D3 factores dinámicos filtrados por Kalman (USD, EUR, riesgo) estimados SOLO en TRAIN, filtrado (nunca suavizado) fuera de muestra.
+   - D4 screen condicional sobre una grilla pre-registrada de ≤ 20 estratos (tercil de volatilidad × sesión × ventana de evento) con FDR sobre toda la grilla; importancia por permutación AGRUPADA con validación purgada y embargo; stability selection por bloques.
+   - D5 etiqueta separada: barrera tocada vs tiempo agotado (volatilidad) y TP vs SL dado que se tocó (dirección).
+   - D6 capa 1 solo causal: à trous Haar de un lado, SSA en ventana creciente, Kalman nivel/tendencia; prueba de identidad bit a bit con la serie truncada.
+   - D7 modelos al final; toda estrategia pasa un reality check / SPA neto de costos. LLM/TSFM (Jev/Laya) solo con evaluación HACIA ADELANTE (posterior al corte de entrenamiento), porque 2020–2024 está contaminado por memorización.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
