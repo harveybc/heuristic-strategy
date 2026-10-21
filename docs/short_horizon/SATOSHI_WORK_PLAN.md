@@ -65,6 +65,9 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 | K26 | Fase B CERRADA (2026-10-21): selección v6 (store r1) y v6b (store r2 corregido por el hallazgo de Musashi) dan lo mismo: de 151 candidatas pasan solo las 3 de calendario; ninguna de las 58 cross-asset (6 pares G10, fuerza USD/EUR, BTC, tasas, VIX, índices, materias primas, COT) pasa el screen univariado a rezago 0; todos los conjuntos peores que el prior; ninguna estrategia válida. Coherente con la literatura (liderazgo entre activos contemporáneo, Andersen et al. 2007). Fase C NO se activa. Siguiente: fase de datos D1–D7 (punto 27). | predictor `docs/timing_selection/eurusd_h1_v6b/` @08b5178c. |
 
+| K27 | Fase de datos (2026-10-21, automatizada en la 4090, D1 reloj de fixings, D2 horas de publicación, D3 factores PCA/Kalman ajustados SOLO en 2015–2019, D5 etiqueta separada, D6 canales Kalman de EURUSD; screen de rezagos 0–120 × 17 estratos con nulo de desplazamiento que rompe la fase diaria/semanal, BH sobre ~45 k pruebas, estabilidad por año y confirmación en 2023): DIRECCIÓN 0 confirmadas; ACTIVIDAD (¿se toca ±2σ antes del tiempo?) 14 confirmadas (calendario + estrés de renta variable) y su modelo le gana al prior FUERA de muestra en todos los periodos (log-loss 2023 S1 −0,068, S2 −0,083, 2024 −0,038). Corrección propia: el primer nulo era ciego a las variables de reloj (desplazamientos múltiplos de día/semana). | predictor `docs/timing_selection/d_screen_20261021/` (r1, r2, r3). |
+| K28 | Fase D, motor de riesgo sobre los especialistas FULL congelados (36 reglas pre-declaradas, sin DEAP porque no hay módulo con ventaja): el tamaño por volatilidad (k 0,5), elegido en VAL A, mantiene el Sharpe (VAL B −1,48; 2024 −0,18 vs −0,06 de la política sin cambios) y BAJA el drawdown de VAL B de 36 % a 22 %; las compuertas de actividad mejoran VAL B (−0,8) pero bajan a ~2 órdenes/semana (inválidas por frecuencia); ninguna regla es rentable. El riesgo ya está listo para cuando aparezca una dirección con ventaja. | heuristic-strategy `docs/short_horizon/results/expert_guided/risk_d/RISK_D.md`. |
+
 ## 3. Carriles activos (2026-10-19)
 
 | ID | Carril | Repo/rama | Entregable esperado |
@@ -117,7 +120,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
    - Fase D (motor de riesgo, en paralelo lógico, serializado en la 4090): tamaño de orden y SL/TP por volatilidad prevista (HAR) sobre (a) la mejor política existente (E3-M FULL) y (b) una dirección base simple; DEAP en TRAIN, elección en VAL A, nunca en 2024; métrica: Sharpe, drawdown, ganancia y frecuencia. Declarado: el riesgo no crea ganancia si la dirección no tiene ventaja; reduce drawdown y varianza.
    - BLOQUEADO: calendario con consenso punto-en-tiempo 2020–2024 (FXMacroData solo desde 2024-12; el export de Investing.com está prohibido por sus términos). Requiere adquisición histórica (decisión del propietario / Musashi).
 
-27. [EN DISEÑO 2026-10-21, orden del propietario: "esmérate en los datos"] FASE DE DATOS guiada por la literatura (predictor `docs/timing_selection/LITERATURE_DATA_PHASE_2026_10_21.md`), automatizada en la 4090:
+27. [x D1, D2, D3, D5, D6 hechos y cerrados (K27); D4 parcial: screen condicional + estabilidad hechos, MDA agrupado y knockoffs pendientes; D7 aplicado en la fase D (K28)]  FASE DE DATOS guiada por la literatura (predictor `docs/timing_selection/LITERATURE_DATA_PHASE_2026_10_21.md`), automatizada en la 4090:
    - D1 reloj de eventos y sesiones con DST correcto: horas a/desde el fixing de Tokio y de Londres, días FOMC/BCE, horas de publicación NFP/CPI tomadas de CALENDARIOS OFICIALES (sin consenso).
    - D2 diarios/semanales re-indexados a la hora de publicación como innovaciones con rezagos en días (1, 2, 5), estilo MIDAS; CFTC al viernes de publicación.
    - D3 factores dinámicos filtrados por Kalman (USD, EUR, riesgo) estimados SOLO en TRAIN, filtrado (nunca suavizado) fuera de muestra.
@@ -125,6 +128,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
    - D5 etiqueta separada: barrera tocada vs tiempo agotado (volatilidad) y TP vs SL dado que se tocó (dirección).
    - D6 capa 1 solo causal: à trous Haar de un lado, SSA en ventana creciente, Kalman nivel/tendencia; prueba de identidad bit a bit con la serie truncada.
    - D7 modelos al final; toda estrategia pasa un reality check / SPA neto de costos. LLM/TSFM (Jev/Laya) solo con evaluación HACIA ADELANTE (posterior al corte de entrenamiento), porque 2020–2024 está contaminado por memorización.
+
+28. [ ] Próximo (propuesta, decisión del propietario): la dirección horaria no aparece en ningún insumo disponible localmente. Opciones: (a) adquirir datos de otra naturaleza con fecha punto-en-tiempo: calendario con consenso 2020–2024 (sorpresas, Andersen et al. 2003), flujo de órdenes o posicionamiento intradía de un broker; (b) evaluación HACIA ADELANTE en papel (LLM/Laya con calendario y estado del mercado, sin contaminación); (c) explotar lo que sí existe: la actividad confirmada para estrategias de volatilidad (ej. opciones/rango) o para gestionar riesgo de la política de Musashi; (d) horizonte más largo (diario/semanal) donde la literatura documenta carry y momentum.
 
 ## 5. Decisiones del propietario registradas
 
