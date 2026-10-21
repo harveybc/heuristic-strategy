@@ -77,9 +77,15 @@ def _loss(model, X, y, R, Rm, w, device, batch=8192, train=False):
     return tot / max(n, 1)
 
 
+def monitor_value(train, inner, gap_penalty=0.):
+    if type(gap_penalty) not in (int,float) or not math.isfinite(gap_penalty) or gap_penalty<0:
+        raise ValueError('INVALID_MONITOR_GAP_PENALTY')
+    return .5*(train+inner)+gap_penalty*max(0.,inner-train)
+
+
 def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, class_weight=None, hidden=(128, 64),
         dropout=0.1, lr=1e-3, wd=1e-4, batch=256, max_epochs=200, patience=10, min_delta=1e-8, device="cpu",
-        log_every=None, init_state=None, net=None):
+        log_every=None, init_state=None, net=None, gap_penalty=0.):
     """``net``: optional zero-argument factory returning a model with PolicyNet's forward contract (e.g. the
     temporal trunk of ``temporal.py``); default None keeps the MLP path unchanged."""
     set_seed(seed)
@@ -115,7 +121,7 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
             nb += 1
         tr = _loss(model, X, y, R, Rm, w, device)
         inn = _loss(model, Xi, yi, Ri, Rmi, w, device)
-        score = 0.5 * (tr + inn)
+        score = monitor_value(tr, inn, gap_penalty)
         hist.append({"epoch": ep, "running_train_loss": run / max(nb, 1), "train_loss": tr, "inner_loss": inn,
                      "score": score, "gap_inner_minus_train": inn - tr})
         if score < best - min_delta:
@@ -135,6 +141,9 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
             "hidden": list(hidden) if net is None else None, "architecture": type(model).__name__,
             "params": int(sum(p.numel() for p in model.parameters() if p.requires_grad)),
             "batchnorm": False, "batch": batch, "class_weight": None if class_weight is None else list(map(float, class_weight))}
+    if gap_penalty:
+        info['monitor'] += f' + {gap_penalty}*max(0,INNER_A loss-TRAIN loss)'
+        info['gap_penalty'] = gap_penalty
     return model, hist, info
 
 

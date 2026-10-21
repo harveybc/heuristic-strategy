@@ -26,6 +26,8 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('action',choices=['prepare','render','render-collector','reseal-prelaunch'])
     p.add_argument('--root',required=True);p.add_argument('--baseline');p.add_argument('--admitted');p.add_argument('--agent-runtime')
     p.add_argument('--environment-file');p.add_argument('--source');p.add_argument('--remote-root');p.add_argument('--destination')
+    p.add_argument('--prefix',default='rl-modular-controlled')
+    p.add_argument('--study',choices=['modular','monitor_gap'],default='modular');p.add_argument('--data-gate')
     a=p.parse_args();root=Path(a.root).resolve();cwd=Path(__file__).resolve().parents[1]
     units=Path.home()/'.config/systemd/user';units.mkdir(parents=True,exist_ok=True)
     cmd=[sys.executable,'-m','tools.modular_campaign']
@@ -36,6 +38,10 @@ def main():
         if len(gpu)!=1:raise ValueError('EXACT_ASSIGNED_GPU_REQUIRED')
         config=dict(csv_dir=str(base),admitted=str(Path(a.admitted).resolve()),gpu_uuid=gpu[0],
                     publication=publication,agent_runtime=str(Path(a.agent_runtime).resolve()))
+        if a.study=='monitor_gap':
+            from tools.modular_campaign import digest
+            if not a.data_gate:raise ValueError('DATA_GATE_REQUIRED')
+            config.update(study='monitor_gap',data_gate=str(Path(a.data_gate).resolve()),data_gate_sha256=digest(a.data_gate))
         write(root/'DEPLOY.private.json',config)
         from tools.modular_campaign import prepare
         prepare(root,root/'DEPLOY.private.json')
@@ -50,14 +56,14 @@ def main():
     elif a.action=='render':
         for suffix,action,seconds,condition in [('worker','work',15,'SCIENTIFIC_COMPLETE.json'),
                                                ('publication','publish',120,'PUBLICATION_COMPLETE.json')]:
-            name='rl-modular-controlled-'+suffix
+            name=a.prefix+'-'+suffix
             service=unit('Controlled modular study '+suffix,cmd+[action,'--root',str(root)],cwd,root/condition,
                 a.environment_file if suffix=='publication' else None,
                 memory='7G' if suffix=='worker' else '1500M',block=root/'BLOCKED.json')
             (units/(name+'.service')).write_text(service)
             (units/(name+'.timer')).write_text(timer(name,seconds))
     else:
-        dst=Path(a.destination).resolve();name='rl-modular-controlled-collection'
+        dst=Path(a.destination).resolve();name=a.prefix+'-collection'
         service=unit('Verified specialist artifact collection',cmd+['collect','--source',a.source,
             '--remote-root',a.remote_root,'--destination',str(dst)],cwd,dst/'COLLECTION_COMPLETE.json',memory='1500M')
         (units/(name+'.service')).write_text(service)

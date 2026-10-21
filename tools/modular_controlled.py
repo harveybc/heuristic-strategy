@@ -29,7 +29,7 @@ def business_config():
 
 
 def modules(arm):
-    return M.MODULES['FULL' if arm == 'FULL' else 'JOINT']
+    return M.MODULES['FULL' if arm in ('FULL','FULL_MEAN','FULL_GAP') else 'JOINT']
 
 
 def network(arm, name, head=None):
@@ -52,7 +52,7 @@ class Policy:
     def __init__(self, arm, pols, tau, *, exit_mode='learned', direction=0, argmax=False):
         self.arm, self.pols, self.tau = arm, pols, tau
         self.exit_mode, self.direction, self.argmax = exit_mode, direction, argmax
-        self.base = M.Composed('FULL' if arm == 'FULL' else 'JOINT', pols, 'prob', tau)
+        self.base = M.Composed('FULL' if arm in ('FULL','FULL_MEAN','FULL_GAP') else 'JOINT', pols, 'prob', tau)
 
     def action(self, window, st):
         if len(st) != 9 or not np.isfinite(st).all() or st[0] not in (-1, 0, 1):
@@ -196,14 +196,16 @@ def run_cell(spec, cell, out):
     ds=DG.load(spec['admitted'],spec['csv_dir'])
     cx=Ctx(ds)
     cx.h,cx.l,cx.c=(ds.bars[k].to_numpy(float) for k in ('HIGH','LOW','CLOSE'))
-    counts=architecture_counts(); arm=cell['arm']; seed=cell['seed']; head=counts[arm]['head']
+    counts=architecture_counts();counts['FULL_MEAN']=counts['FULL_GAP']=counts['FULL']
+    arm=cell['arm']; seed=cell['seed']; head=counts[arm]['head']
+    gap_penalty=.25 if arm=='FULL_GAP' else 0.
     effective=dict(schema='modular_controlled.v1',cell=cell,architecture=counts[arm],
         runtime=spec['runtime'],business=asdict(business_config()),periods=DG.PERIODS,
         input_pins=DG.PINS,features=DG.FEATURES,window=DG.WIN,stride=DG.STRIDE,
         labels='ZigZag v2 opening; SL-before-TP early exit',rounds=3,
         max_epochs=1000,patience=10,min_delta=1e-8,lr=.001,weight_decay=.0001,dropout=.1,
         batch=256,monitor='.5*(TRAIN + INNER_A inference losses)',rates=RATES,
-        device=torch.cuda.get_device_name(0),torch_version=torch.__version__)
+        device=torch.cuda.get_device_name(0),torch_version=torch.__version__,gap_penalty=gap_penalty)
     write(out/'CONFIG.json',effective)
     write(out/'DATA_REPORT.json',ds.meta)
     cfg=business_config()
@@ -214,7 +216,7 @@ def run_cell(spec, cell, out):
     prior/=prior.sum()
     explore={p:[v for v in rollout(cx,p,cx.prior_random(prior,0),training=True)[1] if v[6] is not None]
              for p in ('TRAIN','INNER_A')}
-    variant='FULL' if arm=='FULL' else 'JOINT'
+    variant='FULL' if arm in ('FULL','FULL_MEAN','FULL_GAP') else 'JOINT'
     sets={p:M.build_sets(variant,demos[p]+explore[p],cx,True) for p in demos}
     pols={}; histories=[]
     for rnd in range(4):
@@ -238,7 +240,7 @@ def run_cell(spec, cell, out):
                 R=tr[2] if nr else None,Rm=tr[3] if nr else None,
                 Ri=va[2] if nr else None,Rmi=va[3] if nr else None,class_weight=w,
                 dropout=.1,lr=.001,wd=.0001,batch=256,max_epochs=1000,patience=10,min_delta=1e-8,
-                device='cuda',net=lambda:network(arm,name,head))
+                device='cuda',net=lambda:network(arm,name,head),gap_penalty=gap_penalty)
             pol=T.TorchPolicy(model)
             path=out/f'round{rnd}-{name}.pt'
             torch.save(model.state_dict(),path)
@@ -259,7 +261,7 @@ def run_cell(spec, cell, out):
     write(out/'FROZEN.json',dict(cell=cell,best=best,trials=trials,config_sha256=digest(out/'CONFIG.json'),
                                frozen_at=time.time(),selected_on='2023_H1'))
     policies={'combined':Policy(arm,pols,best['tau'])}
-    if arm=='FULL':
+    if variant=='FULL':
         fixed,fixed_trials=calibrate(cx,arm,pols,exit_mode='fixed')
         write(out/'FIXED_EXIT_CALIBRATION.json',dict(best=fixed,trials=fixed_trials))
         policies.update(fixed_exit=Policy(arm,pols,best['tau'],exit_mode='fixed'),
@@ -291,7 +293,7 @@ def main():
     from tools.modular_campaign import read, load_spec
     p=argparse.ArgumentParser();p.add_argument('--root',required=True);p.add_argument('--cell',required=True)
     p.add_argument('--out',required=True);a=p.parse_args()
-    spec=load_spec(Path(a.root));cell=next(c for c in cells() if c['id']==a.cell)
+    spec=load_spec(Path(a.root));cell=next(c for c in spec['cells'] if c['id']==a.cell)
     try:
         run_cell(spec,cell,Path(a.out))
     except ValueError as exc:

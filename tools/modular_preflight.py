@@ -36,6 +36,7 @@ def main():
         torch.set_num_threads(1);torch.use_deterministic_algorithms(True)
         rng=np.random.default_rng(701);x=rng.normal(size=(64,204)).astype(np.float32);y=np.tile([0,1,2,3],16)
         model,hist,info=L.fit(x,y,x[:16],y[:16],seed=701,n_cls=4,device='cuda',max_epochs=2,batch=16,
+                            gap_penalty=.25 if spec.get('study')=='monitor_gap' else 0.,
                             net=lambda:C.network('JOINT16','joint'))
         pol=T.TorchPolicy(model);path=root/'GPU_SMOKE.pt';torch.save(model.state_dict(),path)
         clone=C.network('JOINT16','joint');clone.load_state_dict(torch.load(path,weights_only=True,map_location='cpu'))

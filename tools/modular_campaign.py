@@ -60,9 +60,27 @@ def identity():
     return sha
 
 
-def schedule():
+def schedule(study='modular'):
+    if study=='monitor_gap':
+        return [dict(id=f'{a.lower()}-{s}',arm=a,seed=s) for s in range(20261019,20261024)
+                for a in ('FULL_MEAN','FULL_GAP')]
+    if study!='modular':raise ValueError('UNKNOWN_CONTROLLED_STUDY')
     return [dict(id=f'{a.lower()}-{s}',arm=a,seed=s) for s in range(20261019,20261024)
             for a in ('JOINT16','JOINT_MATCHED','FULL')]
+
+
+def declared_schedule(spec):
+    return schedule(spec['study']) if 'study' in spec else schedule()
+
+
+def data_gate(spec):
+    if spec.get('study')!='monitor_gap':return
+    p=Path(spec['data_gate'])
+    if digest(p)!=spec['data_gate_sha256']:raise ValueError('DATA_GATE_IDENTITY_MISMATCH')
+    gate=read(p)
+    if (gate.get('passed') is not True or gate.get('admitted_identity_unchanged') is not True
+            or gate['source_pins']['admitted']!=spec['inputs'][str(Path(spec['admitted'])/'eurusd.parquet')]):
+        raise ValueError('DATA_GATE_NOT_PASSED')
 
 
 def prepare(root,config):
@@ -74,21 +92,23 @@ def prepare(root,config):
     pins.update({str(Path(cfg['csv_dir'])/f'{role}.csv'):DG.PINS[role+'_csv_sha256'] for role in ('train','validation')})
     for p,h in pins.items():
         if digest(p)!=h:raise ValueError('INPUT_PIN_MISMATCH')
-    spec=dict(cfg,schema=SCHEMA,runtime=identity(),cells=schedule(),inputs=pins,max_attempts=2,
+    spec=dict(cfg,schema=SCHEMA,runtime=identity(),cells=declared_schedule(cfg),inputs=pins,max_attempts=2,
               max_cell_seconds=10800,created=time.time())
+    data_gate(spec)
     if (root/'SPEC.json').exists():raise ValueError('CAMPAIGN_ALREADY_EXISTS')
     write(root/'SPEC.json',spec)
-    write(root/'STATE.json',dict(spec_sha256=digest(root/'SPEC.json'),cells=[],state='READY'))
+    write(root/'STATE.json',dict(spec_sha256=digest(root/'SPEC.json'),cells=[],state='READY',total=len(spec['cells'])))
     return spec
 
 
 def load_spec(root):
     spec=read(root/'SPEC.json')
-    if spec['schema']!=SCHEMA or spec['runtime']!=identity() or spec['cells']!=schedule():
+    if spec['schema']!=SCHEMA or spec['runtime']!=identity() or spec['cells']!=declared_schedule(spec):
         raise ValueError('CAMPAIGN_IDENTITY_MISMATCH')
     if read(root/'STATE.json')['spec_sha256']!=digest(root/'SPEC.json'):raise ValueError('STATE_IDENTITY_MISMATCH')
     for p,h in spec['inputs'].items():
         if digest(p)!=h:raise ValueError('INPUT_IDENTITY_MISMATCH')
+    data_gate(spec)
     spec['spec_sha256']=digest(root/'SPEC.json')
     return spec
 
@@ -130,9 +150,12 @@ def summarize(root,state):
         with os.fdopen(fd,'w') as f:
             w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows);f.flush();os.fsync(f.fileno())
         os.replace(name,root/'RESULTS.csv')
-    left=len(schedule())-sum(r['state'] in ('CLOSED','FAILED_EXHAUSTED') for r in state['cells'])
-    eta=None if not durations or state['state'].startswith(('WAIT','BLOCKED')) else [left*min(durations),left*max(durations)]
-    write(root/'STATUS.json',dict(state=state['state'],complete=len(durations),total=len(schedule()),
+    total=state.get('total',len(schedule()))
+    left=total-sum(r['state'] in ('CLOSED','FAILED_EXHAUSTED') for r in state['cells'])
+    observed={r['cell']['arm'] for r in state['cells'] if r['state']=='CLOSED'}
+    expected={c['arm'] for c in read(root/'SPEC.json')['cells']} if (root/'SPEC.json').exists() else observed
+    eta=None if not durations or expected-observed or state['state'].startswith(('WAIT','BLOCKED')) else [left*min(durations),left*max(durations)]
+    write(root/'STATUS.json',dict(state=state['state'],complete=len(durations),total=total,
         failed=sum(r['state']=='FAILED_EXHAUSTED' for r in state['cells']),eta_seconds=eta,updated=time.time(),
         active=next((r for r in state['cells'] if r['state']=='RUNNING'),None)))
 
@@ -143,7 +166,7 @@ def work(root,execute=None,ready=None):
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:return 0
         try:
-            spec=load_spec(root);state=read(root/'STATE.json')
+            spec=load_spec(root);state=read(root/'STATE.json');state['total']=len(spec['cells'])
             for cell in spec['cells']:
                 rec=next((r for r in state['cells'] if r['cell']==cell),None)
                 if rec is None:
@@ -270,7 +293,7 @@ def collect(source,remote_root,destination):
         summary=aggregate(verified)
         write(dst/'ANALYSIS.json',summary)
         (dst/'READOUT.md').write_text(markdown(summary))
-        write(dst/'COLLECTION_STATUS.json',dict(copied=done,total=len(schedule()),time=time.time()))
+        write(dst/'COLLECTION_STATUS.json',dict(copied=done,total=len(read(dst/'SPEC.json')['cells']),time=time.time()))
         if (dst/'SCIENTIFIC_COMPLETE.json').exists() and (dst/'PUBLICATION_COMPLETE.json').exists():
             if done != sum(r['state']=='CLOSED' for r in state['cells']):raise ValueError('COLLECTION_INCOMPLETE')
             write(dst/'COLLECTION_COMPLETE.json',dict(copied=done,state=state['state'],spec_sha256=state['spec_sha256']))

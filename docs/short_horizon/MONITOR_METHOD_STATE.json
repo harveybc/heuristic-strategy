@@ -1,0 +1,9 @@
+{
+  "schema": "monitor_generalization_method.v1",
+  "current_stage": "S10_INTEGRATION_VERIFICATION",
+  "requirements": "MONITOR_GENERALIZATION_PLAN.md",
+  "tests_designed_before_implementation": true,
+  "next_allowed_actions": ["finish focused tests", "verify source gate and worker GPU", "deploy authorized ten-cell finite study"],
+  "source_finding": "2023H1 common OHLC identical; candidate holes invalidate unequal-interval return diagnostic",
+  "runtime_state": "NOT_DEPLOYED_YET"
+}
