@@ -143,3 +143,13 @@ def test_encoding_decision_keeps_base_unless_a_variant_wins_with_lo90():
 def test_lo90_is_a_one_sided_lower_bound():
     assert P.Engine.lo90([0.1, 0.1, 0.1]) == pytest.approx(0.1)
     assert P.Engine.lo90([0.3, -0.1, 0.1]) < 0.1 and P.Engine.lo90([5.0]) == float("-inf")
+
+
+def test_parent_columns_resolve_by_base_name_after_a_scale_transform():
+    pool = ["px.logret_1", "px.rv_24", "RAW_LOG_RANGE@log", "rg.gmm.p0", "rg.gmm.p1"]
+    fam = {"px.logret_1": "px.logret", "px.rv_24": "px.rv", "RAW_LOG_RANGE@log": "inv.raw",
+           "rg.gmm.p0": "gmm/x", "rg.gmm.p1": "gmm/x"}
+    got = P.resolve_parent_cols(["logret_1+rv_24+log_range"], pool, fam, "gmm/x")
+    assert got == ["px.logret_1", "px.rv_24", "RAW_LOG_RANGE@log"]
+    # a column of the family itself is never its own parent
+    assert P.resolve_parent_cols(["rg.gmm.p0"], pool, fam, "gmm/x") == []

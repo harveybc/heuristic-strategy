@@ -180,6 +180,31 @@ def load_pool(stores: list) -> tuple[pd.DataFrame, dict]:
     return pool, pins
 
 
+def load_raw(stores: list) -> pd.DataFrame:
+    """Every column of the bound store files (raw base values next to their decided companions), for derived
+    encodings that must be computed on the untransformed variable (e.g. a range relative to its own recent mean)."""
+    frames = []
+    for s in stores:
+        f, _ = resolve_pool_file(s)
+        df = pd.read_parquet(f)
+        frames.append(df.drop(columns=["timestamp"]).set_index(pd.DatetimeIndex(pd.to_datetime(df["timestamp"], utc=True))))
+    raw = pd.concat(frames, axis=1)
+    return raw.loc[:, ~raw.columns.duplicated()]
+
+
+def resolve_parent_cols(parents: list, pool_cols: list, fam_of: dict, family: str) -> list:
+    """Pool columns that ARE the declared parent variable(s), matched by BASE name (the pool holds the decided
+    companion, e.g. RAW_LOG_RANGE@log after the scale-aware rule), never a column of the family itself."""
+    base_map = {c.split("@")[0]: c for c in pool_cols}
+    out = []
+    for p in parents:
+        for c in PARENT_COLUMNS.get(p, [p]):
+            pc = base_map.get(c.split("@")[0])
+            if pc is not None and fam_of.get(pc) != family and pc not in out:
+                out.append(pc)
+    return out
+
+
 # ----------------------------------------------------------------------------- rows and labels
 def build_rows(admitted, csv_dir, fit_end):
     ds = DG.load(admitted, csv_dir)                     # labels, calendar and the admitted grid only
@@ -369,6 +394,7 @@ class Engine:
         self.out = Path(a.out)
         self.out.mkdir(parents=True, exist_ok=True)
         self.pool, self.pins = load_pool(a.store)
+        self.raw = load_raw(a.store)
         self.cols = list(self.pool.columns)
         self.cat = load_catalog(a.catalog, self.cols)
         self.fam = dict(zip(self.cat["column"], self.cat["family"]))
@@ -393,7 +419,7 @@ class Engine:
         for f, g in self.cat.groupby("family"):
             par = [p for p in g["parent"].dropna().unique() if p]
             if par:
-                pc = [c for p in par for c in PARENT_COLUMNS.get(p, [p]) if c in self.cols and self.fam.get(c) != f]
+                pc = resolve_parent_cols(par, self.cols, self.fam, f)
                 comps = {}
                 for r in g.itertuples():
                     comps[r.component or r.column] = r.column
@@ -482,18 +508,22 @@ class Engine:
             win = [self._add_derived(f"enc.ev.{f}.win2", (np.minimum(np.abs(M(f"ev.{f}.hours_since")), np.abs(M(f"ev.{f}.hours_to"))) <= 2).astype(float))
                    for f in fix if has(f"ev.{f}.hours_since", f"ev.{f}.hours_to")]
             enc["event_clock"] = {"base": evs, "variants": {"expdecay4": dec, "window2h": win}, "structural": True}
-        # 4. range/volatility magnitude: raw (base) vs log1p vs ratio to its trailing 24-bar mean (monotone / relative)
-        rng = [c for c in self.pool_cols if c.startswith("px.range_")]
-        if rng:
-            lg = [self._add_derived(c.replace("px.", "enc.px.") + ".log1p", np.log1p(np.maximum(M(c), 0))) for c in rng]
+        # 4. range relative to its own trailing 24-bar mean, computed on the RAW range (the pool column may carry the
+        # scale transform decided by the preprocessing rule, e.g. @log; the scale question itself is answered there,
+        # so no separate log1p variant is tested here). Both models judge it (a ratio to a time-varying mean is not a
+        # monotone map of x_t).
+        rng = [c for c in self.pool_cols if c.split("@")[0].startswith("px.range_")]
+        if rng and self.raw is not None:
             rel = []
             for c in rng:
-                s_ = pd.Series(M(c)); m24 = s_.rolling(24, min_periods=24).mean().to_numpy()
-                rel.append(self._add_derived(c.replace("px.", "enc.px.") + ".rel24", np.where(m24 > 0, M(c) / m24, np.nan)))
-            # log1p is a monotone map of x_t (tree-invariant: temporal only); rel24 divides by a time-varying mean and
-            # is NOT (auditor §4): both models judge it
-            enc["range_scale"] = {"base": rng, "variants": {"log1p": lg}, "structural": False}
-            enc["range_relative"] = {"base": rng, "variants": {"rel24": rel}, "structural": True}
+                b = c.split("@")[0]
+                if b not in self.raw.columns:
+                    continue
+                xr = self.raw[b].reindex(self.ds.bars.index).to_numpy(float)
+                m24 = pd.Series(xr).rolling(24, min_periods=24).mean().to_numpy()
+                rel.append(self._add_derived(f"enc.{b}.rel24", np.where(m24 > 0, xr / m24, np.nan)))
+            if rel:
+                enc["range_relative"] = {"base": rng, "variants": {"rel24": rel}, "structural": True}
         # 5. price level: 1-bar difference (base) vs difference + trailing 480-bar relative level (where are we)
         if has("CLOSE@diff"):
             close = self.ds.bars["CLOSE"].to_numpy(float); s_ = pd.Series(close)
