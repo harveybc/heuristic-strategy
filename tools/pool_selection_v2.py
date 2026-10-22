@@ -63,13 +63,17 @@ MIN_COVERAGE = 0.5
 FOLDS_BASE, FOLDS_CONTRAST = 6, 3
 WIN_SEL = 24
 SEEDS = (20261022, 20261023, 20261024)
-HGB = dict(max_depth=4, min_samples_leaf=200, max_iter=300, learning_rate=0.05)
+HGB = dict(max_depth=4, min_samples_leaf=200, max_iter=300, learning_rate=0.05, l2_regularization=1.0)
 TASKS = {"opener3": "cls", "hit": "cls", "up_given_hit": "cls", "sl_first_long": "cls", "sl_first_short": "cls",
          "net_long": "reg", "net_short": "reg"}
 EST_SECONDS = {"hgb": 10.0, "temporal": 120.0}
 # parent -> the pool columns that ARE the original variable (after its own documented preprocessing decision)
 PARENT_COLUMNS = {"log_close": ["CLOSE@diff", "px.logret_1"], "logret_1": ["px.logret_1"],
-                  "log_range": ["RAW_LOG_RANGE"], "hl_pips": ["cdl.range_pips@asinh"]}
+                  "log_range": ["RAW_LOG_RANGE"], "hl_pips": ["cdl.range_pips@asinh"],
+                  "logret_1+rv_24+log_range": ["px.logret_1", "px.rv_24", "RAW_LOG_RANGE"], "BidClose": ["CLOSE@diff", "px.logret_1"]}
+# catalog families whose columns are components of a declared parent (contrast arms none/P/Cj/Cgroup/P+Cgroup);
+# every other catalog family is regrouped by the finer name-based rule (per pair, per indicator kind, ...)
+DECOMP_FAMILIES = ("wavelet", "hilbert", "multitaper", "kalman", "gmm", "hmm", "fracdiff", "strength", "ssa")
 # component subgroups recognised inside a decomposition family (by substring of the component name)
 SUBGROUPS = {"details": ("D1", "D2", "D3", "D4", "detail"), "approximation": ("A4", "approx", "level", "trend"),
              "energy": ("energy",), "phase": ("phase", "cos", "sin", "freq"), "amplitude": ("amp",),
@@ -104,16 +108,22 @@ def family_of(col: str) -> str:
 
 def load_catalog(path: str | None, cols: list) -> pd.DataFrame:
     """One row per pool column: column, family, parent, component. From FEATURE_CATALOG.csv when given (another
-    lane generates it), otherwise derived from the column names (parent = None: no parent/component contrasts)."""
+    lane generates it): a decided companion (``x@diff`` / ``x@asinh``) inherits family/parent/component from its base
+    column; decomposition families are keyed ``family/parent`` so each parent gets its own contrast; every other
+    family is regrouped with the finer name-based rule. Without a catalog: name-based families, no parents."""
+    rows = {c: {"column": c, "family": family_of(c), "parent": None, "component": ""} for c in cols}
     if path:
-        cat = pd.read_csv(path)
-        cat = cat[cat["column"].isin(cols)].copy()
-        cat["parent"] = cat["parent"].where(cat["parent"].notna() & (cat["parent"] != ""), None)
-        cat["component"] = cat["component"].where(cat["component"].notna(), "")
-        missing = sorted(set(cols) - set(cat["column"]))
-        rows = [{"column": c, "family": family_of(c), "parent": None, "component": ""} for c in missing]
-        return pd.concat([cat[["column", "family", "parent", "component"]], pd.DataFrame(rows)], ignore_index=True)
-    return pd.DataFrame([{"column": c, "family": family_of(c), "parent": None, "component": ""} for c in cols])
+        cat = pd.read_csv(path).fillna({"parent": "", "component": "", "family": ""})
+        by_col = {r.column: r for r in cat.itertuples()}
+        for c in cols:
+            base = c.split("@")[0]
+            r = by_col.get(base) or by_col.get(c)
+            if r is None:
+                continue
+            fam, par, comp = str(r.family), str(r.parent), str(r.component) or base
+            if fam in DECOMP_FAMILIES and par:
+                rows[c] = {"column": c, "family": f"{fam}/{par}", "parent": par, "component": comp}
+    return pd.DataFrame(list(rows.values()))
 
 
 def decided_columns(store_dir: Path) -> list:
@@ -210,23 +220,41 @@ def loss_of(kind, y, pred, classes=None):
 
 
 class HGBModel:
+    """HistGradientBoosting with the number of boosting iterations chosen on the fold's own inner block (the last
+    15 % of its training rows, time-ordered, with embargo): sklearn's built-in early stopping would use a random
+    split, which leaks across time. Never reads the validation fold."""
     name = "hgb"
 
     def __init__(self, kind, seed):
         from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
         cls = HistGradientBoostingRegressor if kind == "reg" else HistGradientBoostingClassifier
-        self.kind, self.m = kind, cls(random_state=seed, **HGB)
+        self.kind, self.m = kind, cls(random_state=seed, early_stopping=False, **HGB)
+        self.k = None
 
     def fit(self, X, y, Xi=None, yi=None):
         self.m.fit(X, y)
+        self.k = self.m.n_iter_
+        if Xi is not None and len(Xi):
+            classes = np.unique(y) if self.kind == "cls" else None
+            losses = [loss_of(self.kind, yi, p, classes) for p in self._staged(Xi)]
+            self.k = int(np.argmin(losses)) + 1
+            self.inner_curve = [round(float(v), 5) for v in losses[:: max(1, len(losses) // 10)]]
         return self
 
+    def _staged(self, X):
+        return self.m.staged_predict(X) if self.kind == "reg" else self.m.staged_predict_proba(X)
+
     def predict(self, X):
-        return self.m.predict(X) if self.kind == "reg" else self.m.predict_proba(X)
+        out = None
+        for i, p in enumerate(self._staged(X), 1):
+            out = p
+            if i >= self.k:
+                break
+        return out
 
     def n_params(self):
-        """Tree nodes over all iterations (the model's effective size)."""
-        return int(sum(p.nodes.shape[0] for it in self.m._predictors for p in it))
+        """Tree nodes over the iterations actually used (the model's effective size)."""
+        return int(sum(p.nodes.shape[0] for it in self.m._predictors[: self.k] for p in it))
 
 
 class TemporalModel:
@@ -259,7 +287,8 @@ class TemporalModel:
         t = self.torch
         opt = t.optim.AdamW(self.params(), lr=1e-3, weight_decay=1e-4)
         W, y, Wi, yi = (t.tensor(a, dtype=t.float32) for a in (W, y, Wi, yi))
-        best, best_state, bad = np.inf, None, 0
+        best, bad = np.inf, 0
+        best_state = [p.detach().clone() for p in self.params()]
         n = len(W)
         g = t.Generator().manual_seed(0)
         for ep in range(self.epochs):
@@ -273,6 +302,8 @@ class TemporalModel:
             self.trunk.eval()
             with t.no_grad():
                 vl = float(self._loss(self._forward(Wi), yi))
+            if not np.isfinite(vl):
+                raise ValueError(f"NONFINITE_INNER_LOSS:epoch{ep}")
             if vl < best - 1e-5:
                 best, bad = vl, 0
                 best_state = [p.detach().clone() for p in self.params()]
@@ -331,11 +362,23 @@ class Engine:
             self.families.setdefault(self.fam[c], []).append(c)
         self.decomp = {}                                           # family -> {"parent": [cols], "components": {name: col}}
         for f, g in self.cat.groupby("family"):
-            par = [p for p in g["parent"].dropna().unique()]
+            par = [p for p in g["parent"].dropna().unique() if p]
             if par:
                 pc = [c for p in par for c in PARENT_COLUMNS.get(p, [p]) if c in self.cols and self.fam.get(c) != f]
-                comps = {(r.component or r.column): r.column for r in g.itertuples()}
-                self.decomp[f] = {"parent": par, "parent_cols": pc, "components": comps}
+                comps = {}
+                for r in g.itertuples():
+                    comps[r.component or r.column] = r.column
+                if pc:
+                    self.decomp[f] = {"parent": par, "parent_cols": pc, "components": comps}
+        # temporal model: a column whose complete 24-bar windows cover < MIN_COVERAGE of the labelled rows (e.g. a
+        # series with a daily break) is excluded from the temporal arms only, reported as INSUFFICIENT_WINDOW_COVERAGE
+        fin = np.isfinite(self.M)
+        csum = np.concatenate([np.zeros((1, fin.shape[1])), np.cumsum(~fin, 0)])
+        lo = np.maximum(self.bars - WIN_SEL + 1, 0)
+        wok = (csum[self.bars + 1] - csum[lo]) == 0
+        wcov = wok[lab_any].mean(0)
+        self.low_window_coverage = {c: float(wcov[i]) for i, c in enumerate(self.cols) if wcov[i] < MIN_COVERAGE}
+        self.temporal_cols = [c for c in self.cols if c not in self.low_window_coverage]
         self.informative = None
         self.ledger = self.out / "LEDGER.jsonl"
         self.done = set()
@@ -381,20 +424,22 @@ class Engine:
         _, tr, va = folds[fold]
         classes = np.unique(y) if kind == "cls" else None
         t0 = time.time()
+        cut = int(len(tr) * 0.85)
+        tr_fit, tr_in = tr[:max(cut - EMBARGO, 1)], tr[cut:]
         if model_name == "hgb":
-            m = HGBModel(kind, seed).fit(X[tr], y[tr])
+            m = HGBModel(kind, seed).fit(X[tr_fit], y[tr_fit], X[tr_in], y[tr_in])
             pred = m.predict(X[va])
-            train_loss = loss_of(kind, y[tr], m.predict(X[tr]), classes)
+            train_loss = loss_of(kind, y[tr_fit], m.predict(X[tr_fit]), classes)
             feat = lambda idx: X[idx]  # noqa: E731
             apply_perm = lambda A, cidx, p: (A.__setitem__((slice(None), cidx), A[p][:, cidx]) or A)  # noqa: E731
         else:
-            n_in = len(tr)
-            cut = int(n_in * 0.85)
-            tr_fit, tr_in = tr[:max(cut - EMBARGO, 1)], tr[cut:]
             mu, sd = np.nanmean(self.M[b[tr_fit]][:, ci], 0), np.nanstd(self.M[b[tr_fit]][:, ci], 0)
-            sd = np.where(sd > 0, sd, 1.0)
+            mu, sd = np.where(np.isfinite(mu), mu, 0.0), np.where(np.isfinite(sd) & (sd > 0), sd, 1.0)
             Z = (self.M[:, ci] - mu) / sd
             W = windows_for(Z, b)
+            if not np.isfinite(W).all():
+                bad = [cols[j] for j in np.where(~np.isfinite(W).all(axis=(0, 1)))[0]][:10]
+                raise ValueError(f"NONFINITE_WINDOWS:{bad}")
             n_out = 1 if kind == "reg" else len(classes)
             yy = y if kind == "reg" else np.searchsorted(classes, y)
             m = TemporalModel(kind, seed, len(cols), n_out).fit(W[tr_fit], yy[tr_fit], W[tr_in], yy[tr_in])
@@ -404,6 +449,7 @@ class Engine:
             apply_perm = lambda A, cidx, p: (A.__setitem__((slice(None), slice(None), cidx), A[p][:, :, cidx]) or A)  # noqa: E731
         va_loss = loss_of(kind, y[va], pred, classes)
         res = {"task": task, "kind": kind, "model": model_name, "fold": fold, "k_folds": k_folds, "seed": seed,
+               "iterations": int(m.k) if model_name == "hgb" else None,
                "n_cols": len(cols), "rows_train": int(len(tr)), "rows_val": int(len(va)),
                "support_hash": ts_hash(self.ts_ns[b]), "val_hash": ts_hash(self.ts_ns[b[va]]),
                "train_loss": train_loss, "val_loss": va_loss, "prior_loss": prior_loss(kind, y[tr], y[va]),
@@ -449,7 +495,7 @@ class Engine:
         for t in TASKS:
             for mdl in ("hgb", "temporal"):
                 for k in range(FOLDS_BASE):
-                    units.append((f"base|{t}|{mdl}|{k}", "base", t, mdl, full, k, FOLDS_BASE, groups,
+                    units.append((f"base|{t}|{mdl}|{k}", "base", t, mdl, full if mdl == "hgb" else self.temporal_cols, k, FOLDS_BASE, groups,
                                   {"family": "ALL", "ctx": "full", "arm": "all"}))
         inf = self.informative_tasks() if self.a.stage in ("contrast", "rescue", "all") else []
         core = [c for c in full if c.split("@")[0] in CORE15]
@@ -529,6 +575,7 @@ class Engine:
                "rows_by_task": {t: int(np.isfinite(y).sum()) for t, y in self.labels.items()},
                "columns": len(self.cols), "families": {f: len(c) for f, c in self.families.items()},
                "excluded_insufficient_coverage": self.low_coverage, "min_coverage": MIN_COVERAGE,
+               "excluded_from_temporal_insufficient_window_coverage": self.low_window_coverage,
                "decomposition_families": {f: {"parent": d["parent"], "parent_cols": d["parent_cols"],
                                               "components": list(d["components"])} for f, d in self.decomp.items()},
                "units": counts, "units_upper_bound": len(units), "estimated_cpu_hours_upper_bound": round(est / 3600, 1),
