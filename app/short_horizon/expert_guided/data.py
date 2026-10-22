@@ -72,6 +72,11 @@ PERIOD_STATUS = {"TRAIN": "FIT", "INNER_A": "JOINT_DEVELOPMENT_MONITOR_CALIBRATI
 WIN, STRIDE, SCALE_W = 13, 2, 256
 H_NS = 3_600_000_000_000
 SCALINGS = ("fixed_train", "rolling_z")
+# What a fixed-constant scaler does with a NON-STATIONARY input (owner 2026-10-22, after the E3-M run on the inherited
+# core15 CSV: the raw HIGH level under fixed TRAIN constants became a date proxy -> TRAIN memorized, 2023 lost).
+# "diff" (default): replace the feature by its first difference and rename it "<f>@diff"; "refuse": typed error;
+# "keep": leave it, recorded. The same ADF/KPSS rule as the feature catalog (tools/layer1_pool_h1.py), on TRAIN only.
+NONSTATIONARY = ("diff", "refuse", "keep")
 SCALER_FILE = "SCALER.json"
 TEST_CLOSED_FROM = "2025-01-01"
 # Split contracts (arm recorded in every output). ``dev3y`` = the periods above (fit 2020-2022, 2023A monitor/selection,
@@ -197,6 +202,46 @@ class Dataset:
 NATURAL_SCALE: dict = {}
 
 
+def stationarity_decisions(X: np.ndarray, ts_ns: np.ndarray, features: list, train, policy: str = "diff"):
+    """Measure every feature on the TRAIN rows (ADF, max lag 24; KPSS level, 24 lags) and decide what a fixed scaler may
+    receive: ADF p > 0.05 AND KPSS p < 0.05 -> NON_STATIONARY. Returns (X2, features2, table). Under ``policy="diff"``
+    the column becomes its first difference (NaN first row -> that window is not ok) and is renamed ``<f>@diff``; a
+    feature already named ``...@diff``/``...@asinh`` (decided upstream by the catalog) is measured but never re-decided.
+    ``refuse`` raises ``SCALING_NONSTATIONARY_INPUT:<f>``; ``keep`` records the finding only."""
+    if policy not in NONSTATIONARY:
+        raise ValueError(f"NONSTATIONARY_UNKNOWN:{policy}")
+    from statsmodels.tsa.stattools import adfuller, kpss
+    import warnings
+    t0, t1 = _utc_ns(train[0]), _utc_ns(train[1])
+    tr = (ts_ns >= t0) & (ts_ns < t1)
+    X2, feats, table = X.astype(float).copy(), list(features), {}
+    for j, f in enumerate(features):
+        x = X[tr, j]
+        x = x[np.isfinite(x)]
+        rec = {"adf_p": None, "kpss_p": None, "decision": "NONE", "reason": "stationary or undecidable"}
+        if len(x) >= 100 and np.std(x) > 0:
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    rec["adf_p"] = float(adfuller(x, maxlag=24, autolag=None)[1])
+                    rec["kpss_p"] = float(kpss(x, regression="c", nlags=24)[1])
+            except Exception as exc:  # recorded, never silent
+                rec["error"] = str(exc)[:80]
+        decided_upstream = "@" in f
+        if rec["adf_p"] is not None and rec["adf_p"] > 0.05 and rec["kpss_p"] is not None and rec["kpss_p"] < 0.05 and not decided_upstream:
+            rec["reason"] = f"non-stationary level on TRAIN (ADF p={rec['adf_p']:.3f}, KPSS p={rec['kpss_p']:.3f})"
+            if policy == "refuse":
+                raise ValueError(f"SCALING_NONSTATIONARY_INPUT:{f}")
+            if policy == "diff":
+                X2[:, j] = np.r_[np.nan, np.diff(X[:, j])]
+                feats[j] = f"{f}@diff"
+                rec["decision"] = "DIFF"
+            else:
+                rec["decision"] = "KEEP_NONSTATIONARY"
+        table[f] = rec
+    return X2, feats, table
+
+
 def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride: int = STRIDE, win: int = WIN,
                         train=("2020-01-01", "2023-01-01")):
     """Windows of the raw features scaled with TRAIN-only constants (causal: constants come from the past of every
@@ -252,7 +297,7 @@ def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride
                                       "rows_excluded_nan_windows": int((ok_idx & ~fin_w).sum())}
 
 
-def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y") -> Dataset:
+def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y", nonstationary="diff") -> Dataset:
     check_scaling(scaling)
     split_contract(contract)
     admitted_dir, csv_dir = Path(admitted_dir), Path(csv_dir)
@@ -272,11 +317,11 @@ def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolli
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, csv_dir, scaling=scaling, contract=contract, sources={"loader": "core15", "verified": bool(verify),
+    return build(bars, cal, csv_dir, scaling=scaling, contract=contract, nonstationary=nonstationary, sources={"loader": "core15", "verified": bool(verify),
                                                                                 "sha256": digests})
 
 
-def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y") -> Dataset:
+def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y", nonstationary="diff") -> Dataset:
     """Same population rules as ``load`` but the observation features are the four TIMING_PROXY_SELECTION v4
     inputs (frozen subset read from the snapshot, never hard-coded). The v4 matrix is stamped at bar start;
     the observation becomes available at bar close, so DATE_TIME = timestamp + 1 h (verified on OHLC).
@@ -308,12 +353,12 @@ def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rol
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats, scaling=scaling, contract=contract,
+    return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats, scaling=scaling, contract=contract, nonstationary=nonstationary,
                  frame_meta={"source": "TIMING_PROXY_SELECTION v4", "pins": PINS_V4},
                  sources={"loader": "v4", "verified": bool(verify), "sha256": digests})
 
 
-def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train",
+def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train", nonstationary="diff",
                manifest_sha256: str | None = None, contract="dev3y") -> Dataset:
     """Observations from an arbitrary feature store on the admitted grid (layer-1 pool, 2026-10-22): the store's
     MANIFEST must name this admitted source; ``features`` are the selected columns; the store timestamp is the bar
@@ -345,14 +390,16 @@ def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end=
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract,
+    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract, nonstationary=nonstationary,
                  frame_meta={"source": "layer1 store", "store_sha256": man.get("file_sha256"), "n_features": len(features)},
                  sources={"loader": "store", "verified": bool(verify), "sha256": digests})
 
 
 def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
-          frame_meta=None, scaling="rolling_z", contract="dev3y", sources=None) -> Dataset:
+          frame_meta=None, scaling="rolling_z", contract="dev3y", sources=None, nonstationary="diff") -> Dataset:
     check_scaling(scaling)                       # strict enum, refused before any statistic is fitted
+    if nonstationary not in NONSTATIONARY:
+        raise ValueError(f"NONSTATIONARY_UNKNOWN:{nonstationary}")
     sc = split_contract(contract)
     periods, period_status = sc["periods"], sc["status"]
     features = FEATURES if features is None else list(features)
@@ -381,7 +428,12 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     if frame is None and not np.isfinite(X).all():
         raise ValueError("SEL15_NONFINITE")      # the v4 matrix has a declared fractal warm-up (NaN -> window not ok)
     if scaling == "fixed_train":
+        # a fixed-constant scaler may only receive stationary inputs: measured on TRAIN, decided and recorded here
+        X, features, stationarity = stationarity_decisions(X, ts_ns, features, sc["scaler_fit"], nonstationary)
         windows, row_ok, scale_doc = fixed_train_windows(X, ts_ns, features, train=sc["scaler_fit"])
+        scale_doc["stationarity"] = {"policy": nonstationary, "rule": "ADF p > 0.05 and KPSS p < 0.05 on TRAIN -> NON_STATIONARY",
+                                     "features": stationarity,
+                                     "differenced": [f for f, r in stationarity.items() if r["decision"] == "DIFF"]}
     else:
         windows, row_ok = causal_rolling_windows(X)
         scale_doc = {"method": "rolling_z", "rows": SCALE_W, "constants": None,
@@ -486,7 +538,8 @@ def scaler_artifact(ds: Dataset, **extra) -> dict:
                     "nan_share_train": [float(fd[f]["nan_share_train"]) for f in feats],
                     "rows_excluded_warmup": int(sc["rows_excluded_warmup"]),
                     "rows_excluded_nan_windows": int(sc["rows_excluded_nan_windows"]), "nan_policy": sc["nan_policy"],
-                    "transform": "(x - mean) / std per feature; std = 1 where rule == std_zero_to_one"})
+                    "transform": "(x - mean) / std per feature; std = 1 where rule == std_zero_to_one",
+                    "stationarity": sc.get("stationarity")})
     else:
         art.update({"rolling_window_rows": int(sc["rows"]), "mean": None, "std": None, "variance": None,
                     "fit_period": None, "fit_rows": None, "note": sc["note"],

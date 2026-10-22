@@ -320,13 +320,19 @@ def test_e3m_cli_fixed_train_policy_is_effective_persisted_and_reloadable(tmp_pa
     assert e3["scaler_file"] == "SCALER.json" and (out / "SCALER.json").exists() and (out / "PROBE.json").exists()
     # the artifact next to the checkpoints carries the dataset's constants in tensor order
     art = DG.read_scaler(out)
-    assert art["policy"] == "fixed_train" and art["features"] == DG.FEATURES and art["run"]["rung"] == "E3M"
+    # the fixed scaler differenced the non-stationary inputs (recorded decision), so names carry "@diff"
+    st = art["stationarity"]
+    assert st["policy"] == "diff" and "HIGH" in st["differenced"] and st["features"]["HIGH"]["decision"] == "DIFF"
+    assert art["features"] == [f"{f}@diff" if f in st["differenced"] else f for f in DG.FEATURES] and art["run"]["rung"] == "E3M"
     assert art["sources"]["verified"] is False and art["split_contract"]["arm"] == "dev3y"
     # effective policy in the tensors: recompute (x - mean) / std from the raw CSV rows
     ds, art2 = DG.load_with_scaler(out, adm, sel, verify=False)
     assert art2 == art
     raw = pd.concat([pd.read_csv(sel / "train.csv"), pd.read_csv(sel / "validation.csv")], ignore_index=True)
     X = raw[DG.FEATURES].to_numpy(float)
+    for f in st["differenced"]:                                           # same transform as the loader
+        j = DG.FEATURES.index(f)
+        X[:, j] = np.r_[np.nan, np.diff(X[:, j])]
     ts = pd.to_datetime(raw["DATE_TIME"], utc=True)
     tr = ((ts >= pd.Timestamp("2020-01-01", tz="UTC")) & (ts < pd.Timestamp("2023-01-01", tz="UTC"))).to_numpy()
     mu, sd = np.nanmean(X[tr], 0), np.nanstd(X[tr], 0)
@@ -363,3 +369,24 @@ def test_e3m_cli_fixed_train_policy_is_effective_persisted_and_reloadable(tmp_pa
         DG.verify_scaler(dict(art, features=art["features"][::-1]), ds)
     with pytest.raises(ValueError, match="SCALER_POLICY_MISMATCH"):
         DG.verify_scaler(art, DG.load(adm, sel, verify=False, scaling="rolling_z"))
+
+
+def test_stationarity_rule_differences_a_random_walk_and_keeps_white_noise():
+    rng = np.random.default_rng(0)
+    n = 3000
+    ts = np.arange(n, dtype=np.int64) * DG.H_NS + DG._utc_ns("2020-01-01")
+    walk = np.cumsum(rng.normal(size=n)) + 100.0                          # a price-like level
+    noise = rng.normal(size=n)
+    X = np.stack([walk, noise], 1)
+    X2, feats, table = DG.stationarity_decisions(X, ts, ["lvl", "ret"], ("2020-01-01", "2020-04-01"))
+    assert feats == ["lvl@diff", "ret"] and table["lvl"]["decision"] == "DIFF" and table["ret"]["decision"] == "NONE"
+    assert np.isnan(X2[0, 0]) and np.allclose(X2[1:, 0], np.diff(walk)) and np.array_equal(X2[:, 1], noise)
+    with pytest.raises(ValueError, match="SCALING_NONSTATIONARY_INPUT:lvl"):
+        DG.stationarity_decisions(X, ts, ["lvl", "ret"], ("2020-01-01", "2020-04-01"), policy="refuse")
+    X3, feats3, table3 = DG.stationarity_decisions(X, ts, ["lvl", "ret"], ("2020-01-01", "2020-04-01"), policy="keep")
+    assert feats3 == ["lvl", "ret"] and table3["lvl"]["decision"] == "KEEP_NONSTATIONARY" and np.array_equal(X3, X)
+    # a column already decided upstream (catalog) is measured but never re-decided
+    _, feats4, table4 = DG.stationarity_decisions(X, ts, ["lvl@asinh", "ret"], ("2020-01-01", "2020-04-01"))
+    assert feats4 == ["lvl@asinh", "ret"] and table4["lvl@asinh"]["decision"] == "NONE"
+    with pytest.raises(ValueError, match="NONSTATIONARY_UNKNOWN"):
+        DG.stationarity_decisions(X, ts, ["lvl", "ret"], ("2020-01-01", "2020-04-01"), policy="bogus")
