@@ -810,7 +810,14 @@ class Engine:
         short = []
         for f, d in dec.items():
             short += [c for c in d["retained_cols"] if c not in short]
-        lists = {"core15": core, "shortlist": short, "core15_plus_shortlist": core + [c for c in short if c not in core]}
+        # stricter tier (declared): families with at least two independent pieces of evidence (different task,
+        # context or model); the permissive shortlist keeps every family with one lo90 > 0 (n = 3 folds is weak)
+        strict = []
+        for f, d in dec.items():
+            if len(d["evidence"]) >= 2:
+                strict += [c for c in d["retained_cols"] if c not in strict]
+        lists = {"core15": core, "shortlist": short, "shortlist_strict": strict,
+                 "core15_plus_shortlist": core + [c for c in short if c not in core]}
         (self.out / "SHORTLIST.json").write_text(json.dumps({"lists": lists, "informative_tasks": inf, "stores": self.pins,
                                                              "decisions": dec}, indent=1))
         errors = [r for r in rows if "error" in r]
