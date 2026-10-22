@@ -186,7 +186,8 @@ def run(a):
     led = out / "TRIAL_LEDGER.jsonl"
     device = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     t0 = time.time()
-    ds = DG.load(a.admitted, a.csv_dir)
+    ds, scaler = DG.load_with_scaler(Path(a.e3m_run), a.admitted, a.csv_dir)     # policy from the run's SCALER.json
+    DG.write_scaler(out, ds, rung="E5B")
     cx = Ctx(ds)
     cx.o, cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
     v = ds.bars.index.as_unit("ns").asi8

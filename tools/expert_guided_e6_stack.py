@@ -45,7 +45,8 @@ PERIODS3 = ("TRAIN", "INNER_A", "INNER_B")
 def setup(a):
     import torch
     from app.short_horizon.expert_guided import temporal as T
-    ds = DG.load(a.admitted, a.csv_dir)
+    ds, scaler = DG.load_with_scaler(Path(a.e3m_run), a.admitted, a.csv_dir)     # policy from the E3-M run's SCALER.json
+    DG.verify_scaler(DG.read_scaler(Path(a.e5b_run)), ds)                        # the E5B members must share it
     cx = Ctx(ds)
     cx.o, cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
     v = ds.bars.index.as_unit("ns").asi8
@@ -76,7 +77,7 @@ def setup(a):
             net = T.TemporalPolicyNet(nf, DG.WIN, nc, n_reg=nr, n_state=NS, **arch)
             net.load_state_dict(torch.load(Path(a.e3m_run) / f"FULL_{mname}_{seed}.pt"))
             mods[mname] = T.TorchPolicy(net)
-        closers[seed] = Composed("FULL", mods, "prob", rec["arbiter"].get("tau"))
+        closers[seed] = Composed("FULL", mods, "prob", rec["arbiter"].get("tau"), mask=E.state_mask(e3.get("agent_state", {}).get("mode", "full")))
     return ds, cx, arch, nf, NS, rows, X, Y, fin, e5, members, closers, T
 
 
@@ -120,6 +121,7 @@ def run(a):
     res_p = out / "E6.json"
     res = json.loads(res_p.read_text()) if res_p.exists() else {"stages": {}}
     ds, cx, arch, nf, NS, rows, X, Y, fin, e5, members, closers, T = setup(a)
+    DG.write_scaler(out, ds, rung="E6")           # next to the c_defer / d_arbiter checkpoints this stage writes
     kappa0, pnop0, margin0, size0 = parse_setting(e5["chosen"])
     pred = {p: predict(members, X[p], a.device, mc=(5 if a.smoke else 30)) for p in DG.PERIODS}
     std_ref = float(np.nanquantile(pred["TRAIN"][1].min(1), 0.9))

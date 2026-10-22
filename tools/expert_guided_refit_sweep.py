@@ -68,7 +68,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
     vis_e = collect(cx, (win_a, win_b), cx.expert, EXPERT_CFG)[1]
     prior = (np.bincount(np.array([v[3] for v in vis_e], int), minlength=4) / max(len(vis_e), 1)).tolist()
     vis_x = [v for v in collect(cx, (win_a, win_b), cx.prior_random(prior, int(rng.integers(1 << 30))), STUDENT_CFG)[1] if v[6] is not None]
-    D = build_sets("FULL", vis_e + vis_x, cx, True, final_before_bar=cap)
+    D = build_sets("FULL", vis_e + vis_x, cx, True, final_before_bar=cap, mask=getattr(a, "state_mask", None))
     pols, infos = dict(init_models or {}), {}
 
     def split(Dm):
@@ -94,7 +94,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
     for rnd in range(a.dagger_rounds + 1):
         if rnd > 0:
             vis = collect(cx, (win_a, win_b), comp(cx))[1]
-            for m, Dm in build_sets("FULL", vis, cx, False, final_before_bar=cap).items():
+            for m, Dm in build_sets("FULL", vis, cx, False, final_before_bar=cap, mask=getattr(a, "state_mask", None)).items():
                 D[m] = cat(D[m], Dm) if m in D else Dm
         for m in MODULES["FULL"]:
             if m not in D:
@@ -105,7 +105,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
                 pols[m], infos[(m, rnd)] = pol, info
         if any(m not in pols for m in MODULES["FULL"]):
             return None, None, {"skipped": "MODULE_MISSING", "have": sorted(pols)}
-        comp = Composed("FULL", pols, "prob", tau=0.5)
+        comp = Composed("FULL", pols, "prob", tau=0.5, mask=getattr(a, "state_mask", None))
     if tau_fixed is not None:                     # run 2: the static seed's own tau (chosen once on INNER_A by E3-M), declared
         return pols, float(tau_fixed), {"fits": {f"{m}_r{r}": v for (m, r), v in infos.items()}, "rows": {m: int(len(D[m][1])) for m in D}, "tau": float(tau_fixed), "tau_mode": "static"}
     # tau on the holdout rows of the window (last holdout_share of the window's bars), via the prob arbiter rate grid
@@ -115,7 +115,7 @@ def fit_full(cx, ds, nf, NS, arch, a, seed, win_a, win_b, init_models, device, T
     best, best_sh = 0.5, -np.inf
     for rate in RATE_GRID:
         tau = float(np.quantile(pm, 1 - rate))
-        m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau)(cx), pd.Timestamp(ho_a, unit="ns", tz="UTC"), _utc(win_b))
+        m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau, mask=getattr(a, "state_mask", None))(cx), pd.Timestamp(ho_a, unit="ns", tz="UTC"), _utc(win_b))
         sh = m_["sharpe_daily_sqrt365"]
         if sh is not None and math.isfinite(sh) and sh > best_sh:
             best, best_sh = tau, sh
@@ -167,11 +167,14 @@ def run(a):
     led = out / "TRIAL_LEDGER.jsonl"
     device = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     t0 = time.time()
-    ds = DG.load(a.admitted, a.csv_dir)
+    # the input-scaling policy comes from the run's SCALER.json (refused when missing or with another feature order)
+    ds, scaler = DG.load_with_scaler(Path(a.e3m_run), a.admitted, a.csv_dir)
     cx = Ctx(ds)
     cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("HIGH", "LOW", "CLOSE"))
     e3 = json.loads((Path(a.e3m_run) / "E3M.json").read_text())
     arch = e3["arch"]
+    a.state_mask = E.state_mask(e3.get("agent_state", {}).get("mode", "full"))
+    DG.write_scaler(out, ds, rung="REFIT", agent_state=e3.get("agent_state", {}).get("mode", "full"))
     nf, NS = ds.windows.shape[2], len(E.STATE_NAMES)
     static = {}
     for seed in SEEDS:
@@ -188,7 +191,7 @@ def run(a):
     res = json.loads(res_p.read_text()) if res_p.exists() else {"arms": {}, "static_reference": {}}
     if not res["static_reference"]:
         for seed, (mods, tau) in static.items():
-            pol = Composed("FULL", mods, "prob", tau)(cx)
+            pol = Composed("FULL", mods, "prob", tau, mask=a.state_mask)(cx)
             res["static_reference"][str(seed)] = {p: rollout_range(cx, pol, *DG.PERIODS[p]) for p in ("INNER_A", "INNER_B")}
         res_p.write_text(json.dumps(jsonable(res), indent=1))
     seeds = SEEDS[:1] if a.smoke else SEEDS
@@ -216,7 +219,7 @@ def run(a):
                 else:
                     prev = pols
                     refits.append({"refit_at": str(d0), "window": [str(win_a), str(d0)], **info})
-                    m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau)(cx), d0, d1)
+                    m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau, mask=getattr(a, "state_mask", None))(cx), d0, d1)
                 m_["segment"] = [str(d0), str(d1)]
                 segs.append(m_)
                 print(json.dumps({"arm": arm, "seed": seed, "refit": str(d0.date()), "seg_sharpe": round(m_["sharpe_daily_sqrt365"] or 0, 2),
@@ -238,7 +241,7 @@ def run(a):
         ledger(led, rung="REFIT", event="READ", periods=["OBS_2024"], purpose=f"single read of the chosen arm {chosen} (prequential through 2024) and static")
         r24 = {}
         for seed in SEEDS:
-            pol = Composed("FULL", static[seed][0], "prob", static[seed][1])(cx)
+            pol = Composed("FULL", static[seed][0], "prob", static[seed][1], mask=a.state_mask)(cx)
             r24.setdefault("static", {})[str(seed)] = rollout_range(cx, pol, *DG.PERIODS["OBS_2024"])
             if chosen != "static":
                 cadence, sw, init = chosen.split("|")
@@ -251,7 +254,7 @@ def run(a):
                                                tau_fixed=(static[seed][1] if a.tau_mode == "static" else None))
                     if pols is not None:
                         prev = pols
-                    m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau)(cx) if pols else (lambda *x: (E.HOLD, 1.5, 2.0)), d0, d1)
+                    m_ = rollout_range(cx, Composed("FULL", pols, "prob", tau, mask=getattr(a, "state_mask", None))(cx) if pols else (lambda *x: (E.HOLD, 1.5, 2.0)), d0, d1)
                     segs.append(m_)
                 r24.setdefault(chosen, {})[str(seed)] = concat_metrics(segs)
         res["read_2024"] = {"OBS_2024": r24}

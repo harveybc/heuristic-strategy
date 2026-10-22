@@ -104,7 +104,7 @@ def evaluate(a):
     out = Path(a.out)
     led = out / "TRIAL_LEDGER.jsonl"
     t0 = time.time()
-    ds = DG.load(a.admitted, a.csv_dir)
+    ds, scaler = DG.load_with_scaler(Path(a.e3m_run), a.admitted, a.csv_dir)     # policy from the run's SCALER.json
     cx = Ctx(ds)
     e3 = json.loads((Path(a.e3m_run) / "E3M.json").read_text())
     arch = e3["arch"]
@@ -123,7 +123,7 @@ def evaluate(a):
             net = T.TemporalPolicyNet(nf, DG.WIN, nc, n_reg=nr, n_state=NS, **arch)
             net.load_state_dict(torch.load(Path(a.e3m_run) / f"FULL_{mname}_{seed}.pt"))
             mods[mname] = T.TorchPolicy(net)
-        pols[seed] = Composed("FULL", mods, rec["arbiter"]["arbiter"], rec["arbiter"].get("tau"))
+        pols[seed] = Composed("FULL", mods, rec["arbiter"]["arbiter"], rec["arbiter"].get("tau"), mask=E.state_mask(e3.get("agent_state", {}).get("mode", "full")))
     grid = list(itertools.product(GATES, SIZES, LEVELS))
     ledger(led, rung="D", event="PREREGISTRATION", grid=[str(g) for g in grid], sig_med=sig_med,
            choice="highest seed-mean INNER_A Sharpe among rules with all seeds frequency-valid on INNER_A")
