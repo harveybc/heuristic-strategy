@@ -48,3 +48,6 @@
 {"utc": "2026-10-22T01:07:37+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "weekly|2y|scratch", "seed": 20261020}
 {"utc": "2026-10-22T02:12:45+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "weekly|2y|scratch", "seed": 20261020, "inner_a": -0.11249777315513206}
 {"utc": "2026-10-22T02:12:45+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "weekly|2y|scratch", "seed": 20261021}
+{"utc": "2026-10-22T03:18:27+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "weekly|2y|scratch", "seed": 20261021, "inner_a": -1.3250477044935032}
+{"utc": "2026-10-22T03:18:29+00:00", "rung": "REFIT", "event": "PREREGISTRATION", "arms": ["weekly|1y|warm", "weekly|2y|scratch"], "dagger_rounds": 3, "holdout_share": 0.1, "tau_mode": "static", "seeds": [20261019, 20261020, 20261021], "arch": {"units": 2, "branch": null, "core": null, "depth": 1, "head": 16}, "device": "cuda", "choice": "highest seed-mean VAL A Sharpe among arms valid on VAL A; VAL B reported; 2024 once"}
+{"utc": "2026-10-22T03:18:29+00:00", "rung": "REFIT", "event": "READ", "periods": ["OBS_2024"], "purpose": "single read of the chosen arm static (prequential through 2024) and static"}
