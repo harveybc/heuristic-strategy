@@ -75,7 +75,8 @@ class Ctx:
         self.oracle = OR.LegOracle(ds.bars.CLOSE.to_numpy(float), ds.pivots)
 
     def rollout(self, period, act, cfg=STUDENT_CFG, collect=False):
-        a, b = DG.PERIODS[period] if isinstance(period, str) else period      # explicit (start, end) allowed (refit sweep)
+        # period names resolve through the dataset's own contract (== DG.PERIODS for dev3y); explicit (start, end) allowed
+        a, b = self.ds.meta["periods"][period] if isinstance(period, str) else period
         env = E.BarEnv(self.ds.bars, self.ds.cal, self.ds.sigma, self.ds.sigma_rule, a, b, cfg)
         vis = []
         for bar in range(env.first, env.last):
@@ -261,6 +262,7 @@ def run(a):
         finals[seed] = (pol, aprior)
         ledger(led, rung="E1T", event="FREEZE", seed=seed, round=ROUNDS)
         torch.save(pol.m.state_dict(), out / f"policy_{seed}.pt")
+        DG.write_scaler(out, ds, rung="E1T")       # the effective scaling policy next to every checkpoint
     if a.measure:
         print(json.dumps({"measure_only": True, "wall": round(time.time() - t0, 1)}))
         return

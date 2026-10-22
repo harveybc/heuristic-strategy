@@ -47,6 +47,32 @@ H_NS = HOUR.value
 STATE_NAMES = ("position", "unrealized_sigma", "holding_days", "sl_distance_sigma", "tp_distance_sigma",
                "hours_since_operational_start_days", "hours_to_forced_flat_days", "entries_today_share",
                "can_enter")
+# Agent-state ablation (E3-M, 2026-10-21): which of the nine feedback slots the POLICY INPUT keeps. ``full`` = every slot
+# (the current behaviour); ``minimal`` = the position side and the entry-task flag only; ``none`` = no feedback slot.
+# An omitted slot is fed as a CONSTANT zero, so the tensor shape and the parameter count never change (capacity
+# control); the environment keeps its real state and enforces every business rule regardless.
+AGENT_STATE_MODES = {"full": STATE_NAMES, "minimal": ("position", "can_enter"), "none": ()}
+
+
+def state_mask(mode: str = "full"):
+    """Float mask over STATE_NAMES (1 = included, 0 = constant zero), or None for ``full`` (byte-identical path)."""
+    if mode not in AGENT_STATE_MODES:
+        raise ValueError(f"AGENT_STATE_UNKNOWN:{mode}")
+    if mode == "full":
+        return None
+    keep = set(AGENT_STATE_MODES[mode])
+    return np.array([1.0 if n in keep else 0.0 for n in STATE_NAMES], np.float32)
+
+
+def state_inventory(mode: str = "full") -> dict:
+    """Slot name -> ``included`` | ``constant_zero`` for the run's JSON."""
+    keep = set(AGENT_STATE_MODES[mode]) if mode in AGENT_STATE_MODES else state_mask(mode)
+    return {n: ("included" if n in keep else "constant_zero") for n in STATE_NAMES}
+
+
+def masked_state(st, mask):
+    """The policy-input view of an env state: unchanged when ``mask`` is None."""
+    return st if mask is None else np.asarray(st, np.float32) * mask
 
 
 @dataclass(frozen=True)

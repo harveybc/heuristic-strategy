@@ -99,8 +99,9 @@ MODULES = {"JOINT": {"joint": (4, 2)}, "TASK": {"opener": (3, 2), "closer": (2, 
 
 def collect(cx, period, act, cfg=STUDENT_CFG):
     """Like Ctx.rollout(collect=True) but every positioned row also carries (direction, entry, sl, tp, ff_bar).
-    ``period`` is a DG.PERIODS name or an explicit (start, end) pair (refit sweep, 2026-10-21)."""
-    a, b = DG.PERIODS[period] if isinstance(period, str) else period
+    ``period`` is a period name of the dataset's split contract (== DG.PERIODS for dev3y) or an explicit (start, end)
+    pair (refit sweep, 2026-10-21)."""
+    a, b = cx.ds.meta["periods"][period] if isinstance(period, str) else period
     env = E.BarEnv(cx.ds.bars, cx.ds.cal, cx.ds.sigma, cx.ds.sigma_rule, a, b, cfg)
     vis = []
     for bar in range(env.first, env.last):
@@ -145,10 +146,11 @@ def exit_resolution_bar(cx, bar, info):
     return min(ffb, len(cx.c)) - 1 if ffb <= len(cx.c) else -1
 
 
-def build_sets(variant, vis, cx, from_expert, final_before_bar=None):
+def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None):
     """vis rows -> {module: (X, y, R, Rm)}; flat labels from the expert's issued action (round 0) or the oracle,
     positioned labels from ``exit_label``. With ``final_before_bar`` (refit sweep) a row is used only when its label
-    is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows)."""
+    is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows).
+    ``mask`` (agent-state ablation): the state slots fed to the network; labels and partitions use the real state."""
     acc = {m: ([], [], [], []) for m in MODULES[variant]}
     for r, bar, st, a_exp, tp_exp, sl_exp, info in vis:
         if final_before_bar is not None:
@@ -170,7 +172,7 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None):
                 a = E.HOLD                           # positioned rows are labelled by the exit rule only
         for m, (y, is_open) in labels_for(variant, st, a).items():
             X, Y, R, Rm = acc[m]
-            X.append(np.r_[cx.Xw[r], st])
+            X.append(np.r_[cx.Xw[r], E.masked_state(st, mask)])
             Y.append(y)
             R.append((tp, sl))
             Rm.append(float(is_open))
@@ -179,8 +181,11 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None):
 
 # ----------------------------------------------------------------------------- composed policy
 class Composed:
-    def __init__(self, variant, pols, arbiter, tau=None):
-        self.variant, self.p, self.arb, self.tau = variant, pols, arbiter, tau
+    """``mask`` (agent-state ablation): the network input keeps only the unmasked state slots (constant zeros
+    elsewhere); the routing by partition (which module acts) and the env use the real state."""
+
+    def __init__(self, variant, pols, arbiter, tau=None, mask=None):
+        self.variant, self.p, self.arb, self.tau, self.mask = variant, pols, arbiter, tau, mask
 
     def _probs(self, name, x):
         lg, rg = self.p[name](x[None, :])
@@ -230,13 +235,14 @@ class Composed:
     def __call__(self, cx):
         def f(bar, r, st, env):
             pos = int(st[0])
-            x = np.r_[cx.Xw[r], st].astype(np.float32)
+            s_in = E.masked_state(st, self.mask)
+            x = np.r_[cx.Xw[r], s_in].astype(np.float32)
             if self.variant == "JOINT":            # the joint policy acts exactly as E1-T (argmax), no arbiter
                 lg, rg = self.p["joint"](x[None, :])
                 return int(np.argmax(lg[0])), float(rg[0, 0]), float(rg[0, 1])
             if pos != 0 and not self.exit_now(x, pos):
                 return E.HOLD, 1.5, 2.0
-            xf = np.r_[cx.Xw[r], flat_state(st)].astype(np.float32)
+            xf = np.r_[cx.Xw[r], flat_state(s_in)].astype(np.float32)
             pL, tpL, slL, pS, tpS, slS = self.openers(xf)
             d = self.arbitrate(pL, tpL, slL, pS, tpS, slS)
             if d == E.HOLD:
@@ -266,22 +272,51 @@ def run(a):
     led = out / "TRIAL_LEDGER.jsonl"
     device = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     t0 = time.time()
+    verify = not a.no_verify
+    DG.check_scaling(a.scaling)                   # typed refusal before any read
+    sc = DG.split_contract(a.split_contract)
+    mask, inventory = E.state_mask(a.agent_state), E.state_inventory(a.agent_state)
     if a.store:
         feats = json.loads(Path(a.feature_list).read_text())["features"]
-        ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling)
+        ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling, verify=verify, contract=a.split_contract)
+    elif a.features == "core15":
+        ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling, verify=verify, contract=a.split_contract)
     else:
-        ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling) if a.features == "core15" else DG.load_v4(a.admitted, a.v4_dir)
+        ds = DG.load_v4(a.admitted, a.v4_dir, scaling=a.scaling, verify=verify, contract=a.split_contract)
+    if ds.meta["scaling"]["policy"] != a.scaling:
+        raise SystemExit(f"E3M_SCALING_NOT_EFFECTIVE:{a.scaling}!={ds.meta['scaling']['policy']}")
     cx = Ctx(ds)
     nf, NS = ds.windows.shape[2], len(E.STATE_NAMES)
+    DEV = tuple(sc["report"])                     # dev3y: TRAIN, INNER_A, INNER_B; consolidated: TRAIN, INNER_A (inner block)
     ARCH = dict(units=a.units, branch=a.branch, core=a.core, depth=a.depth, head=a.head)
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
     params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, DG.WIN, nc, n_reg=nr, n_state=NS, **ARCH).parameters()))
                   for m, (nc, nr) in MODULES[v].items()} for v in variants}
+    agent_state = {"mode": a.agent_state, "inventory": inventory, "n_state_slots": NS,
+                   "included": [n for n, v in inventory.items() if v == "included"],
+                   "constant_zero": [n for n, v in inventory.items() if v == "constant_zero"], "params": params,
+                   "note": "omitted slots are constant zeros in the network input only; tensor shape and parameter count "
+                           "unchanged; the env keeps its real state and enforces every business rule"}
+    print(json.dumps({"agent_state": a.agent_state, "inventory": inventory, "params": params, "split_contract": a.split_contract,
+                      "scaling": ds.meta["scaling"]["policy"], "verify": verify}), flush=True)
     ledger(led, rung="E3M", event="PREREGISTRATION", variants=variants, arbiters=list(ARBITERS), arch=ARCH,
            dropout=a.dropout, wd=a.wd, cost_sigma=COST_SIGMA, rounds=ROUNDS, seeds=SEEDS, params=params, device=device,
+           scaling=a.scaling, split_contract=ds.meta["split_contract"], agent_state=agent_state, verify=verify,
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
+    scaler_path = DG.write_scaler(out, ds, rung="E3M", agent_state=a.agent_state, split_contract=a.split_contract)
     res = {"meta": ds.meta, "arch": ARCH, "params": params, "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
-           "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}}
+           "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
+           "split_contract": ds.meta["split_contract"], "agent_state": agent_state, "scaler_file": scaler_path.name,
+           "probe": {}}
+    probe_rows = cx.ds.rows("INNER_A")
+    probe_rows = probe_rows[np.linspace(0, len(probe_rows) - 1, min(8, len(probe_rows))).astype(int)] if len(probe_rows) else probe_rows
+
+    def probe(pol):
+        """Logits of the saved module on fixed rows with a zero (flat-equivalent) state: ties the checkpoint to the tensors."""
+        X = np.stack([np.r_[cx.Xw[r], np.zeros(NS, np.float32)] for r in probe_rows]).astype(np.float32) if len(probe_rows) else np.zeros((0, cx.Xw.shape[1] + NS), np.float32)
+        lg, rg = pol(X)
+        return {"rows": probe_rows.tolist(), "row_ts_ns": [int(cx.ds.row_ts[r]) for r in probe_rows], "state": "zeros",
+                "logits": lg.tolist(), "reg": None if rg is None else rg.tolist()}
 
     def fit_module(v, m, D_tr, D_in, seed):
         nc, nr = MODULES[v][m]
@@ -304,24 +339,24 @@ def run(a):
     explore = {p: [v for v in collect(cx, p, cx.prior_random(prior, 0), STUDENT_CFG)[1] if v[6] is not None]
                for p in ("TRAIN", "INNER_A")}       # exploration positions (round 0 closers only)
     res["exploration_positions"] = {p: len(v) for p, v in explore.items()}
-    for p in ("TRAIN", "INNER_A", "INNER_B"):
+    for p in DEV:
         res["comparators"][p] = {"expert_demonstrations": summary(cx.rollout(p, cx.expert, EXPERT_CFG)[0]),
                                  "expert_confirmed": summary(cx.rollout(p, cx.confirmed, STUDENT_CFG)[0]),
                                  "no_trade": summary(cx.rollout(p, lambda *x: (E.HOLD, 1.5, 2.0), STUDENT_CFG)[0])}
     frozen = {}
     for v in variants:
         for seed in SEEDS:
-            D_tr = build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True)
-            D_in = build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True)
+            D_tr = build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask)
+            D_in = build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask)
             pols, infos = {}, {}
             comp = None
             for rnd in range(ROUNDS + 1):
                 if rnd > 0:
                     _, vtr = collect(cx, "TRAIN", comp(cx))
                     _, vin = collect(cx, "INNER_A", comp(cx))
-                    for m, D in build_sets(v, vtr, cx, False).items():
+                    for m, D in build_sets(v, vtr, cx, False, mask=mask).items():
                         D_tr[m] = cat(D_tr[m], D) if m in D_tr else D
-                    for m, D in build_sets(v, vin, cx, False).items():
+                    for m, D in build_sets(v, vin, cx, False, mask=mask).items():
                         D_in[m] = cat(D_in[m], D) if m in D_in else D
                 for m in MODULES[v]:
                     if m not in D_tr or m not in D_in or len(np.unique(D_tr[m][1])) < 2:
@@ -333,7 +368,7 @@ def run(a):
                            rows_inner=len(D_in[m][1]), label_counts=np.bincount(D_tr[m][1]).tolist())
                     pols[m], infos[m] = fit_module(v, m, D_tr[m], D_in[m], seed)
                 # DAgger rounds visit states with the prob arbiter at the median-rate tau (declared; not a choice)
-                comp = Composed(v, pols, "prob", tau=0.5)
+                comp = Composed(v, pols, "prob", tau=0.5, mask=mask)
                 if v != "JOINT":
                     pm = comp.open_scores(cx, cx.ds.rows("INNER_A"))
                     comp.tau = float(np.quantile(pm, 1 - 0.06))
@@ -343,30 +378,33 @@ def run(a):
             cands = [("prob", t) for t in RATE_GRID] if v != "JOINT" else [("argmax", None)]
             if v != "JOINT":
                 cands += [("expected_gain", None), ("gain_over_risk", None)]
-            pm = Composed(v, pols, "prob").open_scores(cx, ia) if v != "JOINT" else None
+            pm = Composed(v, pols, "prob", mask=mask).open_scores(cx, ia) if v != "JOINT" else None
             for arb, rate in cands:
                 tau = float(np.quantile(pm, 1 - rate)) if rate is not None else None
-                c = Composed(v, pols, arb, tau)
+                c = Composed(v, pols, arb, tau, mask=mask)
                 m = summary(cx.rollout("INNER_A", c(cx), STUDENT_CFG)[0])
                 trials.append({"arbiter": arb, "rate": rate, "tau": tau, "sharpe": m["sharpe_daily_sqrt365"], "valid": m["valid"],
                                "orders_per_week": m["orders_per_week"], "net": m["net_profit_usd"]})
                 ledger(led, rung="E3M", event="ARBITER_TRIAL", variant=v, seed=seed, **trials[-1])
             ok = [t for t in trials if t["valid"] and t["sharpe"] is not None and math.isfinite(t["sharpe"])]
             best = max(ok or trials, key=lambda t: t["sharpe"] if t["sharpe"] is not None and math.isfinite(t["sharpe"]) else -1e9)
-            c = Composed(v, pols, best["arbiter"], best["tau"])
+            c = Composed(v, pols, best["arbiter"], best["tau"], mask=mask)
             frozen[(v, seed)] = c
             ledger(led, rung="E3M", event="FREEZE", variant=v, seed=seed, arbiter=best["arbiter"], tau=best["tau"], chosen_on="INNER_A")
             rec = {"fits": {m: {k: infos[m][k] for k in ("epochs", "best_epoch", "params", "stop_reason")} for m in infos},
                    "arbiter_trials": trials, "arbiter": best, "trading": {}, "musashi_contract": {}}
-            for p in ("TRAIN", "INNER_A", "INNER_B"):
+            for p in DEV:
                 rec["trading"][p] = summary(cx.rollout(p, c(cx), STUDENT_CFG)[0])
                 rec["musashi_contract"][p] = summary(cx.rollout(p, c(cx), MUSASHI_CFG)[0])
             for m, pol in pols.items():
                 torch.save(pol.m.state_dict(), out / f"{v}_{m}_{seed}.pt")
+                res["probe"][f"{v}_{m}_{seed}"] = probe(pol)
+            (out / "PROBE.json").write_text(json.dumps({"split_contract": a.split_contract, "agent_state": a.agent_state,
+                                                        "scaling": a.scaling, "probe": res["probe"]}, indent=1))
             res["trials"].setdefault(v, {})[str(seed)] = rec
             print(json.dumps({"variant": v, "seed": seed, "arbiter": best["arbiter"],
                               "sharpe": {p: round(rec["trading"][p]["sharpe_daily_sqrt365"], 2) for p in rec["trading"]},
-                              "opw": round(rec["trading"]["INNER_B"]["orders_per_week"], 1), "s": round(time.time() - t0, 1)}), flush=True)
+                              "opw": round(rec["trading"][DEV[-1]]["orders_per_week"], 1), "s": round(time.time() - t0, 1)}), flush=True)
     # decision on INNER_A (seed means), 2024 once
     means = {}
     for v in variants:
@@ -391,7 +429,7 @@ def run(a):
     print(json.dumps({"decision": res["decision"], "wall": round(res["wall_seconds"], 1)}))
 
 
-def main():
+def build_parser():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("stage", choices=["run"])
     ap.add_argument("--admitted", required=True)
@@ -408,11 +446,22 @@ def main():
     ap.add_argument("--dropout", type=float, default=0.1)
     ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--max-epochs", type=int, default=1000)
-    ap.add_argument("--scaling", choices=["rolling_z", "fixed_train"], default="rolling_z")
+    ap.add_argument("--scaling", choices=list(DG.SCALINGS), default="rolling_z")
+    ap.add_argument("--agent-state", choices=list(E.AGENT_STATE_MODES), default="full",
+                    help="ablation: feedback slots fed to the network (omitted slots = constant zeros; same shape/params)")
+    ap.add_argument("--split-contract", choices=list(DG.SPLIT_CONTRACTS), default="dev3y",
+                    help="dev3y = fit 2020-2022 / 2023A / 2023B / 2024 once; consolidated = TRAIN 2020-2023 with its last "
+                         "6 months as the inner selection block, 2024 once; TEST stays closed")
+    ap.add_argument("--no-verify", action="store_true",
+                    help="skip the source pins (fixture runs only; recorded as verify=false in every output)")
     ap.add_argument("--store", default="", help="layer-1 pool parquet (MANIFEST.json beside it)")
     ap.add_argument("--feature-list", default="", help="JSON with {'features': [...]} selected from the store")
     ap.add_argument("--cpu", action="store_true")
-    run(ap.parse_args())
+    return ap
+
+
+def main():
+    run(build_parser().parse_args())
 
 
 if __name__ == "__main__":
