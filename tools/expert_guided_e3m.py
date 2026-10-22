@@ -278,11 +278,11 @@ def run(a):
     mask, inventory = E.state_mask(a.agent_state), E.state_inventory(a.agent_state)
     if a.store:
         feats = json.loads(Path(a.feature_list).read_text())["features"]
-        ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary)
+        ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from)
     elif a.features == "core15":
-        ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary)
+        ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from)
     else:
-        ds = DG.load_v4(a.admitted, a.v4_dir, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary)
+        ds = DG.load_v4(a.admitted, a.v4_dir, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from)
     st = ds.meta["scaling"].get("stationarity")
     if st:
         print(json.dumps({"stationarity_policy": st["policy"], "differenced": st["differenced"],
@@ -451,6 +451,7 @@ def build_parser():
     ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--max-epochs", type=int, default=1000)
     ap.add_argument("--scaling", choices=list(DG.SCALINGS), default="rolling_z")
+    ap.add_argument("--eligible-from", default=None, help="shared-support option: rows before this UTC date are ineligible in every arm (matched comparisons)")
     ap.add_argument("--nonstationary", choices=list(DG.NONSTATIONARY), default="diff",
                     help="fixed_train only: a feature measured non-stationary on TRAIN (ADF/KPSS) is differenced (default), refused or kept")
     ap.add_argument("--agent-state", choices=list(E.AGENT_STATE_MODES), default="full",

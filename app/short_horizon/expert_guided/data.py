@@ -297,7 +297,7 @@ def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride
                                       "rows_excluded_nan_windows": int((ok_idx & ~fin_w).sum())}
 
 
-def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y", nonstationary="diff") -> Dataset:
+def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y", nonstationary="diff", eligible_from=None) -> Dataset:
     check_scaling(scaling)
     split_contract(contract)
     admitted_dir, csv_dir = Path(admitted_dir), Path(csv_dir)
@@ -317,11 +317,11 @@ def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolli
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, csv_dir, scaling=scaling, contract=contract, nonstationary=nonstationary, sources={"loader": "core15", "verified": bool(verify),
+    return build(bars, cal, csv_dir, scaling=scaling, contract=contract, nonstationary=nonstationary, eligible_from=eligible_from, sources={"loader": "core15", "verified": bool(verify),
                                                                                 "sha256": digests})
 
 
-def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y", nonstationary="diff") -> Dataset:
+def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y", nonstationary="diff", eligible_from=None) -> Dataset:
     """Same population rules as ``load`` but the observation features are the four TIMING_PROXY_SELECTION v4
     inputs (frozen subset read from the snapshot, never hard-coded). The v4 matrix is stamped at bar start;
     the observation becomes available at bar close, so DATE_TIME = timestamp + 1 h (verified on OHLC).
@@ -353,12 +353,12 @@ def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rol
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats, scaling=scaling, contract=contract, nonstationary=nonstationary,
+    return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats, scaling=scaling, contract=contract, nonstationary=nonstationary, eligible_from=eligible_from,
                  frame_meta={"source": "TIMING_PROXY_SELECTION v4", "pins": PINS_V4},
                  sources={"loader": "v4", "verified": bool(verify), "sha256": digests})
 
 
-def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train", nonstationary="diff",
+def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train", nonstationary="diff", eligible_from=None,
                manifest_sha256: str | None = None, contract="dev3y") -> Dataset:
     """Observations from an arbitrary feature store on the admitted grid (layer-1 pool, 2026-10-22): the store's
     MANIFEST must name this admitted source; ``features`` are the selected columns; the store timestamp is the bar
@@ -390,13 +390,14 @@ def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end=
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract, nonstationary=nonstationary,
+    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract, nonstationary=nonstationary, eligible_from=eligible_from,
                  frame_meta={"source": "layer1 store", "store_sha256": man.get("file_sha256"), "n_features": len(features)},
                  sources={"loader": "store", "verified": bool(verify), "sha256": digests})
 
 
 def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
-          frame_meta=None, scaling="rolling_z", contract="dev3y", sources=None, nonstationary="diff") -> Dataset:
+          frame_meta=None, scaling="rolling_z", contract="dev3y", sources=None, nonstationary="diff",
+          eligible_from=None) -> Dataset:
     check_scaling(scaling)                       # strict enum, refused before any statistic is fitted
     if nonstationary not in NONSTATIONARY:
         raise ValueError(f"NONSTATIONARY_UNKNOWN:{nonstationary}")
@@ -479,6 +480,11 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     reasons = {"outside_periods": period == "", "not_joined": row_bar < 0, "window_or_scale_warmup": ~row_ok,
                "entry_gate_closed": ~gate, "no_causal_sigma": ~sig_ok, "label_censored": censored,
                "label_support_crosses_period_end": purged}
+    # shared-support option (matched comparisons, auditor 2026-10-22 §3.2): rows before ``eligible_from`` are never
+    # eligible in ANY arm, so arms with different warm-ups (rolling 256 rows, relative columns 480 bars, ...) score
+    # the same rows; the per-period support hash below makes the match verifiable across runs
+    if eligible_from:
+        reasons["before_eligible_from"] = ts_ns < _utc_ns(eligible_from)
     eligible = np.ones(len(df), bool)
     excl = {}
     for name, mask in reasons.items():
@@ -488,6 +494,8 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
             "backstep": EXPERT.backstep, "source": "admitted", "pivots": len(piv),
             "confirmed": int(sum(1 for x in conf if x >= 0)), "confirmation_collisions": int(collisions)},
             "rows_total": int(len(df)), "rows_eligible": {p: int((eligible & (period == p)).sum()) for p in periods},
+            "support_hash": {p: hashlib.sha256(np.ascontiguousarray(ts_ns[eligible & (period == p)]).tobytes()).hexdigest()[:16]
+                             for p in periods}, "eligible_from": eligible_from,
             "input_contract": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True,
                                "scaling": (f"causal rolling z-score over rows [i-{SCALE_W}, i)" if scaling != "fixed_train"
                                            else ("fixed TRAIN-only mean/std (2020-2022) for every feature" if contract == "dev3y"

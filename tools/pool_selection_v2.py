@@ -811,6 +811,7 @@ class Engine:
                     d["retained_cols"] = self.arm_columns(f, best["arm"])
                 else:
                     d["retained_cols"] = list(self.families[f])
+                d["retained_cols"] = [c for c in d["retained_cols"] if c in self.pool_cols]   # pool columns only
             out[f] = d
         res = [r for r in rows if r["stage"] == "rescue"]
         pairs = {}
@@ -843,13 +844,13 @@ class Engine:
         if arm in ("P", "P_decided"):
             return list(dec["parent_cols"])
         if arm == "P_raw":
-            return list(dec.get("raw_cols", []))
+            return []                              # control arm: a raw level never enters a consumer list
         if arm == "Cgroup" or arm == "with":
             return list(cs)
         if arm in ("P+Cgroup", "P_decided+Cgroup"):
             return list(dec["parent_cols"]) + list(cs)
         if arm == "P_raw+Cgroup":
-            return list(dec.get("raw_cols", [])) + list(cs)
+            return list(cs)                        # the components; the raw-level control stays out
         if arm.startswith("C:"):
             return [dec["components"][arm[2:]]]
         if arm.startswith("S:"):
