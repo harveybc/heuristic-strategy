@@ -165,6 +165,10 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 38. [REGISTRADO] SIGUIENTE RONDA RL (propietario 2026-10-22): entrenamiento limpio — sin realimentación de entradas del agente, sin z-score móvil, escala fija TRAIN, pool seleccionado con codificación ganadora, múltiples señales ZigZag como demostraciones; evaluar si los módulos entrenan mejor. Documento de diseño para Musashi: predictor `satoshi/reply-to-musashi-20261022` `SELECTION_V2_DESIGN_AND_PROTOCOL_2026_10_22.md`.
 
+39. [x CERRADO 2026-10-22 14:06Z] CONSUMO REAL DE LA SELECCIÓN v3 (E3-M FULL head 16, escala fija, 3 semillas, mismo store, dev3y): core15 −1.14 / estricta 125 −1.13 / shortlist 173 −1.96 / estricta+codificaciones 137 −1.38 de Sharpe en INNER_A; las listas grandes memorizan TRAIN (netos +1.3 M…+8.4 M USD) sin ganancia fuera. Escalado emparejado (hashes de soporte idénticos, `--eligible-from 2020-02-01`): rolling-z +0.43 (una semilla inválida) vs fijo −1.14; keep == diff (la regla no diferenció nada en core15 del pool); relativas explícitas rel24/rel480 NO recuperan el efecto (−2.33). Pedidas = consumidas en todos los brazos (0/0). Publicado: heuristic-strategy results/expert_guided/selection_v3/CONSUMERS.md + CONSUMPTION_*.json. Brazos del contrato principal y diagnóstico de brecha: en el worker de Musashi (paquete @6bc885c8), pendientes de que él los lance.
+
+40. [SIGUIENTE — diseño para aprobación del propietario] RONDA RL LIMPIA: atacar la brecha TRAIN−VAL antes que el desempeño: menos entradas por extractor compartido (familias agrupadas), regularización medida (diagnóstico de brecha), parada temprana que no mire sólo TRAIN, estado del agente none/minimal como brazos, múltiples expertos ZigZag sólo como demostraciones, escala fija TRAIN; y resolver qué información aporta el rolling-z (relatividad de TODAS las entradas al pasado reciente) con una variante explícita y causal, no con el rolling.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
