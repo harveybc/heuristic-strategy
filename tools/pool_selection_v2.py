@@ -379,6 +379,8 @@ class Engine:
         wcov = wok[lab_any].mean(0)
         self.low_window_coverage = {c: float(wcov[i]) for i, c in enumerate(self.cols) if wcov[i] < MIN_COVERAGE}
         self.temporal_cols = [c for c in self.cols if c not in self.low_window_coverage]
+        self.pool_cols = list(self.cols)                              # the candidate pool proper
+        self.encodings = self.build_encodings()                       # derived variants live outside the pool
         self.informative = None
         self.ledger = self.out / "LEDGER.jsonl"
         self.done = set()
@@ -388,6 +390,59 @@ class Engine:
                     r = json.loads(line)
                     if "error" not in r:                       # failed units are retried on resume
                         self.done.add(r["key"])
+
+    # ---- encoding stage (owner 2026-10-22): the SAME information written in different encodings, same rows
+    def _add_derived(self, name, values):
+        self.cols.append(name)
+        self.M = np.concatenate([self.M, np.asarray(values, float).reshape(-1, 1)], 1)
+        return name
+
+    def build_encodings(self):
+        """family -> {"base": [pool cols], "variants": {name: [derived cols]}, "structural": bool}. Structural
+        variants change the column set (one-hot vs probabilities vs sin/cos): judged by both models. Monotone
+        per-column transforms (log, ratio) leave a tree model unchanged, so they are judged by the temporal model
+        only. Every derived column is causal (trailing windows on the bar grid) and is recorded in BUDGET.json."""
+        enc, has = {}, lambda *cs: all(c in self.pool_cols for c in cs)
+        hours = pd.DatetimeIndex(pd.to_datetime(self.ts_ns, utc=True)).hour.to_numpy()
+        M = lambda c: self.M[:, self.cols.index(c)]  # noqa: E731
+        # 1. hour of day: sin/cos (base) vs 24 one-hot vs the three session flags
+        if has("hod_sin", "hod_cos"):
+            oh = [self._add_derived(f"enc.hod.oh{h}", (hours == h).astype(float)) for h in range(24)]
+            ses = [c for c in ("cal.utc_session_asia", "cal.utc_session_europe", "cal.utc_session_us") if c in self.pool_cols]
+            enc["hod"] = {"base": ["hod_sin", "hod_cos"], "variants": {"onehot24": oh, "sessions": ses}, "structural": True}
+        # 2. regime: probabilities (base) vs hard one-hot of the argmax, per model
+        for r in ("hmm", "gmm"):
+            ps = [f"rg.{r}.p{i}" for i in range(3)]
+            if has(*ps):
+                P = np.stack([M(c) for c in ps], 1)
+                am = np.where(np.isfinite(P).all(1), P.argmax(1), -1)
+                oh = [self._add_derived(f"enc.{r}.oh{i}", np.where(am >= 0, (am == i).astype(float), np.nan)) for i in range(3)]
+                extra = [c for c in (f"rg.{r}.entropy", f"rg.{r}.surprise") if c in self.pool_cols]
+                enc[f"regime_{r}"] = {"base": ps + extra, "variants": {"onehot": oh + extra}, "structural": True}
+        # 3. event clock: linear hours (base) vs exponential decay exp(-h/4) vs a +/-2 h window flag per fixing
+        evs = [c for c in self.pool_cols if c.startswith("ev.") and c.endswith(("hours_since", "hours_to"))]
+        if evs:
+            dec = [self._add_derived(c.replace("ev.", "enc.ev.") + ".exp4", np.exp(-np.abs(M(c)) / 4.0)) for c in evs]
+            fix = sorted({c.split(".")[1] for c in evs})
+            win = [self._add_derived(f"enc.ev.{f}.win2", (np.minimum(np.abs(M(f"ev.{f}.hours_since")), np.abs(M(f"ev.{f}.hours_to"))) <= 2).astype(float))
+                   for f in fix if has(f"ev.{f}.hours_since", f"ev.{f}.hours_to")]
+            enc["event_clock"] = {"base": evs, "variants": {"expdecay4": dec, "window2h": win}, "structural": True}
+        # 4. range/volatility magnitude: raw (base) vs log1p vs ratio to its trailing 24-bar mean (monotone / relative)
+        rng = [c for c in self.pool_cols if c.startswith("px.range_")]
+        if rng:
+            lg = [self._add_derived(c.replace("px.", "enc.px.") + ".log1p", np.log1p(np.maximum(M(c), 0))) for c in rng]
+            rel = []
+            for c in rng:
+                s_ = pd.Series(M(c)); m24 = s_.rolling(24, min_periods=24).mean().to_numpy()
+                rel.append(self._add_derived(c.replace("px.", "enc.px.") + ".rel24", np.where(m24 > 0, M(c) / m24, np.nan)))
+            enc["range_scale"] = {"base": rng, "variants": {"log1p": lg, "rel24": rel}, "structural": False}
+        # 5. price level: 1-bar difference (base) vs difference + trailing 480-bar relative level (where are we)
+        if has("CLOSE@diff"):
+            close = self.ds.bars["CLOSE"].to_numpy(float); s_ = pd.Series(close)
+            m, sd = s_.rolling(480, min_periods=480).mean().to_numpy(), s_.rolling(480, min_periods=480).std().to_numpy()
+            rel = self._add_derived("enc.close.rel480", np.where(sd > 0, (close - m) / sd, np.nan))
+            enc["price_level"] = {"base": ["CLOSE@diff"], "variants": {"diff_plus_rel480": ["CLOSE@diff", rel]}, "structural": False}
+        return enc
 
     # ---- row sets
     def row_set(self, task, cols):
@@ -408,15 +463,17 @@ class Engine:
         return out
 
     # ---- one unit of work: fit on fold, score, optional block permutation of groups
-    def unit(self, task, model_name, cols, fold, k_folds, seed, perm_groups=None):
+    def unit(self, task, model_name, cols, fold, k_folds, seed, perm_groups=None, row_cols=None):
         kind = TASKS[task]
-        sel = self.row_set(task, cols)
+        rc = row_cols or cols                   # columns that define the row set (identical rows across variants)
+        sel = self.row_set(task, rc)
         ci = [self.cols.index(c) for c in cols]
+        rci = [self.cols.index(c) for c in rc]
         y = self.labels[task][sel]
         b = self.bars[sel]
         X = self.M[b][:, ci]
         if model_name == "temporal":
-            winok = np.isfinite(self.M[:, ci]).all(1)
+            winok = np.isfinite(self.M[:, rci]).all(1)
             cs = np.concatenate([[0], np.cumsum(~winok)])
             keep = (b - WIN_SEL + 1 >= 0) & (cs[b + 1] - cs[np.maximum(b - WIN_SEL + 1, 0)] == 0)
             sel, y, b, X = sel[keep], y[keep], b[keep], X[keep]
@@ -490,14 +547,14 @@ class Engine:
     def arms(self):
         """Every unit key -> (stage, task, model, cols, fold, k_folds, perm_groups, meta). Deterministic order."""
         units = []
-        full = self.cols
+        full = self.pool_cols
         groups = {f: cs for f, cs in self.families.items()}
         for t in TASKS:
             for mdl in ("hgb", "temporal"):
                 for k in range(FOLDS_BASE):
                     units.append((f"base|{t}|{mdl}|{k}", "base", t, mdl, full if mdl == "hgb" else self.temporal_cols, k, FOLDS_BASE, groups,
                                   {"family": "ALL", "ctx": "full", "arm": "all"}))
-        inf = self.informative_tasks() if self.a.stage in ("contrast", "rescue", "all") else []
+        inf = self.informative_tasks() if self.a.stage in ("contrast", "encoding", "rescue", "all") else []
         core = [c for c in full if c.split("@")[0] in CORE15]
         for t in inf:
             for k in range(FOLDS_CONTRAST):
@@ -526,6 +583,17 @@ class Engine:
                                 continue
                             units.append((f"con|{t}|{f}|{ctx_name}|{arm}|{k}", "contrast", t, "hgb", cols, k,
                                           FOLDS_CONTRAST, None, {"family": f, "ctx": ctx_name, "arm": arm}))
+        if self.a.stage in ("encoding", "all"):
+            for t in inf:
+                for f, e in self.encodings.items():
+                    allv = e["base"] + [c for v in e["variants"].values() for c in v]
+                    for v, vcols in (("base", e["base"]), *e["variants"].items()):
+                        for mdl in (("hgb", "temporal") if e["structural"] else ("temporal",)):
+                            # the temporal context excludes columns without complete windows (same rule as base)
+                            ctx = [c for c in (full if mdl == "hgb" else self.temporal_cols) if c not in e["base"]]
+                            for k in range(FOLDS_CONTRAST):
+                                units.append((f"enc|{t}|{f}|{v}|{mdl}|{k}", "encoding", t, mdl, ctx + vcols, k, FOLDS_CONTRAST, None,
+                                              {"family": f, "ctx": "full", "arm": v, "row_cols": ctx + allv}))
         if self.a.stage in ("rescue", "all"):
             for t in inf:
                 for f1, f2 in self.rescue_pairs():
@@ -552,11 +620,12 @@ class Engine:
         print(json.dumps({"units_total": len(units), "shard": self.a.shard, "todo": len(todo)}), flush=True)
         for key, stage, task, mdl, cols, k, kf, pg, meta in todo:
             try:
-                res = self.unit(task, mdl, cols, k, kf, SEEDS[0], pg)
+                res = self.unit(task, mdl, cols, k, kf, SEEDS[0], pg, row_cols=meta.get("row_cols"))
             except Exception as ex:  # a failed unit is recorded, never silently skipped
                 import traceback
                 res = {"task": task, "model": mdl, "fold": k, "error": f"{type(ex).__name__}: {ex}",
                        "traceback": traceback.format_exc().splitlines()[-4:]}
+            meta = {k_: v_ for k_, v_ in meta.items() if k_ != "row_cols"}
             res.update({"key": key, "stage": stage, **meta, "cols_hash": hashlib.sha256("|".join(cols).encode()).hexdigest()[:12]})
             with self.ledger.open("a") as fh:
                 fh.write(json.dumps(res) + "\n")
@@ -576,6 +645,8 @@ class Engine:
                "columns": len(self.cols), "families": {f: len(c) for f, c in self.families.items()},
                "excluded_insufficient_coverage": self.low_coverage, "min_coverage": MIN_COVERAGE,
                "excluded_from_temporal_insufficient_window_coverage": self.low_window_coverage,
+               "encoding_contrasts": {f: {"base": e["base"], "variants": {v: len(c) for v, c in e["variants"].items()},
+                                          "judged_by": ["hgb", "temporal"] if e["structural"] else ["temporal"]} for f, e in self.encodings.items()},
                "decomposition_families": {f: {"parent": d["parent"], "parent_cols": d["parent_cols"],
                                               "components": list(d["components"])} for f, d in self.decomp.items()},
                "units": counts, "units_upper_bound": len(units), "estimated_cpu_hours_upper_bound": round(est / 3600, 1),
@@ -688,6 +759,31 @@ class Engine:
             return [col for name, col in dec["components"].items() if any(k.lower() in name.lower() for k in keys)]
         return list(cs)
 
+    def encoding_decisions(self, rows):
+        """Per (family, variant, model, task): mean gain vs the base encoding over the 3 folds and its lo90; the
+        family's decision is the best variant with lo90 > 0, else the base encoding stays."""
+        enc = [r for r in rows if r["stage"] == "encoding" and "error" not in r]
+        out = []
+        for f, e in self.encodings.items():
+            for mdl in ("hgb", "temporal"):
+                for t in TASKS:
+                    base = {r["fold"]: r["val_loss"] for r in enc if r["family"] == f and r["arm"] == "base" and r["model"] == mdl and r["task"] == t}
+                    for v in e["variants"]:
+                        var = {r["fold"]: r["val_loss"] for r in enc if r["family"] == f and r["arm"] == v and r["model"] == mdl and r["task"] == t}
+                        folds = sorted(set(base) & set(var))
+                        if len(folds) < FOLDS_CONTRAST:
+                            continue
+                        g = [base[k] - var[k] for k in folds]
+                        out.append({"family": f, "variant": v, "model": mdl, "task": t, "gain_vs_base": float(np.mean(g)), "lo90": self.lo90(g),
+                                    "base_loss": float(np.mean([base[k] for k in folds])), "variant_loss": float(np.mean([var[k] for k in folds]))})
+        best = {}
+        for r in out:
+            if r["lo90"] > 0 and r["gain_vs_base"] > best.get(r["family"], (None, 0))[1]:
+                best[r["family"]] = (r["variant"], r["gain_vs_base"])
+        for r in out:
+            r["decision"] = f"USE_{best[r['family']][0]}" if r["family"] in best else "KEEP_BASE_ENCODING"
+        return out
+
     def aggregate(self):
         self.a.stage = "all"
         inf = self.informative_tasks()
@@ -704,6 +800,9 @@ class Engine:
         pd.DataFrame([{k: v for k, v in r.items() if k != "perm"} for r in con]).to_csv(
             self.out / "CONTRASTS_PARENT_COMPONENTS.csv", index=False)
         dec = self.decisions()
+        encd = self.encoding_decisions(rows)
+        if encd:
+            pd.DataFrame(encd).to_csv(self.out / "ENCODING.csv", index=False)
         pd.DataFrame([{"family": f, "status": d["status"], "n_cols": len(self.families[f]), "retained_cols": len(d["retained_cols"]),
                        "retained_arm": d.get("retained_arm", ""), "n_evidence": len(d["evidence"]),
                        "best_gain_core15": d["best_gain_core15"]} for f, d in dec.items()]).to_csv(self.out / "FAMILY_DECISIONS.csv", index=False)
@@ -728,6 +827,11 @@ class Engine:
         for f, d in sorted(dec.items(), key=lambda kv: (kv[1]["status"], kv[0])):
             ev = "; ".join(f"{e['kind']}:{e.get('task')}:{e.get('arm', e.get('model', ''))} +{e['mean']:.4f} (lo90 {e['lo90']:.4f})" for e in d["evidence"][:4])
             L.append(f"| {f} | {len(self.families[f])} | {d['status']} | {d.get('retained_arm', '')} | {ev} |")
+        if encd:
+            L += ["", "## Encoding contrasts (same information, different encoding; gain vs the base encoding)", "",
+                  "| family | variant | model | task | gain vs base | lo90 | decision |", "|---|---|---|---|---|---|---|"]
+            for r in sorted(encd, key=lambda r: (r["family"], r["variant"], r["model"], r["task"])):
+                L.append(f"| {r['family']} | {r['variant']} | {r['model']} | {r['task']} | {r['gain_vs_base']:+.4f} | {r['lo90']:+.4f} | {r['decision']} |")
         if errors:
             L += ["", "## Failed units", ""] + [f"- {r['key']}: {r['error']}" for r in errors[:30]]
         (self.out / "SELECTION_V2.md").write_text("\n".join(L) + "\n")
@@ -744,7 +848,7 @@ def main():
     ap.add_argument("--catalog", default=None)
     ap.add_argument("--out", required=True)
     ap.add_argument("--fit-end", default="2024-01-01")
-    ap.add_argument("--stage", default="all", choices=("base", "contrast", "rescue", "all"))
+    ap.add_argument("--stage", default="all", choices=("base", "contrast", "encoding", "rescue", "all"))
     ap.add_argument("--shard", default="0/1")
     a = ap.parse_args()
     eng = Engine(a)
