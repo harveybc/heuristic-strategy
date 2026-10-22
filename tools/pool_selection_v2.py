@@ -816,9 +816,14 @@ class Engine:
         for f, d in dec.items():
             if len(d["evidence"]) >= 2:
                 strict += [c for c in d["retained_cols"] if c not in strict]
+        # the consuming model (E3-M) needs complete 24-bar windows: columns without them (daily-break series) are
+        # excluded from every finalist list and recorded, not judged
+        drop = set(self.low_window_coverage)
         lists = {"core15": core, "shortlist": short, "shortlist_strict": strict,
                  "core15_plus_shortlist": core + [c for c in short if c not in core]}
+        lists = {k: [c for c in v if c not in drop] for k, v in lists.items()}
         (self.out / "SHORTLIST.json").write_text(json.dumps({"lists": lists, "informative_tasks": inf, "stores": self.pins,
+                                                             "excluded_from_consumer_insufficient_window_coverage": sorted(drop),
                                                              "decisions": dec}, indent=1))
         errors = [r for r in rows if "error" in r]
         L = ["# Pool selection v2", "", f"Columns {len(self.cols)} in {len(self.families)} families; units done {len(rows)}; failed {len(errors)}.",
