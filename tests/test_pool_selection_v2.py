@@ -110,11 +110,11 @@ def test_decision_rule_requires_lo90_above_zero_and_picks_the_best_arm_for_a_dec
     for k, (none, cg, pcg) in enumerate([(0.50, 0.48, 0.46), (0.50, 0.53, 0.47), (0.50, 0.49, 0.45)]):
         rows.append({"stage": "contrast", "family": "wav/log_close", "ctx": "full", "arm": "none", "task": "hit", "fold": k, "val_loss": none, "n_cols": 100})
         rows.append({"stage": "contrast", "family": "wav/log_close", "ctx": "full", "arm": "Cgroup", "task": "hit", "fold": k, "val_loss": cg, "n_cols": 102})
-        rows.append({"stage": "contrast", "family": "wav/log_close", "ctx": "full", "arm": "P+Cgroup", "task": "hit", "fold": k, "val_loss": pcg, "n_cols": 103})
+        rows.append({"stage": "contrast", "family": "wav/log_close", "ctx": "full", "arm": "P_decided+Cgroup", "task": "hit", "fold": k, "val_loss": pcg, "n_cols": 103})
     monkeypatch.setattr(e, "rows", lambda: rows)
     dec = e.decisions(quiet=True)
     assert dec["famA"]["status"] == "RETAINED" and dec["famA"]["retained_cols"] == ["a1", "a2"]
-    assert dec["wav/log_close"]["status"] == "RETAINED" and dec["wav/log_close"]["retained_arm"] == "P+Cgroup"
+    assert dec["wav/log_close"]["status"] == "RETAINED" and dec["wav/log_close"]["retained_arm"] == "P_decided+Cgroup"
     assert dec["wav/log_close"]["retained_cols"] == ["p1", "w1", "w2"]
     # a single-fold gain with a loss in another fold does not retain
     e2 = _stub_engine({"famB": ["b1"]})

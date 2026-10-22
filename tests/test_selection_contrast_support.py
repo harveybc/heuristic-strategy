@@ -10,7 +10,8 @@ def engine():
     cls = next(n for n in ast.parse(source).body if isinstance(n, ast.ClassDef) and n.name == "Engine")
     method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "arms")
     scope = {"TASKS": {"task": "cls"}, "CORE15": ["context"], "FOLDS_BASE": 6,
-             "FOLDS_CONTRAST": 3, "SUBGROUPS": {"details": ("detail",)}}
+             "FOLDS_CONTRAST": 3, "SUBGROUPS": {"details": ("detail",)}, "SUPPORT_PROTOCOL": "family_union_v1",
+             "TEMPORAL_CONTRAST_PREFIXES": ("kalman/",)}   # arm names follow the auditor's §3.1: P_decided (2026-10-22)
     exec(compile(ast.Module(body=[method], type_ignores=[]), "real_engine_arms", "exec"), scope)
     fake = type("SyntheticEngine", (), {"arms": scope["arms"], "informative_tasks": lambda self: ["task"]})()
     fake.a = SimpleNamespace(stage="contrast")
@@ -40,9 +41,9 @@ def test_pairing_does_not_change_which_features_an_arm_consumes():
     for units in groups().values():
         by_arm = {u[-1]["arm"]: u[4] for u in units}
         assert by_arm["none"] == ["context"]
-        assert by_arm["P"] == ["context", "parent"]
+        assert by_arm["P_decided"] == ["context", "parent"]
         assert by_arm["C:detail"] == ["context", "detail"]
-        assert by_arm["P+Cgroup"] == ["context", "parent", "detail", "approx"]
+        assert by_arm["P_decided+Cgroup"] == ["context", "parent", "detail", "approx"]
 
 
 def test_no_stage_fold_or_key_is_lost():

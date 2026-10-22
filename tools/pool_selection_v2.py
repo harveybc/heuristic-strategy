@@ -60,6 +60,12 @@ from tools.expert_guided_e4q import CANDS, candidate_results  # noqa: E402
 CORE15 = list(DG.FEATURES)
 EMBARGO, BLOCK = 96, 72
 MIN_COVERAGE = 0.5
+SUPPORT_PROTOCOL = "family_union_v1"       # every arm of a family is scored on the union support (auditor 2026-10-22 §1-2)
+PAIR_FIELDS = ("support_hash", "val_hash", "rows_train", "rows_val", "seed", "k_folds")   # losses are subtracted only when equal
+# the ORIGINAL variable handed to a component generator (auditor §3.1): P_raw is the untransformed parent, kept as is
+PARENT_RAW = {"log_close": ["raw.log_close"], "BidClose": ["raw.log_close"]}
+# bounded temporal contrasts (auditor §3.3): HGB failure is no veto on nonlinear temporal utility for these families
+TEMPORAL_CONTRAST_PREFIXES = ("kalman/", "gmm/", "hmm/", "wavelet/")
 FOLDS_BASE, FOLDS_CONTRAST = 6, 3
 WIN_SEL = 24
 SEEDS = (20261022, 20261023, 20261024)
@@ -403,7 +409,23 @@ class Engine:
         self.low_window_coverage = {c: float(wcov[i]) for i, c in enumerate(self.cols) if wcov[i] < MIN_COVERAGE}
         self.temporal_cols = [c for c in self.cols if c not in self.low_window_coverage]
         self.pool_cols = list(self.cols)                              # the candidate pool proper
+        # P_raw control: the untransformed parent level (log close) as handed to the component generators; a
+        # non-stationary level kept on purpose (policy keep, recorded), never silently differenced
+        self._add_derived("raw.log_close", np.log(self.ds.bars["CLOSE"].to_numpy(float)))
+        for f, d in self.decomp.items():
+            d["raw_cols"] = [c for p in d["parent"] for c in PARENT_RAW.get(p, []) if c in self.cols]
         self.encodings = self.build_encodings()                       # derived variants live outside the pool
+        # embargo validation (auditor §3.2): the longest label support among the rows actually used must fit
+        lab_any = np.zeros(len(self.bars), bool)
+        for y in self.labels.values():
+            lab_any |= np.isfinite(y)
+        se = self.ds.support_end[self.bars[lab_any]]
+        sup = (se - self.bars[lab_any])[se >= 0]
+        from tools.expert_guided_e4q import HORIZON
+        self.label_support = {"opener3_max_bars": int(sup.max()) if len(sup) else 0, "order_tasks_max_bars": int(HORIZON),
+                              "embargo_bars": EMBARGO}
+        if max(self.label_support["opener3_max_bars"], HORIZON) > EMBARGO:
+            raise ValueError(f"EMBARGO_INSUFFICIENT:{self.label_support}")
         self.informative = None
         self.ledger = self.out / "LEDGER.jsonl"
         self.done = set()
@@ -426,11 +448,21 @@ class Engine:
         per-column transforms (log, ratio) leave a tree model unchanged, so they are judged by the temporal model
         only. Every derived column is causal (trailing windows on the bar grid) and is recorded in BUDGET.json."""
         enc, has = {}, lambda *cs: all(c in self.pool_cols for c in cs)
-        hours = pd.DatetimeIndex(pd.to_datetime(self.ts_ns, utc=True)).hour.to_numpy()
+        hours_utc = pd.DatetimeIndex(pd.to_datetime(self.ts_ns, utc=True)).hour.to_numpy()
         M = lambda c: self.M[:, self.cols.index(c)]  # noqa: E731
-        # 1. hour of day: sin/cos (base) vs 24 one-hot vs the three session flags
+        self.hod_clock_check = None
+        # 1. hour of day: sin/cos (base) vs 24 one-hot vs the three session flags. The one-hot is derived from the
+        # base columns' own clock (atan2), so the two encodings carry the same hour; the base clock is compared with
+        # the UTC bar-start hour and the result recorded (auditor §4: verify DST / bar-label alignment, never assume)
         if has("hod_sin", "hod_cos"):
-            oh = [self._add_derived(f"enc.hod.oh{h}", (hours == h).astype(float)) for h in range(24)]
+            ang = np.arctan2(M("hod_sin"), M("hod_cos"))
+            hours = np.rint(np.mod(ang, 2 * np.pi) / (2 * np.pi) * 24).astype(int) % 24
+            fin = np.isfinite(M("hod_sin")) & np.isfinite(M("hod_cos"))
+            off = np.mod(hours[fin] - hours_utc[fin], 24)
+            vals, cnt = np.unique(off, return_counts=True)
+            self.hod_clock_check = {"base_minus_utc_bar_start_hours": {int(v): int(c) for v, c in zip(vals, cnt)},
+                                    "constant_offset": bool(len(vals) == 1), "offset": int(vals[0]) if len(vals) == 1 else None}
+            oh = [self._add_derived(f"enc.hod.oh{h}", np.where(fin, (hours == h).astype(float), np.nan)) for h in range(24)]
             ses = [c for c in ("cal.utc_session_asia", "cal.utc_session_europe", "cal.utc_session_us") if c in self.pool_cols]
             enc["hod"] = {"base": ["hod_sin", "hod_cos"], "variants": {"onehot24": oh, "sessions": ses}, "structural": True}
         # 2. regime: probabilities (base) vs hard one-hot of the argmax, per model
@@ -458,13 +490,16 @@ class Engine:
             for c in rng:
                 s_ = pd.Series(M(c)); m24 = s_.rolling(24, min_periods=24).mean().to_numpy()
                 rel.append(self._add_derived(c.replace("px.", "enc.px.") + ".rel24", np.where(m24 > 0, M(c) / m24, np.nan)))
-            enc["range_scale"] = {"base": rng, "variants": {"log1p": lg, "rel24": rel}, "structural": False}
+            # log1p is a monotone map of x_t (tree-invariant: temporal only); rel24 divides by a time-varying mean and
+            # is NOT (auditor §4): both models judge it
+            enc["range_scale"] = {"base": rng, "variants": {"log1p": lg}, "structural": False}
+            enc["range_relative"] = {"base": rng, "variants": {"rel24": rel}, "structural": True}
         # 5. price level: 1-bar difference (base) vs difference + trailing 480-bar relative level (where are we)
         if has("CLOSE@diff"):
             close = self.ds.bars["CLOSE"].to_numpy(float); s_ = pd.Series(close)
             m, sd = s_.rolling(480, min_periods=480).mean().to_numpy(), s_.rolling(480, min_periods=480).std().to_numpy()
             rel = self._add_derived("enc.close.rel480", np.where(sd > 0, (close - m) / sd, np.nan))
-            enc["price_level"] = {"base": ["CLOSE@diff"], "variants": {"diff_plus_rel480": ["CLOSE@diff", rel]}, "structural": False}
+            enc["price_level"] = {"base": ["CLOSE@diff"], "variants": {"diff_plus_rel480": ["CLOSE@diff", rel]}, "structural": True}
         return enc
 
     # ---- row sets
@@ -588,14 +623,18 @@ class Engine:
                 for f, cs in self.families.items():
                     dec = self.decomp.get(f)
                     pc = dec["parent_cols"] if dec else []
-                    fam_all = cs + pc
+                    raw = dec.get("raw_cols", []) if dec else []
+                    fam_all = cs + pc + raw
+                    temporal_too = f.startswith(TEMPORAL_CONTRAST_PREFIXES)
                     for ctx_name, ctx in (("full", [c for c in full if c not in fam_all]),
                                           ("core15", [c for c in core if c not in fam_all])):
                         row_cols = list(dict.fromkeys(ctx + fam_all))
                         arms = {"none": ctx, "with": ctx + cs}
                         if dec:
                             comps = dec["components"]
-                            arms = {"none": ctx, "P": ctx + pc, "Cgroup": ctx + cs, "P+Cgroup": ctx + pc + cs}
+                            arms = {"none": ctx, "P_decided": ctx + pc, "Cgroup": ctx + cs, "P_decided+Cgroup": ctx + pc + cs}
+                            if raw:
+                                arms["P_raw"], arms["P_raw+Cgroup"] = ctx + raw, ctx + raw + cs
                             for name, col in comps.items():
                                 arms[f"C:{name}"] = ctx + [col]
                             for sg, keys in SUBGROUPS.items():
@@ -607,7 +646,19 @@ class Engine:
                                 continue
                             units.append((f"con|{t}|{f}|{ctx_name}|{arm}|{k}", "contrast", t, "hgb", cols, k,
                                           FOLDS_CONTRAST, None, {"family": f, "ctx": ctx_name, "arm": arm,
-                                                               "row_cols": row_cols, "support_protocol": "family_union_v1"}))
+                                                               "row_cols": row_cols, "support_protocol": SUPPORT_PROTOCOL}))
+                        # bounded temporal contrasts (ctx full only): none / P_decided / Cgroup / P_decided+Cgroup (+ details/approx)
+                        if dec and temporal_too and ctx_name == "full":
+                            tctx = [c for c in self.temporal_cols if c not in fam_all]
+                            trow = list(dict.fromkeys(tctx + fam_all))
+                            tarms = {a_: tctx + arms[a_][len(ctx):] for a_ in ("none", "P_decided", "Cgroup", "P_decided+Cgroup")}
+                            for a_ in ("S:details", "S:approximation"):
+                                if a_ in arms:
+                                    tarms[a_] = tctx + arms[a_][len(ctx):]
+                            for arm, cols in tarms.items():
+                                units.append((f"con|{t}|{f}|full|{arm}|temporal|{k}", "contrast", t, "temporal", cols, k,
+                                              FOLDS_CONTRAST, None, {"family": f, "ctx": "full", "arm": arm,
+                                                                   "row_cols": trow, "support_protocol": SUPPORT_PROTOCOL}))
         if self.a.stage in ("encoding", "all"):
             for t in inf:
                 for f, e in self.encodings.items():
@@ -622,10 +673,15 @@ class Engine:
         if self.a.stage in ("rescue", "all"):
             for t in inf:
                 for f1, f2 in self.rescue_pairs():
-                    for k in range(FOLDS_CONTRAST):
-                        cols = core + [c for c in self.families[f1] + self.families[f2] if c not in core]
-                        units.append((f"res|{t}|{f1}+{f2}|{k}", "rescue", t, "hgb", cols, k, FOLDS_CONTRAST, None,
-                                      {"family": f"{f1}+{f2}", "ctx": "core15", "arm": "pair"}))
+                    c1 = [c for c in self.families[f1] if c not in core]
+                    c2 = [c for c in self.families[f2] if c not in core]
+                    union = list(dict.fromkeys(core + c1 + c2))
+                    # auditor §2.4: context and BOTH singleton controls retrained on the pair's union support
+                    for arm, cols in (("none", core), ("s1", core + c1), ("s2", core + c2), ("pair", core + c1 + c2)):
+                        for k in range(FOLDS_CONTRAST):
+                            units.append((f"res|{t}|{f1}+{f2}|{arm}|{k}", "rescue", t, "hgb", cols, k, FOLDS_CONTRAST, None,
+                                          {"family": f"{f1}+{f2}", "ctx": "core15", "arm": arm, "row_cols": union,
+                                           "support_protocol": SUPPORT_PROTOCOL}))
         return units
 
     def rescue_pairs(self, budget=20):
@@ -666,6 +722,9 @@ class Engine:
         for u in units:
             counts[u[1]] = counts.get(u[1], 0) + 1
         doc = {"declared_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "fit_end": self.a.fit_end,
+               "support_protocol": SUPPORT_PROTOCOL, "pair_fields": PAIR_FIELDS, "code": DG.code_version(),
+               "label_support": self.label_support, "hod_clock_check": self.hod_clock_check,
+               "raw_parent_controls": {f: d.get("raw_cols", []) for f, d in self.decomp.items()},
                "rows_by_task": {t: int(np.isfinite(y).sum()) for t, y in self.labels.items()},
                "columns": len(self.cols), "families": {f: len(c) for f, c in self.families.items()},
                "excluded_insufficient_coverage": self.low_coverage, "min_coverage": MIN_COVERAGE,
@@ -691,6 +750,11 @@ class Engine:
         return [json.loads(l) for l in self.ledger.read_text().splitlines() if l.strip()] if self.ledger.exists() else []
 
     @staticmethod
+    def paired(a, b):
+        """Two ledger rows are comparable only when their population signatures are identical (auditor §2.3)."""
+        return all(a.get(k) == b.get(k) for k in PAIR_FIELDS)
+
+    @staticmethod
     def lo90(vals):
         v = np.array(vals, float)
         return float(v.mean() - 1.645 * v.std(ddof=1) / np.sqrt(len(v))) if len(v) > 1 else float("-inf")
@@ -712,27 +776,32 @@ class Engine:
                 if g == f and len(vals) == FOLDS_BASE and self.lo90(vals) > 0 and t in (self.informative or TASKS):
                     d["evidence"].append({"kind": "block_permutation", "model": mdl, "task": t, "mean": float(np.mean(vals)),
                                           "lo90": self.lo90(vals)})
+            d["unpaired"] = []
             for ctx in ("full", "core15"):
                 for t in TASKS:
-                    none = {r["fold"]: r["val_loss"] for r in con if r["family"] == f and r["ctx"] == ctx and r["arm"] == "none" and r["task"] == t}
-                    if not none:
-                        ref = {r["fold"]: r["val_loss"] for r in con if r["family"] == "NONE" and r["ctx"] == ctx and r["task"] == t}
-                        none = ref
-                    arms = {}
-                    for r in con:
-                        if r["family"] == f and r["ctx"] == ctx and r["task"] == t and r["arm"] != "none":
-                            arms.setdefault(r["arm"], {})[r["fold"]] = r
-                    for arm, by_fold in arms.items():
-                        folds = sorted(set(by_fold) & set(none))
-                        if len(folds) < FOLDS_CONTRAST:
-                            continue
-                        gains = [none[k] - by_fold[k]["val_loss"] for k in folds]
-                        rec = {"kind": "retrained_contrast", "ctx": ctx, "task": t, "arm": arm, "mean": float(np.mean(gains)),
-                               "lo90": self.lo90(gains), "n_cols": by_fold[folds[0]]["n_cols"]}
-                        if ctx == "core15":
-                            d["best_gain_core15"] = max(d["best_gain_core15"], rec["mean"])
-                        if rec["lo90"] > 0:
-                            d["evidence"].append(rec)
+                    for mdl in ("hgb", "temporal"):
+                        none = {r["fold"]: r for r in con if r["family"] == f and r["ctx"] == ctx and r["arm"] == "none" and r["task"] == t and r.get("model", "hgb") == mdl}
+                        if not none:
+                            continue                              # no family-specific control: nothing is subtracted
+                        arms = {}
+                        for r in con:
+                            if r["family"] == f and r["ctx"] == ctx and r["task"] == t and r.get("model", "hgb") == mdl and r["arm"] != "none":
+                                arms.setdefault(r["arm"], {})[r["fold"]] = r
+                        for arm, by_fold in arms.items():
+                            folds = sorted(set(by_fold) & set(none))
+                            bad = [k for k in folds if not self.paired(none[k], by_fold[k])]
+                            if bad:                               # a mismatch is a requested refit, never a gain of zero
+                                d["unpaired"].append({"ctx": ctx, "task": t, "model": mdl, "arm": arm, "folds": bad})
+                                continue
+                            if len(folds) < FOLDS_CONTRAST:
+                                continue
+                            gains = [none[k]["val_loss"] - by_fold[k]["val_loss"] for k in folds]
+                            rec = {"kind": "retrained_contrast", "ctx": ctx, "task": t, "model": mdl, "arm": arm, "mean": float(np.mean(gains)),
+                                   "lo90": self.lo90(gains), "n_cols": by_fold[folds[0]]["n_cols"]}
+                            if ctx == "core15":
+                                d["best_gain_core15"] = max(d["best_gain_core15"], rec["mean"])
+                            if rec["lo90"] > 0:
+                                d["evidence"].append(rec)
             if d["evidence"]:
                 d["status"] = "RETAINED"
                 cons = [e for e in d["evidence"] if e["kind"] == "retrained_contrast"]
@@ -744,19 +813,19 @@ class Engine:
                     d["retained_cols"] = list(self.families[f])
             out[f] = d
         res = [r for r in rows if r["stage"] == "rescue"]
-        for r in res:
-            pass
         pairs = {}
         for r in res:
-            pairs.setdefault((r["family"], r["task"]), {})[r["fold"]] = r["val_loss"]
-        for (fp, t), by_fold in pairs.items():
+            pairs.setdefault((r["family"], r["task"]), {}).setdefault(r["arm"], {})[r["fold"]] = r
+        for (fp, t), arms in pairs.items():
             f1, f2 = fp.split("+")
-            ref = {r["fold"]: r["val_loss"] for r in con if r["family"] == "NONE" and r["ctx"] == "core15" and r["task"] == t}
-            s1 = {r["fold"]: r["val_loss"] for r in con if r["family"] == f1 and r["ctx"] == "core15" and r["task"] == t and r["arm"] in ("with", "Cgroup", "P+Cgroup")}
-            s2 = {r["fold"]: r["val_loss"] for r in con if r["family"] == f2 and r["ctx"] == "core15" and r["task"] == t and r["arm"] in ("with", "Cgroup", "P+Cgroup")}
-            folds = sorted(set(by_fold) & set(ref) & set(s1) & set(s2))
+            if not all(a in arms for a in ("none", "s1", "s2", "pair")):
+                continue
+            folds = sorted(set(arms["none"]) & set(arms["s1"]) & set(arms["s2"]) & set(arms["pair"]))
+            folds = [k for k in folds if all(self.paired(arms["none"][k], arms[a][k]) for a in ("s1", "s2", "pair"))]
             if len(folds) < FOLDS_CONTRAST:
                 continue
+            ref, by_fold = {k: arms["none"][k]["val_loss"] for k in folds}, {k: arms["pair"][k]["val_loss"] for k in folds}
+            s1, s2 = {k: arms["s1"][k]["val_loss"] for k in folds}, {k: arms["s2"][k]["val_loss"] for k in folds}
             g_pair = [ref[k] - by_fold[k] for k in folds]
             g1, g2 = [ref[k] - s1[k] for k in folds], [ref[k] - s2[k] for k in folds]
             if self.lo90(g_pair) > 0 and np.mean(g_pair) > max(np.mean(g1), np.mean(g2)):
@@ -771,12 +840,16 @@ class Engine:
 
     def arm_columns(self, f, arm):
         dec, cs = self.decomp[f], self.families[f]
-        if arm == "P":
+        if arm in ("P", "P_decided"):
             return list(dec["parent_cols"])
+        if arm == "P_raw":
+            return list(dec.get("raw_cols", []))
         if arm == "Cgroup" or arm == "with":
             return list(cs)
-        if arm == "P+Cgroup":
+        if arm in ("P+Cgroup", "P_decided+Cgroup"):
             return list(dec["parent_cols"]) + list(cs)
+        if arm == "P_raw+Cgroup":
+            return list(dec.get("raw_cols", [])) + list(cs)
         if arm.startswith("C:"):
             return [dec["components"][arm[2:]]]
         if arm.startswith("S:"):
@@ -792,15 +865,15 @@ class Engine:
         for f, e in self.encodings.items():
             for mdl in ("hgb", "temporal"):
                 for t in TASKS:
-                    base = {r["fold"]: r["val_loss"] for r in enc if r["family"] == f and r["arm"] == "base" and r["model"] == mdl and r["task"] == t}
+                    base = {r["fold"]: r for r in enc if r["family"] == f and r["arm"] == "base" and r["model"] == mdl and r["task"] == t}
                     for v in e["variants"]:
-                        var = {r["fold"]: r["val_loss"] for r in enc if r["family"] == f and r["arm"] == v and r["model"] == mdl and r["task"] == t}
-                        folds = sorted(set(base) & set(var))
+                        var = {r["fold"]: r for r in enc if r["family"] == f and r["arm"] == v and r["model"] == mdl and r["task"] == t}
+                        folds = [k for k in sorted(set(base) & set(var)) if self.paired(base[k], var[k])]
                         if len(folds) < FOLDS_CONTRAST:
                             continue
-                        g = [base[k] - var[k] for k in folds]
+                        g = [base[k]["val_loss"] - var[k]["val_loss"] for k in folds]
                         out.append({"family": f, "variant": v, "model": mdl, "task": t, "gain_vs_base": float(np.mean(g)), "lo90": self.lo90(g),
-                                    "base_loss": float(np.mean([base[k] for k in folds])), "variant_loss": float(np.mean([var[k] for k in folds]))})
+                                    "base_loss": float(np.mean([base[k]["val_loss"] for k in folds])), "variant_loss": float(np.mean([var[k]["val_loss"] for k in folds]))})
         best = {}
         for r in out:
             if r["lo90"] > 0 and r["gain_vs_base"] > best.get(r["family"], (None, 0))[1]:
@@ -852,7 +925,9 @@ class Engine:
                                                              "decisions": dec}, indent=1))
         errors = [r for r in rows if "error" in r]
         L = ["# Pool selection v2", "", f"Columns {len(self.cols)} in {len(self.families)} families; units done {len(rows)}; failed {len(errors)}.",
-             f"Informative tasks (HGB base CV loss below prior): {inf}", ""]
+             f"Informative tasks (HGB base CV loss below prior): {inf}", "",
+             "Scope: every negative statement here means 'no improvement over the prior in these tasks / models / supports', "
+             "never absence of signal in general; unpaired arms are listed per family and never subtracted.", ""]
         L += ["## Base losses (full pool)", "", "| task | model | CV loss | prior | train loss | params |", "|---|---|---|---|---|---|"]
         for t in TASKS:
             for mdl in ("hgb", "temporal"):
@@ -860,10 +935,10 @@ class Engine:
                 if rr:
                     L.append(f"| {t} | {mdl} | {np.mean([r['val_loss'] for r in rr]):.4f} | {np.mean([r['prior_loss'] for r in rr]):.4f} | "
                              f"{np.mean([r['train_loss'] for r in rr]):.4f} | {rr[0]['n_params']} |")
-        L += ["", "## Family decisions", "", "| family | cols | status | retained arm | evidence |", "|---|---|---|---|---|"]
+        L += ["", "## Family decisions", "", "| family | cols | status | retained arm | evidence | unpaired groups |", "|---|---|---|---|---|---|"]
         for f, d in sorted(dec.items(), key=lambda kv: (kv[1]["status"], kv[0])):
             ev = "; ".join(f"{e['kind']}:{e.get('task')}:{e.get('arm', e.get('model', ''))} +{e['mean']:.4f} (lo90 {e['lo90']:.4f})" for e in d["evidence"][:4])
-            L.append(f"| {f} | {len(self.families[f])} | {d['status']} | {d.get('retained_arm', '')} | {ev} |")
+            L.append(f"| {f} | {len(self.families[f])} | {d['status']} | {d.get('retained_arm', '')} | {ev} | {len(d.get('unpaired', []))} |")
         if encd:
             L += ["", "## Encoding contrasts (same information, different encoding; gain vs the base encoding)", "",
                   "| family | variant | model | task | gain vs base | lo90 | decision |", "|---|---|---|---|---|---|---|"]
