@@ -148,9 +148,10 @@ class Dataset:
         return np.flatnonzero(self.eligible & (self.period == period))
 
 
-# Fixed TRAIN-only scaling (owner 2026-10-21: the rolling z-score destroys amplitude information). Bounded indicators
-# keep their natural scale; every other feature is (x - mean_TRAIN) / std_TRAIN with constants frozen on 2020-2022.
-NATURAL_SCALE = {"RSI": 100.0, "Stochastic_D": 100.0, "WilliamsR": 100.0}
+# Fixed TRAIN-only scaling (owner 2026-10-21: the rolling z-score destroys amplitude information; "parámetros del
+# z-score por característica solo en TRAIN y con eso se estandariza todo"): every feature is (x - mean_TRAIN) /
+# std_TRAIN with the constants frozen on 2020-2022. No feature is exempt.
+NATURAL_SCALE: dict = {}
 
 
 def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride: int = STRIDE, win: int = WIN,
@@ -310,7 +311,7 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
             "rows_total": int(len(df)), "rows_eligible": {p: int((eligible & (period == p)).sum()) for p in PERIODS},
             "input_contract": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True,
                                "scaling": (f"causal rolling z-score over rows [i-{SCALE_W}, i)" if scaling != "fixed_train"
-                                           else "fixed TRAIN-only mean/std (2020-2022), bounded indicators at natural scale"),
+                                           else "fixed TRAIN-only mean/std (2020-2022) for every feature"),
                                "scale_doc": scale_doc, "features": features},
             "periods": PERIODS, "period_status": PERIOD_STATUS}
     return Dataset(bars, cal, sigma, sigma_rule, piv, conf, y_h, y_c, sup, row_bar, ts_ns, windows, row_ok, period,
