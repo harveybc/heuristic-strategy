@@ -193,7 +193,7 @@ def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolli
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, csv_dir)
+    return build(bars, cal, csv_dir, scaling=scaling)
 
 
 def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01") -> Dataset:
@@ -228,7 +228,7 @@ def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01") -> Dataset:
 
 
 def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
-          frame_meta=None) -> Dataset:
+          frame_meta=None, scaling="rolling_z") -> Dataset:
     features = FEATURES if features is None else list(features)
     rec = {}
     if frame is not None:
