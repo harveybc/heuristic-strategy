@@ -95,7 +95,7 @@ def _stub_engine(families, decomp=None):
     e.encodings = {}
     e.low_window_coverage = {}
     e.cols = [c for cs in families.values() for c in cs]
-    e.pool_cols = list(e.cols)
+    e.pool_cols = list(e.cols) + ["p1"]                                   # parents are pool columns too
     return e
 
 
