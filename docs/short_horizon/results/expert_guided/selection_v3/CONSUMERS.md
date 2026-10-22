@@ -10,10 +10,15 @@ E3-M FULL specialists (open-L/open-S/close-L/close-S), head 16, units 2, 3 seeds
 | final_v3_shortlist_strict | shortlist_strict | 125 | fixed_train | -1.13 | True | 3,623,585 | -2,862 | -3,220 | -1,966 | 11036 |
 | final_v3_shortlist | shortlist | 173 | fixed_train | -1.96 | True | 4,896,156 | -3,774 | -2,208 | -2,718 | 14876 |
 | final_v3_shortlist_strict_enc | shortlist_strict_enc | 137 | fixed_train | -1.38 | True | 8,165,798 | -2,507 | -3,058 | -2,845 | 11996 |
-| scale_rolling_z | core15 | 15 | rolling_z | +0.43 | False | -3,324 | -634 | -4,148 | -1,626 | 2236 |
-| scale_fixed_keep | core15 | 15 | fixed_train | -1.14 | True | -5,567 | -2,732 | -4,507 | -5,641 | 2236 |
-| scale_fixed_diff | core15 | 15 | fixed_train | -1.14 | True | -5,567 | -2,732 | -4,507 | -5,641 | 2236 |
-| scale_fixed_diff_rel | core15_plus_relatives | 24 | fixed_train | -2.33 | True | 8,825 | -5,003 | -4,458 | -5,694 | 2956 |
+
+## Matched scaling experiment (RERUN with code @7896601; identical support hashes in all four arms: TRAIN 12f9ce87b1a454ec / INNER_A bddcd9eb9ad1bd88 / INNER_B 78b5834ee53e8707 / 2024 21f3dacd4915644a; rows eligible 14 372 / 2 461 / 2 436 / 4 871)
+
+| arm | list | cols | scaling | INNER_A Sharpe mean (3 seeds) | all valid | TRAIN net mean USD | INNER_A net | INNER_B net | 2024 net | params FULL |
+|---|---|---|---|---|---|---|---|---|---|---|
+| scale_rolling_z | core15 | 15 | rolling_z | -0.86 | False | 3,431 | -2,249 | -3,822 | -3,832 | 2236 |
+| scale_fixed_keep | core15 | 15 | fixed_train | -0.98 | True | 2,576 | -1,656 | -1,940 | -2,919 | 2236 |
+| scale_fixed_diff | core15 | 15 | fixed_train | -0.98 | True | 2,576 | -1,656 | -1,940 | -2,919 | 2236 |
+| scale_fixed_diff_rel | core15_plus_relatives | 24 | fixed_train | -0.97 | True | 14,347 | -2,445 | -5,665 | -5,797 | 2956 |
 
 ## Per seed and period
 
@@ -67,58 +72,10 @@ E3-M FULL specialists (open-L/open-S/close-L/close-S), head 16, units 2, 3 seeds
 | final_v3_shortlist_strict_enc | 20261021 | INNER_A | -6,967 | 294 | 11.3 | 73.6 | -4.2 | True | 0.468 |
 | final_v3_shortlist_strict_enc | 20261021 | INNER_B | -5,107 | 238 | 8.8 | 58.7 | -2.37 | True | 0.468 |
 | final_v3_shortlist_strict_enc | 20261021 | OBS_2024 | -3,490 | 529 | 10.0 | 51.5 | -0.78 | True | 0.468 |
-| scale_rolling_z | 20261019 | TRAIN | -1,433 | 1478 | 9.4 | 61.8 | 0.16 | True | 0.429 |
-| scale_rolling_z | 20261019 | INNER_A | -831 | 248 | 9.5 | 45.8 | -0.06 | True | 0.429 |
-| scale_rolling_z | 20261019 | INNER_B | -5,104 | 235 | 8.7 | 62.4 | -2.74 | True | 0.429 |
-| scale_rolling_z | 20261019 | OBS_2024 | -4,605 | 488 | 9.2 | 56.9 | -1.29 | True | 0.429 |
-| scale_rolling_z | 20261020 | TRAIN | 443 | 33 | 0.2 | 14.1 | 0.23 | False | 0.789 |
-| scale_rolling_z | 20261020 | INNER_A | 249 | 1 | 0.0 | 4.3 | 1.52 | False | 0.789 |
-| scale_rolling_z | 20261020 | INNER_B | 397 | 6 | 0.2 | 4.4 | 1.66 | False | 0.789 |
-| scale_rolling_z | 20261020 | OBS_2024 | 1,419 | 19 | 0.4 | 4.7 | 1.83 | False | 0.789 |
-| scale_rolling_z | 20261021 | TRAIN | -8,984 | 1780 | 11.3 | 92.8 | -0.75 | True | 0.181 |
-| scale_rolling_z | 20261021 | INNER_A | -1,320 | 287 | 11.0 | 44.4 | -0.19 | True | 0.181 |
-| scale_rolling_z | 20261021 | INNER_B | -7,736 | 327 | 12.1 | 78.8 | -4.73 | True | 0.181 |
-| scale_rolling_z | 20261021 | OBS_2024 | -1,693 | 592 | 11.2 | 42.4 | -0.17 | True | 0.181 |
-| scale_fixed_keep | 20261019 | TRAIN | -6,999 | 1587 | 10.1 | 85.9 | -0.47 | True | 0.365 |
-| scale_fixed_keep | 20261019 | INNER_A | -537 | 251 | 9.7 | 45.9 | 0.09 | True | 0.365 |
-| scale_fixed_keep | 20261019 | INNER_B | -5,634 | 285 | 10.6 | 59.3 | -2.96 | True | 0.365 |
-| scale_fixed_keep | 20261019 | OBS_2024 | -4,846 | 525 | 9.9 | 57.6 | -1.51 | True | 0.365 |
-| scale_fixed_keep | 20261020 | TRAIN | -7,406 | 1501 | 9.6 | 88.0 | -0.51 | True | 0.414 |
-| scale_fixed_keep | 20261020 | INNER_A | -3,841 | 245 | 9.4 | 51.9 | -1.53 | True | 0.414 |
-| scale_fixed_keep | 20261020 | INNER_B | -3,021 | 209 | 7.7 | 50.9 | -1.19 | True | 0.414 |
-| scale_fixed_keep | 20261020 | OBS_2024 | -5,561 | 458 | 8.6 | 63.3 | -2.0 | True | 0.414 |
-| scale_fixed_keep | 20261021 | TRAIN | -2,295 | 1273 | 8.1 | 86.7 | 0.13 | True | 0.383 |
-| scale_fixed_keep | 20261021 | INNER_A | -3,817 | 219 | 8.4 | 41.3 | -1.99 | True | 0.383 |
-| scale_fixed_keep | 20261021 | INNER_B | -4,866 | 213 | 7.9 | 52.0 | -2.69 | True | 0.383 |
-| scale_fixed_keep | 20261021 | OBS_2024 | -6,514 | 367 | 6.9 | 67.1 | -2.69 | True | 0.383 |
-| scale_fixed_diff | 20261019 | TRAIN | -6,999 | 1587 | 10.1 | 85.9 | -0.47 | True | 0.365 |
-| scale_fixed_diff | 20261019 | INNER_A | -537 | 251 | 9.7 | 45.9 | 0.09 | True | 0.365 |
-| scale_fixed_diff | 20261019 | INNER_B | -5,634 | 285 | 10.6 | 59.3 | -2.96 | True | 0.365 |
-| scale_fixed_diff | 20261019 | OBS_2024 | -4,846 | 525 | 9.9 | 57.6 | -1.51 | True | 0.365 |
-| scale_fixed_diff | 20261020 | TRAIN | -7,406 | 1501 | 9.6 | 88.0 | -0.51 | True | 0.414 |
-| scale_fixed_diff | 20261020 | INNER_A | -3,841 | 245 | 9.4 | 51.9 | -1.53 | True | 0.414 |
-| scale_fixed_diff | 20261020 | INNER_B | -3,021 | 209 | 7.7 | 50.9 | -1.19 | True | 0.414 |
-| scale_fixed_diff | 20261020 | OBS_2024 | -5,561 | 458 | 8.6 | 63.3 | -2.0 | True | 0.414 |
-| scale_fixed_diff | 20261021 | TRAIN | -2,295 | 1273 | 8.1 | 86.7 | 0.13 | True | 0.383 |
-| scale_fixed_diff | 20261021 | INNER_A | -3,817 | 219 | 8.4 | 41.3 | -1.99 | True | 0.383 |
-| scale_fixed_diff | 20261021 | INNER_B | -4,866 | 213 | 7.9 | 52.0 | -2.69 | True | 0.383 |
-| scale_fixed_diff | 20261021 | OBS_2024 | -6,514 | 367 | 6.9 | 67.1 | -2.69 | True | 0.383 |
-| scale_fixed_diff_rel | 20261019 | TRAIN | 40,471 | 1636 | 10.4 | 70.0 | 1.17 | True | 0.325 |
-| scale_fixed_diff_rel | 20261019 | INNER_A | -6,391 | 263 | 10.1 | 73.8 | -3.15 | True | 0.325 |
-| scale_fixed_diff_rel | 20261019 | INNER_B | -6,374 | 269 | 10.0 | 74.7 | -3.08 | True | 0.325 |
-| scale_fixed_diff_rel | 20261019 | OBS_2024 | -3,120 | 542 | 10.2 | 41.8 | -0.61 | True | 0.325 |
-| scale_fixed_diff_rel | 20261020 | TRAIN | -7,769 | 1445 | 9.2 | 87.2 | -0.59 | True | 0.359 |
-| scale_fixed_diff_rel | 20261020 | INNER_A | -2,653 | 249 | 9.6 | 41.6 | -0.9 | True | 0.359 |
-| scale_fixed_diff_rel | 20261020 | INNER_B | -1,215 | 230 | 8.5 | 40.9 | -0.22 | True | 0.359 |
-| scale_fixed_diff_rel | 20261020 | OBS_2024 | -5,939 | 514 | 9.7 | 63.0 | -1.83 | True | 0.359 |
-| scale_fixed_diff_rel | 20261021 | TRAIN | -6,226 | 1895 | 12.1 | 84.6 | -0.24 | True | 0.256 |
-| scale_fixed_diff_rel | 20261021 | INNER_A | -5,964 | 320 | 12.3 | 64.3 | -2.94 | True | 0.256 |
-| scale_fixed_diff_rel | 20261021 | INNER_B | -5,784 | 314 | 11.6 | 59.8 | -2.82 | True | 0.256 |
-| scale_fixed_diff_rel | 20261021 | OBS_2024 | -8,024 | 660 | 12.5 | 81.1 | -3.29 | True | 0.256 |
 
 ## Reading
 
 - Finalists (dev3y): no list beats core15 out of sample; the larger the list the larger the TRAIN memorization (net of millions on 10 k initial cash) with INNER_A/INNER_B/2024 negative. The selection delivered paired, measured candidates; this consumer (as configured) cannot turn them into out-of-sample advantage — the generalization gap is the problem to attack before any performance sweep.
-- Matched scaling (same support hashes): rolling-z +0.43 INNER_A (one seed invalid) vs fixed −1.14; fixed+keep == fixed+diff because the stationarity rule differenced nothing in this list (pool columns already stationary), so that pair isolates nothing here; explicit relatives (rel24/rel480 as extra columns) do NOT recover the rolling effect (−2.33). The rolling normalization carries information this consumer uses; what exactly, remains open (relative-to-recent-history of EVERY input, not just range/level).
+- Matched scaling (rerun, identical support hashes): rolling-z −0.86 INNER_A (one seed invalid: 7 trades) vs fixed+keep −0.98 vs fixed+diff −0.98 (identical: the stationarity rule differenced nothing in this list, so keep/diff isolates nothing here) vs fixed+diff+explicit relatives −0.97. On the SAME rows and inputs the rolling z-score gives no measurable advantage over the owner's fixed TRAIN scale: the earlier apparent rolling edge (+0.86 / +0.43) came from unmatched supports and inputs, not from the normalization. Explicit relative columns add nothing here either. All arms are negative out of sample: the generalization gap, not the scaling, is the problem.
 - Principal-contract (consolidated) arms and the generalization-gap diagnostic run on the peer worker; appended when they close.
 - Pre-repair arms (selection v2 lists) are kept under `final_*` for the record and are not comparable (unpaired selection, wrong layer-2 file).
