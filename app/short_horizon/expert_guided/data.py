@@ -185,7 +185,8 @@ class Dataset:
     def observable(self) -> np.ndarray:
         """Rows the agent can act on: joined, window/scale complete, causal sigma known (labels not needed)."""
         m = self.masks
-        return ~(m["not_joined"] | m["window_or_scale_warmup"] | m["no_causal_sigma"])
+        before = m.get("before_eligible_from", np.zeros(len(self.row_bar), bool))   # shared-support option (matched arms)
+        return ~(m["not_joined"] | m["window_or_scale_warmup"] | m["no_causal_sigma"] | before)
 
     def labelled(self) -> np.ndarray:
         """Rows usable as training/monitor/score examples: observable, label final and inside its period."""
