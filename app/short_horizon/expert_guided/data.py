@@ -148,7 +148,38 @@ class Dataset:
         return np.flatnonzero(self.eligible & (self.period == period))
 
 
-def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01") -> Dataset:
+# Fixed TRAIN-only scaling (owner 2026-10-21: the rolling z-score destroys amplitude information). Bounded indicators
+# keep their natural scale; every other feature is (x - mean_TRAIN) / std_TRAIN with constants frozen on 2020-2022.
+NATURAL_SCALE = {"RSI": 100.0, "Stochastic_D": 100.0, "WilliamsR": 100.0}
+
+
+def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride: int = STRIDE, win: int = WIN,
+                        train=("2020-01-01", "2023-01-01")):
+    """Windows of the raw features scaled with TRAIN-only constants (causal: constants come from the past of every
+    scored row); same slot layout as ``causal_rolling_windows``. Returns (windows, ok, scale_doc)."""
+    n = len(X)
+    t0, t1 = _utc_ns(train[0]), _utc_ns(train[1])
+    tr = (ts_ns >= t0) & (ts_ns < t1)
+    mu, sd = X[tr].mean(0), X[tr].std(0)
+    Z = np.empty_like(X, dtype=float)
+    doc = {}
+    for j, f in enumerate(features):
+        if f in NATURAL_SCALE:
+            Z[:, j] = X[:, j] / NATURAL_SCALE[f]
+            doc[f] = {"scale": "natural", "divisor": NATURAL_SCALE[f]}
+        else:
+            s_ = sd[j] if sd[j] > 0 else 1.0
+            Z[:, j] = (X[:, j] - mu[j]) / s_
+            doc[f] = {"scale": "fixed_train_z", "mean": float(mu[j]), "std": float(s_)}
+    i = np.arange(n)
+    idx = i[:, None] - stride * np.arange(win - 1, -1, -1)[None, :]
+    ok = idx[:, 0] >= 0
+    xa = Z[np.clip(idx, 0, n - 1)]
+    ok &= np.isfinite(xa).all(axis=(1, 2))
+    return xa.astype(np.float32), ok, {"method": "fixed_train", "train": list(train), "features": doc}
+
+
+def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z") -> Dataset:
     admitted_dir, csv_dir = Path(admitted_dir), Path(csv_dir)
     pq, clp = admitted_dir / "eurusd.parquet", admitted_dir / "CLOSURE_INTERVALS.json"
     if verify:
@@ -223,7 +254,11 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     X = df[features].to_numpy(float)
     if frame is None and not np.isfinite(X).all():
         raise ValueError("SEL15_NONFINITE")      # the v4 matrix has a declared fractal warm-up (NaN -> window not ok)
-    windows, row_ok = causal_rolling_windows(X)
+    if scaling == "fixed_train":
+        windows, row_ok, scale_doc = fixed_train_windows(X, ts_ns, features)
+    else:
+        windows, row_ok = causal_rolling_windows(X)
+        scale_doc = {"method": "rolling_z", "rows": SCALE_W}
     # join: DATE_TIME = availability = bar start + 1 h, verified on OHLC
     v = bars.index.as_unit("ns").asi8
     pos = np.searchsorted(v, ts_ns - H_NS)
@@ -274,7 +309,9 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
             "confirmed": int(sum(1 for x in conf if x >= 0)), "confirmation_collisions": int(collisions)},
             "rows_total": int(len(df)), "rows_eligible": {p: int((eligible & (period == p)).sum()) for p in PERIODS},
             "input_contract": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True,
-                               "scaling": f"causal rolling z-score over rows [i-{SCALE_W}, i)", "features": features},
+                               "scaling": (f"causal rolling z-score over rows [i-{SCALE_W}, i)" if scaling != "fixed_train"
+                                           else "fixed TRAIN-only mean/std (2020-2022), bounded indicators at natural scale"),
+                               "scale_doc": scale_doc, "features": features},
             "periods": PERIODS, "period_status": PERIOD_STATUS}
     return Dataset(bars, cal, sigma, sigma_rule, piv, conf, y_h, y_c, sup, row_bar, ts_ns, windows, row_ok, period,
                    eligible, excl, meta, reasons)

@@ -266,7 +266,7 @@ def run(a):
     led = out / "TRIAL_LEDGER.jsonl"
     device = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     t0 = time.time()
-    ds = DG.load(a.admitted, a.csv_dir) if a.features == "core15" else DG.load_v4(a.admitted, a.v4_dir)
+    ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling) if a.features == "core15" else DG.load_v4(a.admitted, a.v4_dir)
     cx = Ctx(ds)
     nf, NS = ds.windows.shape[2], len(E.STATE_NAMES)
     ARCH = dict(units=a.units, branch=a.branch, core=a.core, depth=a.depth, head=a.head)
@@ -276,7 +276,7 @@ def run(a):
     ledger(led, rung="E3M", event="PREREGISTRATION", variants=variants, arbiters=list(ARBITERS), arch=ARCH,
            dropout=a.dropout, wd=a.wd, cost_sigma=COST_SIGMA, rounds=ROUNDS, seeds=SEEDS, params=params, device=device,
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
-    res = {"meta": ds.meta, "arch": ARCH, "params": params, "variants": variants, "arbiters": list(ARBITERS),
+    res = {"meta": ds.meta, "arch": ARCH, "params": params, "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}}
 
     def fit_module(v, m, D_tr, D_in, seed):
@@ -404,6 +404,7 @@ def main():
     ap.add_argument("--dropout", type=float, default=0.1)
     ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--max-epochs", type=int, default=1000)
+    ap.add_argument("--scaling", choices=["rolling_z", "fixed_train"], default="rolling_z")
     ap.add_argument("--cpu", action="store_true")
     run(ap.parse_args())
 
