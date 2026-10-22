@@ -59,6 +59,7 @@ from tools.expert_guided_e4q import CANDS, candidate_results  # noqa: E402
 
 CORE15 = list(DG.FEATURES)
 EMBARGO, BLOCK = 96, 72
+MIN_COVERAGE = 0.5
 FOLDS_BASE, FOLDS_CONTRAST = 6, 3
 WIN_SEL = 24
 SEEDS = (20261022, 20261023, 20261024)
@@ -315,6 +316,16 @@ class Engine:
         grid = self.ds.bars.index
         self.M = self.pool.reindex(grid).to_numpy(float)          # bar grid x columns (NaN where absent)
         self.ts_ns = grid.as_unit("ns").asi8
+        # declared rule: a column finite on fewer than MIN_COVERAGE of the labelled rows cannot join the pool's
+        # row intersection (it would empty it); it is reported as INSUFFICIENT_COVERAGE, not judged
+        lab_any = np.zeros(len(self.bars), bool)
+        for y in self.labels.values():
+            lab_any |= np.isfinite(y)
+        cov = np.isfinite(self.M[self.bars][lab_any]).mean(0)
+        self.low_coverage = {c: float(cov[i]) for i, c in enumerate(self.cols) if cov[i] < MIN_COVERAGE}
+        keep = [i for i, c in enumerate(self.cols) if c not in self.low_coverage]
+        self.M, self.cols = self.M[:, keep], [self.cols[i] for i in keep]
+        self.cat = self.cat[self.cat["column"].isin(self.cols)]
         self.families = {}
         for c in self.cols:
             self.families.setdefault(self.fam[c], []).append(c)
@@ -513,6 +524,7 @@ class Engine:
         doc = {"declared_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "fit_end": self.a.fit_end,
                "rows_by_task": {t: int(np.isfinite(y).sum()) for t, y in self.labels.items()},
                "columns": len(self.cols), "families": {f: len(c) for f, c in self.families.items()},
+               "excluded_insufficient_coverage": self.low_coverage, "min_coverage": MIN_COVERAGE,
                "decomposition_families": {f: {"parent": d["parent"], "parent_cols": d["parent_cols"],
                                               "components": list(d["components"])} for f, d in self.decomp.items()},
                "units": counts, "units_upper_bound": len(units), "estimated_cpu_hours_upper_bound": round(est / 3600, 1),
