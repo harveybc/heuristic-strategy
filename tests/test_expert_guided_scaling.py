@@ -397,7 +397,7 @@ def test_eligible_from_removes_rows_from_the_agent_and_is_hashed(synthetic_dirs)
     ds0 = DG.load_v4(adm, v4, scaling="fixed_train", verify=False)
     ds1 = DG.load_v4(adm, v4, scaling="fixed_train", verify=False, eligible_from="2020-01-20")
     cut = DG._utc_ns("2020-01-20")
-    early = ds1.ts_ns < cut
+    early = ds1.row_ts < cut
     assert early.any() and not ds1.observable()[early].any() and not ds1.labelled()[early].any()
     assert ds1.observable()[~early].sum() == ds0.observable()[~early].sum()
     assert ds1.meta["eligible_from"] == "2020-01-20" and set(ds1.meta["support_hash"]) == set(ds1.meta["periods"])
