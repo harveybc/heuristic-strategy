@@ -19,11 +19,21 @@ Periods by the decision time (DATE_TIME): TRAIN 2020-2022, INNER_A 2023H1, INNER
 A row is eligible when the entry gate of the executable path is open at its fill bar (operational window),
 its window/scale warm-up is complete, its hindsight label is not censored and its label support ends
 inside its own period (purged otherwise). Exclusions are counted by reason.
+
+Input scaling (auditor's defects, 2026-10-21): ``scaling`` is a strict enum (``SCALINGS``); an unknown value
+raises ``SCALING_UNKNOWN`` before any fit and every loader propagates it. The effective policy, its constants
+and its NaN accounting live in ``Dataset.meta["scaling"]`` and are persisted next to every checkpoint as
+``SCALER.json`` (``write_scaler``); a reload refuses to score without it or with another feature order
+(``load_with_scaler``). Split contracts (``SPLIT_CONTRACTS``): ``dev3y`` is the default above; ``consolidated``
+keeps TRAIN 2020-2023 with its last 6 months as the inner selection block and reads 2024 once; TEST (>= 2025)
+stays closed in both (the admitted reader refuses it).
 """
 from __future__ import annotations
 
+import datetime as _dt
 import hashlib
 import json
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -61,6 +71,39 @@ PERIOD_STATUS = {"TRAIN": "FIT", "INNER_A": "JOINT_DEVELOPMENT_MONITOR_CALIBRATI
                  "OBS_2024": "PREVIOUSLY_OBSERVED_DEVELOPMENT_READ_ONCE_AFTER_FREEZE"}
 WIN, STRIDE, SCALE_W = 13, 2, 256
 H_NS = 3_600_000_000_000
+SCALINGS = ("fixed_train", "rolling_z")
+SCALER_FILE = "SCALER.json"
+TEST_CLOSED_FROM = "2025-01-01"
+# Split contracts (arm recorded in every output). ``dev3y`` = the periods above (fit 2020-2022, 2023A monitor/selection,
+# 2023B scored after freeze, 2024 observed once). ``consolidated`` = TRAIN 2020-2023 with an internal fold: the fit block
+# is 2020-01..2023-07 and the LAST 6 MONTHS of TRAIN (2023-07..2024-01) are the inner selection block (early stopping and
+# every model/arbiter choice come from inside TRAIN); VALIDATION 2024 is read once. The scaler constants of
+# ``fixed_train`` are fitted on the fit block only, so the inner block is seen by no fitted statistic.
+SPLIT_CONTRACTS = {
+    "dev3y": {"periods": PERIODS, "status": PERIOD_STATUS, "scaler_fit": PERIODS["TRAIN"],
+              "report": ("TRAIN", "INNER_A", "INNER_B"), "selection": "INNER_A", "read_once": "OBS_2024",
+              "train": PERIODS["TRAIN"], "validation": PERIODS["OBS_2024"]},
+    "consolidated": {"periods": {"TRAIN": ("2020-01-01", "2023-07-01"), "INNER_A": ("2023-07-01", "2024-01-01"),
+                                 "OBS_2024": ("2024-01-01", "2025-01-01")},
+                     "status": {"TRAIN": "FIT_BLOCK_OF_CONSOLIDATED_TRAIN_2020_2023",
+                                "INNER_A": "INNER_SELECTION_BLOCK_LAST_6_MONTHS_OF_TRAIN",
+                                "OBS_2024": "VALIDATION_2024_READ_ONCE"},
+                     "scaler_fit": ("2020-01-01", "2023-07-01"), "report": ("TRAIN", "INNER_A"), "selection": "INNER_A",
+                     "read_once": "OBS_2024", "train": ("2020-01-01", "2024-01-01"), "validation": ("2024-01-01", "2025-01-01")},
+}
+
+
+def check_scaling(scaling) -> str:
+    """Strict enum: anything but the two declared policies is refused before any statistic is fitted."""
+    if scaling not in SCALINGS:
+        raise ValueError(f"SCALING_UNKNOWN:{scaling}")
+    return scaling
+
+
+def split_contract(name) -> dict:
+    if name not in SPLIT_CONTRACTS:
+        raise ValueError(f"SPLIT_CONTRACT_UNKNOWN:{name}")
+    return SPLIT_CONTRACTS[name]
 
 
 def sha256(path) -> str:
@@ -157,58 +200,98 @@ NATURAL_SCALE: dict = {}
 def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride: int = STRIDE, win: int = WIN,
                         train=("2020-01-01", "2023-01-01")):
     """Windows of the raw features scaled with TRAIN-only constants (causal: constants come from the past of every
-    scored row); same slot layout as ``causal_rolling_windows``. Returns (windows, ok, scale_doc)."""
+    scored row); same slot layout as ``causal_rolling_windows``. Returns (windows, ok, scale_doc).
+
+    NaN policy (explicit, 2026-10-21): the constants are nanmean/nanstd (ddof 0) over the TRAIN rows, so a warm-up
+    or a gap inside TRAIN does not poison a feature; an EMPTY TRAIN (``SCALING_TRAIN_EMPTY``), a feature with no
+    finite value inside TRAIN (``SCALING_FEATURE_ALL_NAN:<name>``) or a non-finite constant, e.g. an inf in the data
+    (``SCALING_NONFINITE_CONSTANT:<name>``) are refused. Per feature the share of NaN inside TRAIN and the rule
+    ``std_zero_to_one`` (std == 0 -> scale 1) are recorded; a row whose window holds any non-finite value is
+    excluded (``rows_excluded_nan_windows``), separately from the index warm-up (``rows_excluded_warmup``)."""
     n = len(X)
     t0, t1 = _utc_ns(train[0]), _utc_ns(train[1])
     tr = (ts_ns >= t0) & (ts_ns < t1)
+    n_tr = int(tr.sum())
+    if n_tr == 0:
+        raise ValueError("SCALING_TRAIN_EMPTY")
+    Xtr = X[tr]
+    fin_tr = np.isfinite(Xtr)
+    n_fin = fin_tr.sum(0)
+    for j, f in enumerate(features):
+        if n_fin[j] == 0:
+            raise ValueError(f"SCALING_FEATURE_ALL_NAN:{f}")
     # nan-aware: a feature with a warm-up or a gap inside TRAIN must not poison the constants of every row
-    mu, sd = np.nanmean(X[tr], 0), np.nanstd(X[tr], 0)
+    with np.errstate(invalid="ignore"):
+        mu, sd = np.nanmean(Xtr, 0), np.nanstd(Xtr, 0)
+    for j, f in enumerate(features):
+        if not (np.isfinite(mu[j]) and np.isfinite(sd[j])):
+            raise ValueError(f"SCALING_NONFINITE_CONSTANT:{f}")
     Z = np.empty_like(X, dtype=float)
     doc = {}
     for j, f in enumerate(features):
+        nan_share = float(1.0 - n_fin[j] / n_tr)
         if f in NATURAL_SCALE:
             Z[:, j] = X[:, j] / NATURAL_SCALE[f]
-            doc[f] = {"scale": "natural", "divisor": NATURAL_SCALE[f]}
+            doc[f] = {"scale": "natural", "divisor": NATURAL_SCALE[f], "nan_share_train": nan_share, "fit_rows": int(n_fin[j])}
         else:
             s_ = sd[j] if sd[j] > 0 else 1.0
             Z[:, j] = (X[:, j] - mu[j]) / s_
-            doc[f] = {"scale": "fixed_train_z", "mean": float(mu[j]), "std": float(s_)}
+            doc[f] = {"scale": "fixed_train_z", "mean": float(mu[j]), "std": float(s_), "std_raw": float(sd[j]),
+                      "variance": float(sd[j] ** 2), "rule": ("std_zero_to_one" if sd[j] <= 0 else "z"),
+                      "nan_share_train": nan_share, "fit_rows": int(n_fin[j])}
     i = np.arange(n)
     idx = i[:, None] - stride * np.arange(win - 1, -1, -1)[None, :]
-    ok = idx[:, 0] >= 0
+    ok_idx = idx[:, 0] >= 0
     xa = Z[np.clip(idx, 0, n - 1)]
-    ok &= np.isfinite(xa).all(axis=(1, 2))
-    return xa.astype(np.float32), ok, {"method": "fixed_train", "train": list(train), "features": doc}
+    fin_w = np.isfinite(xa).all(axis=(1, 2))
+    ok = ok_idx & fin_w
+    return xa.astype(np.float32), ok, {"method": "fixed_train", "train": list(train), "features": doc, "fit_rows": n_tr,
+                                      "ddof": 0, "nan_policy": "nanmean/nanstd over TRAIN; empty TRAIN, all-NaN feature or "
+                                                                "non-finite constant refused; NaN windows excluded",
+                                      "rows_excluded_warmup": int((~ok_idx).sum()),
+                                      "rows_excluded_nan_windows": int((ok_idx & ~fin_w).sum())}
 
 
-def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z") -> Dataset:
+def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y") -> Dataset:
+    check_scaling(scaling)
+    split_contract(contract)
     admitted_dir, csv_dir = Path(admitted_dir), Path(csv_dir)
     pq, clp = admitted_dir / "eurusd.parquet", admitted_dir / "CLOSURE_INTERVALS.json"
+    digests = {"eurusd.parquet": sha256(pq), "CLOSURE_INTERVALS.json": sha256(clp),
+               **{f"{role}.csv": sha256(csv_dir / f"{role}.csv") for role in ("train", "validation")}}
+    if (csv_dir / "CONTRACT.json").exists():
+        digests["CONTRACT.json"] = sha256(csv_dir / "CONTRACT.json")
     if verify:
-        if sha256(pq) != PINS["admitted_sha256"] or sha256(clp) != PINS["closure_sha256"]:
+        if digests["eurusd.parquet"] != PINS["admitted_sha256"] or digests["CLOSURE_INTERVALS.json"] != PINS["closure_sha256"]:
             raise ValueError("ADMITTED_PIN")
         for role in ("train", "validation"):
-            if sha256(csv_dir / f"{role}.csv") != PINS[f"{role}_csv_sha256"]:
+            if digests[f"{role}.csv"] != PINS[f"{role}_csv_sha256"]:
                 raise ValueError(f"SEL15_PIN:{role}")
-        if (csv_dir / "CONTRACT.json").exists() and sha256(csv_dir / "CONTRACT.json") != PINS["contract_sha256"]:
+        if "CONTRACT.json" in digests and digests["CONTRACT.json"] != PINS["contract_sha256"]:
             raise ValueError("CONTRACT_PIN")
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, csv_dir, scaling=scaling)
+    return build(bars, cal, csv_dir, scaling=scaling, contract=contract, sources={"loader": "core15", "verified": bool(verify),
+                                                                                "sha256": digests})
 
 
-def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01") -> Dataset:
+def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y") -> Dataset:
     """Same population rules as ``load`` but the observation features are the four TIMING_PROXY_SELECTION v4
     inputs (frozen subset read from the snapshot, never hard-coded). The v4 matrix is stamped at bar start;
-    the observation becomes available at bar close, so DATE_TIME = timestamp + 1 h (verified on OHLC)."""
+    the observation becomes available at bar close, so DATE_TIME = timestamp + 1 h (verified on OHLC).
+    ``scaling`` is propagated (default unchanged: rolling_z); an unknown value is refused before any read."""
+    check_scaling(scaling)
+    split_contract(contract)
     admitted_dir, v4_dir = Path(admitted_dir), Path(v4_dir)
     pq, clp = admitted_dir / "eurusd.parquet", admitted_dir / "CLOSURE_INTERVALS.json"
     fp, sp = v4_dir / "eval_input" / "features_all.parquet", v4_dir / "FROZEN_SUBSET.json"
+    digests = {"eurusd.parquet": sha256(pq), "CLOSURE_INTERVALS.json": sha256(clp), "features_all.parquet": sha256(fp),
+               "FROZEN_SUBSET.json": sha256(sp)}
     if verify:
-        if sha256(pq) != PINS["admitted_sha256"] or sha256(clp) != PINS["closure_sha256"]:
+        if digests["eurusd.parquet"] != PINS["admitted_sha256"] or digests["CLOSURE_INTERVALS.json"] != PINS["closure_sha256"]:
             raise ValueError("ADMITTED_PIN")
-        if sha256(fp) != PINS_V4["features_all_sha256"] or sha256(sp) != PINS_V4["frozen_subset_sha256"]:
+        if digests["features_all.parquet"] != PINS_V4["features_all_sha256"] or digests["FROZEN_SUBSET.json"] != PINS_V4["frozen_subset_sha256"]:
             raise ValueError("V4_PIN")
     feats = list(json.loads(sp.read_text())["selected"])
     if feats != FEATURES_V4:
@@ -225,24 +308,29 @@ def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01") -> Dataset:
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats,
-                 frame_meta={"source": "TIMING_PROXY_SELECTION v4", "pins": PINS_V4})
+    return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats, scaling=scaling, contract=contract,
+                 frame_meta={"source": "TIMING_PROXY_SELECTION v4", "pins": PINS_V4},
+                 sources={"loader": "v4", "verified": bool(verify), "sha256": digests})
 
 
 def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train",
-               manifest_sha256: str | None = None) -> Dataset:
+               manifest_sha256: str | None = None, contract="dev3y") -> Dataset:
     """Observations from an arbitrary feature store on the admitted grid (layer-1 pool, 2026-10-22): the store's
     MANIFEST must name this admitted source; ``features`` are the selected columns; the store timestamp is the bar
     START (availability = start + 1 h). Scaling default = fixed TRAIN-only standardization (owner's rule)."""
+    check_scaling(scaling)
+    split_contract(contract)
     admitted_dir, store_parquet = Path(admitted_dir), Path(store_parquet)
     pq, clp = admitted_dir / "eurusd.parquet", admitted_dir / "CLOSURE_INTERVALS.json"
     man = json.loads((store_parquet.parent / "MANIFEST.json").read_text())
+    digests = {"eurusd.parquet": sha256(pq), "CLOSURE_INTERVALS.json": sha256(clp), "store.parquet": sha256(store_parquet),
+               "MANIFEST.json": sha256(store_parquet.parent / "MANIFEST.json")}
     if verify:
-        if sha256(pq) != PINS["admitted_sha256"] or sha256(clp) != PINS["closure_sha256"]:
+        if digests["eurusd.parquet"] != PINS["admitted_sha256"] or digests["CLOSURE_INTERVALS.json"] != PINS["closure_sha256"]:
             raise ValueError("ADMITTED_PIN")
-        if man.get("source_sha256") != PINS["admitted_sha256"] or sha256(store_parquet) != man.get("file_sha256"):
+        if man.get("source_sha256") != PINS["admitted_sha256"] or digests["store.parquet"] != man.get("file_sha256"):
             raise ValueError("STORE_IDENTITY")
-        if manifest_sha256 and sha256(store_parquet.parent / "MANIFEST.json") != manifest_sha256:
+        if manifest_sha256 and digests["MANIFEST.json"] != manifest_sha256:
             raise ValueError("STORE_MANIFEST_PIN")
     missing = [f for f in features if f not in man["features"]]
     if missing:
@@ -257,12 +345,16 @@ def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end=
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling,
-                 frame_meta={"source": "layer1 store", "store_sha256": man.get("file_sha256"), "n_features": len(features)})
+    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract,
+                 frame_meta={"source": "layer1 store", "store_sha256": man.get("file_sha256"), "n_features": len(features)},
+                 sources={"loader": "store", "verified": bool(verify), "sha256": digests})
 
 
 def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
-          frame_meta=None, scaling="rolling_z") -> Dataset:
+          frame_meta=None, scaling="rolling_z", contract="dev3y", sources=None) -> Dataset:
+    check_scaling(scaling)                       # strict enum, refused before any statistic is fitted
+    sc = split_contract(contract)
+    periods, period_status = sc["periods"], sc["status"]
     features = FEATURES if features is None else list(features)
     rec = {}
     if frame is not None:
@@ -289,10 +381,12 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     if frame is None and not np.isfinite(X).all():
         raise ValueError("SEL15_NONFINITE")      # the v4 matrix has a declared fractal warm-up (NaN -> window not ok)
     if scaling == "fixed_train":
-        windows, row_ok, scale_doc = fixed_train_windows(X, ts_ns, features)
+        windows, row_ok, scale_doc = fixed_train_windows(X, ts_ns, features, train=sc["scaler_fit"])
     else:
         windows, row_ok = causal_rolling_windows(X)
-        scale_doc = {"method": "rolling_z", "rows": SCALE_W}
+        scale_doc = {"method": "rolling_z", "rows": SCALE_W, "constants": None,
+                     "note": f"no constants exist: every row is standardized with the statistics of rows [i-{SCALE_W}, i)",
+                     "rows_excluded_warmup_or_nan": int((~row_ok).sum())}
     # join: DATE_TIME = availability = bar start + 1 h, verified on OHLC
     v = bars.index.as_unit("ns").asi8
     pos = np.searchsorted(v, ts_ns - H_NS)
@@ -315,7 +409,7 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     sigma, sigma_rule = Z.causal_sigma(bars), Z.causal_range_sigma(bars)
     # periods and eligibility
     period = np.full(len(df), "", object)
-    for name, (a, b) in PERIODS.items():
+    for name, (a, b) in periods.items():
         period[(ts_ns >= _utc_ns(a)) & (ts_ns < _utc_ns(b))] = name
     seg_of = cal.assign(bars.index)
     op = np.array([s.operational_start.value for s in cal.segments], np.int64)
@@ -327,7 +421,7 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     sig_ok = np.isfinite(sigma[k]) & (sigma[k] > 0) & np.isfinite(sigma_rule[k]) & (sigma_rule[k] > 0)
     sup_r = sup[rb]
     censored = (row_bar >= 0) & (sup_r < 0)
-    p_end = np.array([_utc_ns(PERIODS[p][1]) if p else 0 for p in period], np.int64)
+    p_end = np.array([_utc_ns(periods[p][1]) if p else 0 for p in period], np.int64)
     sup_time = v[np.clip(sup_r, 0, n - 1)] + H_NS            # the support bar is known at its end
     purged = (~censored) & (row_bar >= 0) & (sup_time > p_end)
     reasons = {"outside_periods": period == "", "not_joined": row_bar < 0, "window_or_scale_warmup": ~row_ok,
@@ -336,16 +430,120 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     eligible = np.ones(len(df), bool)
     excl = {}
     for name, mask in reasons.items():
-        excl[name] = {p: int((mask & (period == p)).sum()) for p in list(PERIODS) + [""]}
+        excl[name] = {p: int((mask & (period == p)).sum()) for p in list(periods) + [""]}
         eligible &= ~mask
     meta = {"pins": PINS, "receipts": rec, "expert": {"depth": EXPERT.depth, "deviation_pips": EXPERT.deviation_pips,
             "backstep": EXPERT.backstep, "source": "admitted", "pivots": len(piv),
             "confirmed": int(sum(1 for x in conf if x >= 0)), "confirmation_collisions": int(collisions)},
-            "rows_total": int(len(df)), "rows_eligible": {p: int((eligible & (period == p)).sum()) for p in PERIODS},
+            "rows_total": int(len(df)), "rows_eligible": {p: int((eligible & (period == p)).sum()) for p in periods},
             "input_contract": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True,
                                "scaling": (f"causal rolling z-score over rows [i-{SCALE_W}, i)" if scaling != "fixed_train"
-                                           else "fixed TRAIN-only mean/std (2020-2022) for every feature"),
+                                           else ("fixed TRAIN-only mean/std (2020-2022) for every feature" if contract == "dev3y"
+                                                 else f"fixed TRAIN-only mean/std ({sc['scaler_fit'][0]}..{sc['scaler_fit'][1]}) for every feature")),
                                "scale_doc": scale_doc, "features": features},
-            "periods": PERIODS, "period_status": PERIOD_STATUS}
+            "periods": periods, "period_status": period_status,
+            "split_contract": {"arm": contract, "train": list(sc["train"]), "validation": list(sc["validation"]),
+                               "selection_period": sc["selection"], "read_once": sc["read_once"],
+                               "test_closed_from": TEST_CLOSED_FROM},
+            "scaling": {"policy": scaling, **scale_doc},
+            "sources": sources}
     return Dataset(bars, cal, sigma, sigma_rule, piv, conf, y_h, y_c, sup, row_bar, ts_ns, windows, row_ok, period,
                    eligible, excl, meta, reasons)
+
+
+# ----------------------------------------------------------------------------- scaler artifact (SCALER.json)
+def code_version(root=None) -> dict:
+    """Commit of the code that fitted the constants (no paths, no host); ``None`` outside a git checkout."""
+    root = Path(root) if root else Path(__file__).resolve().parents[3]
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, timeout=10)
+        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root, capture_output=True,
+                               text=True, timeout=10)
+        if commit.returncode != 0:
+            return {"commit": None, "dirty": None}
+        return {"commit": commit.stdout.strip(), "dirty": bool(dirty.stdout.strip())}
+    except (OSError, subprocess.SubprocessError):
+        return {"commit": None, "dirty": None}
+
+
+def scaler_artifact(ds: Dataset, **extra) -> dict:
+    """The effective input-scaling policy of ``ds`` as a self-contained record: names in tensor order, constants
+    (fixed_train: mean/std/variance per feature, fit rows and period, NaN accounting, std==0 rule), the window and
+    stride, the source digests, the split contract and the code commit. For ``rolling_z`` no constants exist and the
+    record says so (window of rows). ``extra`` (e.g. run_id, agent_state) is stored under ``"run"``."""
+    sc, feats = ds.meta["scaling"], list(ds.meta["input_contract"]["features"])
+    art = {"artifact": "SCALER", "schema_version": 1, "policy": sc["policy"], "features": feats, "n_features": len(feats),
+           "tensor_order": "windows[row, slot, feature] follow this feature order; slot layout = input_contract",
+           "window": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True},
+           "split_contract": ds.meta["split_contract"], "sources": ds.meta.get("sources"), "code": code_version(),
+           "created_utc": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "run": extra or {}}
+    if sc["policy"] == "fixed_train":
+        fd = sc["features"]
+        art.update({"fit_period": list(sc["train"]), "fit_rows": int(sc["fit_rows"]), "ddof": int(sc["ddof"]),
+                    "mean": [float(fd[f]["mean"]) for f in feats], "std": [float(fd[f]["std"]) for f in feats],
+                    "std_raw": [float(fd[f]["std_raw"]) for f in feats], "variance": [float(fd[f]["variance"]) for f in feats],
+                    "rule": [fd[f]["rule"] for f in feats], "fit_rows_per_feature": [int(fd[f]["fit_rows"]) for f in feats],
+                    "nan_share_train": [float(fd[f]["nan_share_train"]) for f in feats],
+                    "rows_excluded_warmup": int(sc["rows_excluded_warmup"]),
+                    "rows_excluded_nan_windows": int(sc["rows_excluded_nan_windows"]), "nan_policy": sc["nan_policy"],
+                    "transform": "(x - mean) / std per feature; std = 1 where rule == std_zero_to_one"})
+    else:
+        art.update({"rolling_window_rows": int(sc["rows"]), "mean": None, "std": None, "variance": None,
+                    "fit_period": None, "fit_rows": None, "note": sc["note"],
+                    "transform": f"(x_i - mean[i-{SCALE_W}, i)) / std[i-{SCALE_W}, i) per feature, recomputed per row"})
+    return art
+
+
+def write_scaler(out_dir, ds: Dataset, **extra) -> Path:
+    """Persist ``SCALER.json`` next to the checkpoints written into ``out_dir``."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / SCALER_FILE
+    path.write_text(json.dumps(scaler_artifact(ds, **extra), indent=1))
+    return path
+
+
+def read_scaler(run_dir) -> dict:
+    """The scaler artifact of a run directory; ``SCALER_MISSING`` when absent (no hidden refit of statistics)."""
+    path = Path(run_dir) / SCALER_FILE
+    if not path.exists():
+        raise ValueError(f"SCALER_MISSING:{SCALER_FILE}")
+    art = json.loads(path.read_text())
+    if art.get("artifact") != "SCALER" or art.get("policy") not in SCALINGS or not isinstance(art.get("features"), list):
+        raise ValueError("SCALER_MALFORMED")
+    return art
+
+
+def verify_scaler(art: dict, ds: Dataset, rtol=1e-9, atol=1e-12) -> dict:
+    """Refuse to score unless the dataset's policy, feature names/order and constants equal the artifact's."""
+    feats = list(ds.meta["input_contract"]["features"])
+    if art["policy"] != ds.meta["scaling"]["policy"]:
+        raise ValueError(f"SCALER_POLICY_MISMATCH:{art['policy']}!={ds.meta['scaling']['policy']}")
+    if list(art["features"]) != feats:
+        raise ValueError(f"SCALER_FEATURES_MISMATCH:artifact={art['features']}:dataset={feats}")
+    if art["policy"] == "fixed_train":
+        fd = ds.meta["scaling"]["features"]
+        mean = np.array([fd[f]["mean"] for f in feats]); std = np.array([fd[f]["std"] for f in feats])
+        if list(art.get("fit_period") or []) != list(ds.meta["scaling"]["train"]):
+            raise ValueError(f"SCALER_FIT_PERIOD_MISMATCH:{art.get('fit_period')}!={ds.meta['scaling']['train']}")
+        if not (np.allclose(np.asarray(art["mean"], float), mean, rtol=rtol, atol=atol)
+                and np.allclose(np.asarray(art["std"], float), std, rtol=rtol, atol=atol)):
+            raise ValueError("SCALER_CONSTANTS_MISMATCH")
+    elif int(art.get("rolling_window_rows", -1)) != int(ds.meta["scaling"]["rows"]):
+        raise ValueError("SCALER_WINDOW_MISMATCH")
+    return art
+
+
+def load_with_scaler(run_dir, admitted_dir, csv_dir, *, contracts=("dev3y",), verify=True, end="2025-01-01"):
+    """Dataset for scoring/refitting the checkpoints of ``run_dir``: the policy and the split contract come from
+    its ``SCALER.json`` (never from a default), the dataset is rebuilt with them and verified against the artifact.
+    Returns (dataset, artifact). ``contracts`` lists the split arms the caller supports."""
+    art = read_scaler(run_dir)
+    arm = (art.get("split_contract") or {}).get("arm", "dev3y")
+    if arm not in contracts:
+        raise ValueError(f"SPLIT_CONTRACT_UNSUPPORTED:{arm}")
+    if (art.get("sources") or {}).get("loader", "core15") != "core15":
+        raise ValueError(f"SCALER_LOADER_UNSUPPORTED:{art['sources'].get('loader')}")
+    ds = load(admitted_dir, csv_dir, verify=verify, end=end, scaling=art["policy"], contract=arm)
+    verify_scaler(art, ds)
+    return ds, art
