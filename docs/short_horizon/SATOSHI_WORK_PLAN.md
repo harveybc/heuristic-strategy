@@ -175,6 +175,10 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 43. [PREPARADA, NO LANZADA] RONDA LIMPIA (heuristic-strategy docs/short_horizon/clean_round/, runner tools/expert_guided_clean_round.py con rechazos duros y dos puertas: selección v4 cerrada + RELEASE.json tras confirmación del propietario). Etapa A 8 brazos {core15, estricta} × {extractor por característica, por familia} × {13@2, 24@1}, sin realimentación; etapa B: multi-experto {3,6,12} y estado mínimo (control) sobre el ganador. Núcleo 2 capas (campo receptivo 31), cabeza 16, extractores 2 unidades. Pendiente: regularización desde el diagnóstico de brecha; listas v4.
 
+44. [x PREPARADO 2026-10-22, orden del propietario] SEÑAL DEL EXPERTO MEJORADA (sólo entrenamiento): demostradores MÁS CORTOS que el óptimo (profundidad 2: 38 piernas/sem, 24 pips; reversión 10 pips: 87/sem, 23 pips; óptimo 27/sem, 30 pips; profundidad 1 degenerada) y objetivos auxiliares retrospectivos (oportunidad antes del pivote óptimo al abrir; ganancia adicional frente a cerrar ahora; cabezas acotadas [−0.1, 3]σ con máscara por objetivo y purga). Contrato de ejecución del replay de Musashi (1 entrada/día, 1:50) en toda la ronda limpia. heuristic-strategy @a136c7c…@83dec33; 88 pruebas. Etapa B de la ronda: +aux, +expertos cortos, ambos, +estado mínimo.
+
+45. [ANEXO INTEGRADO] Resultados de Musashi (mi paquete, su worker): contrato principal — core15 2024 −1.18, estricta −0.72, shortlist −0.62, estricta+enc −2.89 de Sharpe; replay 1/día–1:50 reduce el DD a la mitad (shortlist +53 USD 3/3 válidas). Diagnóstico de brecha: regla declarada → regularización FUERTE candidata (brecha 2.20 vs 3.13), no uniforme. Pendiente al propietario: confirmar o retirar la regla ≥ 3 órdenes/semana (Musashi dice que el propietario no exige cuota mínima).
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
@@ -190,6 +194,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 - 2026-10-22: seguir las órdenes y sugerencias de Musashi (brief @7633cd37); responderle las observaciones (respuesta en predictor `satoshi/reply-to-musashi-20261022` @2ebe0ac7); terminar la selección completa, sin omitir características, resolviendo todo por mí mismo; al terminar, solicitud de auditoría. Los parámetros del z-score se calculan por característica SOLO en TRAIN y se aplican a todo (nunca rolling); transformaciones (log1p u otras) sólo justificadas por una métrica medida y documentada por característica; nada a ciegas.
 
 - 2026-10-22: no lanzar NINGÚN experimento de RL hasta que datos / selección / codificación / extracción estén totalmente cerrados; mientras tanto dejar todo listo. Prohibido: z-score móvil, realimentación de entradas, cualquier cosa no justificada por métricas; extractores pequeños (pocas unidades) para una característica o un grupo pequeño, más capas en el núcleo; preprocesamiento y codificación por característica justificados sin lugar a dudas, nada exótico.
+
+- 2026-10-22: usar el replay de Musashi (1 entrada/día, 1:50) como contrato; múltiples ZigZag con periodos incrementalmente más CORTOS que el óptimo para cubrir trades intermedios de menor ganancia; añadir señales retrospectivas (cuánto podía ganar al abrir antes del óptimo; cuánto más podía ganar al cerrar respecto al óptimo) como escenarios de aprendizaje complementarios.
 
 ## 6. Cómo se actualiza
 
