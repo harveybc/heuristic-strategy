@@ -1,0 +1,1851 @@
+{
+  "schema": "selection_support_audit.v1",
+  "ledger_sha256": "a67f47f81cce2538ca55118c786c36b1f3dc799462f34e9b8a6f0077df15a33f",
+  "attempt_rows": 3894,
+  "unique_units": 3894,
+  "failed_units": 0,
+  "stages": {
+    "contrast": {
+      "groups_observed": 714,
+      "groups_with_multiple_arms": 714,
+      "mismatched_or_unverifiable_groups": 0,
+      "witnesses": []
+    },
+    "encoding": {
+      "groups_observed": 78,
+      "groups_with_multiple_arms": 78,
+      "mismatched_or_unverifiable_groups": 0,
+      "witnesses": []
+    },
+    "rescue_vs_context": {
+      "comparisons": 480,
+      "mismatched_or_missing_controls": 456,
+      "witnesses": [
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+multitaper/logret_1|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.eurjpy|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fractal+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usdjpy+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.audusd+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+fx.eur_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+btc|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us2y|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.us10y2y|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.dax|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+dly.oil|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+hilbert/log_close|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+ssa/BidClose|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+multitaper/logret_1|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.unexpected_gap_hours+fx.eurjpy|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+multitaper/logret_1|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.eurjpy|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fractal+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usdjpy+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.audusd+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+fx.eur_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+btc|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us2y|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.us10y2y|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.dax|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+dly.oil|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+hilbert/log_close|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+ssa/BidClose|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+multitaper/logret_1|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.unexpected_gap_hours+fx.eurjpy|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        }
+      ]
+    }
+  }
+}

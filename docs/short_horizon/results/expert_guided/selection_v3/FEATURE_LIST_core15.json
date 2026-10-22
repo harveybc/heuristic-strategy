@@ -1,0 +1,22 @@
+{
+ "name": "core15",
+ "features": [
+  "HIGH@diff",
+  "RAW_LOG_RANGE",
+  "RAW_CLOSE_LOG_RETURN",
+  "RAW_ELAPSED_HOURS",
+  "ATR",
+  "RSI",
+  "MACD_Histogram",
+  "ADX",
+  "DI_minus",
+  "Stochastic_D",
+  "WilliamsR",
+  "rolling_std_24",
+  "hod_sin",
+  "hod_cos",
+  "dow_cos"
+ ],
+ "source": "pool_selection_v3 SHORTLIST.json (family_union_v1)",
+ "n": 15
+}
