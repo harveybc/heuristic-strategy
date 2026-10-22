@@ -568,6 +568,7 @@ class Engine:
                     fam_all = cs + pc
                     for ctx_name, ctx in (("full", [c for c in full if c not in fam_all]),
                                           ("core15", [c for c in core if c not in fam_all])):
+                        row_cols = list(dict.fromkeys(ctx + fam_all))
                         arms = {"none": ctx, "with": ctx + cs}
                         if dec:
                             comps = dec["components"]
@@ -582,7 +583,8 @@ class Engine:
                             if arm == "none" and ctx_name == "core15" and not fam_all:
                                 continue
                             units.append((f"con|{t}|{f}|{ctx_name}|{arm}|{k}", "contrast", t, "hgb", cols, k,
-                                          FOLDS_CONTRAST, None, {"family": f, "ctx": ctx_name, "arm": arm}))
+                                          FOLDS_CONTRAST, None, {"family": f, "ctx": ctx_name, "arm": arm,
+                                                               "row_cols": row_cols, "support_protocol": "family_union_v1"}))
         if self.a.stage in ("encoding", "all"):
             for t in inf:
                 for f, e in self.encodings.items():
