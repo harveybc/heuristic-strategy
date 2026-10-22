@@ -1,0 +1,175 @@
+{
+ "identity": "clean-expert-guided-e3m-20261022",
+ "status": "DRAFT: frozen except the items marked PENDING; emit is refused until every gate exists",
+ "scaling": "fixed_train",
+ "nonstationary": "diff",
+ "split_contract": "consolidated",
+ "store": {
+  "path": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/full_pool_eurusd_h1.parquet",
+  "sha256": "32edb4248d659661764ee5abf982a7ee9a0e7659e08a88c03b5a28ce2466ae67",
+  "note": "read from the file and equal to its MANIFEST file_sha256"
+ },
+ "encodings": {
+  "adopted": false,
+  "evidence": "selection v3 encoding contrasts <= 0.02 nats, inconsistent; consumer arm strict+encodings -1.38 vs strict -1.13 INNER_A; v4 re-measures on the scale-corrected store"
+ },
+ "model": {
+  "variant": "FULL",
+  "units": 2,
+  "core": null,
+  "depth": 2,
+  "head": 16,
+  "max_epochs": 1000,
+  "justification": {
+   "units": "registered minimal trunk (2 per extractor), owner: small extractors",
+   "depth": "2 core convolutions: receptive field 31 >= the 24-slot window (owner: more layers in the core)",
+   "head": "16: the only coordinate promoted by the capacity ladder (VAL A)",
+   "core": "registered width (= units); widening was not promoted by the ladder; later only through a matched ladder step"
+  }
+ },
+ "limits": {
+  "max_extractor_units": 4,
+  "max_core_width": 16,
+  "max_head": 32
+ },
+ "regularization": {
+  "dropout": null,
+  "wd": null,
+  "source": null,
+  "rule": "PENDING from the generalization-gap diagnostic (peer worker): the setting with the smaller mean TRAIN-INNER_A Sharpe gap among all-valid arms; tie -> base (dropout 0.1, wd 1e-4)"
+ },
+ "demonstrators": {
+  "file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/DEMONSTRATORS.json",
+  "note": "ZigZag depth 3 (primary), 6 and 12; Deviation is inert in the replicated MetaTrader ZigZag; all three valid under the business rules; their causal-confirmed replays lose (-9.8k / -9.8k / -9.2k USD TRAIN): the edge is anticipation"
+ },
+ "memory": "6G",
+ "remote_root": "/var/tmp/expert-guided-clean-20261022",
+ "gates": [
+  {
+   "path": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/DRIVER.log",
+   "must_contain": "AGGREGATE DONE",
+   "why": "selection rerun on the scale-corrected stores closed"
+  },
+  {
+   "path": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/RELEASE.json",
+   "why": "written by Satoshi ONLY after the owner confirms that data / selection / encoding / extraction are closed (Musashi's last part included) and the regularization source is filled"
+  }
+ ],
+ "decision": "stage A and B: highest seed-mean INNER_A Sharpe (consolidated inner block 2023H2) among arms with all three seeds valid; ties -> fewer parameters; TRAIN-INNER_A gap reported for every arm; VALIDATION 2024 is read once inside each run after its own freeze and never consulted by the decision",
+ "stages": {
+  "A": [
+   {
+    "name": "core15_feat_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_feature",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none"
+   },
+   {
+    "name": "core15_feat_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_feature",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none"
+   },
+   {
+    "name": "core15_fam_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_core15.json",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none"
+   },
+   {
+    "name": "core15_fam_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_core15.json",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none"
+   },
+   {
+    "name": "strict_feat_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_feature",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none"
+   },
+   {
+    "name": "strict_feat_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_feature",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none"
+   },
+   {
+    "name": "strict_fam_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_shortlist_strict.json",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none"
+   },
+   {
+    "name": "strict_fam_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_shortlist_strict.json",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none"
+   }
+  ],
+  "B": [
+   {
+    "name": "winner_multi_expert",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "extra_experts": [
+     6,
+     12
+    ],
+    "note": "inherits list / extractor / window / groups from the stage-A winner (the window shown is only for the receptive-field check)"
+   },
+   {
+    "name": "winner_minimal_state",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "minimal",
+    "note": "declared control: position + can_enter only (bounded, unclipped); the simulator keeps its full state"
+   }
+  ]
+ }
+}

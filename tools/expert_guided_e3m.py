@@ -161,12 +161,14 @@ class ExpertTrack:
         self.params = DG.EXPERT if params is None else params
         if self.primary:
             self.y, self.sup, self.oracle, self.n_pivots = ds.y_hind, ds.support_end, cx.oracle, len(ds.pivots)
+            self.y_conf = ds.y_conf
         else:
             h, l = ds.bars["HIGH"].to_numpy(float), ds.bars["LOW"].to_numpy(float)
             piv = Z.hindsight_pivots(h, l, params)
             conf = Z.confirmation_bars_fast(h, l, piv, params)
             n = len(h)
             self.y, self.sup = OR.pivot_labels(n, piv), OR.label_support_end(n, piv, conf)
+            self.y_conf = OR.confirmed_labels(n, piv, conf)[0]
             self.oracle, self.n_pivots = OR.LegOracle(ds.bars["CLOSE"].to_numpy(float), piv), len(piv)
             ends = {p: DG._utc_ns(b) for p, (a_, b) in ds.meta["periods"].items()}
             self._end = np.array([ends.get(p, 0) for p in ds.period], np.int64)
@@ -178,6 +180,14 @@ class ExpertTrack:
             return True                          # the dataset's labelled() mask already applies this track's support
         se = int(self.sup[bar])
         return se >= 0 and self._v[se] + DG.H_NS <= self._end[r]
+
+    def confirmed_policy(self):
+        """The causal-confirmed counterpart (acts only once the pivot is confirmed): how much of the hindsight edge
+        survives the confirmation lag (imitability information, reported; never an input)."""
+        def f(bar, r, st, env):
+            y = self.y_conf[bar]
+            return (E.HOLD if y == 0 else (E.LONG if y == OR.LONG_CLASS else E.SHORT)), DG.CONFIRMED_K_TP, 2.0
+        return f
 
     def policy(self, cx):
         def f(bar, r, st, env):
@@ -377,7 +387,8 @@ def run(a):
             raise SystemExit("E3M_GROUPS_DO_NOT_PARTITION_THE_TENSOR")
         ARCH.update(groups=idx, group_units=gu, group_names=names)
     tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
-                                  for d in (a.extra_experts.split(",") if a.extra_experts else [])]
+                                  for d in []] + [ExpertTrack(cx, Z.Params(depth=int(d), deviation_pips=DG.EXPERT.deviation_pips, backstep=DG.EXPERT.backstep))
+                                                   for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
     params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, **ARCH).parameters()))
                   for m, (nc, nr) in MODULES[v].items()} for v in variants}
@@ -549,7 +560,8 @@ def build_parser():
     ap.add_argument("--window", type=int, default=DG.WIN, help="observations per window (store path only; default the inherited 13)")
     ap.add_argument("--stride", type=int, default=DG.STRIDE, help="observed rows between window slots (store path only; default 2)")
     ap.add_argument("--groups", default="", help="extractor groups JSON {groups: {name: [cols]}, units: {name: u}}; default one extractor per feature")
-    ap.add_argument("--extra-experts", default="", help="comma list of ZigZag deviations (pips) added as training-only demonstrators")
+    ap.add_argument("--extra-experts", default="", help="comma list of ZigZag DEPTHS added as training-only demonstrators "
+                    "(the replicated MetaTrader Deviation test is inert: pivots depend on Depth and Backstep only)")
     ap.add_argument("--eligible-from", default=None, help="shared-support option: rows before this UTC date are ineligible in every arm (matched comparisons)")
     ap.add_argument("--nonstationary", choices=list(DG.NONSTATIONARY), default="diff",
                     help="fixed_train only: a feature measured non-stationary on TRAIN (ADF/KPSS) is differenced (default), refused or kept")
