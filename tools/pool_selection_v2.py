@@ -342,7 +342,9 @@ class Engine:
         if self.ledger.exists():
             for line in self.ledger.read_text().splitlines():
                 if line.strip():
-                    self.done.add(json.loads(line)["key"])
+                    r = json.loads(line)
+                    if "error" not in r:                       # failed units are retried on resume
+                        self.done.add(r["key"])
 
     # ---- row sets
     def row_set(self, task, cols):
@@ -506,7 +508,9 @@ class Engine:
             try:
                 res = self.unit(task, mdl, cols, k, kf, SEEDS[0], pg)
             except Exception as ex:  # a failed unit is recorded, never silently skipped
-                res = {"task": task, "model": mdl, "fold": k, "error": f"{type(ex).__name__}: {ex}"}
+                import traceback
+                res = {"task": task, "model": mdl, "fold": k, "error": f"{type(ex).__name__}: {ex}",
+                       "traceback": traceback.format_exc().splitlines()[-4:]}
             res.update({"key": key, "stage": stage, **meta, "cols_hash": hashlib.sha256("|".join(cols).encode()).hexdigest()[:12]})
             with self.ledger.open("a") as fh:
                 fh.write(json.dumps(res) + "\n")
