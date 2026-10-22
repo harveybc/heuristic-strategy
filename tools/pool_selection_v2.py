@@ -89,6 +89,15 @@ def family_of(col: str) -> str:
         return base.split(".")[0]
     if any(k in base for k in ("hurst", "variogram", "box_")):
         return "fractal"
+    # the inherited technical inventory, split by what each indicator measures (fallback when no catalog is given)
+    if base in ("OPEN", "HIGH", "LOW", "CLOSE") or base.startswith("RAW_"):
+        return "inv.raw"
+    if base in ("RSI", "Stochastic_K", "Stochastic_D", "WilliamsR", "CCI", "ROC", "BB_position", "price_minus_ema"):
+        return "inv.momentum"
+    if base in ("MACD", "MACD_Histogram", "MACD_Signal", "ADX", "DI_plus", "DI_minus"):
+        return "inv.trend"
+    if base in ("ATR", "ATR_ratio", "BB_Width", "rolling_std_24"):
+        return "inv.volatility"
     return "inventory"
 
 
