@@ -44,3 +44,5 @@
 {"utc": "2026-10-21T23:49:40+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "weekly|1y|warm", "seed": 20261021}
 {"utc": "2026-10-22T00:05:39+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "weekly|1y|warm", "seed": 20261021, "inner_a": -2.123138320932323}
 {"utc": "2026-10-22T00:05:39+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "weekly|2y|scratch", "seed": 20261019}
+{"utc": "2026-10-22T01:07:37+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "weekly|2y|scratch", "seed": 20261019, "inner_a": -3.1006722905319277}
+{"utc": "2026-10-22T01:07:37+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "weekly|2y|scratch", "seed": 20261020}
