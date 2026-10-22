@@ -47,18 +47,34 @@ Lo que llega al modelo, en orden, y qué pasa con cada operación heredada:
    pivotes dependen de Depth y Backstep. La desviación "optimizada" de 40.7 pips nunca tuvo
    efecto. Los expertos múltiples varían la profundidad.
 
-## 3. Demostradores ZigZag (sólo entrenamiento, nunca entrada)
+## 3. Señal del experto (dirección del propietario 2026-10-22; todo sólo para entrenar, nunca como entrada)
 
-| profundidad | pivotes (serie admitida 2020–2024) | órdenes/semana, réplica retrospectiva en el bloque de ajuste 2020-01 → 2023-07 | réplica confirmada causal, mismo bloque |
-| --- | --- | --- | --- |
-| 3 (primario) | 7 094 | 15.9 | −9 783 USD, Sharpe −1.47 |
-| 6 | 3 677 | 10.1 | −9 824 USD, Sharpe −1.43 |
-| 12 | 1 961 | 5.2 | −9 216 USD, Sharpe −0.82 |
+**Óptimo registrado:** ZigZag Depth 3 / Backstep 0 (Deviation es inerte en la réplica de MetaTrader).
+**Demostradores más cortos que el óptimo**, para etiquetar los trades intermedios de menor ganancia
+por trade (TRAIN, `evidence/SIGNAL_PROFILE.json`):
 
-Los tres son válidos para el negocio en retrospectiva; ninguno sobrevive a la confirmación causal.
-Toda la ventaja está en **anticipar** el pivote: es la tarea `opener3`, la que la selección encontró
-con señal fuerte (0.44 vs 0.70 nats). Multi-experto = cada fila plana recibe la etiqueta de cada
-demostrador cuyo soporte de etiqueta termina dentro de su periodo (consenso; purga por experto).
+| demostrador | piernas/semana | pierna mediana | réplica bajo el contrato 1/día–1:50 (TRAIN) | confirmada causal |
+| --- | --- | --- | --- | --- |
+| óptimo, profundidad 3 | 27.2 | 30 pips | válido, 4.8 órdenes/semana, aciertos 97 % | −5 804 USD |
+| profundidad 2 | 38.3 | 24 pips | válido, 4.9/semana, aciertos 90 % | −5 823 USD |
+| reversión 10 pips | 87.0 | 23 pips | válido, 4.9/semana, aciertos 96 % | −4 906 USD |
+
+Profundidad 1 es degenerada (210 pivotes) y queda descartada por dato. La reversión clásica fija un
+pivote cuando el precio retrocede el umbral desde el extremo y se confirma siempre en una barra
+posterior (sin suponer el orden dentro de la barra). Multi-experto = cada fila plana recibe la
+etiqueta de cada demostrador cuya etiqueta es final dentro de su periodo (consenso; purga por experto).
+
+**Objetivos auxiliares retrospectivos** (cabezas acotadas, Huber, máscara por objetivo y purga por soporte):
+- al abrir: la mayor excursión favorable de una entrada en la siguiente apertura **antes del próximo pivote óptimo**
+  (≤ 72 barras, ≤ cierre forzoso), en σ causal, neta de costo — cuánto podía ganar como máximo;
+- al cerrar: la mayor ganancia adicional desde el cierre actual hasta el mismo horizonte — cuánto más podía ganar
+  frente a cerrar ahora.
+Rango de la cabeza [−0.1, 3.0] σ: cubre ≥ 99 % de TRAIN (p99 2.1–2.2).
+
+**Contrato de ejecución: el del replay de Musashi** (máximo 1 entrada/día, apalancamiento 1:50,
+rel_volume 0.10, capital 10 000) en demostraciones, rondas DAgger, elección del árbitro y todo periodo
+reportado — el mismo de la línea SAC, así las dos políticas son comparables. Con los mismos pesos E3-M,
+ese contrato redujo los drawdowns de 2024 a la mitad o menos.
 
 ## 4. Modelo (pequeño, cada valor con evidencia)
 
@@ -69,15 +85,17 @@ demostrador cuyo soporte de etiqueta termina dentro de su periodo (consenso; pur
 - **Cabeza**: 16 (la única coordenada promovida por la escalera de capacidad).
 - **Ventana**: 13 observaciones cada 2 barras (control heredado) vs **24 barras consecutivas** (la de la
   sonda temporal de la selección; no salta barras).
-- **Regularización**: PENDIENTE del diagnóstico de brecha (regla declarada en la spec).
+- **Regularización**: CANDIDATA fuerte (dropout 0.3, wd 1e-2) por la regla declarada sobre el diagnóstico de brecha de Musashi
+  (brecha media 2.20 vs 3.13), con salvedades (no uniforme sin realimentación; medida antes de la corrección de escala).
+  Se fija en la liberación.
 - Conteo de parámetros por módulo impreso por `check` antes de entrenar.
 
 ## 5. Experimentos (finitos, decididos en el bloque interno 2023H2, contrato principal)
 
 **Etapa A (8 brazos, sin realimentación, un experto):** {core15, estricta} × {extractor por
 característica, por familia} × {ventana 13@2, 24@1}.
-**Etapa B (2 brazos sobre el ganador de A):** + expertos {6, 12} (multi-experto); + estado mínimo
-(control). Regla: mayor Sharpe medio de INNER_A con las tres semillas válidas; empate → menos
+**Etapa B (4 brazos sobre el ganador de A):** + objetivos auxiliares; + demostradores más cortos {profundidad 2, reversión 10};
+ambos; + estado mínimo (control). Regla: mayor Sharpe medio de INNER_A con las tres semillas válidas; empate → menos
 parámetros; brecha TRAIN−INNER_A reportada siempre; 2024 se lee una vez dentro de cada corrida y la
 regla nunca lo consulta. Listas e identidades: las de la selección v4.
 

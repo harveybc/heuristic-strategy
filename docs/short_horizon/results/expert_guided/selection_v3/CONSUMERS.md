@@ -94,7 +94,7 @@ Source: his report `MUSASHI_TO_SATOSHI_SELECTION_RESULTS_AND_FINAL_AUDIT_HANDOFF
 | cons_shortlist | 173 | +4.395 | −0.909 | −0.619 | −2 369 | 48.1 | 5.304 |
 | cons_shortlist_strict_enc | 137 | +5.050 | +0.098 | −2.892 | −6 650 | 70.9 | 4.951 |
 
-Replay of the same weights with the SAC execution contract (max 1 entry/day, 1:50), 2024: core15 −0.387 (−591 USD, DD 22 %), strict −0.096→ Sharpe +0.096 (−103 USD, DD 16 %), shortlist173 +0.072 (+53 USD, DD 14 %, 3/3 valid), strict+enc −1.541. The replay contract halves the drawdowns; it is adopted as the execution contract of the clean round.
+Replay of the same weights with the SAC execution contract (max 1 entry/day, 1:50), 2024: core15 −0.387 (−591 USD, DD 22 %), strict125 +0.096 (−103 USD, DD 16 %), shortlist173 +0.072 (+53 USD, DD 14 %, 3/3 valid), strict+enc −1.541. The replay contract halves the drawdowns; it is adopted as the execution contract of the clean round.
 
 ### Gap diagnostic (dev3y, list × agent state × regularization; base = dropout 0.1 / wd 1e-4, strong = 0.3 / 1e-2, changed jointly)
 
