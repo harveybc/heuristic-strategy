@@ -54,6 +54,13 @@ def set_seed(seed: int):
     torch.backends.cudnn.benchmark = False
 
 
+def _masked_huber(rg, r, m):
+    """Per-row Huber loss over the regression targets. ``m`` is a per-row mask (n,) applied to the row's summed loss
+    (the original contract) or a per-target mask (n, n_reg) (auxiliary targets with their own validity)."""
+    per = nn.functional.smooth_l1_loss(rg, r, reduction="none")
+    return (per * m).sum(1) if m.dim() == 2 else per.sum(1) * m
+
+
 def _loss(model, X, y, R, Rm, w, device, batch=8192, train=False):
     """Mean loss over (X, y[, R masked by Rm]) in inference mode: CE (class weights w) + Huber on R."""
     model.eval()
@@ -68,7 +75,7 @@ def _loss(model, X, y, R, Rm, w, device, batch=8192, train=False):
             if R is not None and rg is not None:
                 rb = torch.as_tensor(R[i:i + batch], device=device)
                 mb = torch.as_tensor(Rm[i:i + batch], device=device)
-                l += (nn.functional.smooth_l1_loss(rg, rb, reduction="none").sum(1) * mb).sum().item()
+                l += _masked_huber(rg, rb, mb).sum().item()
             tot += l
             n += len(xb)
     if w is not None:   # weighted CE normalised by the summed weights, as torch's mean reduction
@@ -106,8 +113,7 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
             lg, rg = model(Xt[idx])
             loss = ce(lg, yt[idx])
             if Rt is not None:
-                m = Rmt[idx]
-                loss = loss + (nn.functional.smooth_l1_loss(rg, Rt[idx], reduction="none").sum(1) * m).sum() / max(len(idx), 1)
+                loss = loss + _masked_huber(rg, Rt[idx], Rmt[idx]).sum() / max(len(idx), 1)
             opt.zero_grad()
             loss.backward()
             opt.step()

@@ -403,3 +403,30 @@ def test_eligible_from_removes_rows_from_the_agent_and_is_hashed(synthetic_dirs)
     assert ds1.meta["eligible_from"] == "2020-01-20" and set(ds1.meta["support_hash"]) == set(ds1.meta["periods"])
     assert ds1.meta["support_hash"]["TRAIN"] != ds0.meta["support_hash"]["TRAIN"]
     assert ds1.meta["support_hash"]["OBS_2024"] == ds0.meta["support_hash"]["OBS_2024"]
+
+
+@pytest.mark.slow
+def test_e3m_cli_clean_round_options_run_end_to_end(tmp_path):
+    """The clean-round options run together through the real CLI: replay contract (1 entry/day, 1:50), hindsight
+    auxiliary targets, shorter demonstrators (depth 2, reversal 10 pips), grouped small extractors, no feedback."""
+    pytest.importorskip("torch")
+    if not (ADMITTED_DIR / "eurusd.parquet").exists() or not (SEL15_DIR / "train.csv").exists():
+        pytest.skip("admitted file / sel15 CSVs not available on this host")
+    adm, sel = build_real_fixture(tmp_path / "fx")
+    groups = tmp_path / "groups.json"
+    groups.write_text(json.dumps({"groups": {"raw": DG.FEATURES[:4], "ind": DG.FEATURES[4:11], "cal": DG.FEATURES[11:]}}))
+    out = tmp_path / "e3m"
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES="", PYTHONPATH=str(ROOT))
+    cmd = [sys.executable, str(ROOT / "tools" / "expert_guided_e3m.py"), "run", "--admitted", str(adm), "--csv-dir", str(sel),
+           "--out", str(out), "--scaling", "fixed_train", "--max-epochs", "1", "--variants", "FULL", "--cpu", "--no-verify",
+           "--agent-state", "none", "--exec-contract", "sac", "--aux-targets", "--extra-experts", "2,rev10",
+           "--groups", str(groups), "--depth", "2", "--head", "16"]
+    r = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True, timeout=1500)
+    assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
+    e3 = json.loads((out / "E3M.json").read_text())
+    assert e3["exec_contract"] == "sac" and e3["aux_targets"]["bound"] == [-0.1, 3.0]
+    assert [x["name"] for x in e3["experts"]] == ["zz_d3_dev40.7_b0", "zz_d2_dev40.7_b0", "zz_rev10pips"]
+    assert e3["arch"]["group_names"] == ["raw", "ind", "cal"] and e3["agent_state"]["mode"] == "none"
+    for seed, t in e3["trials"]["FULL"].items():
+        for p, m in t["trading"].items():
+            assert m["max_entries_per_day"] <= 1, (seed, p, m["max_entries_per_day"])   # the replay contract governs

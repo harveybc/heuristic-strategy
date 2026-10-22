@@ -155,17 +155,21 @@ class ExpertTrack:
     extra track is used only when that track's label support (pivot confirmation) ends inside the row's period, so a
     slower expert cannot leak a later bar across a period boundary."""
 
-    def __init__(self, cx, params=None):
+    def __init__(self, cx, params=None, reversal_pips=None):
         ds = cx.ds
-        self.primary = params is None
+        self.primary = params is None and reversal_pips is None
         self.params = DG.EXPERT if params is None else params
+        self.reversal_pips = reversal_pips
         if self.primary:
             self.y, self.sup, self.oracle, self.n_pivots = ds.y_hind, ds.support_end, cx.oracle, len(ds.pivots)
             self.y_conf = ds.y_conf
         else:
             h, l = ds.bars["HIGH"].to_numpy(float), ds.bars["LOW"].to_numpy(float)
-            piv = Z.hindsight_pivots(h, l, params)
-            conf = Z.confirmation_bars_fast(h, l, piv, params)
+            if reversal_pips is not None:
+                piv, conf = OR.reversal_pivots(h, l, reversal_pips * Z.PIP)
+            else:
+                piv = Z.hindsight_pivots(h, l, params)
+                conf = Z.confirmation_bars_fast(h, l, piv, params)
             n = len(h)
             self.y, self.sup = OR.pivot_labels(n, piv), OR.label_support_end(n, piv, conf)
             self.y_conf = OR.confirmed_labels(n, piv, conf)[0]
@@ -173,7 +177,8 @@ class ExpertTrack:
             ends = {p: DG._utc_ns(b) for p, (a_, b) in ds.meta["periods"].items()}
             self._end = np.array([ends.get(p, 0) for p in ds.period], np.int64)
             self._v = ds.bars.index.as_unit("ns").asi8
-        self.name = f"zz_d{self.params.depth}_dev{self.params.deviation_pips:g}_b{self.params.backstep}"
+        self.name = (f"zz_rev{reversal_pips:g}pips" if reversal_pips is not None
+                     else f"zz_d{self.params.depth}_dev{self.params.deviation_pips:g}_b{self.params.backstep}")
 
     def valid(self, bar, r):
         if self.primary:
@@ -203,6 +208,65 @@ class ExpertTrack:
         return f
 
 
+def parse_track(cx, spec: str):
+    """'2' -> MetaTrader ZigZag depth 2 (registered deviation/backstep); 'rev10' -> reversal ZigZag with 10 pips."""
+    spec = str(spec).strip()
+    if spec.startswith("rev"):
+        return ExpertTrack(cx, reversal_pips=float(spec[3:]))
+    return ExpertTrack(cx, Z.Params(depth=int(spec), deviation_pips=DG.EXPERT.deviation_pips, backstep=DG.EXPERT.backstep))
+
+
+class AuxTargets:
+    """Hindsight auxiliary targets (owner 2026-10-22; training-only, never an observation). Horizon of every target =
+    the optimal (registered) expert's next pivot, capped by 72 bars and the forced flat.
+      opportunity(side): best favourable excursion of an entry at the next open, in causal sigma, net of the declared
+                         cost: how much the open could have earned at most before the optimum.
+      hold_gain(side):   best further gain from the current close of an open position: how much more the trade could
+                         still earn relative to closing now (= regret of an exit before the optimum).
+    A target is used only when its horizon ends inside the row's period (purge by the real label support)."""
+    BOUND = (-0.1, 3.0)                      # covers >= 99 % of TRAIN targets (p1 -0.06, p99 2.1-2.2; SIGNAL_PROFILE)
+
+    def __init__(self, cx, horizon=72, cost=COST_SIGMA):
+        ds = cx.ds
+        o, h, l, c = (ds.bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
+        v = ds.bars.index.as_unit("ns").asi8
+        n = len(c)
+        piv = np.array([i for i, _, _ in ds.pivots], np.int64)
+        nxt = piv[np.minimum(np.searchsorted(piv, np.arange(n), side="right"), len(piv) - 1)]
+        seg = ds.cal.assign(ds.bars.index)
+        ff = np.array([s.force_flat.value for s in ds.cal.segments], np.int64)
+        flat = np.array([int(np.searchsorted(v + DG.H_NS, ff[int(seg[b])], side="right")) - 1 if seg[b] >= 0 else n - 1
+                         for b in range(n)])
+        sig = np.asarray(ds.sigma, float)
+        self.opp = {1: np.full(n, np.nan), -1: np.full(n, np.nan)}
+        self.hold = {1: np.full(n, np.nan), -1: np.full(n, np.nan)}
+        self.end_ns = np.full(n, np.iinfo(np.int64).max, np.int64)
+        for b in range(n - 2):
+            end = int(min(nxt[b], b + horizon, flat[b], n - 1))
+            s = sig[b + 1]
+            if end <= b + 1 or not np.isfinite(s) or s <= 0:
+                continue
+            hh, ll = h[b + 1:end + 1], l[b + 1:end + 1]
+            self.opp[1][b] = (hh.max() - o[b + 1]) / s - cost
+            self.opp[-1][b] = (o[b + 1] - ll.min()) / s - cost
+            self.hold[1][b] = (hh.max() - c[b]) / s
+            self.hold[-1][b] = (c[b] - ll.min()) / s
+            self.end_ns[b] = v[end] + DG.H_NS
+        ends = {p: DG._utc_ns(e) for p, (s_, e) in ds.meta["periods"].items()}
+        self.row_end = np.array([ends.get(p, 0) for p in ds.period], np.int64)
+
+    def _get(self, arr, bar, r):
+        x = arr[bar]
+        ok = np.isfinite(x) and self.end_ns[bar] <= self.row_end[r]
+        return (float(x) if ok else 0.0), float(ok)
+
+    def opportunity(self, bar, r, side):
+        return self._get(self.opp[side], bar, r)
+
+    def hold_gain(self, bar, r, side):
+        return self._get(self.hold[side], bar, r)
+
+
 def merge_sets(*parts):
     out = {}
     for D in parts:
@@ -211,7 +275,7 @@ def merge_sets(*parts):
     return out
 
 
-def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, tracks=None, track=None):
+def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, tracks=None, track=None, aux=None):
     """vis rows -> {module: (X, y, R, Rm)}; flat labels from the expert's issued action (round 0) or the oracle,
     positioned labels from ``exit_label``. With ``final_before_bar`` (refit sweep) a row is used only when its label
     is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows).
@@ -249,8 +313,17 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
                 X, Y, R, Rm = acc[m]
                 X.append(np.r_[cx.Xw[r], E.masked_state(st, mask)])
                 Y.append(y)
-                R.append((tp, sl))
-                Rm.append(float(is_open))
+                if aux is None:
+                    R.append((tp, sl))
+                    Rm.append(float(is_open))
+                elif m in ("open_l", "open_s"):         # per-target masks: TP/SL on opening rows, opportunity on every flat row
+                    ov, ok = aux.opportunity(bar, r, 1 if m == "open_l" else -1)
+                    R.append((tp, sl, ov))
+                    Rm.append((float(is_open), float(is_open), ok))
+                else:                                    # closers: hold gain relative to the optimum
+                    hv, ok = aux.hold_gain(bar, r, 1 if m == "close_l" else -1)
+                    R.append((hv,))
+                    Rm.append((ok,))
     return {m: pack(*v) for m, v in acc.items() if len(v[1])}
 
 
@@ -351,6 +424,14 @@ def run(a):
     DG.check_scaling(a.scaling)                   # typed refusal before any read
     sc = DG.split_contract(a.split_contract)
     mask, inventory = E.state_mask(a.agent_state), E.state_inventory(a.agent_state)
+    import dataclasses
+    if a.exec_contract == "sac":       # owner 2026-10-22: the replay contract (max 1 entry/day, leverage 1:50) everywhere
+        SCFG = MUSASHI_CFG
+        ECFG = dataclasses.replace(EXPERT_CFG, max_entries_per_day=MUSASHI_CFG.max_entries_per_day, sizing=MUSASHI_CFG.sizing)
+    else:
+        SCFG, ECFG = STUDENT_CFG, EXPERT_CFG
+    if a.aux_targets and a.variants != "FULL":
+        raise SystemExit("E3M_AUX_TARGETS_ONLY_FOR_FULL")
     if (a.window, a.stride) != (DG.WIN, DG.STRIDE) and not a.store:
         raise SystemExit("E3M_WINDOW_ONLY_ON_STORE_PATH")
     if a.store:
@@ -374,6 +455,12 @@ def run(a):
         raise SystemExit(f"E3M_WINDOW_LAYOUT:{ds.windows.shape[1]}!={WIN_E}")
     DEV = tuple(sc["report"])                     # dev3y: TRAIN, INNER_A, INNER_B; consolidated: TRAIN, INNER_A (inner block)
     ARCH = dict(units=a.units, branch=a.branch, core=a.core, depth=a.depth, head=a.head)
+    MODS = dict(MODULES)
+    BOUNDS = {m: ((0.25, 3.0), (0.5, 3.0)) for v_ in MODULES for m in MODULES[v_]}
+    if a.aux_targets:
+        MODS["FULL"] = {"open_l": (2, 3), "open_s": (2, 3), "close_l": (2, 1), "close_s": (2, 1)}
+        BOUNDS.update({"open_l": ((0.25, 3.0), (0.5, 3.0), AuxTargets.BOUND), "open_s": ((0.25, 3.0), (0.5, 3.0), AuxTargets.BOUND),
+                       "close_l": (AuxTargets.BOUND,), "close_s": (AuxTargets.BOUND,)})
     if a.groups:
         # extractor groups: {"groups": {name: [columns]}, "units": {name: u}} matched to the tensor order by base name
         gspec = json.loads(Path(a.groups).read_text())
@@ -386,12 +473,12 @@ def run(a):
         if sorted(i for g in idx for i in g) != list(range(nf)):
             raise SystemExit("E3M_GROUPS_DO_NOT_PARTITION_THE_TENSOR")
         ARCH.update(groups=idx, group_units=gu, group_names=names)
+    AUX = AuxTargets(cx) if a.aux_targets else None
     tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
-                                  for d in []] + [ExpertTrack(cx, Z.Params(depth=int(d), deviation_pips=DG.EXPERT.deviation_pips, backstep=DG.EXPERT.backstep))
-                                                   for d in (a.extra_experts.split(",") if a.extra_experts else [])]
+                                  for d in []] + [parse_track(cx, d) for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
-    params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, **ARCH).parameters()))
-                  for m, (nc, nr) in MODULES[v].items()} for v in variants}
+    params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, reg_bounds=BOUNDS[m], **ARCH).parameters()))
+                  for m, (nc, nr) in MODS[v].items()} for v in variants}
     agent_state = {"mode": a.agent_state, "inventory": inventory, "n_state_slots": NS,
                    "included": [n for n, v in inventory.items() if v == "included"],
                    "constant_zero": [n for n, v in inventory.items() if v == "constant_zero"], "params": params,
@@ -403,10 +490,15 @@ def run(a):
            dropout=a.dropout, wd=a.wd, cost_sigma=COST_SIGMA, rounds=ROUNDS, seeds=SEEDS, params=params, device=device,
            scaling=a.scaling, split_contract=ds.meta["split_contract"], agent_state=agent_state, verify=verify,
            experts=[t.name for t in tracks], window=[WIN_E, int(ds.meta["input_contract"]["stride_rows"])],
+           exec_contract=a.exec_contract, aux_targets=bool(a.aux_targets),
            extractor_groups=ARCH.get("group_names"),
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
     scaler_path = DG.write_scaler(out, ds, rung="E3M", agent_state=a.agent_state, split_contract=a.split_contract)
-    res = {"meta": ds.meta, "arch": ARCH, "params": params, "window": {"observations": WIN_E, "stride_rows": int(ds.meta["input_contract"]["stride_rows"])},
+    res = {"exec_contract": a.exec_contract, "aux_targets": ({"opportunity_at_open": "best excursion before the optimal pivot (sigma, net of cost)",
+                                                              "hold_gain_at_close": "best further gain vs closing now (sigma)",
+                                                              "bound": AuxTargets.BOUND, "horizon": "next optimal pivot, <= 72 bars, <= forced flat"}
+                                                             if a.aux_targets else None),
+           "meta": ds.meta, "arch": ARCH, "params": params, "window": {"observations": WIN_E, "stride_rows": int(ds.meta["input_contract"]["stride_rows"])},
            "experts": [{"name": t.name, "primary": t.primary, "pivots": t.n_pivots} for t in tracks], "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
            "split_contract": ds.meta["split_contract"], "agent_state": agent_state, "scaler_file": scaler_path.name,
@@ -422,7 +514,7 @@ def run(a):
                 "logits": lg.tolist(), "reg": None if rg is None else rg.tolist()}
 
     def fit_module(v, m, D_tr, D_in, seed):
-        nc, nr = MODULES[v][m]
+        nc, nr = MODS[v][m]
         f = np.maximum(np.bincount(D_tr[1], minlength=nc) / len(D_tr[1]), 1e-3)   # 1/sqrt(freq), as E1-T
         w = 1 / np.sqrt(f)
         w = w / w[D_tr[1]].mean()
@@ -431,44 +523,44 @@ def run(a):
                                   Ri=D_in[2] if nr else None, Rmi=D_in[3] if nr else None, class_weight=w,
                                   dropout=a.dropout, lr=1e-3, wd=a.wd, batch=256, max_epochs=a.max_epochs, patience=10,
                                   device=device, net=lambda: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS,
-                                                                                  dropout=a.dropout, **ARCH))
+                                                                                  dropout=a.dropout, reg_bounds=BOUNDS[m], **ARCH))
         return T.TorchPolicy(model), info
 
     # expert trajectory (round 0 demonstrations) and comparators
     cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("HIGH", "LOW", "CLOSE"))
-    demo_vis = {p: collect(cx, p, cx.expert, EXPERT_CFG)[1] for p in ("TRAIN", "INNER_A")}
-    extra_vis = {(t.name, p): collect(cx, p, t.policy(cx), EXPERT_CFG)[1] for t in tracks[1:] for p in ("TRAIN", "INNER_A")}
-    _, vtr0 = collect(cx, "TRAIN", cx.expert, EXPERT_CFG)
+    demo_vis = {p: collect(cx, p, cx.expert, ECFG)[1] for p in ("TRAIN", "INNER_A")}
+    extra_vis = {(t.name, p): collect(cx, p, t.policy(cx), ECFG)[1] for t in tracks[1:] for p in ("TRAIN", "INNER_A")}
+    _, vtr0 = collect(cx, "TRAIN", cx.expert, ECFG)
     prior = (np.bincount(np.array([v[3] for v in vtr0], int), minlength=4) / len(vtr0)).tolist()
-    explore = {p: [v for v in collect(cx, p, cx.prior_random(prior, 0), STUDENT_CFG)[1] if v[6] is not None]
+    explore = {p: [v for v in collect(cx, p, cx.prior_random(prior, 0), SCFG)[1] if v[6] is not None]
                for p in ("TRAIN", "INNER_A")}       # exploration positions (round 0 closers only)
     res["exploration_positions"] = {p: len(v) for p, v in explore.items()}
     for p in DEV:
         for t in tracks[1:]:
-            res["comparators"].setdefault(p, {})[f"expert_demonstrations_{t.name}"] = summary(cx.rollout(p, t.policy(cx), EXPERT_CFG)[0])
+            res["comparators"].setdefault(p, {})[f"expert_demonstrations_{t.name}"] = summary(cx.rollout(p, t.policy(cx), ECFG)[0])
         res["comparators"].setdefault(p, {})
-        res["comparators"][p] |= {"expert_demonstrations": summary(cx.rollout(p, cx.expert, EXPERT_CFG)[0]),
-                                 "expert_confirmed": summary(cx.rollout(p, cx.confirmed, STUDENT_CFG)[0]),
-                                 "no_trade": summary(cx.rollout(p, lambda *x: (E.HOLD, 1.5, 2.0), STUDENT_CFG)[0])}
+        res["comparators"][p] |= {"expert_demonstrations": summary(cx.rollout(p, cx.expert, ECFG)[0]),
+                                 "expert_confirmed": summary(cx.rollout(p, cx.confirmed, SCFG)[0]),
+                                 "no_trade": summary(cx.rollout(p, lambda *x: (E.HOLD, 1.5, 2.0), SCFG)[0])}
     frozen = {}
     for v in variants:
         for seed in SEEDS:
-            D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask),
-                              *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t) for t in tracks[1:]])
-            D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask),
-                              *[build_sets(v, extra_vis[(t.name, "INNER_A")], cx, True, mask=mask, track=t) for t in tracks[1:]])
+            D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX),
+                              *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX) for t in tracks[1:]])
+            D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask, aux=AUX),
+                              *[build_sets(v, extra_vis[(t.name, "INNER_A")], cx, True, mask=mask, track=t, aux=AUX) for t in tracks[1:]])
             pols, infos = {}, {}
             comp = None
             for rnd in range(ROUNDS + 1):
                 if rnd > 0:
-                    _, vtr = collect(cx, "TRAIN", comp(cx))
-                    _, vin = collect(cx, "INNER_A", comp(cx))
+                    _, vtr = collect(cx, "TRAIN", comp(cx), SCFG)
+                    _, vin = collect(cx, "INNER_A", comp(cx), SCFG)
                     multi = tracks if len(tracks) > 1 else None
-                    for m, D in build_sets(v, vtr, cx, False, mask=mask, tracks=multi).items():
+                    for m, D in build_sets(v, vtr, cx, False, mask=mask, tracks=multi, aux=AUX).items():
                         D_tr[m] = cat(D_tr[m], D) if m in D_tr else D
-                    for m, D in build_sets(v, vin, cx, False, mask=mask, tracks=multi).items():
+                    for m, D in build_sets(v, vin, cx, False, mask=mask, tracks=multi, aux=AUX).items():
                         D_in[m] = cat(D_in[m], D) if m in D_in else D
-                for m in MODULES[v]:
+                for m in MODS[v]:
                     if m not in D_tr or m not in D_in or len(np.unique(D_tr[m][1])) < 2:
                         if m in pols:
                             ledger(led, rung="E3M", event="MODULE_KEPT", variant=v, module=m, seed=seed, round=rnd)
@@ -492,7 +584,7 @@ def run(a):
             for arb, rate in cands:
                 tau = float(np.quantile(pm, 1 - rate)) if rate is not None else None
                 c = Composed(v, pols, arb, tau, mask=mask)
-                m = summary(cx.rollout("INNER_A", c(cx), STUDENT_CFG)[0])
+                m = summary(cx.rollout("INNER_A", c(cx), SCFG)[0])
                 trials.append({"arbiter": arb, "rate": rate, "tau": tau, "sharpe": m["sharpe_daily_sqrt365"], "valid": m["valid"],
                                "orders_per_week": m["orders_per_week"], "net": m["net_profit_usd"]})
                 ledger(led, rung="E3M", event="ARBITER_TRIAL", variant=v, seed=seed, **trials[-1])
@@ -504,7 +596,7 @@ def run(a):
             rec = {"fits": {m: {k: infos[m][k] for k in ("epochs", "best_epoch", "params", "stop_reason")} for m in infos},
                    "arbiter_trials": trials, "arbiter": best, "trading": {}, "musashi_contract": {}}
             for p in DEV:
-                rec["trading"][p] = summary(cx.rollout(p, c(cx), STUDENT_CFG)[0])
+                rec["trading"][p] = summary(cx.rollout(p, c(cx), SCFG)[0])
                 rec["musashi_contract"][p] = summary(cx.rollout(p, c(cx), MUSASHI_CFG)[0])
             for m, pol in pols.items():
                 torch.save(pol.m.state_dict(), out / f"{v}_{m}_{seed}.pt")
@@ -526,13 +618,13 @@ def run(a):
     res["decision"] = {"means": means, "chosen": chosen, "rule": "highest seed-mean INNER_A Sharpe among all-valid; ties -> fewer models"}
     ledger(led, rung="E3M", event="DECISION", **res["decision"])
     ledger(led, rung="E3M", event="READ", periods=["OBS_2024"], purpose=f"single read: chosen variant {chosen} + comparators")
-    res["comparators"]["OBS_2024"] = {"expert_demonstrations": summary(cx.rollout("OBS_2024", cx.expert, EXPERT_CFG)[0]),
-                                      "expert_confirmed": summary(cx.rollout("OBS_2024", cx.confirmed, STUDENT_CFG)[0]),
-                                      "no_trade": summary(cx.rollout("OBS_2024", lambda *x: (E.HOLD, 1.5, 2.0), STUDENT_CFG)[0])}
+    res["comparators"]["OBS_2024"] = {"expert_demonstrations": summary(cx.rollout("OBS_2024", cx.expert, ECFG)[0]),
+                                      "expert_confirmed": summary(cx.rollout("OBS_2024", cx.confirmed, SCFG)[0]),
+                                      "no_trade": summary(cx.rollout("OBS_2024", lambda *x: (E.HOLD, 1.5, 2.0), SCFG)[0])}
     for seed in SEEDS:
         c = frozen[(chosen, seed)]
         rec = res["trials"][chosen][str(seed)]
-        rec["trading"]["OBS_2024"] = summary(cx.rollout("OBS_2024", c(cx), STUDENT_CFG)[0])
+        rec["trading"]["OBS_2024"] = summary(cx.rollout("OBS_2024", c(cx), SCFG)[0])
         rec["musashi_contract"]["OBS_2024"] = summary(cx.rollout("OBS_2024", c(cx), MUSASHI_CFG)[0])
     res["wall_seconds"] = time.time() - t0
     (out / "E3M.json").write_text(json.dumps(jsonable(res), indent=1))
@@ -560,6 +652,10 @@ def build_parser():
     ap.add_argument("--window", type=int, default=DG.WIN, help="observations per window (store path only; default the inherited 13)")
     ap.add_argument("--stride", type=int, default=DG.STRIDE, help="observed rows between window slots (store path only; default 2)")
     ap.add_argument("--groups", default="", help="extractor groups JSON {groups: {name: [cols]}, units: {name: u}}; default one extractor per feature")
+    ap.add_argument("--exec-contract", choices=("native", "sac"), default="native",
+                    help="native: max 4 entries/day, leverage 1:100 (inherited); sac: max 1 entry/day, leverage 1:50 (the replay contract) "
+                         "for demonstrations, DAgger rollouts, arbiter choice and every reported period")
+    ap.add_argument("--aux-targets", action="store_true", help="FULL only: hindsight opportunity (openers) and hold-gain (closers) heads")
     ap.add_argument("--extra-experts", default="", help="comma list of ZigZag DEPTHS added as training-only demonstrators "
                     "(the replicated MetaTrader Deviation test is inert: pivots depend on Depth and Backstep only)")
     ap.add_argument("--eligible-from", default=None, help="shared-support option: rows before this UTC date are ineligible in every arm (matched comparisons)")

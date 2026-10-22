@@ -133,3 +133,53 @@ def test_merge_sets_concatenates_per_module():
     b = M.build_sets("FULL", [(1, 2, FLAT, E.SHORT, 1.5, 2.0, None)], cx, True)
     m = M.merge_sets(a, b)
     assert m["open_l"][1].tolist() == [1, 0] and m["open_s"][1].tolist() == [0, 1]
+
+
+# ------------------------------------------------------------------ reversal ZigZag, aux targets, per-target masks
+def test_reversal_zigzag_alternates_and_confirms_strictly_after_the_pivot():
+    from app.short_horizon import zigzag as Z
+    from app.short_horizon.expert_guided import oracle as OR
+    rng = np.random.default_rng(0)
+    c = 1.1 + np.cumsum(rng.normal(0, 8e-4, 3000))
+    h, l = c + 3e-4, c - 3e-4
+    piv, conf = OR.reversal_pivots(h, l, 20 * Z.PIP)
+    kinds = [k for _, k, _ in piv]
+    assert len(piv) > 10 and all(a != b for a, b in zip(kinds, kinds[1:]))
+    assert all(cf > i for (i, _, _), cf in zip(piv, conf))
+    for (i, k, v), (j, _, w) in zip(piv, piv[1:]):          # each leg's extreme really is the extreme of the leg
+        if k == Z.PEAK:
+            assert v == h[i] and v >= h[i:j + 1].max() - 1e-12 and w == l[j]
+        else:
+            assert v == l[i] and v <= l[i:j + 1].min() + 1e-12 and w == h[j]
+    n10, n40 = len(OR.reversal_pivots(h, l, 10 * Z.PIP)[0]), len(OR.reversal_pivots(h, l, 40 * Z.PIP)[0])
+    assert n10 > len(piv) > n40                               # a finer threshold gives more (shorter) legs
+
+
+def test_masked_huber_supports_per_row_and_per_target_masks():
+    from app.short_horizon.expert_guided import learn as L
+    rg = torch.zeros(2, 3)
+    r = torch.tensor([[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]])
+    per_row = L._masked_huber(rg, r, torch.tensor([1.0, 0.0]))
+    assert torch.allclose(per_row, torch.tensor([1.5, 0.0]))
+    per_tgt = L._masked_huber(rg, r, torch.tensor([[1.0, 0.0, 1.0], [0.0, 0.0, 1.0]]))
+    assert torch.allclose(per_tgt, torch.tensor([1.0, 1.5]))
+
+
+class AuxStub:
+    def opportunity(self, bar, r, side):
+        return (0.7 if side > 0 else 0.2), (1.0 if bar != 2 else 0.0)
+
+    def hold_gain(self, bar, r, side):
+        return 0.4, 1.0
+
+
+def test_build_sets_with_aux_targets_has_per_module_shapes_and_masks():
+    cx = CX()
+    vis = [(0, 1, FLAT, E.LONG, 1.5, 2.0, None), (1, 2, FLAT, E.HOLD, 1.5, 2.0, None),
+           (3, 4, POS, E.HOLD, 1.5, 2.0, (1, 1.0, 0.9, 1.1, 8))]
+    D = M.build_sets("FULL", vis, cx, True, aux=AuxStub())
+    R, Rm = D["open_l"][2], D["open_l"][3]
+    assert R.shape == (2, 3) and Rm.shape == (2, 3)
+    assert R[:, 2].tolist() == pytest.approx([0.7, 0.7]) and Rm.tolist() == [[1, 1, 1], [0, 0, 0]]   # bar 2: aux purged
+    assert D["open_s"][2][:, 2].tolist() == pytest.approx([0.2, 0.2])
+    assert D["close_l"][2].shape == (1, 1) and D["close_l"][3].tolist() == [[1.0]]

@@ -90,3 +90,37 @@ class LegOracle:
         if position == d:
             return HOLD, tp, self.sl_mult
         return (act_dir if enter else CLOSE), tp, self.sl_mult
+
+
+def reversal_pivots(high, low, threshold: float):
+    """Classic reversal ZigZag on highs / lows (hindsight; labels only, never an input). A leg's extreme is fixed as a
+    pivot at the first LATER bar whose low (high) lies >= ``threshold`` (price units) beyond it; a bar that makes a new
+    extreme extends the leg and cannot also confirm a reversal from it (no intrabar-order assumption), so every pivot
+    is confirmed strictly after its own bar. Returns (pivots [(bar, PEAK|VALLEY, level)], conf [bar it became final])."""
+    high, low = np.asarray(high, float), np.asarray(low, float)
+    n = len(high)
+    piv, conf = [], []
+    if n == 0:
+        return piv, conf
+    trend, hi_i, hi_v, lo_i, lo_v = 0, 0, high[0], 0, low[0]
+    for i in range(1, n):
+        if trend >= 0:
+            if high[i] > hi_v:
+                hi_i, hi_v = i, high[i]
+            elif hi_v - low[i] >= threshold and (trend == 1 or hi_i > lo_i):
+                piv.append((hi_i, Z.PEAK, hi_v)); conf.append(i)
+                trend, lo_i, lo_v = -1, i, low[i]
+                continue
+            if trend == 0:
+                if low[i] < lo_v:
+                    lo_i, lo_v = i, low[i]
+                elif high[i] - lo_v >= threshold and lo_i > hi_i:
+                    piv.append((lo_i, Z.VALLEY, lo_v)); conf.append(i)
+                    trend, hi_i, hi_v = 1, i, high[i]
+        else:
+            if low[i] < lo_v:
+                lo_i, lo_v = i, low[i]
+            elif high[i] - lo_v >= threshold:
+                piv.append((lo_i, Z.VALLEY, lo_v)); conf.append(i)
+                trend, hi_i, hi_v = 1, i, high[i]
+    return piv, conf
