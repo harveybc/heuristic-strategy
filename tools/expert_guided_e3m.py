@@ -266,7 +266,11 @@ def run(a):
     led = out / "TRIAL_LEDGER.jsonl"
     device = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
     t0 = time.time()
-    ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling) if a.features == "core15" else DG.load_v4(a.admitted, a.v4_dir)
+    if a.store:
+        feats = json.loads(Path(a.feature_list).read_text())["features"]
+        ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling)
+    else:
+        ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling) if a.features == "core15" else DG.load_v4(a.admitted, a.v4_dir)
     cx = Ctx(ds)
     nf, NS = ds.windows.shape[2], len(E.STATE_NAMES)
     ARCH = dict(units=a.units, branch=a.branch, core=a.core, depth=a.depth, head=a.head)
@@ -405,6 +409,8 @@ def main():
     ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--max-epochs", type=int, default=1000)
     ap.add_argument("--scaling", choices=["rolling_z", "fixed_train"], default="rolling_z")
+    ap.add_argument("--store", default="", help="layer-1 pool parquet (MANIFEST.json beside it)")
+    ap.add_argument("--feature-list", default="", help="JSON with {'features': [...]} selected from the store")
     ap.add_argument("--cpu", action="store_true")
     run(ap.parse_args())
 

@@ -161,7 +161,8 @@ def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride
     n = len(X)
     t0, t1 = _utc_ns(train[0]), _utc_ns(train[1])
     tr = (ts_ns >= t0) & (ts_ns < t1)
-    mu, sd = X[tr].mean(0), X[tr].std(0)
+    # nan-aware: a feature with a warm-up or a gap inside TRAIN must not poison the constants of every row
+    mu, sd = np.nanmean(X[tr], 0), np.nanstd(X[tr], 0)
     Z = np.empty_like(X, dtype=float)
     doc = {}
     for j, f in enumerate(features):
@@ -226,6 +227,38 @@ def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01") -> Dataset:
     cal.assign(bars.index)
     return build(bars, cal, None, frame=df.reset_index(drop=True), features=feats,
                  frame_meta={"source": "TIMING_PROXY_SELECTION v4", "pins": PINS_V4})
+
+
+def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train",
+               manifest_sha256: str | None = None) -> Dataset:
+    """Observations from an arbitrary feature store on the admitted grid (layer-1 pool, 2026-10-22): the store's
+    MANIFEST must name this admitted source; ``features`` are the selected columns; the store timestamp is the bar
+    START (availability = start + 1 h). Scaling default = fixed TRAIN-only standardization (owner's rule)."""
+    admitted_dir, store_parquet = Path(admitted_dir), Path(store_parquet)
+    pq, clp = admitted_dir / "eurusd.parquet", admitted_dir / "CLOSURE_INTERVALS.json"
+    man = json.loads((store_parquet.parent / "MANIFEST.json").read_text())
+    if verify:
+        if sha256(pq) != PINS["admitted_sha256"] or sha256(clp) != PINS["closure_sha256"]:
+            raise ValueError("ADMITTED_PIN")
+        if man.get("source_sha256") != PINS["admitted_sha256"] or sha256(store_parquet) != man.get("file_sha256"):
+            raise ValueError("STORE_IDENTITY")
+        if manifest_sha256 and sha256(store_parquet.parent / "MANIFEST.json") != manifest_sha256:
+            raise ValueError("STORE_MANIFEST_PIN")
+    missing = [f for f in features if f not in man["features"]]
+    if missing:
+        raise ValueError(f"STORE_FEATURES_MISSING:{missing}")
+    raw = pd.read_parquet(store_parquet, columns=["timestamp", "OPEN", "HIGH", "LOW", "CLOSE"] + [f for f in features if f not in ("OPEN", "HIGH", "LOW", "CLOSE")])
+    raw = raw[pd.to_datetime(raw["timestamp"], utc=True) < pd.Timestamp(end, tz="UTC")]
+    df = raw.drop(columns="timestamp")
+    df.insert(0, "DATE_TIME", (pd.to_datetime(raw["timestamp"], utc=True) + pd.Timedelta(hours=1)).dt.strftime("%Y-%m-%dT%H:%M:%S+00:00").values)
+    fin = np.isfinite(df[features].to_numpy(float)).all(1)
+    first = int(np.argmax(fin))
+    df = df.iloc[first:].reset_index(drop=True)
+    bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
+    cal = calendar_from_closures(json.loads(clp.read_text()))
+    cal.assign(bars.index)
+    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling,
+                 frame_meta={"source": "layer1 store", "store_sha256": man.get("file_sha256"), "n_features": len(features)})
 
 
 def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
