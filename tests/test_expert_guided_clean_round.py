@@ -22,10 +22,11 @@ def spec(tmp_path):
     grp = tmp_path / "FEATURE_GROUPS_x.json"
     grp.write_text(json.dumps({"groups": {"g1": ["a", "b"], "g2": ["c", "d"]}, "units": {"g1": 2, "g2": 2}}))
     demo = tmp_path / "DEMONSTRATORS.json"
-    demo.write_text(json.dumps({"demonstrators": [{"depth": 3, "admitted": True}, {"depth": 6, "admitted": True},
-                                                  {"depth": 12, "admitted": False}]}))
+    demo.write_text(json.dumps({"demonstrators": [{"spec": "3", "admitted": True}, {"spec": "2", "admitted": True},
+                                                  {"spec": "rev10", "admitted": True}, {"spec": "rev5", "admitted": False},
+                                                  {"spec": "6", "admitted": True}]}))
     gate = tmp_path / "RELEASE.json"
-    s = {"identity": "t", "scaling": "fixed_train", "nonstationary": "diff", "split_contract": "consolidated",
+    s = {"identity": "t", "scaling": "fixed_train", "nonstationary": "diff", "split_contract": "consolidated", "exec_contract": "sac",
          "store": {"path": str(store), "sha256": hashlib.sha256(b"store-bytes").hexdigest()},
          "encodings": {"adopted": False}, "model": {"units": 2, "core": None, "depth": 2, "head": 16, "max_epochs": 5},
          "limits": {"max_extractor_units": 4, "max_core_width": 16, "max_head": 32},
@@ -36,7 +37,8 @@ def spec(tmp_path):
                            "agent_state": "none"},
                           {"name": "a2", "list": str(lst), "extractor": "per_feature", "window": [13, 2], "agent_state": "none"}],
                     "B": [{"name": "b1", "list": None, "extractor": None, "window": [24, 1], "agent_state": "minimal"},
-                          {"name": "b2", "list": None, "extractor": None, "window": [24, 1], "agent_state": "none", "extra_experts": [6]}]}}
+                          {"name": "b2", "list": None, "extractor": None, "window": [24, 1], "agent_state": "none", "extra_experts": ["2", "rev10"],
+                           "aux_targets": True}]}}
     return s, tmp_path
 
 
@@ -55,7 +57,9 @@ def test_valid_spec_passes(spec):
     (lambda s: s["model"].update(depth=1), "RECEPTIVE_FIELD_BELOW_WINDOW"),
     (lambda s: s["model"].update(units=8), "MODEL_EXCEEDS_DECLARED_LIMITS"),
     (lambda s: s["store"].update(sha256="0" * 64), "STORE_DIGEST_MISMATCH"),
-    (lambda s: s["stages"]["B"][1].update(extra_experts=[12]), "DEMONSTRATOR_NOT_ADMITTED"),
+    (lambda s: s["stages"]["B"][1].update(extra_experts=["rev5"]), "DEMONSTRATOR_NOT_ADMITTED"),
+    (lambda s: s["stages"]["B"][1].update(extra_experts=["6"]), "DEMONSTRATOR_NOT_SHORTER_THAN_OPTIMUM"),
+    (lambda s: s.update(exec_contract="native"), "EXEC_CONTRACT_NOT_REPLAY"),
 ])
 def test_each_forbidden_configuration_is_refused(spec, mut, code):
     s, _ = spec
@@ -94,7 +98,7 @@ def test_emit_is_refused_while_a_gate_is_closed_and_written_once_open(spec, tmp_
     q = out.read_text()
     assert "--scaling fixed_train" in q and "--agent-state none" in q and "--split-contract consolidated" in q
     assert "rolling" not in q and "--agent-state full" not in q and "test -f $Q/RELEASE.json" in q
-    assert "--groups" in q and "--window 24 --stride 1" in q and "--depth 2" in q
+    assert "--groups" in q and "--window 24 --stride 1" in q and "--depth 2" in q and "--exec-contract sac" in q
 
 
 def test_parameter_counts_are_reported_per_module(spec):

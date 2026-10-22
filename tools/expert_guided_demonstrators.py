@@ -19,14 +19,16 @@ sys.path.insert(0, str(ROOT))
 from app.short_horizon import zigzag as Z  # noqa: E402
 from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from tools.expert_guided_e1t import EXPERT_CFG, STUDENT_CFG, Ctx, summary  # noqa: E402
-from tools.expert_guided_e3m import ExpertTrack  # noqa: E402
+from tools.expert_guided_e1t import MUSASHI_CFG  # noqa: E402
+from tools.expert_guided_e3m import ExpertTrack, parse_track  # noqa: E402
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--admitted", required=True)
     ap.add_argument("--csv-dir", required=True)
-    ap.add_argument("--depths", default="3,6,12", help="ZigZag depths (deviation/backstep of the primary expert)")
+    ap.add_argument("--specs", default="3,2,rev10", help="demonstrators: a MetaTrader ZigZag depth ('2') or a reversal threshold in pips ('rev10'); 3 = registered optimum")
+    ap.add_argument("--exec-contract", choices=("native", "sac"), default="sac")
     ap.add_argument("--contract", default="consolidated")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
@@ -34,13 +36,16 @@ def main():
     cx = Ctx(ds)
     rows = []
     K = ("net_profit_usd", "sharpe_daily_sqrt365", "trades", "orders_per_week", "max_drawdown_pct", "win_rate", "valid")
-    for dep in [int(x) for x in a.depths.split(",")]:
-        primary = dep == DG.EXPERT.depth
-        t = ExpertTrack(cx) if primary else ExpertTrack(cx, Z.Params(depth=dep, deviation_pips=DG.EXPERT.deviation_pips, backstep=DG.EXPERT.backstep))
-        m = summary(cx.rollout("TRAIN", t.policy(cx), EXPERT_CFG)[0])
-        mc = summary(cx.rollout("TRAIN", t.confirmed_policy(), STUDENT_CFG)[0])
+    import dataclasses
+    ECFG = dataclasses.replace(EXPERT_CFG, max_entries_per_day=MUSASHI_CFG.max_entries_per_day, sizing=MUSASHI_CFG.sizing) if a.exec_contract == "sac" else EXPERT_CFG
+    SCFG = MUSASHI_CFG if a.exec_contract == "sac" else STUDENT_CFG
+    for spec in a.specs.split(","):
+        primary = spec.strip() == str(DG.EXPERT.depth)
+        t = ExpertTrack(cx) if primary else parse_track(cx, spec)
+        m = summary(cx.rollout("TRAIN", t.policy(cx), ECFG)[0])
+        mc = summary(cx.rollout("TRAIN", t.confirmed_policy(), SCFG)[0])
         admitted = bool(m["valid"])
-        rows.append({"name": t.name, "depth": dep, "primary": primary, "pivots": t.n_pivots,
+        rows.append({"name": t.name, "spec": spec.strip(), "primary": primary, "pivots": t.n_pivots, "exec_contract": a.exec_contract,
                      "hindsight_train": {k: m[k] for k in K if k in m}, "confirmed_train": {k: mc[k] for k in K if k in mc},
                      "admitted": admitted, "admission": "hindsight replay valid under the business activity rules"})
         print(json.dumps(rows[-1]), flush=True)

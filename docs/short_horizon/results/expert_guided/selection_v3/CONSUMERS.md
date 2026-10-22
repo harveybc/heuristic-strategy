@@ -79,3 +79,34 @@ E3-M FULL specialists (open-L/open-S/close-L/close-S), head 16, units 2, 3 seeds
 - Matched scaling (rerun, identical support hashes): rolling-z −0.86 INNER_A (one seed invalid: 7 trades) vs fixed+keep −0.98 vs fixed+diff −0.98 (identical: the stationarity rule differenced nothing in this list, so keep/diff isolates nothing here) vs fixed+diff+explicit relatives −0.97. On the SAME rows and inputs the rolling z-score gives no measurable advantage over the owner's fixed TRAIN scale: the earlier apparent rolling edge (+0.86 / +0.43) came from unmatched supports and inputs, not from the normalization. Explicit relative columns add nothing here either. All arms are negative out of sample: the generalization gap, not the scaling, is the problem.
 - Principal-contract (consolidated) arms and the generalization-gap diagnostic run on the peer worker; appended when they close.
 - Pre-repair arms (selection v2 lists) are kept under `final_*` for the record and are not comparable (unpaired selection, wrong layer-2 file).
+
+
+## Annex: principal contract and generalization-gap diagnostic (executed on Musashi's worker, package @31d90f7 / archive efa23475…)
+
+Source: his report `MUSASHI_TO_SATOSHI_SELECTION_RESULTS_AND_FINAL_AUDIT_HANDOFF_2026_10_22.md` (predictor @f442310f) and 11 of the 12 `E3M.json` read back read-only (the relocated `cons_shortlist` arm from his report). Native contract (4 entries/day, 1:100); means of the three seeds, invalid seeds included. Store and lists: v3 (before the scale correction).
+
+### Principal contract (TRAIN 2020-2023 with the inner block, VALIDATION 2024 once) — not comparable to the dev3y rows above
+
+| arm | cols | TRAIN Sharpe | INNER_A (2023H2) | VALIDATION 2024 | 2024 net USD | max DD % | gap TRAIN−INNER_A |
+|---|---|---|---|---|---|---|---|
+| cons_core15 | 15 | −0.051 | −2.129 | −1.178 | −4 089 | 52.7 | 2.078 |
+| cons_shortlist_strict | 125 | +2.900 | −0.328 | −0.717 | −2 262 | 38.0 | 3.228 |
+| cons_shortlist | 173 | +4.395 | −0.909 | −0.619 | −2 369 | 48.1 | 5.304 |
+| cons_shortlist_strict_enc | 137 | +5.050 | +0.098 | −2.892 | −6 650 | 70.9 | 4.951 |
+
+Replay of the same weights with the SAC execution contract (max 1 entry/day, 1:50), 2024: core15 −0.387 (−591 USD, DD 22 %), strict −0.096→ Sharpe +0.096 (−103 USD, DD 16 %), shortlist173 +0.072 (+53 USD, DD 14 %, 3/3 valid), strict+enc −1.541. The replay contract halves the drawdowns; it is adopted as the execution contract of the clean round.
+
+### Gap diagnostic (dev3y, list × agent state × regularization; base = dropout 0.1 / wd 1e-4, strong = 0.3 / 1e-2, changed jointly)
+
+| list / state / reg | TRAIN | INNER_A | all valid | gap | 2024 |
+|---|---|---|---|---|---|
+| core15 / full / base | −0.439 | −2.071 | yes | 1.632 | −1.937 |
+| core15 / full / strong | −0.404 | −0.145 | yes | −0.259 | −2.100 |
+| core15 / none / base | +0.450 | −1.244 | yes | 1.694 | +0.058 |
+| core15 / none / strong | −0.469 | −1.598 | yes | 1.129 | −0.812 |
+| strict125 / full / base | +3.539 | −0.746 | yes | 4.285 | −0.214 |
+| strict125 / full / strong | +2.814 | +0.434 | no | 2.380 | −0.046 |
+| strict125 / none / base | +4.199 | −0.722 | yes | 4.921 | −0.180 |
+| strict125 / none / strong | +4.266 | −1.452 | yes | 5.717 | −0.317 |
+
+Declared rule (clean-round spec): the regularization with the smaller mean gap among all-valid arms -> strong (2.196 over 3 arms vs 3.133 over 4) — recorded as a CANDIDATE only: not uniform (agent state none: strong smaller on core15, base smaller on the strict list), on core15 the gap shrinks because TRAIN falls, and it was measured before the scale correction.

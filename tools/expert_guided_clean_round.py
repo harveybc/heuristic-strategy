@@ -16,7 +16,9 @@ Hard rules (a violation refuses `check` and `emit`):
     column and no `enc.` encoding column unless the spec adopts encodings with evidence;
   * small extractors: units per extractor group <= limits.max_extractor_units; core width and head bounded;
   * the temporal receptive field covers the window (no slot the trunk cannot see);
-  * extra ZigZag demonstrators come from an admission file (training-only demonstrations, never an input);
+  * extra ZigZag demonstrators come from an admission file (training-only demonstrations, never an input) and are
+    SHORTER than the registered optimum (owner 2026-10-22: intermediate trades that earn less per trade);
+  * exec_contract == sac (owner 2026-10-22: the replay contract, max 1 entry/day and leverage 1:50, everywhere);
   * regularization is filled from a declared source (the generalization-gap diagnostic), never left implicit.
 """
 from __future__ import annotations
@@ -74,6 +76,8 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
         errs.append(f"SCALING_FORBIDDEN:{spec['scaling']}")
     if spec["nonstationary"] not in ("diff", "refuse"):
         errs.append(f"NONSTATIONARY_POLICY_FORBIDDEN:{spec['nonstationary']}")
+    if spec.get("exec_contract") != "sac":
+        errs.append(f"EXEC_CONTRACT_NOT_REPLAY:{spec.get('exec_contract')}")
     if spec["split_contract"] != "consolidated":
         errs.append(f"CONTRACT_NOT_PRINCIPAL:{spec['split_contract']}")
     reg = spec.get("regularization") or {}
@@ -100,10 +104,13 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
                 errs.append(f"RECEPTIVE_FIELD_BELOW_WINDOW:{tag}:{receptive_field(m['depth'])}<{win}")
             if a.get("extra_experts"):
                 adm = json.loads(Path(spec["demonstrators"]["file"]).read_text())
-                ok = {d["depth"] for d in adm["demonstrators"] if d["admitted"]}
-                miss = [d for d in a["extra_experts"] if d not in ok]
+                ok = {str(d.get("spec", d.get("depth"))) for d in adm["demonstrators"] if d["admitted"]}
+                miss = [d for d in a["extra_experts"] if str(d) not in ok]
                 if miss:
                     errs.append(f"DEMONSTRATOR_NOT_ADMITTED:{tag}:{miss}")
+                longer = [d for d in a["extra_experts"] if not str(d).startswith("rev") and int(d) >= 3]
+                if longer:
+                    errs.append(f"DEMONSTRATOR_NOT_SHORTER_THAN_OPTIMUM:{tag}:{longer}")
             if a.get("list") is None:
                 continue                                    # stage B arms inherit the stage-A winner's list
             lp = Path(a["list"])
@@ -150,7 +157,9 @@ def e3m_cmd(spec, arm, out, remote):
            "--out", out, "--variants", "FULL", "--units", str(m["units"]), "--depth", str(m["depth"]), "--head", str(m["head"]),
            "--dropout", str(reg["dropout"]), "--wd", str(reg["wd"]), "--max-epochs", str(m["max_epochs"]),
            "--scaling", spec["scaling"], "--nonstationary", spec["nonstationary"], "--split-contract", spec["split_contract"],
-           "--agent-state", arm["agent_state"], "--window", str(win), "--stride", str(stride)]
+           "--agent-state", arm["agent_state"], "--window", str(win), "--stride", str(stride), "--exec-contract", spec["exec_contract"]]
+    if arm.get("aux_targets"):
+        cmd += ["--aux-targets"]
     if m.get("core"):
         cmd += ["--core", str(m["core"])]
     if arm["extractor"] == "per_family":
@@ -170,7 +179,8 @@ def cmd_check(a):
                 cols = json.loads(Path(arm["list"]).read_text())["features"]
                 p = arm_params(arm, spec, cols)
                 rows.append({"stage": stage, "arm": arm["name"], "cols": len(cols), "extractor": arm["extractor"], "window": arm["window"],
-                             "agent_state": arm["agent_state"], "experts": [3] + list(arm.get("extra_experts") or []),
+                             "agent_state": arm["agent_state"], "experts": ["3"] + [str(x) for x in (arm.get("extra_experts") or [])],
+                             "aux_targets": bool(arm.get("aux_targets")),
                              "params_per_module": p, "params_total": sum(p.values()), "receptive_field": receptive_field(spec["model"]["depth"])})
     print(json.dumps({"valid": not errs, "errors": errs, "gates_missing": [g["path"] for g in gates_open(spec)], "arms": rows}, indent=1))
     return 0 if not errs else 2

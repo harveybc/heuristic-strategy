@@ -36,11 +36,18 @@
   "dropout": null,
   "wd": null,
   "source": null,
-  "rule": "PENDING from the generalization-gap diagnostic (peer worker): the setting with the smaller mean TRAIN-INNER_A Sharpe gap among all-valid arms; tie -> base (dropout 0.1, wd 1e-4)"
+  "rule": "PENDING from the generalization-gap diagnostic (peer worker): the setting with the smaller mean TRAIN-INNER_A Sharpe gap among all-valid arms; tie -> base (dropout 0.1, wd 1e-4)",
+  "candidate": {
+   "dropout": 0.3,
+   "wd": 0.01,
+   "from": "Musashi's gap diagnostic (my package, his worker; dev3y, store v3): mean TRAIN-INNER_A Sharpe gap among all-valid arms: strong 2.196 (3 arms) vs base 3.133 (4 arms); strict/full/strong excluded (invalid seeds)",
+   "caveat": "not uniform: for agent-state none (the clean round's setting) strong is smaller on core15 (1.129 vs 1.694) but base is smaller on the strict list (4.921 vs 5.717); on core15 the gap shrinks because TRAIN falls (INNER_A -1.598 vs -1.244). Measured on the v3 store; offer to repeat on the _s store with the v4 lists before release.",
+   "status": "CANDIDATE (dropout/wd stay null until the owner's release)"
+  }
  },
  "demonstrators": {
   "file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/DEMONSTRATORS.json",
-  "note": "ZigZag depth 3 (primary), 6 and 12; Deviation is inert in the replicated MetaTrader ZigZag; all three valid under the business rules; their causal-confirmed replays lose (-9.8k / -9.8k / -9.2k USD TRAIN): the edge is anticipation"
+  "note": "registered optimum = ZigZag Depth 3 / Backstep 0 (Deviation is inert in the replicated MetaTrader ZigZag). Owner 2026-10-22: extra demonstrators SHORTER than the optimum, to label the intermediate, lower-gain trades: depth 2 (TRAIN 38 legs/week, median leg 24 pips) and a reversal ZigZag at 10 pips (87 legs/week, 23 pips) vs the optimum's 27 legs/week, 30 pips; depth 1 is degenerate (210 pivots). All valid under the replay contract; their causal-confirmed replays lose (the edge is anticipation)."
  },
  "memory": "6G",
  "remote_root": "/var/tmp/expert-guided-clean-20261022",
@@ -55,7 +62,7 @@
    "why": "written by Satoshi ONLY after the owner confirms that data / selection / encoding / extraction are closed (Musashi's last part included) and the regularization source is filled"
   }
  ],
- "decision": "stage A and B: highest seed-mean INNER_A Sharpe (consolidated inner block 2023H2) among arms with all three seeds valid; ties -> fewer parameters; TRAIN-INNER_A gap reported for every arm; VALIDATION 2024 is read once inside each run after its own freeze and never consulted by the decision",
+ "decision": "stage A and B (B inherits the A winner's list / extractor / window / groups; the window shown in B is only for the receptive-field check): highest seed-mean INNER_A Sharpe (consolidated inner block 2023H2) among arms with all three seeds valid; ties -> fewer parameters; TRAIN-INNER_A gap reported for every arm; VALIDATION 2024 is read once inside each run after its own freeze and never consulted by the decision",
  "stages": {
   "A": [
    {
@@ -145,7 +152,19 @@
   ],
   "B": [
    {
-    "name": "winner_multi_expert",
+    "name": "winner_aux",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "aux_targets": true,
+    "note": "+ hindsight opportunity / hold-gain heads"
+   },
+   {
+    "name": "winner_shorter_experts",
     "list": null,
     "extractor": null,
     "window": [
@@ -154,10 +173,26 @@
     ],
     "agent_state": "none",
     "extra_experts": [
-     6,
-     12
+     "2",
+     "rev10"
     ],
-    "note": "inherits list / extractor / window / groups from the stage-A winner (the window shown is only for the receptive-field check)"
+    "note": "+ demonstrators shorter than the optimum (consensus labels)"
+   },
+   {
+    "name": "winner_aux_shorter_experts",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "extra_experts": [
+     "2",
+     "rev10"
+    ],
+    "aux_targets": true,
+    "note": "both signal improvements"
    },
    {
     "name": "winner_minimal_state",
@@ -171,5 +206,17 @@
     "note": "declared control: position + can_enter only (bounded, unclipped); the simulator keeps its full state"
    }
   ]
+ },
+ "exec_contract": "sac",
+ "exec_contract_note": "owner 2026-10-22: the replay contract (max 1 entry/day, leverage 1:50; rel_volume 0.10, initial cash 10000) for demonstrations, DAgger rollouts, arbiter choice and every reported period; same as the SAC line, so policies of both lines are comparable",
+ "aux_targets": {
+  "opportunity_at_open": "best favourable excursion of an entry at the next open before the optimal pivot (<= 72 bars, <= forced flat), causal sigma, net of cost",
+  "hold_gain_at_close": "best further gain from the current close until the same horizon (how much more vs closing now)",
+  "bound": [
+   -0.1,
+   3.0
+  ],
+  "bound_evidence": "SIGNAL_PROFILE.json TRAIN percentiles: opportunity p1 -0.06 / p99 2.12; hold gain p1 0.00 / p99 2.19",
+  "use": "auxiliary bounded regression heads (Huber, per-target masks, label-support purge); training-only, never an observation"
  }
 }
