@@ -134,15 +134,38 @@ def decided_columns(store_dir: Path) -> list:
     return [f"{c}@{d.lower()}" if d != "NONE" else c for c, d in dec.items()]
 
 
+def resolve_pool_file(path):
+    p = Path(path)
+    d = p.parent if p.is_file() else p
+    manifest = json.loads((d / "MANIFEST.json").read_text())
+    expected = manifest.get("file_sha256")
+    if not expected:
+        raise ValueError("POOL_FILE_HASH_MISSING")
+    if p.is_file():
+        f = p
+    elif manifest.get("file"):
+        f = d / manifest["file"]
+        if not f.resolve().is_relative_to(d.resolve()):
+            raise ValueError("POOL_FILE_OUTSIDE_STORE")
+    else:
+        matches = [f for f in sorted(d.glob("*.parquet")) if DG.sha256(f) == expected]
+        if len(matches) != 1:
+            raise ValueError(f"POOL_FILE_AMBIGUOUS:{len(matches)}")
+        f = matches[0]
+    if not f.is_file() or DG.sha256(f) != expected:
+        raise ValueError(f"POOL_FILE_HASH_MISMATCH:{f.name}")
+    return f, d
+
+
 def load_pool(stores: list) -> tuple[pd.DataFrame, dict]:
     frames, pins = [], {}
     for s in stores:
-        p = Path(s)
-        d = p.parent if p.is_file() else p
-        f = p if p.is_file() else next(d.glob("*.parquet"))
+        f, d = resolve_pool_file(s)
         cols = [c for c in decided_columns(d) if c not in ("OPEN", "HIGH", "LOW", "CLOSE")]
         df = pd.read_parquet(f)
-        cols = [c for c in cols if c in df.columns]
+        missing = [c for c in cols if c not in df.columns]
+        if missing:
+            raise ValueError(f"POOL_COLUMNS_MISSING:{missing}")
         ts = pd.DatetimeIndex(pd.to_datetime(df["timestamp"], utc=True))
         frames.append(df[cols].set_index(ts))
         pins[str(f)] = DG.sha256(f)
