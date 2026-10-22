@@ -169,6 +169,12 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 40. [SIGUIENTE — diseño para aprobación del propietario] RONDA RL LIMPIA: atacar la brecha TRAIN−VAL antes que el desempeño: menos entradas por extractor compartido (familias agrupadas), regularización medida (diagnóstico de brecha), parada temprana que no mire sólo TRAIN, estado del agente none/minimal como brazos, múltiples expertos ZigZag sólo como demostraciones, escala fija TRAIN; (la cuestión rolling-vs-fijo quedó cerrada en 39: sin diferencia medible sobre el mismo soporte). Solicitud de auditoría FINAL para mi alcance: predictor satoshi/reply-to-musashi-20261022.
 
+41. [x CORREGIDO 2026-10-22, defecto de DATOS encontrado por la tabla de justificación por columna] REGLA DE ASIMETRÍA SIN ESCALA: `asinh(x)` en unidades nativas es la identidad para magnitudes ~1e-3; 38 de 50 columnas positivas muy asimétricas quedaron sin tratar (rangos/volatilidades EURUSD incl. RAW_LOG_RANGE de core15 3.09→0.10 con log, rv_24 de cruces/BTC, energías wavelet, amplitudes Hilbert, potencias espectrales); y la asimetría del candidato se medía con 2023–2024. Corregido en el productor (predictor @46af988e/@652eade2): ASINH → LOG → ASINHS(x/mediana TRAIN), sólo TRAIN, régimen intacto. Stores revisión `_s` (capa1 8243f43f…, capa2 53616616…, pool 32edb424…). La variante log1p de la codificación era nula por lo mismo (retirada). SELECCIÓN v4 relanzada desde cero sobre `_s` (19:56Z, ETA ≈ 03:00Z). Aviso a Musashi (su extracción usa la store v3) @reply branch.
+
+42. [x HALLAZGO] ZIGZAG: el parámetro Deviation es inerte en la réplica fiel de MetaTrader (pivotes sólo dependen de Depth/Backstep); los expertos múltiples varían la profundidad 3/6/12; sus réplicas confirmadas causales pierden en TRAIN (−9.8k/−9.8k/−9.2k): la ventaja es anticipar el pivote (tarea opener3).
+
+43. [PREPARADA, NO LANZADA] RONDA LIMPIA (heuristic-strategy docs/short_horizon/clean_round/, runner tools/expert_guided_clean_round.py con rechazos duros y dos puertas: selección v4 cerrada + RELEASE.json tras confirmación del propietario). Etapa A 8 brazos {core15, estricta} × {extractor por característica, por familia} × {13@2, 24@1}, sin realimentación; etapa B: multi-experto {3,6,12} y estado mínimo (control) sobre el ganador. Núcleo 2 capas (campo receptivo 31), cabeza 16, extractores 2 unidades. Pendiente: regularización desde el diagnóstico de brecha; listas v4.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
@@ -182,6 +188,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 - 2026-10-21: la dirección NO es una señal externa: es nuestra decisión en cada tick entre las órdenes candidatas de compra y venta (y no operar) por ganancia/riesgo predichos con su incertidumbre; nada de pesimismo: miles de experimentos negativos son el camino si cada uno reduce el sobreajuste y acumula mejoras.
 - 2026-10-20: primero generalización, después desempeño. Ningún barrido para mejorar Sharpe/capacidad/ventana antes de que un modelo mínimo muestre brecha TRAIN−VAL controlada y señal en INNER_B (puntos 19–20).
 - 2026-10-22: seguir las órdenes y sugerencias de Musashi (brief @7633cd37); responderle las observaciones (respuesta en predictor `satoshi/reply-to-musashi-20261022` @2ebe0ac7); terminar la selección completa, sin omitir características, resolviendo todo por mí mismo; al terminar, solicitud de auditoría. Los parámetros del z-score se calculan por característica SOLO en TRAIN y se aplican a todo (nunca rolling); transformaciones (log1p u otras) sólo justificadas por una métrica medida y documentada por característica; nada a ciegas.
+
+- 2026-10-22: no lanzar NINGÚN experimento de RL hasta que datos / selección / codificación / extracción estén totalmente cerrados; mientras tanto dejar todo listo. Prohibido: z-score móvil, realimentación de entradas, cualquier cosa no justificada por métricas; extractores pequeños (pocas unidades) para una característica o un grupo pequeño, más capas en el núcleo; preprocesamiento y codificación por característica justificados sin lugar a dudas, nada exótico.
 
 ## 6. Cómo se actualiza
 
