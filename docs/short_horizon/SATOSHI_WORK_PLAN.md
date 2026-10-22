@@ -78,6 +78,15 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 | ID | Carril | Repo/rama | Entregable esperado |
 | --- | --- | --- | --- |
 
+### 3b. Carriles activos desde 2026-10-22 (orden del propietario: seguir el brief de correcciones de Musashi @7633cd37 y terminar la selección COMPLETA)
+
+| ID | Carril | Repo/rama | Entregable esperado |
+| --- | --- | --- | --- |
+| A | Recuperar los seis cruces (+USDCAD, NZDUSD, XAUUSD) desde la fuente independiente H1+M30 que produjo el EURUSD admitido; store cross-asset r4 | financial-data `satoshi/fx-crosses-recovery-20261022`; feature-eng `satoshi/cross-asset-h1-20261020` | cobertura 2023 ≥ 0.99 en ret_1, reloj corroborado con controles ±1..3 h, MANIFEST r4, sin relleno |
+| B | Productores causales de capa 2 (wavelet nativa db4, Hilbert, multitaper DPSS, Kalman sobre EURUSD, GMM + HMM forward en numpy, fracdiff) + FEATURE_CATALOG.csv generado desde los productores | predictor `satoshi/timing-selection-20261019` | store capa 2, pruebas de perturbación futura por familia, catálogo con filas PENDING y reparación concreta |
+| C | Propagación del escalado fijo (enum estricto, load_v4, SCALER.json junto al checkpoint, recarga que rechaza sin artefacto, prueba CLI→tensor→checkpoint→recarga), ablación del estado del agente (`--agent-state`), `--split-contract dev3y|consolidated` | heuristic-strategy `satoshi/expert-guided-rl-20261019` | defectos 1–7 del brief cerrados con prueba |
+| D (propio) | Selección v2 multivariada padre/componentes (`tools/pool_selection_v2.py` @332831e): 7 tareas, 2 modelos, folds purgados dentro de TRAIN 2020-2023, permutación por bloques, contrastes reentrenados none/P/Cj/Cgroup/P+Cgroup en dos contextos, rescate de interacciones, presupuesto y regla declarados antes de correr | heuristic-strategy | RANKING, CONTRASTS_PARENT_COMPONENTS, FAMILY_DECISIONS, SHORTLIST; luego subconjuntos finalistas en E3-M FULL (escala fija, ablación de estado), 2024 una vez; solicitud de auditoría |
+
 ## 4. Pendientes (ordenados; se tachan al cerrarse)
 
 1. [x parcial: K10–K14 en el plan; LEARNINGS pendiente] Integrar A1–A4 en este plan y en `LEARNINGS_CARRIED_FORWARD.md`; actualizar K5/K6 con los números reales.
@@ -146,6 +155,12 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 33. [x CERRADO, ver K30–K32] [EN COLA en la 4090 detrás de E5-B, autónomo] E6 STACK sobre E5-B (las cuatro ideas acordadas, código `tools/expert_guided_e6_stack.py`): A banda conformal (cobertura 80 % calibrada en VAL A) en lugar de κ; B cerradores del FULL sobre la orden elegida; C candidata 'diferir' (3 miembros que predicen el mejor resultado del tick siguiente, histéresis 0/0,05/0,1); D árbitro imitado del ZigZag sobre el espacio de órdenes (33 clases, BC + 2 DAgger, 3 semillas). Elección entre etapas en VAL A, VAL B reporte, 2024 una vez con modelos guardados. Cola completa en la 4090: reajuste → E4-Q → E5-B → E6; recolectores publican todo en heuristic-strategy results/expert_guided/{refit_sweep,e4q,e5b,e6}. Sin babysitting.
 
+34. [EN CURSO 2026-10-22] HUECO DE DATOS 2023 EN LOS CRUCES: el lago HistData pierde 25–40 % de las barras feb–jul 2023 (8 % en H2) en todos los pares; r3 hereda 40 % NaN en ret_1 y 75 % en rv_24 en 2023H1. Reparación = carril A (fuente independiente, la misma del EURUSD admitido). Hasta r4, ningún resultado con cruces en 2023 es válido.
+
+35. [EN CURSO 2026-10-22] SELECCIÓN COMPLETA SOBRE EL POOL ENTERO (brief de Musashi §2–§6): catálogo desde productores (carril B) → selección v2 (D) sobre capa 1 + capa 2 + r4 → subconjuntos finalistas en el modelo consumidor → solicitud de auditoría (§11). Hallazgo v1 (TRAIN 2020-2022, HGB): `up|hit` +0.10 nats PEOR que el prior → tarea no informativa con ese pool; `opener3` −0.177, `hit` −0.002. Humo v2 (fold 0, opener3): HGB 0.419 vs prior 0.670 (train 0.374); temporal 0.546 vs 0.676 (train 0.524), 3 705 parámetros, 197 s/unidad CPU.
+
+36. [EN COLA] E3-M FULL SIN ROLLING Z-SCORE (escala fija TRAIN) — pedido del propietario 2026-10-21: en cola en dos hosts por falta de headroom de memoria (6G rechazado; la herramienta prohíbe bajar la petición tras un rechazo). Corre al liberarse el barrido de reajuste semanal.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
@@ -158,6 +173,7 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 - 2026-10-21: la dirección NO es una señal externa: es nuestra decisión en cada tick entre las órdenes candidatas de compra y venta (y no operar) por ganancia/riesgo predichos con su incertidumbre; nada de pesimismo: miles de experimentos negativos son el camino si cada uno reduce el sobreajuste y acumula mejoras.
 - 2026-10-20: primero generalización, después desempeño. Ningún barrido para mejorar Sharpe/capacidad/ventana antes de que un modelo mínimo muestre brecha TRAIN−VAL controlada y señal en INNER_B (puntos 19–20).
+- 2026-10-22: seguir las órdenes y sugerencias de Musashi (brief @7633cd37); responderle las observaciones (respuesta en predictor `satoshi/reply-to-musashi-20261022` @2ebe0ac7); terminar la selección completa, sin omitir características, resolviendo todo por mí mismo; al terminar, solicitud de auditoría. Los parámetros del z-score se calculan por característica SOLO en TRAIN y se aplican a todo (nunca rolling); transformaciones (log1p u otras) sólo justificadas por una métrica medida y documentada por característica; nada a ciegas.
 
 ## 6. Cómo se actualiza
 
