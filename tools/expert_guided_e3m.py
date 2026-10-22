@@ -44,6 +44,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
+from app.short_horizon.expert_guided import oracle as OR  # noqa: E402
+from app.short_horizon import zigzag as Z  # noqa: E402
 from tools.expert_guided_e0 import RATE_GRID, jsonable, ledger  # noqa: E402
 from tools.expert_guided_e1t import EXPERT_CFG, MUSASHI_CFG, STUDENT_CFG, Ctx, cat, pack, summary  # noqa: E402
 
@@ -146,11 +148,67 @@ def exit_resolution_bar(cx, bar, info):
     return min(ffb, len(cx.c)) - 1 if ffb <= len(cx.c) else -1
 
 
-def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None):
+class ExpertTrack:
+    """One ZigZag demonstrator (owner 2026-10-22: several ZigZag signals as TRAINING-ONLY demonstrations; never an
+    input). The primary track is the dataset's own expert (pivots, labels, support and oracle unchanged); an extra
+    track recomputes hindsight pivots with its own deviation on the same admitted bars. A flat row's label from an
+    extra track is used only when that track's label support (pivot confirmation) ends inside the row's period, so a
+    slower expert cannot leak a later bar across a period boundary."""
+
+    def __init__(self, cx, params=None):
+        ds = cx.ds
+        self.primary = params is None
+        self.params = DG.EXPERT if params is None else params
+        if self.primary:
+            self.y, self.sup, self.oracle, self.n_pivots = ds.y_hind, ds.support_end, cx.oracle, len(ds.pivots)
+        else:
+            h, l = ds.bars["HIGH"].to_numpy(float), ds.bars["LOW"].to_numpy(float)
+            piv = Z.hindsight_pivots(h, l, params)
+            conf = Z.confirmation_bars_fast(h, l, piv, params)
+            n = len(h)
+            self.y, self.sup = OR.pivot_labels(n, piv), OR.label_support_end(n, piv, conf)
+            self.oracle, self.n_pivots = OR.LegOracle(ds.bars["CLOSE"].to_numpy(float), piv), len(piv)
+            ends = {p: DG._utc_ns(b) for p, (a_, b) in ds.meta["periods"].items()}
+            self._end = np.array([ends.get(p, 0) for p in ds.period], np.int64)
+            self._v = ds.bars.index.as_unit("ns").asi8
+        self.name = f"zz_d{self.params.depth}_dev{self.params.deviation_pips:g}_b{self.params.backstep}"
+
+    def valid(self, bar, r):
+        if self.primary:
+            return True                          # the dataset's labelled() mask already applies this track's support
+        se = int(self.sup[bar])
+        return se >= 0 and self._v[se] + DG.H_NS <= self._end[r]
+
+    def policy(self, cx):
+        def f(bar, r, st, env):
+            y = self.y[bar]
+            if y == 0:
+                return E.HOLD, 1.5, 2.0
+            s = float(cx.ds.sigma[bar + 1])
+            rem = self.oracle.remaining[bar]
+            tp = rem / s if np.isfinite(rem) and s > 0 else -1.0
+            if tp <= 0:
+                return E.HOLD, 1.5, 2.0
+            return (E.LONG if y == OR.LONG_CLASS else E.SHORT), tp, 2.0
+        return f
+
+
+def merge_sets(*parts):
+    out = {}
+    for D in parts:
+        for m, d in D.items():
+            out[m] = cat(out[m], d) if m in out else d
+    return out
+
+
+def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, tracks=None, track=None):
     """vis rows -> {module: (X, y, R, Rm)}; flat labels from the expert's issued action (round 0) or the oracle,
     positioned labels from ``exit_label``. With ``final_before_bar`` (refit sweep) a row is used only when its label
     is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows).
-    ``mask`` (agent-state ablation): the state slots fed to the network; labels and partitions use the real state."""
+    ``mask`` (agent-state ablation): the state slots fed to the network; labels and partitions use the real state.
+    ``track`` (round 0, from_expert): the demonstrator that drove ``vis``; its flat rows are kept only where its own
+    label support is inside the period. ``tracks`` (DAgger rounds): every flat row is labelled by EACH track whose
+    support is valid there (multi-expert consensus); positioned rows keep the single exit-rule label."""
     acc = {m: ([], [], [], []) for m in MODULES[variant]}
     for r, bar, st, a_exp, tp_exp, sl_exp, info in vis:
         if final_before_bar is not None:
@@ -163,19 +221,26 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None):
                 if se < 0 or se >= final_before_bar:
                     continue
         if info is not None:
-            a, tp, sl = (E.CLOSE if exit_label(cx, bar, info) else E.HOLD), 1.5, 2.0
+            labs = [((E.CLOSE if exit_label(cx, bar, info) else E.HOLD), 1.5, 2.0)]
         elif from_expert:
-            a, tp, sl = a_exp, float(np.clip(tp_exp, 0.25, 3.0)), float(np.clip(sl_exp, 0.5, 3.0))
+            if track is not None and not track.valid(bar, r):
+                continue
+            labs = [(a_exp, float(np.clip(tp_exp, 0.25, 3.0)), float(np.clip(sl_exp, 0.5, 3.0)))]
         else:
-            a, tp, sl = cx.oracle.action(bar, int(st[0]), bool(st[-1] > 0.5), float(cx.ds.sigma[bar + 1]))
-            if a in (E.LONG, E.SHORT) and int(st[0]) != 0:
-                a = E.HOLD                           # positioned rows are labelled by the exit rule only
-        for m, (y, is_open) in labels_for(variant, st, a).items():
-            X, Y, R, Rm = acc[m]
-            X.append(np.r_[cx.Xw[r], E.masked_state(st, mask)])
-            Y.append(y)
-            R.append((tp, sl))
-            Rm.append(float(is_open))
+            labs = []
+            for orc in ([None] if tracks is None else [t for t in tracks if t.valid(bar, r)]):
+                o = cx.oracle if orc is None else orc.oracle
+                a, tp, sl = o.action(bar, int(st[0]), bool(st[-1] > 0.5), float(cx.ds.sigma[bar + 1]))
+                if a in (E.LONG, E.SHORT) and int(st[0]) != 0:
+                    a = E.HOLD                       # positioned rows are labelled by the exit rule only
+                labs.append((a, tp, sl))
+        for a, tp, sl in labs:
+            for m, (y, is_open) in labels_for(variant, st, a).items():
+                X, Y, R, Rm = acc[m]
+                X.append(np.r_[cx.Xw[r], E.masked_state(st, mask)])
+                Y.append(y)
+                R.append((tp, sl))
+                Rm.append(float(is_open))
     return {m: pack(*v) for m, v in acc.items() if len(v[1])}
 
 
@@ -276,9 +341,12 @@ def run(a):
     DG.check_scaling(a.scaling)                   # typed refusal before any read
     sc = DG.split_contract(a.split_contract)
     mask, inventory = E.state_mask(a.agent_state), E.state_inventory(a.agent_state)
+    if (a.window, a.stride) != (DG.WIN, DG.STRIDE) and not a.store:
+        raise SystemExit("E3M_WINDOW_ONLY_ON_STORE_PATH")
     if a.store:
         feats = json.loads(Path(a.feature_list).read_text())["features"]
-        ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from)
+        ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from,
+                           win=a.window, stride=a.stride)
     elif a.features == "core15":
         ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from)
     else:
@@ -291,10 +359,27 @@ def run(a):
         raise SystemExit(f"E3M_SCALING_NOT_EFFECTIVE:{a.scaling}!={ds.meta['scaling']['policy']}")
     cx = Ctx(ds)
     nf, NS = ds.windows.shape[2], len(E.STATE_NAMES)
+    WIN_E = int(ds.meta["input_contract"]["observations"])
+    if ds.windows.shape[1] != WIN_E:
+        raise SystemExit(f"E3M_WINDOW_LAYOUT:{ds.windows.shape[1]}!={WIN_E}")
     DEV = tuple(sc["report"])                     # dev3y: TRAIN, INNER_A, INNER_B; consolidated: TRAIN, INNER_A (inner block)
     ARCH = dict(units=a.units, branch=a.branch, core=a.core, depth=a.depth, head=a.head)
+    if a.groups:
+        # extractor groups: {"groups": {name: [columns]}, "units": {name: u}} matched to the tensor order by base name
+        gspec = json.loads(Path(a.groups).read_text())
+        tensor = [f.split("@")[0] for f in ds.meta["input_contract"]["features"]]
+        names, idx, gu = [], [], []
+        for g, cols in gspec["groups"].items():
+            ii = [tensor.index(c.split("@")[0]) for c in cols if c.split("@")[0] in tensor]
+            if ii:
+                names.append(g); idx.append(ii); gu.append(int(gspec.get("units", {}).get(g, a.branch or a.units)))
+        if sorted(i for g in idx for i in g) != list(range(nf)):
+            raise SystemExit("E3M_GROUPS_DO_NOT_PARTITION_THE_TENSOR")
+        ARCH.update(groups=idx, group_units=gu, group_names=names)
+    tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
+                                  for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
-    params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, DG.WIN, nc, n_reg=nr, n_state=NS, **ARCH).parameters()))
+    params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, **ARCH).parameters()))
                   for m, (nc, nr) in MODULES[v].items()} for v in variants}
     agent_state = {"mode": a.agent_state, "inventory": inventory, "n_state_slots": NS,
                    "included": [n for n, v in inventory.items() if v == "included"],
@@ -306,9 +391,12 @@ def run(a):
     ledger(led, rung="E3M", event="PREREGISTRATION", variants=variants, arbiters=list(ARBITERS), arch=ARCH,
            dropout=a.dropout, wd=a.wd, cost_sigma=COST_SIGMA, rounds=ROUNDS, seeds=SEEDS, params=params, device=device,
            scaling=a.scaling, split_contract=ds.meta["split_contract"], agent_state=agent_state, verify=verify,
+           experts=[t.name for t in tracks], window=[WIN_E, int(ds.meta["input_contract"]["stride_rows"])],
+           extractor_groups=ARCH.get("group_names"),
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
     scaler_path = DG.write_scaler(out, ds, rung="E3M", agent_state=a.agent_state, split_contract=a.split_contract)
-    res = {"meta": ds.meta, "arch": ARCH, "params": params, "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
+    res = {"meta": ds.meta, "arch": ARCH, "params": params, "window": {"observations": WIN_E, "stride_rows": int(ds.meta["input_contract"]["stride_rows"])},
+           "experts": [{"name": t.name, "primary": t.primary, "pivots": t.n_pivots} for t in tracks], "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
            "split_contract": ds.meta["split_contract"], "agent_state": agent_state, "scaler_file": scaler_path.name,
            "probe": {}}
@@ -331,36 +419,43 @@ def run(a):
                                   R=D_tr[2] if nr else None, Rm=D_tr[3] if nr else None,
                                   Ri=D_in[2] if nr else None, Rmi=D_in[3] if nr else None, class_weight=w,
                                   dropout=a.dropout, lr=1e-3, wd=a.wd, batch=256, max_epochs=a.max_epochs, patience=10,
-                                  device=device, net=lambda: T.TemporalPolicyNet(nf, DG.WIN, nc, n_reg=nr, n_state=NS,
+                                  device=device, net=lambda: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS,
                                                                                   dropout=a.dropout, **ARCH))
         return T.TorchPolicy(model), info
 
     # expert trajectory (round 0 demonstrations) and comparators
     cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("HIGH", "LOW", "CLOSE"))
     demo_vis = {p: collect(cx, p, cx.expert, EXPERT_CFG)[1] for p in ("TRAIN", "INNER_A")}
+    extra_vis = {(t.name, p): collect(cx, p, t.policy(cx), EXPERT_CFG)[1] for t in tracks[1:] for p in ("TRAIN", "INNER_A")}
     _, vtr0 = collect(cx, "TRAIN", cx.expert, EXPERT_CFG)
     prior = (np.bincount(np.array([v[3] for v in vtr0], int), minlength=4) / len(vtr0)).tolist()
     explore = {p: [v for v in collect(cx, p, cx.prior_random(prior, 0), STUDENT_CFG)[1] if v[6] is not None]
                for p in ("TRAIN", "INNER_A")}       # exploration positions (round 0 closers only)
     res["exploration_positions"] = {p: len(v) for p, v in explore.items()}
     for p in DEV:
-        res["comparators"][p] = {"expert_demonstrations": summary(cx.rollout(p, cx.expert, EXPERT_CFG)[0]),
+        for t in tracks[1:]:
+            res["comparators"].setdefault(p, {})[f"expert_demonstrations_{t.name}"] = summary(cx.rollout(p, t.policy(cx), EXPERT_CFG)[0])
+        res["comparators"].setdefault(p, {})
+        res["comparators"][p] |= {"expert_demonstrations": summary(cx.rollout(p, cx.expert, EXPERT_CFG)[0]),
                                  "expert_confirmed": summary(cx.rollout(p, cx.confirmed, STUDENT_CFG)[0]),
                                  "no_trade": summary(cx.rollout(p, lambda *x: (E.HOLD, 1.5, 2.0), STUDENT_CFG)[0])}
     frozen = {}
     for v in variants:
         for seed in SEEDS:
-            D_tr = build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask)
-            D_in = build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask)
+            D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask),
+                              *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t) for t in tracks[1:]])
+            D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask),
+                              *[build_sets(v, extra_vis[(t.name, "INNER_A")], cx, True, mask=mask, track=t) for t in tracks[1:]])
             pols, infos = {}, {}
             comp = None
             for rnd in range(ROUNDS + 1):
                 if rnd > 0:
                     _, vtr = collect(cx, "TRAIN", comp(cx))
                     _, vin = collect(cx, "INNER_A", comp(cx))
-                    for m, D in build_sets(v, vtr, cx, False, mask=mask).items():
+                    multi = tracks if len(tracks) > 1 else None
+                    for m, D in build_sets(v, vtr, cx, False, mask=mask, tracks=multi).items():
                         D_tr[m] = cat(D_tr[m], D) if m in D_tr else D
-                    for m, D in build_sets(v, vin, cx, False, mask=mask).items():
+                    for m, D in build_sets(v, vin, cx, False, mask=mask, tracks=multi).items():
                         D_in[m] = cat(D_in[m], D) if m in D_in else D
                 for m in MODULES[v]:
                     if m not in D_tr or m not in D_in or len(np.unique(D_tr[m][1])) < 2:
@@ -451,6 +546,10 @@ def build_parser():
     ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--max-epochs", type=int, default=1000)
     ap.add_argument("--scaling", choices=list(DG.SCALINGS), default="rolling_z")
+    ap.add_argument("--window", type=int, default=DG.WIN, help="observations per window (store path only; default the inherited 13)")
+    ap.add_argument("--stride", type=int, default=DG.STRIDE, help="observed rows between window slots (store path only; default 2)")
+    ap.add_argument("--groups", default="", help="extractor groups JSON {groups: {name: [cols]}, units: {name: u}}; default one extractor per feature")
+    ap.add_argument("--extra-experts", default="", help="comma list of ZigZag deviations (pips) added as training-only demonstrators")
     ap.add_argument("--eligible-from", default=None, help="shared-support option: rows before this UTC date are ineligible in every arm (matched comparisons)")
     ap.add_argument("--nonstationary", choices=list(DG.NONSTATIONARY), default="diff",
                     help="fixed_train only: a feature measured non-stationary on TRAIN (ADF/KPSS) is differenced (default), refused or kept")

@@ -359,7 +359,7 @@ def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rol
                  sources={"loader": "v4", "verified": bool(verify), "sha256": digests})
 
 
-def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train", nonstationary="diff", eligible_from=None,
+def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train", nonstationary="diff", eligible_from=None, win: int = WIN, stride: int = STRIDE,
                manifest_sha256: str | None = None, contract="dev3y") -> Dataset:
     """Observations from an arbitrary feature store on the admitted grid (layer-1 pool, 2026-10-22): the store's
     MANIFEST must name this admitted source; ``features`` are the selected columns; the store timestamp is the bar
@@ -391,14 +391,14 @@ def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end=
     bars = BS.load_ohlc(pq, "2020-01-01", end, source="admitted")
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
-    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract, nonstationary=nonstationary, eligible_from=eligible_from,
+    return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract, nonstationary=nonstationary, eligible_from=eligible_from, win=win, stride=stride,
                  frame_meta={"source": "layer1 store", "store_sha256": man.get("file_sha256"), "n_features": len(features)},
                  sources={"loader": "store", "verified": bool(verify), "sha256": digests})
 
 
 def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
           frame_meta=None, scaling="rolling_z", contract="dev3y", sources=None, nonstationary="diff",
-          eligible_from=None) -> Dataset:
+          eligible_from=None, win: int = WIN, stride: int = STRIDE) -> Dataset:
     check_scaling(scaling)                       # strict enum, refused before any statistic is fitted
     if nonstationary not in NONSTATIONARY:
         raise ValueError(f"NONSTATIONARY_UNKNOWN:{nonstationary}")
@@ -432,12 +432,12 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     if scaling == "fixed_train":
         # a fixed-constant scaler may only receive stationary inputs: measured on TRAIN, decided and recorded here
         X, features, stationarity = stationarity_decisions(X, ts_ns, features, sc["scaler_fit"], nonstationary)
-        windows, row_ok, scale_doc = fixed_train_windows(X, ts_ns, features, train=sc["scaler_fit"])
+        windows, row_ok, scale_doc = fixed_train_windows(X, ts_ns, features, stride=stride, win=win, train=sc["scaler_fit"])
         scale_doc["stationarity"] = {"policy": nonstationary, "rule": "ADF p > 0.05 and KPSS p < 0.05 on TRAIN -> NON_STATIONARY",
                                      "features": stationarity,
                                      "differenced": [f for f, r in stationarity.items() if r["decision"] == "DIFF"]}
     else:
-        windows, row_ok = causal_rolling_windows(X)
+        windows, row_ok = causal_rolling_windows(X, stride=stride, win=win)
         scale_doc = {"method": "rolling_z", "rows": SCALE_W, "constants": None,
                      "note": f"no constants exist: every row is standardized with the statistics of rows [i-{SCALE_W}, i)",
                      "rows_excluded_warmup_or_nan": int((~row_ok).sum())}
@@ -497,7 +497,7 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
             "rows_total": int(len(df)), "rows_eligible": {p: int((eligible & (period == p)).sum()) for p in periods},
             "support_hash": {p: hashlib.sha256(np.ascontiguousarray(ts_ns[eligible & (period == p)]).tobytes()).hexdigest()[:16]
                              for p in periods}, "eligible_from": eligible_from,
-            "input_contract": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True,
+            "input_contract": {"observations": int(win), "stride_rows": int(stride), "includes_current_completed_bar": True,
                                "scaling": (f"causal rolling z-score over rows [i-{SCALE_W}, i)" if scaling != "fixed_train"
                                            else ("fixed TRAIN-only mean/std (2020-2022) for every feature" if contract == "dev3y"
                                                  else f"fixed TRAIN-only mean/std ({sc['scaler_fit'][0]}..{sc['scaler_fit'][1]}) for every feature")),
@@ -535,7 +535,8 @@ def scaler_artifact(ds: Dataset, **extra) -> dict:
     sc, feats = ds.meta["scaling"], list(ds.meta["input_contract"]["features"])
     art = {"artifact": "SCALER", "schema_version": 1, "policy": sc["policy"], "features": feats, "n_features": len(feats),
            "tensor_order": "windows[row, slot, feature] follow this feature order; slot layout = input_contract",
-           "window": {"observations": WIN, "stride_rows": STRIDE, "includes_current_completed_bar": True},
+           "window": {"observations": int(ds.meta["input_contract"]["observations"]),
+                      "stride_rows": int(ds.meta["input_contract"]["stride_rows"]), "includes_current_completed_bar": True},
            "split_contract": ds.meta["split_contract"], "sources": ds.meta.get("sources"), "code": code_version(),
            "created_utc": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "run": extra or {}}
     if sc["policy"] == "fixed_train":
@@ -583,6 +584,9 @@ def verify_scaler(art: dict, ds: Dataset, rtol=1e-9, atol=1e-12) -> dict:
         raise ValueError(f"SCALER_POLICY_MISMATCH:{art['policy']}!={ds.meta['scaling']['policy']}")
     if list(art["features"]) != feats:
         raise ValueError(f"SCALER_FEATURES_MISMATCH:artifact={art['features']}:dataset={feats}")
+    ic, aw = ds.meta["input_contract"], art.get("window") or {}
+    if aw and (int(aw.get("observations", -1)) != int(ic["observations"]) or int(aw.get("stride_rows", -1)) != int(ic["stride_rows"])):
+        raise ValueError(f"SCALER_WINDOW_LAYOUT_MISMATCH:{aw}!=({ic['observations']},{ic['stride_rows']})")
     if art["policy"] == "fixed_train":
         fd = ds.meta["scaling"]["features"]
         mean = np.array([fd[f]["mean"] for f in feats]); std = np.array([fd[f]["std"] for f in feats])

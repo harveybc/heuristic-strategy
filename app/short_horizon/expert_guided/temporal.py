@@ -44,14 +44,32 @@ class TemporalTrunk(nn.Module):
     dilation: 8, 16, ...). Defaults reproduce the u-design exactly, including the state_dict names."""
 
     def __init__(self, n_feat: int, units: int = 2, dropout: float = 0.1, branch: int | None = None,
-                 core: int | None = None, depth: int = 1):
+                 core: int | None = None, depth: int = 1, groups: list | None = None, group_units: list | None = None):
         super().__init__()
         b = units if branch is None else branch
         c = units if core is None else core
         self.n_feat, self.units, self.b, self.c, self.depth = n_feat, units, b, c, depth
-        self.branch = CausalConv1d(n_feat, n_feat * b, KERNEL, DILATIONS[0], groups=n_feat)
+        self.groups = None
+        if groups is None:
+            self.branch = CausalConv1d(n_feat, n_feat * b, KERNEL, DILATIONS[0], groups=n_feat)
+            fused_in = n_feat * b
+        else:
+            # one small extractor per feature GROUP (owner 2026-10-22: a group of related inputs shares one extractor
+            # with few units; the core does the heavier processing). Every feature belongs to exactly one group.
+            flat = sorted(i for g in groups for i in g)
+            if flat != list(range(n_feat)):
+                raise ValueError("TRUNK_GROUPS_MUST_PARTITION_FEATURES")
+            gu = [b] * len(groups) if group_units is None else [int(u) for u in group_units]
+            if len(gu) != len(groups) or min(gu) < 1:
+                raise ValueError("TRUNK_GROUP_UNITS_INVALID")
+            self.groups = [list(map(int, g)) for g in groups]
+            for k, g in enumerate(self.groups):
+                self.register_buffer(f"gidx{k}", torch.tensor(g, dtype=torch.long), persistent=False)
+            self.branch = nn.ModuleList([CausalConv1d(len(g), u, KERNEL, DILATIONS[0]) for g, u in zip(self.groups, gu)])
+            self.group_units = gu
+            fused_in = sum(gu)
         self.drop = nn.Dropout(dropout)
-        self.fuse = CausalConv1d(n_feat * b, c, KERNEL, DILATIONS[1])
+        self.fuse = CausalConv1d(fused_in, c, KERNEL, DILATIONS[1])
         self.core = CausalConv1d(c, c, KERNEL, DILATIONS[2])
         for k in range(2, depth + 1):           # core2 (dilation 8), core3 (16), ...
             setattr(self, f"core{k}", CausalConv1d(c, c, KERNEL, DILATIONS[2] * 2 ** (k - 1)))
@@ -59,7 +77,11 @@ class TemporalTrunk(nn.Module):
 
     def forward(self, w):                       # w: (B, T, n_feat)
         x = w.transpose(1, 2)
-        x = self.drop(F.gelu(self.branch(x)))
+        if self.groups is None:
+            x = self.drop(F.gelu(self.branch(x)))
+        else:
+            x = torch.cat([conv(x.index_select(1, getattr(self, f"gidx{k}"))) for k, conv in enumerate(self.branch)], 1)
+            x = self.drop(F.gelu(x))
         x = F.gelu(self.fuse(x))
         x = F.gelu(self.core(x))
         for k in range(2, self.depth + 1):
@@ -73,10 +95,13 @@ class TemporalPolicyNet(nn.Module):
 
     def __init__(self, n_feat: int, win: int, n_cls: int, n_reg: int = 0, n_state: int = 0, units: int = 2,
                  dropout: float = 0.1, reg_bounds=((0.25, 3.0), (0.5, 3.0)), branch: int | None = None,
-                 core: int | None = None, depth: int = 1, head: int = 0):
+                 core: int | None = None, depth: int = 1, head: int = 0, groups: list | None = None,
+                 group_units: list | None = None, group_names: list | None = None):
         super().__init__()
         self.n_feat, self.win, self.n_state = n_feat, win, n_state
-        self.trunk = TemporalTrunk(n_feat, units, dropout, branch=branch, core=core, depth=depth)
+        self.group_names = group_names                # documentation only (which family each extractor reads)
+        self.trunk = TemporalTrunk(n_feat, units, dropout, branch=branch, core=core, depth=depth, groups=groups,
+                                   group_units=group_units)
         d = self.trunk.out_dim + n_state
         self.head = head
         if head:                                 # optional hidden head layer (ladder stage "heads"); 0 = registered
