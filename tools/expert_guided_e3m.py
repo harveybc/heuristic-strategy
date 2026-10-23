@@ -584,6 +584,23 @@ class Composed:
 
 
 # ----------------------------------------------------------------------------- run
+def effective_contracts(exec_contract: str, min_orders_per_week=None):
+    """(student/evaluation config, expert-demonstration config) actually used by a run. ``sac`` = the replay contract
+    (owner 2026-10-22: max 1 entry/day, leverage 1:50 everywhere); ``min_orders_per_week`` = the weekly activity rule
+    (period average). One definition, read by the run and by the consumer recipe (identity-covered)."""
+    if exec_contract == "sac":
+        S = MUSASHI_CFG
+        X_ = dataclasses.replace(EXPERT_CFG, max_entries_per_day=MUSASHI_CFG.max_entries_per_day, sizing=MUSASHI_CFG.sizing)
+    elif exec_contract == "native":
+        S, X_ = STUDENT_CFG, EXPERT_CFG
+    else:
+        raise ValueError(f"EXEC_CONTRACT_UNKNOWN:{exec_contract}")
+    if min_orders_per_week is not None:
+        S = dataclasses.replace(S, min_orders_per_week=float(min_orders_per_week))
+        X_ = dataclasses.replace(X_, min_orders_per_week=float(min_orders_per_week))
+    return S, X_
+
+
 def run(a):
     import torch
     from app.short_horizon.expert_guided import learn as L
@@ -597,23 +614,36 @@ def run(a):
     DG.check_scaling(a.scaling)                   # typed refusal before any read
     sc = DG.split_contract(a.split_contract)
     mask, inventory = E.state_mask(a.agent_state), E.state_inventory(a.agent_state)
-    import dataclasses
-    if a.exec_contract == "sac":       # owner 2026-10-22: the replay contract (max 1 entry/day, leverage 1:50) everywhere
-        SCFG = MUSASHI_CFG
-        ECFG = dataclasses.replace(EXPERT_CFG, max_entries_per_day=MUSASHI_CFG.max_entries_per_day, sizing=MUSASHI_CFG.sizing)
-    else:
-        SCFG, ECFG = STUDENT_CFG, EXPERT_CFG
-    if a.min_orders_per_week is not None:   # owner 2026-10-22: the weekly activity rule is >= 2 orders/week (was 3)
-        SCFG = dataclasses.replace(SCFG, min_orders_per_week=float(a.min_orders_per_week))
-        ECFG = dataclasses.replace(ECFG, min_orders_per_week=float(a.min_orders_per_week))
+    SCFG, ECFG = effective_contracts(a.exec_contract, a.min_orders_per_week)
     if a.aux_targets and a.variants != "FULL":
         raise SystemExit("E3M_AUX_TARGETS_ONLY_FOR_FULL")
     if (a.window, a.stride) != (DG.WIN, DG.STRIDE) and not a.store:
         raise SystemExit("E3M_WINDOW_ONLY_ON_STORE_PATH")
+    RECIPE = None
+    if a.recipe:
+        # the pinned shared recipe (audit A3 2026-10-23): columns, consumer operations, scaler constants, window and
+        # groups come from the recipe; explicit flags that would contradict it are refused instead of overriding it
+        RECIPE = json.loads(Path(a.recipe).read_text())
+        if not str(RECIPE.get("identity", "")).startswith("recipe_") or RECIPE.get("schema") != "expert_guided_consumer_recipe.v2":
+            raise SystemExit("E3M_RECIPE_MALFORMED")
+        if a.feature_list or a.groups or a.scaling != "fixed_train":
+            raise SystemExit("E3M_RECIPE_CONFLICT: --feature-list/--groups/--scaling come from the recipe")
+        w = RECIPE["tensor"]["window"]
+        if (a.window, a.stride) not in ((DG.WIN, DG.STRIDE), (int(w["observations"]), int(w["stride_rows"]))):
+            raise SystemExit("E3M_RECIPE_CONFLICT: --window/--stride differ from the recipe")
+        a.window, a.stride = int(w["observations"]), int(w["stride_rows"])
+        if a.split_contract != RECIPE["split"]["arm"]:
+            raise SystemExit(f"E3M_RECIPE_CONFLICT: --split-contract {a.split_contract} != {RECIPE['split']['arm']}")
+        if a.agent_state != "none":
+            raise SystemExit("E3M_RECIPE_CONFLICT: the shared recipe has no agent feedback (agent_state none)")
     if a.store:
-        feats = json.loads(Path(a.feature_list).read_text())["features"]
+        feats = ([c["store_column"] for c in RECIPE["tensor"]["columns"]] if RECIPE else json.loads(Path(a.feature_list).read_text())["features"])
         ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from,
-                           win=a.window, stride=a.stride)
+                           win=a.window, stride=a.stride, recipe=RECIPE)
+        if RECIPE and list(ds.meta["input_contract"]["features"]) != list(RECIPE["scaler"]["features"]):
+            raise SystemExit("E3M_RECIPE_TENSOR_ORDER")
+    elif RECIPE:
+        raise SystemExit("E3M_RECIPE_REQUIRES_STORE")
     elif a.features == "core15":
         ds = DG.load(a.admitted, a.csv_dir, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from)
     else:
@@ -637,9 +667,9 @@ def run(a):
         MODS["FULL"] = {"open_l": (2, 3), "open_s": (2, 3), "close_l": (2, 1), "close_s": (2, 1)}
         BOUNDS.update({"open_l": ((0.25, 3.0), (0.5, 3.0), AuxTargets.BOUND), "open_s": ((0.25, 3.0), (0.5, 3.0), AuxTargets.BOUND),
                        "close_l": (AuxTargets.BOUND,), "close_s": (AuxTargets.BOUND,)})
-    if a.groups:
+    if a.groups or RECIPE:
         # extractor groups: {"groups": {name: [columns]}, "units": {name: u}} matched to the tensor order by base name
-        gspec = json.loads(Path(a.groups).read_text())
+        gspec = RECIPE["representation"]["groups"] if RECIPE else json.loads(Path(a.groups).read_text())
         tensor = [f.split("@")[0] for f in ds.meta["input_contract"]["features"]]
         names, idx, gu = [], [], []
         for g, cols in gspec["groups"].items():
@@ -649,6 +679,13 @@ def run(a):
         if sorted(i for g in idx for i in g) != list(range(nf)):
             raise SystemExit("E3M_GROUPS_DO_NOT_PARTITION_THE_TENSOR")
         gk = [str(gspec.get("kinds", {}).get(g, "conv")) for g in names]     # T3: extractor type per group (conv | pointwise)
+        if RECIPE:
+            r = RECIPE["representation"]["resolved"]
+            if (names, idx, gu, gk) != (r["names"], r["indices"], r["units"], r["kinds"]):
+                raise SystemExit("E3M_RECIPE_GROUPS_DO_NOT_RESOLVE")
+            m = RECIPE["representation"]["model"]
+            if (a.units, a.depth, a.head, a.core) != (m["units"], m["depth"], m["head"], m["core"]):
+                raise SystemExit("E3M_RECIPE_CONFLICT: --units/--depth/--head/--core differ from the recipe model")
         ARCH.update(groups=idx, group_units=gu, group_names=names, group_kinds=gk)
     AUX = AuxTargets(cx) if a.aux_targets else None
     LMODE = a.labels
@@ -679,6 +716,7 @@ def run(a):
                                                               "bound": AuxTargets.BOUND, "horizon": "next optimal pivot, <= 72 bars, <= forced flat"}
                                                              if a.aux_targets else None),
            "labels": LABELS.describe(ds) if LABELS else {"mode": "zigzag"},
+           "recipe": ({"identity": RECIPE["identity"], "sha256": DG.sha256(a.recipe)} if RECIPE else None),
            "meta": ds.meta, "arch": ARCH, "params": params, "window": {"observations": WIN_E, "stride_rows": int(ds.meta["input_contract"]["stride_rows"])},
            "experts": [{"name": t.name, "primary": t.primary, "pivots": t.n_pivots} for t in tracks], "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
@@ -858,6 +896,8 @@ def build_parser():
     ap.add_argument("--no-verify", action="store_true",
                     help="skip the source pins (fixture runs only; recorded as verify=false in every output)")
     ap.add_argument("--store", default="", help="layer-1 pool parquet (MANIFEST.json beside it)")
+    ap.add_argument("--recipe", default="", help="pinned shared consumer recipe (v2): columns, consumer operations, scaler constants, "
+                    "window, groups and model come from it; nothing is measured or refitted (audit A3)")
     ap.add_argument("--feature-list", default="", help="JSON with {'features': [...]} selected from the store")
     ap.add_argument("--cpu", action="store_true")
     return ap

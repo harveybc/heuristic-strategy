@@ -49,7 +49,10 @@ def receptive_field(depth: int) -> int:
 def load_groups(path, cols):
     """(indices, units, names, kinds) of the groups file matched to the list; ``kinds`` = extractor type per group
     ("conv" default | "pointwise", the T3 contrast)."""
-    g = json.loads(Path(path).read_text())
+    return load_groups_doc(json.loads(Path(path).read_text()), cols)
+
+
+def load_groups_doc(g: dict, cols):
     idx, units, names, kinds = [], [], [], []
     base = [c.split("@")[0] for c in cols]
     for name, members in g["groups"].items():

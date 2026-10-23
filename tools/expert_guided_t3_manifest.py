@@ -254,11 +254,11 @@ def cmd_decide(a):
                       "agreement": f"{doc['expectation_agreement']['held']}/{doc['expectation_agreement']['n']}"}, indent=1))
 
 
-def cmd_combine(a):
-    """Groups file + typed unit for the combination confirmation (every per-group choice at once)."""
-    man = json.loads(Path(a.manifest).read_text())
-    dec = json.loads(Path(a.decision).read_text())
-    g0 = json.loads((Path(a.manifest).parent / "groups" / "unit_00.json").read_text())
+def combined_groups(man: dict, dec: dict, unit00_path) -> dict:
+    """The combination groups document implied by a per-group decision (pure; the recipe exporter regenerates it)."""
+    if dec.get("manifest") != man.get("identity"):
+        raise SystemExit("T3_DECISION_OF_ANOTHER_MANIFEST")
+    g0 = json.loads(Path(unit00_path).read_text())
     groups, units, kinds = dict(g0["groups"]), dict(g0["units"]), dict(g0["kinds"])
     for d in dec["groups"]:
         if d["chosen"] == "pointwise":
@@ -270,7 +270,14 @@ def cmd_combine(a):
                 groups[f"{d['group']}/{c}"] = [c]
                 units[f"{d['group']}/{c}"] = g0["units"].get(d["group"], 2)
                 kinds[f"{d['group']}/{c}"] = "conv"
-    v = {"name": "t3_unit_C", "rule": "T3 combination: every per-group choice of the decision", "groups": groups, "units": units, "kinds": kinds}
+    return {"name": "t3_unit_C", "rule": "T3 combination: every per-group choice of the decision", "groups": groups, "units": units, "kinds": kinds}
+
+
+def cmd_combine(a):
+    """Groups file for the combination confirmation (every per-group choice at once)."""
+    man = json.loads(Path(a.manifest).read_text())
+    dec = json.loads(Path(a.decision).read_text())
+    v = combined_groups(man, dec, Path(a.manifest).parent / "groups" / "unit_00.json")
     gp = Path(a.manifest).parent / "groups" / "unit_C.json"
     gp.write_text(json.dumps(v, indent=1))
     print(json.dumps({"groups_file": gp.name, "sha256": sha(gp), "changed": {d["group"]: d["chosen"] for d in dec["groups"] if d["chosen"] != "conv"}}))

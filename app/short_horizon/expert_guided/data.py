@@ -298,6 +298,48 @@ def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride
                                       "rows_excluded_nan_windows": int((ok_idx & ~fin_w).sum())}
 
 
+def recipe_windows(X: np.ndarray, features: list, rec: dict, stride: int, win: int):
+    """Apply a PINNED consumer recipe (heuristic-strategy tools/expert_guided_consumer_recipe.py, Musashi's audit A3
+    2026-10-23) without measuring or fitting anything: the consumer-applied operations of each column (``DIFF`` or
+    none, as recorded), then the recipe's fixed TRAIN constants, then the window layout. Returns (windows, ok, scale_doc,
+    tensor_features) with the same scale_doc shape as ``fixed_train_windows`` (so SCALER.json is comparable)."""
+    cols = rec["tensor"]["columns"]
+    if [c["store_column"] for c in cols] != list(features):
+        raise ValueError("RECIPE_COLUMN_ORDER_MISMATCH")
+    if int(rec["tensor"]["window"]["observations"]) != int(win) or int(rec["tensor"]["window"]["stride_rows"]) != int(stride):
+        raise ValueError("RECIPE_WINDOW_MISMATCH")
+    sc = rec["scaler"]
+    mean, std = np.asarray(sc["mean"], float), np.asarray(sc["std"], float)
+    if len(mean) != len(cols) or len(std) != len(cols) or not (np.isfinite(mean).all() and np.isfinite(std).all() and (std > 0).all()):
+        raise ValueError("RECIPE_SCALER_INVALID")
+    X2 = X.astype(float).copy()
+    tensor = []
+    for j, c in enumerate(cols):
+        ops = list(c.get("consumer_ops", []))
+        if ops not in ([], ["DIFF"]):
+            raise ValueError(f"RECIPE_CONSUMER_OP_UNKNOWN:{c['store_column']}:{ops}")
+        if ops == ["DIFF"]:
+            X2[:, j] = np.r_[np.nan, np.diff(X[:, j])]
+        tensor.append(c["tensor_name"])
+    if tensor != list(sc["features"]):
+        raise ValueError("RECIPE_TENSOR_ORDER_MISMATCH")
+    Z = (X2 - mean) / std
+    n = len(X2)
+    i = np.arange(n)
+    idx = i[:, None] - stride * np.arange(win - 1, -1, -1)[None, :]
+    ok_idx = idx[:, 0] >= 0
+    xa = Z[np.clip(idx, 0, n - 1)]
+    fin_w = np.isfinite(xa).all(axis=(1, 2))
+    ok = ok_idx & fin_w
+    feats_doc = {f: {"scale": "fixed_train_z", "mean": float(mean[k]), "std": float(std[k]), "std_raw": float(sc["std_raw"][k]),
+                     "variance": float(sc["variance"][k]), "rule": sc["rule"][k], "nan_share_train": float(sc["nan_share_train"][k]),
+                     "fit_rows": int(sc["fit_rows_per_feature"][k])} for k, f in enumerate(tensor)}
+    doc = {"method": "fixed_train", "train": list(sc["fit_period"]), "features": feats_doc, "fit_rows": int(sc["fit_rows"]), "ddof": int(sc["ddof"]),
+           "nan_policy": sc["nan_policy"], "rows_excluded_warmup": int((~ok_idx).sum()), "rows_excluded_nan_windows": int((ok_idx & ~fin_w).sum()),
+           "stationarity": sc["stationarity"], "recipe": {"identity": rec["identity"], "applied": "pinned constants; nothing measured or fitted"}}
+    return xa.astype(np.float32), ok, doc, tensor
+
+
 def load(admitted_dir, csv_dir, *, verify=True, end="2025-01-01", scaling="rolling_z", contract="dev3y", nonstationary="diff", eligible_from=None) -> Dataset:
     check_scaling(scaling)
     split_contract(contract)
@@ -360,7 +402,7 @@ def load_v4(admitted_dir, v4_dir, *, verify=True, end="2025-01-01", scaling="rol
 
 
 def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end="2025-01-01", scaling="fixed_train", nonstationary="diff", eligible_from=None, win: int = WIN, stride: int = STRIDE,
-               manifest_sha256: str | None = None, contract="dev3y") -> Dataset:
+               manifest_sha256: str | None = None, contract="dev3y", recipe=None) -> Dataset:
     """Observations from an arbitrary feature store on the admitted grid (layer-1 pool, 2026-10-22): the store's
     MANIFEST must name this admitted source; ``features`` are the selected columns; the store timestamp is the bar
     START (availability = start + 1 h). Scaling default = fixed TRAIN-only standardization (owner's rule)."""
@@ -381,6 +423,13 @@ def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end=
     missing = [f for f in features if f not in man["features"]]
     if missing:
         raise ValueError(f"STORE_FEATURES_MISSING:{missing}")
+    if recipe is not None:                     # the pinned recipe binds the store bytes, its manifest and the columns
+        if digests["store.parquet"] != recipe["store"]["sha256"] or digests["MANIFEST.json"] != recipe["store"]["manifest_sha256"]:
+            raise ValueError("RECIPE_STORE_IDENTITY")
+        if list(features) != [c["store_column"] for c in recipe["tensor"]["columns"]]:
+            raise ValueError("RECIPE_COLUMN_ORDER_MISMATCH")
+        if contract != recipe["split"]["arm"]:
+            raise ValueError(f"RECIPE_SPLIT_MISMATCH:{contract}!={recipe['split']['arm']}")
     raw = pd.read_parquet(store_parquet, columns=["timestamp", "OPEN", "HIGH", "LOW", "CLOSE"] + [f for f in features if f not in ("OPEN", "HIGH", "LOW", "CLOSE")])
     raw = raw[pd.to_datetime(raw["timestamp"], utc=True) < pd.Timestamp(end, tz="UTC")]
     df = raw.drop(columns="timestamp")
@@ -392,13 +441,14 @@ def load_store(admitted_dir, store_parquet, features: list, *, verify=True, end=
     cal = calendar_from_closures(json.loads(clp.read_text()))
     cal.assign(bars.index)
     return build(bars, cal, None, frame=df, features=list(features), scaling=scaling, contract=contract, nonstationary=nonstationary, eligible_from=eligible_from, win=win, stride=stride,
+                 recipe=recipe,
                  frame_meta={"source": "layer1 store", "store_sha256": man.get("file_sha256"), "n_features": len(features)},
                  sources={"loader": "store", "verified": bool(verify), "sha256": digests})
 
 
 def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None, features=None,
           frame_meta=None, scaling="rolling_z", contract="dev3y", sources=None, nonstationary="diff",
-          eligible_from=None, win: int = WIN, stride: int = STRIDE) -> Dataset:
+          eligible_from=None, win: int = WIN, stride: int = STRIDE, recipe=None) -> Dataset:
     check_scaling(scaling)                       # strict enum, refused before any statistic is fitted
     if nonstationary not in NONSTATIONARY:
         raise ValueError(f"NONSTATIONARY_UNKNOWN:{nonstationary}")
@@ -429,7 +479,11 @@ def build(bars: pd.DataFrame, cal, csv_dir, receipts: bool = True, *, frame=None
     X = df[features].to_numpy(float)
     if frame is None and not np.isfinite(X).all():
         raise ValueError("SEL15_NONFINITE")      # the v4 matrix has a declared fractal warm-up (NaN -> window not ok)
-    if scaling == "fixed_train":
+    if recipe is not None:
+        if scaling != "fixed_train":
+            raise ValueError("RECIPE_REQUIRES_FIXED_TRAIN")
+        windows, row_ok, scale_doc, features = recipe_windows(X, features, recipe, stride, win)
+    elif scaling == "fixed_train":
         # a fixed-constant scaler may only receive stationary inputs: measured on TRAIN, decided and recorded here
         X, features, stationarity = stationarity_decisions(X, ts_ns, features, sc["scaler_fit"], nonstationary)
         windows, row_ok, scale_doc = fixed_train_windows(X, ts_ns, features, stride=stride, win=win, train=sc["scaler_fit"])

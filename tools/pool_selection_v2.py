@@ -441,6 +441,7 @@ class Engine:
         for f, d in self.decomp.items():
             d["raw_cols"] = [c for p in d["parent"] for c in PARENT_RAW.get(p, []) if c in self.cols]
         self.encodings = self.build_encodings()                       # derived variants live outside the pool
+        self.scopes = self.load_fold_scopes(getattr(a, "fold_scopes", None))
         # embargo validation (auditor §3.2): the longest label support among the rows actually used must fit
         lab_any = np.zeros(len(self.bars), bool)
         for y in self.labels.values():
@@ -532,6 +533,79 @@ class Engine:
             enc["price_level"] = {"base": ["CLOSE@diff"], "variants": {"diff_plus_rel480": ["CLOSE@diff", rel]}, "structural": True}
         return enc
 
+    # ---- fold-local producers (audit A1): per scope, {column index: values on the bar grid}
+    def load_fold_scopes(self, d):
+        if not d:
+            return None
+        d = Path(d)
+        rep = json.loads((d / "SCOPES_REPORT.json").read_text())
+        grid = self.ds.bars.index
+        out, frames = {}, {}
+        for name, info in rep["scopes"].items():
+            if not name.startswith("sel_"):
+                continue
+            f = d / info["file"]
+            if hashlib.sha256(f.read_bytes()).hexdigest() != info["sha256"]:
+                raise ValueError(f"FOLD_SCOPE_DIGEST:{name}")
+            df = pd.read_parquet(f)
+            df.index = pd.DatetimeIndex(pd.to_datetime(df.pop("timestamp"), utc=True))
+            frames[name] = (df.reindex(grid), info)
+        # support rule: a fold-local transform may change WHERE a column is finite (a DIFF adds a NaN after a gap); a row is
+        # eligible for a column only where it is finite in the pool AND in every scope, so the arms of every fold keep
+        # one support. The cells removed are recorded (they are reported, never filled).
+        self.support_mask_removed = {}
+        for c in sorted({c for df, _ in frames.values() for c in df.columns if c in self.cols}):
+            j = self.cols.index(c)
+            fin = np.isfinite(self.M[:, j])
+            for df, _ in frames.values():
+                if c in df.columns:
+                    fin &= np.isfinite(df[c].to_numpy(float))
+            removed = int(np.isfinite(self.M[:, j]).sum() - fin.sum())
+            if removed:
+                self.M[~fin, j] = np.nan
+                self.support_mask_removed[c] = removed
+        for name, (df, info) in frames.items():
+            sub = {}
+            for c in df.columns:
+                if c not in self.cols:
+                    continue
+                j = self.cols.index(c)
+                v = df[c].to_numpy(float).copy()
+                v[~np.isfinite(self.M[:, j])] = np.nan
+                if not np.array_equal(np.isfinite(v), np.isfinite(self.M[:, j])):
+                    raise ValueError(f"FOLD_SCOPE_FINITE_MASK:{name}:{c}")
+                sub[j] = v
+            # derived regime encodings follow the scope's probabilities (one-hot of the argmax)
+            for r in ("hmm", "gmm"):
+                ps = [f"rg.{r}.p{i}" for i in range(3)]
+                if all(c in self.cols for c in ps) and any(self.cols.index(c) in sub for c in ps):
+                    P = np.stack([sub.get(self.cols.index(c), self.M[:, self.cols.index(c)]) for c in ps], 1)
+                    am = np.where(np.isfinite(P).all(1), P.argmax(1), -1)
+                    for i in range(3):
+                        c = f"enc.{r}.oh{i}"
+                        if c in self.cols:
+                            sub[self.cols.index(c)] = np.where(am >= 0, (am == i).astype(float), np.nan)
+            out[name] = {"columns": sub, "sha256": info["sha256"], "changed": sorted(self.cols[j] for j in sub)}
+        return out
+
+    def scope_of(self, k_folds, fold):
+        if self.scopes is None:
+            return None
+        name = f"sel_K{k_folds}_f{fold}"
+        if name not in self.scopes:
+            raise ValueError(f"FOLD_SCOPE_MISSING:{name}")
+        return name
+
+    def cols_matrix(self, ci, scope, rows=None):
+        """M[rows][:, ci] (rows = bar indices, or every bar) with the scope's fold-local columns substituted."""
+        A = (self.M if rows is None else self.M[rows])[:, ci].copy()
+        if scope is not None:
+            sub = self.scopes[scope]["columns"]
+            for k, j in enumerate(ci):
+                if j in sub:
+                    A[:, k] = sub[j] if rows is None else sub[j][rows]
+        return A
+
     # ---- row sets
     def row_set(self, task, cols):
         """Rows of the task whose columns are all finite at the decision bar (and inside the window for the
@@ -559,7 +633,8 @@ class Engine:
         rci = [self.cols.index(c) for c in rc]
         y = self.labels[task][sel]
         b = self.bars[sel]
-        X = self.M[b][:, ci]
+        scope = self.scope_of(k_folds, fold)
+        X = self.cols_matrix(ci, scope, b)
         if model_name == "temporal":
             winok = np.isfinite(self.M[:, rci]).all(1)
             cs = np.concatenate([[0], np.cumsum(~winok)])
@@ -578,9 +653,10 @@ class Engine:
             feat = lambda idx: X[idx]  # noqa: E731
             apply_perm = lambda A, cidx, p: (A.__setitem__((slice(None), cidx), A[p][:, cidx]) or A)  # noqa: E731
         else:
-            mu, sd = np.nanmean(self.M[b[tr_fit]][:, ci], 0), np.nanstd(self.M[b[tr_fit]][:, ci], 0)
+            Mci = self.cols_matrix(ci, scope)
+            mu, sd = np.nanmean(Mci[b[tr_fit]], 0), np.nanstd(Mci[b[tr_fit]], 0)
             mu, sd = np.where(np.isfinite(mu), mu, 0.0), np.where(np.isfinite(sd) & (sd > 0), sd, 1.0)
-            Z = (self.M[:, ci] - mu) / sd
+            Z = (Mci - mu) / sd
             W = windows_for(Z, b)
             if not np.isfinite(W).all():
                 bad = [cols[j] for j in np.where(~np.isfinite(W).all(axis=(0, 1)))[0]][:10]
@@ -598,7 +674,9 @@ class Engine:
                "n_cols": len(cols), "rows_train": int(len(tr)), "rows_val": int(len(va)),
                "support_hash": ts_hash(self.ts_ns[b]), "val_hash": ts_hash(self.ts_ns[b[va]]),
                "train_loss": train_loss, "val_loss": va_loss, "prior_loss": prior_loss(kind, y[tr], y[va]),
-               "n_params": m.n_params(), "seconds": round(time.time() - t0, 1)}
+               "n_params": m.n_params(), "seconds": round(time.time() - t0, 1),
+               "fold_scope": scope, "fold_scope_sha256": self.scopes[scope]["sha256"] if scope else None,
+               "fold_scope_columns_read": int(sum(1 for j in ci if scope and j in self.scopes[scope]["columns"]))}
         if model_name == "temporal":
             res["epochs"] = m.epochs_run
         if perm_groups:
@@ -728,7 +806,29 @@ class Engine:
         units = self.arms()
         shard, nshard = (int(x) for x in self.a.shard.split("/"))
         todo = [u for i, u in enumerate(units) if i % nshard == shard and u[0] not in self.done]
-        print(json.dumps({"units_total": len(units), "shard": self.a.shard, "todo": len(todo)}), flush=True)
+        reused = 0
+        if getattr(self.a, "reuse_ledger", None):
+            aff = json.loads(Path(self.a.affected).read_text())
+            unaffected = {u["key"] for u in aff["units"] if not u["affected"]}
+            old = {}
+            for line in Path(self.a.reuse_ledger).read_text().splitlines():
+                if line.strip():
+                    r = json.loads(line)
+                    if "error" not in r:
+                        old[r["key"]] = r
+            src = hashlib.sha256(Path(self.a.reuse_ledger).read_bytes()).hexdigest()
+            keep = []
+            for u in todo:
+                if u[0] in unaffected and u[0] in old:
+                    r = dict(old[u[0]], reused_from=src[:16], reuse_rule="unaffected by every fold-local producer change of its scope")
+                    with self.ledger.open("a") as fh:
+                        fh.write(json.dumps(r) + "\n")
+                    self.done.add(u[0])
+                    reused += 1
+                else:
+                    keep.append(u)
+            todo = keep
+        print(json.dumps({"units_total": len(units), "shard": self.a.shard, "todo": len(todo), "reused": reused}), flush=True)
         for key, stage, task, mdl, cols, k, kf, pg, meta in todo:
             try:
                 res = self.unit(task, mdl, cols, k, kf, SEEDS[0], pg, row_cols=meta.get("row_cols"))
@@ -993,6 +1093,11 @@ def main():
     ap.add_argument("--fit-end", default="2024-01-01")
     ap.add_argument("--stage", default="all", choices=("base", "contrast", "encoding", "rescue", "all"))
     ap.add_argument("--shard", default="0/1")
+    ap.add_argument("--fold-scopes", default=None,
+                    help="directory of fold-local producer outputs (predictor tools/fold_local_producers.py build): every fold "
+                         "reads the columns of ITS scope (audit A1 2026-10-23); absent = legacy global producers")
+    ap.add_argument("--reuse-ledger", default=None, help="ledger whose UNAFFECTED units are copied instead of recomputed")
+    ap.add_argument("--affected", default=None, help="selection_affected_units.v1 map (tools/selection_fold_scopes.py affected)")
     a = ap.parse_args()
     eng = Engine(a)
     getattr(eng, a.cmd)()
