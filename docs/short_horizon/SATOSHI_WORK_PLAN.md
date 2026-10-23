@@ -179,6 +179,10 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 45. [ANEXO INTEGRADO] Resultados de Musashi (mi paquete, su worker): contrato principal — core15 2024 −1.18, estricta −0.72, shortlist −0.62, estricta+enc −2.89 de Sharpe; replay 1/día–1:50 reduce el DD a la mitad (shortlist +53 USD 3/3 válidas). Diagnóstico de brecha: regla declarada → regularización FUERTE candidata (brecha 2.20 vs 3.13), no uniforme. Pendiente al propietario: confirmar o retirar la regla ≥ 3 órdenes/semana (Musashi dice que el propietario no exige cuota mínima).
 
+46. [DISEÑADO, PENDIENTE DE APROBACIÓN] SEÑAL DEL EXPERTO POR AGENTE (propietario: "desde el punto de vista del agente específico, no a la ligera"): abridor = próximo pivote óptimo FAVORABLE (oportunidad neta, adversa hasta el máximo, barras); cerrador = próximo pivote de cualquier tipo (ganancia adicional, adversa, ¿favorable?); NOP = ningún abridor. TRAIN: θ_open 0.5σ → 29 % entradas por lado (ZigZag 11 %), NOP 47 %, sólo 16 % coinciden con el ZigZag (trades intermedios); cerrador θ_close 0.1σ → 51 % CERRAR; en picos óptimos ganancia adicional ≤ 0.29σ. Código `signals.py` + perfil (hs @793595d); doc `clean_round/EXPERT_SIGNAL_PER_AGENT.md`. Consumo (`--labels opportunity|both`) sólo tras aprobación.
+
+47. [PROPUESTO A MUSASHI] Reparto: T1 perfiles por característica (rezagos, redundancia, estabilidad por fold; CPU), T2 diagnóstico de brecha sobre `_s` con listas v4 (5090), T3 mitad del contraste de tipo de extractor por grupo (5090). predictor reply branch `SATOSHI_TO_MUSASHI_SHARED_WORK_2026_10_22.md`.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
@@ -196,6 +200,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 - 2026-10-22: no lanzar NINGÚN experimento de RL hasta que datos / selección / codificación / extracción estén totalmente cerrados; mientras tanto dejar todo listo. Prohibido: z-score móvil, realimentación de entradas, cualquier cosa no justificada por métricas; extractores pequeños (pocas unidades) para una característica o un grupo pequeño, más capas en el núcleo; preprocesamiento y codificación por característica justificados sin lugar a dudas, nada exótico.
 
 - 2026-10-22: usar el replay de Musashi (1 entrada/día, 1:50) como contrato; múltiples ZigZag con periodos incrementalmente más CORTOS que el óptimo para cubrir trades intermedios de menor ganancia; añadir señales retrospectivas (cuánto podía ganar al abrir antes del óptimo; cuánto más podía ganar al cerrar respecto al óptimo) como escenarios de aprendizaje complementarios.
+
+- 2026-10-22 (tarde): regla de actividad ≥ 2 órdenes/semana (antes 3); diseñar la señal del experto desde cada agente (abre-compra, abre-venta, cierra-compra, cierra-venta, NOP), sin ligereza; compartir carga con Musashi (él gamma/5090 y omega; yo dragon).
 
 ## 6. Cómo se actualiza
 
