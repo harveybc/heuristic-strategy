@@ -85,9 +85,10 @@ class Q:
                     f"justification_{name}", self.W / "hs")
 
     def profiles_t1(self):
-        self.sh([PY, "tools/selection_input_profiles.py", "--store", str(self.D / "full_pool_s_a1/full_pool_eurusd_h1.parquet"),
+        # the peer worker's tool, unchanged, pinned by its commit (read-only use; it imports its own helpers)
+        self.sh([PY, "selection_input_profiles.py", "--store", str(self.D / "full_pool_s_a1/full_pool_eurusd_h1.parquet"),
                  "--admitted", str(self.D / "admitted/eurusd.parquet"), "--selection", str(self.W / "selection_v5" / "final"),
-                 "--templates", str(self.W / "just_a1"), "--output", str(self.W / "t1_a1")], "profiles_t1", self.W / "predictor")
+                 "--templates", str(self.W / "just_a1"), "--output", str(self.W / "t1_a1")], "profiles_t1", self.W / "musashi_tools")
 
     def spec(self):
         s = json.loads(Path(self.c["spec"]).read_text())
