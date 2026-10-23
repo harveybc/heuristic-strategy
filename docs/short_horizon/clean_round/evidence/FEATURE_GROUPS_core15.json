@@ -1,0 +1,38 @@
+{
+ "name": "core15",
+ "rule": "one small causal extractor per selection family (catalog-driven family keys)",
+ "groups": {
+  "inv.raw": [
+   "HIGH@diff",
+   "RAW_LOG_RANGE@log",
+   "RAW_CLOSE_LOG_RETURN",
+   "RAW_ELAPSED_HOURS"
+  ],
+  "inv.volatility": [
+   "ATR",
+   "rolling_std_24"
+  ],
+  "inv.momentum": [
+   "RSI",
+   "Stochastic_D",
+   "WilliamsR"
+  ],
+  "inv.trend": [
+   "MACD_Histogram",
+   "ADX",
+   "DI_minus"
+  ],
+  "calendar": [
+   "hod_sin",
+   "hod_cos",
+   "dow_cos"
+  ]
+ },
+ "units": {
+  "inv.raw": 2,
+  "inv.volatility": 2,
+  "inv.momentum": 2,
+  "inv.trend": 2,
+  "calendar": 2
+ }
+}

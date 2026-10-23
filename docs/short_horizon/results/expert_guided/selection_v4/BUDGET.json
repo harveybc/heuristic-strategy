@@ -1,0 +1,477 @@
+{
+ "declared_at": "2026-10-22T19:56:25Z",
+ "fit_end": "2024-01-01",
+ "support_protocol": "family_union_v1",
+ "pair_fields": [
+  "support_hash",
+  "val_hash",
+  "rows_train",
+  "rows_val",
+  "seed",
+  "k_folds"
+ ],
+ "code": {
+  "commit": "85a46ef6230710baa21c2f4864354cab86746064",
+  "dirty": false
+ },
+ "label_support": {
+  "opener3_max_bars": 29,
+  "order_tasks_max_bars": 72,
+  "embargo_bars": 96
+ },
+ "hod_clock_check": {
+  "base_minus_utc_bar_start_hours": {
+   "1": 31116
+  },
+  "constant_offset": true,
+  "offset": 1
+ },
+ "raw_parent_controls": {
+  "fracdiff/log_close": [
+   "raw.log_close"
+  ],
+  "gmm/logret_1+rv_24+log_range": [],
+  "hilbert/log_close": [
+   "raw.log_close"
+  ],
+  "hilbert/logret_1": [],
+  "hmm/logret_1+rv_24+log_range": [],
+  "kalman/log_close": [
+   "raw.log_close"
+  ],
+  "multitaper/logret_1": [],
+  "ssa/BidClose": [
+   "raw.log_close"
+  ],
+  "strength/fx.eur_strength.ret_1": [],
+  "strength/fx.usd_strength.ret_1": [],
+  "wavelet/log_close": [
+   "raw.log_close"
+  ],
+  "wavelet/logret_1": []
+ },
+ "rows_by_task": {
+  "hit": 19459,
+  "up_given_hit": 18629,
+  "sl_first_long": 19459,
+  "sl_first_short": 19459,
+  "net_long": 19459,
+  "net_short": 19459,
+  "opener3": 19459
+ },
+ "columns": 309,
+ "families": {
+  "inv.raw": 8,
+  "inv.volatility": 4,
+  "inv.momentum": 8,
+  "inv.trend": 6,
+  "calendar": 13,
+  "px.logret": 7,
+  "px.range": 7,
+  "px.close_loc": 7,
+  "px.er": 7,
+  "px.rv": 7,
+  "px.atr": 1,
+  "px.atr_ratio": 1,
+  "px.range_ratio": 1,
+  "px.bar_body": 1,
+  "px.elapsed_hours": 1,
+  "px.hours_since_session_open": 1,
+  "px.unexpected_gap_hours": 1,
+  "fractal": 12,
+  "cdl": 6,
+  "fx.gbpusd": 4,
+  "fx.usdchf": 4,
+  "fx.usdjpy": 4,
+  "fx.eurgbp": 4,
+  "fx.eurjpy": 4,
+  "fx.audusd": 4,
+  "fx.xauusd": 3,
+  "fx.usd_strength": 3,
+  "fx.eur_strength": 3,
+  "btc": 5,
+  "dly.us2y": 3,
+  "dly.us10y": 3,
+  "dly.us10y2y": 3,
+  "dly.vix": 2,
+  "dly.spx": 2,
+  "dly.dax": 2,
+  "dly.gold": 2,
+  "dly.oil": 2,
+  "cot.eur": 4,
+  "fac.fx_f1": 4,
+  "fac.fx_f2": 4,
+  "fac.fx_f3": 4,
+  "fac": 2,
+  "kal.eurusd": 3,
+  "ev": 6,
+  "act": 1,
+  "ssa/BidClose": 3,
+  "wavelet/log_close": 9,
+  "wavelet/logret_1": 9,
+  "hilbert/logret_1": 4,
+  "hilbert/log_close": 4,
+  "multitaper/logret_1": 7,
+  "strength/fx.usd_strength.ret_1": 13,
+  "strength/fx.eur_strength.ret_1": 13,
+  "kalman/log_close": 4,
+  "gmm/logret_1+rv_24+log_range": 4,
+  "hmm/logret_1+rv_24+log_range": 5,
+  "fracdiff/log_close": 1
+ },
+ "excluded_insufficient_coverage": {
+  "fx.xauusd.rv_24": 0.00025695051133151753
+ },
+ "min_coverage": 0.5,
+ "excluded_from_temporal_insufficient_window_coverage": {
+  "fx.xauusd.ret_1": 0.00025695051133151753,
+  "fx.xauusd.ret_4": 0.00025695051133151753,
+  "fx.xauusd.ret_24": 0.0
+ },
+ "encoding_contrasts": {
+  "hod": {
+   "base": [
+    "hod_sin",
+    "hod_cos"
+   ],
+   "variants": {
+    "onehot24": 24,
+    "sessions": 3
+   },
+   "judged_by": [
+    "hgb",
+    "temporal"
+   ]
+  },
+  "regime_hmm": {
+   "base": [
+    "rg.hmm.p0",
+    "rg.hmm.p1",
+    "rg.hmm.p2",
+    "rg.hmm.entropy",
+    "rg.hmm.surprise"
+   ],
+   "variants": {
+    "onehot": 5
+   },
+   "judged_by": [
+    "hgb",
+    "temporal"
+   ]
+  },
+  "regime_gmm": {
+   "base": [
+    "rg.gmm.p0",
+    "rg.gmm.p1",
+    "rg.gmm.p2",
+    "rg.gmm.entropy"
+   ],
+   "variants": {
+    "onehot": 4
+   },
+   "judged_by": [
+    "hgb",
+    "temporal"
+   ]
+  },
+  "event_clock": {
+   "base": [
+    "ev.tokyo_fix.hours_since",
+    "ev.tokyo_fix.hours_to",
+    "ev.london_fix.hours_since",
+    "ev.london_fix.hours_to",
+    "ev.ny_cut.hours_since",
+    "ev.ny_cut.hours_to"
+   ],
+   "variants": {
+    "expdecay4": 6,
+    "window2h": 3
+   },
+   "judged_by": [
+    "hgb",
+    "temporal"
+   ]
+  },
+  "range_relative": {
+   "base": [
+    "px.range_1@log",
+    "px.range_2@log",
+    "px.range_4@log",
+    "px.range_6@log",
+    "px.range_12",
+    "px.range_24",
+    "px.range_48",
+    "px.range_ratio_1_24"
+   ],
+   "variants": {
+    "rel24": 8
+   },
+   "judged_by": [
+    "hgb",
+    "temporal"
+   ]
+  },
+  "price_level": {
+   "base": [
+    "CLOSE@diff"
+   ],
+   "variants": {
+    "diff_plus_rel480": 2
+   },
+   "judged_by": [
+    "hgb",
+    "temporal"
+   ]
+  }
+ },
+ "decomposition_families": {
+  "fracdiff/log_close": {
+   "parent": [
+    "log_close"
+   ],
+   "parent_cols": [
+    "CLOSE@diff",
+    "px.logret_1"
+   ],
+   "components": [
+    "fracdiff_d0.3_w256"
+   ]
+  },
+  "gmm/logret_1+rv_24+log_range": {
+   "parent": [
+    "logret_1+rv_24+log_range"
+   ],
+   "parent_cols": [
+    "px.logret_1",
+    "px.rv_24",
+    "RAW_LOG_RANGE@log"
+   ],
+   "components": [
+    "posterior_state_0_(vol_rank_0)",
+    "posterior_state_1_(vol_rank_1)",
+    "posterior_state_2_(vol_rank_2)",
+    "posterior_entropy"
+   ]
+  },
+  "hilbert/log_close": {
+   "parent": [
+    "log_close"
+   ],
+   "parent_cols": [
+    "CLOSE@diff",
+    "px.logret_1"
+   ],
+   "components": [
+    "amplitude",
+    "phase_cos",
+    "phase_sin",
+    "inst_freq"
+   ]
+  },
+  "hilbert/logret_1": {
+   "parent": [
+    "logret_1"
+   ],
+   "parent_cols": [
+    "px.logret_1"
+   ],
+   "components": [
+    "amplitude",
+    "phase_cos",
+    "phase_sin",
+    "inst_freq"
+   ]
+  },
+  "hmm/logret_1+rv_24+log_range": {
+   "parent": [
+    "logret_1+rv_24+log_range"
+   ],
+   "parent_cols": [
+    "px.logret_1",
+    "px.rv_24",
+    "RAW_LOG_RANGE@log"
+   ],
+   "components": [
+    "filtered_state_0_(vol_rank_0)",
+    "filtered_state_1_(vol_rank_1)",
+    "filtered_state_2_(vol_rank_2)",
+    "filtered_posterior_entropy",
+    "one_step_predictive_surprise"
+   ]
+  },
+  "kalman/log_close": {
+   "parent": [
+    "log_close"
+   ],
+   "parent_cols": [
+    "CLOSE@diff",
+    "px.logret_1"
+   ],
+   "components": [
+    "filtered_level_minus_observation",
+    "filtered_slope",
+    "innovation",
+    "standardised_innovation"
+   ]
+  },
+  "multitaper/logret_1": {
+   "parent": [
+    "logret_1"
+   ],
+   "parent_cols": [
+    "px.logret_1"
+   ],
+   "components": [
+    "band_power_gt48h",
+    "band_power_12_48h",
+    "band_power_4_12h",
+    "band_power_lt4h",
+    "spectral_entropy",
+    "dominant_period",
+    "total_power"
+   ]
+  },
+  "ssa/BidClose": {
+   "parent": [
+    "BidClose"
+   ],
+   "parent_cols": [
+    "CLOSE@diff",
+    "px.logret_1"
+   ],
+   "components": [
+    "ssa.trend_minus_close_pips",
+    "ssa.c2_pips",
+    "ssa.c3_pips"
+   ]
+  },
+  "strength/fx.eur_strength.ret_1": {
+   "parent": [
+    "fx.eur_strength.ret_1"
+   ],
+   "parent_cols": [
+    "fx.eur_strength.ret_1"
+   ],
+   "components": [
+    "A4",
+    "D4",
+    "D3",
+    "D2",
+    "D1",
+    "energy_D4",
+    "energy_D3",
+    "energy_D2",
+    "energy_D1",
+    "amplitude",
+    "phase_cos",
+    "phase_sin",
+    "inst_freq"
+   ]
+  },
+  "strength/fx.usd_strength.ret_1": {
+   "parent": [
+    "fx.usd_strength.ret_1"
+   ],
+   "parent_cols": [
+    "fx.usd_strength.ret_1"
+   ],
+   "components": [
+    "A4",
+    "D4",
+    "D3",
+    "D2",
+    "D1",
+    "energy_D4",
+    "energy_D3",
+    "energy_D2",
+    "energy_D1",
+    "amplitude",
+    "phase_cos",
+    "phase_sin",
+    "inst_freq"
+   ]
+  },
+  "wavelet/log_close": {
+   "parent": [
+    "log_close"
+   ],
+   "parent_cols": [
+    "CLOSE@diff",
+    "px.logret_1"
+   ],
+   "components": [
+    "A4",
+    "D4",
+    "D3",
+    "D2",
+    "D1",
+    "energy_D4",
+    "energy_D3",
+    "energy_D2",
+    "energy_D1"
+   ]
+  },
+  "wavelet/logret_1": {
+   "parent": [
+    "logret_1"
+   ],
+   "parent_cols": [
+    "px.logret_1"
+   ],
+   "components": [
+    "A4",
+    "D4",
+    "D3",
+    "D2",
+    "D1",
+    "energy_D4",
+    "energy_D3",
+    "energy_D2",
+    "energy_D1"
+   ]
+  }
+ },
+ "units": {
+  "base": 84,
+  "contrast": 11025,
+  "encoding": 588,
+  "rescue": 1680
+ },
+ "units_upper_bound": 13377,
+ "estimated_cpu_hours_upper_bound": 63.5,
+ "folds": {
+  "base": 6,
+  "contrast": 3,
+  "embargo_bars": 96,
+  "block_bars": 72
+ },
+ "models": {
+  "hgb": {
+   "max_depth": 4,
+   "min_samples_leaf": 200,
+   "max_iter": 300,
+   "learning_rate": 0.05,
+   "l2_regularization": 1.0
+  },
+  "temporal": {
+   "units": 2,
+   "window": 24,
+   "stride": 1,
+   "optim": "AdamW 1e-3 wd 1e-4",
+   "dropout": 0.1,
+   "early_stop": "last 15% of fold train rows, patience 5"
+  }
+ },
+ "seeds": [
+  20261022,
+  20261023,
+  20261024
+ ],
+ "rescue_budget_pairs": 20,
+ "decision_rule": "-bar vector;\n            M2 the lane's causal temporal trunk (per-feature causal conv, units 2, window 24 completed bars at\n            stride 1) + linear head. Two complementary inductive biases; neither alone eliminates a family.\n  ranking   grouped BLOCK permutation on the validation fold (contiguous 72-row blocks permuted jointly for every\n            column \u2014 and every window slot \u2014 of the group; 3 seeds); reported per model and task.\n  contrasts per family F, in two fixed contexts (ctx=full: every other column of the pool; ctx=core15: the 15\n            inherited inputs): without F vs with F, retrained. For a decomposition family with a declared parent P:\n            none / P / Cj (each component) / coherent subgroups / Cgroup / P+Cgroup, same rows (explicit\n            intersection, timestamp hash published together with each family's native coverage), same folds,\n            seeds and budget. Model size (parameters / columns) is recorded for every arm.\n  rescue    bounded interaction rescue: pairs of families not retained individually, ctx=core15, retained when the\n            pair beats both singletons and the context with lo90 > 0.",
+ "stores": {
+  "/var/tmp/features-candidates/eurusd_h1_layer1_pool_r4s/layer1_pool_eurusd_h1.parquet": "8243f43f0be16d7ac7d38c08a8d867fa2bad3525166d03e76434de59068c356b",
+  "/var/tmp/features-candidates/eurusd_h1_layer2_pool_s/layer2_pool_eurusd_h1.parquet": "53616616b5a64bc2c9fdd6b5dd2be2e41fe4cabbd3bbc134fe05d5e57d89d371"
+ },
+ "catalog": "/var/tmp/features-candidates/eurusd_h1_catalog_s/FEATURE_CATALOG.csv"
+}

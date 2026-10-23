@@ -1,6 +1,6 @@
 {
  "identity": "clean-expert-guided-e3m-20261022",
- "status": "DRAFT: frozen except the items marked PENDING; emit is refused until every gate exists",
+ "status": "DRAFT: frozen except regularization (candidate recorded) and RELEASE.json; lists bound by digest",
  "scaling": "fixed_train",
  "nonstationary": "diff",
  "split_contract": "consolidated",
@@ -73,7 +73,8 @@
      13,
      2
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
    },
    {
     "name": "core15_feat_w24",
@@ -83,7 +84,8 @@
      24,
      1
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
    },
    {
     "name": "core15_fam_w13",
@@ -94,7 +96,8 @@
      13,
      2
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
    },
    {
     "name": "core15_fam_w24",
@@ -105,7 +108,8 @@
      24,
      1
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
    },
    {
     "name": "strict_feat_w13",
@@ -115,7 +119,8 @@
      13,
      2
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
    },
    {
     "name": "strict_feat_w24",
@@ -125,7 +130,8 @@
      24,
      1
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
    },
    {
     "name": "strict_fam_w13",
@@ -136,7 +142,8 @@
      13,
      2
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
    },
    {
     "name": "strict_fam_w24",
@@ -147,7 +154,8 @@
      24,
      1
     ],
-    "agent_state": "none"
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
    }
   ],
   "B": [
@@ -220,5 +228,16 @@
   "use": "auxiliary bounded regression heads (Huber, per-target masks, label-support purge); training-only, never an observation"
  },
  "min_orders_per_week": 2.0,
- "min_orders_per_week_note": "owner 2026-10-22: >= 2 orders/week (was 3); applied to valid and to the arbiter choice through the env config"
+ "min_orders_per_week_note": "owner 2026-10-22: >= 2 orders/week (was 3); applied to valid and to the arbiter choice through the env config",
+ "selection": {
+  "identity": "selection v4 on the scale-corrected stores (family_union_v1)",
+  "ledger_sha256": "69558d89a25d8e846825d2177a5ffbb784c46529e603d2eed91941f61b70e1c7",
+  "shortlist_sha256": "fa895f9c4975d4a38422432f110eaca9f30121e25710a1a1a1322fd6c1998edb",
+  "lists": {
+   "core15": 15,
+   "shortlist_strict": 116,
+   "shortlist": 164
+  },
+  "pairing_audit": "contrast 714/714, encoding 72/72, rescue 120/120 (arm-aware check)"
+ }
 }
