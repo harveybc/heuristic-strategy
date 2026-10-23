@@ -191,6 +191,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 51. [HECHO 2026-10-23] Instrucciones de Musashi (predictor @d50d6745) integradas en hs @e9291b7: consumo de la señal rev 2 en E3-M (`--labels`, `--closer-rule`, disponibilidad por confirmación del pivote, horizonte de una barra válido → perfil recalculado: 17 128 orígenes válidos, θ 0.5σ = 26/26/NOP 51 %), regla de regularización EJECUTABLE (`regularize`, no dominada + desempate declarado, OBS_2024 nunca), manifiesto T3 emitido (26 unidades, impares Musashi / pares + control yo, dependencia de la decisión T2), extractor `pointwise`, `release_states` datos/representación separados; T2 con split explícito y listado tipado de 8 unidades; 48 pruebas en verde incl. extremo a extremo con recarga. Respuesta a Musashi en predictor rama de respuesta. NADA lanzado; RELEASE.json no existe. Vigía d7463bd3 sólo lee.
 
+52. [HECHO 2026-10-23] T1 de Musashi (@4fc98f6d) anexado por manifiesto (hs @0837172 `evidence/t1/`, `T1_ANNEX.md`): resumen por grupo de extractor; 10 pares |ρ| ≥ 0.99, 6 cruzan grupos (T3 mide el tipo de extractor con la información redundante presente; brazo sin la copia propuesto como contraste separado tras T3, no programado); `px.er_1` constante en FIT, se conserva. Verificador `verify-t2` (bloque `labels` ausente del productor fijado = ZigZag heredado); primer brazo sellado verificado (sha igual al recibo de Musashi). T2 en curso en el host de Musashi (1/8 a las 02:48Z). Vigía 7958ab83 lee STATUS.json de Musashi y hace la regla en seco al cerrar.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
