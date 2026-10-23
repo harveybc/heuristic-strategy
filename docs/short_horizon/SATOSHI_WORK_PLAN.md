@@ -189,6 +189,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 50. [ENTREGADO A MUSASHI 2026-10-23] Paquete T2 listo en su host (`expert-guided-musashi-t2-20261023`: 8 brazos de brecha sobre `_s` + listas v4, 1/día–1:50, ≥2/sem, regla de lectura no dominada); plantilla T1 (ACF/PACF con corrección múltiple, redundancia Spearman, estabilidad por fold); T3 por ejes separados tras T2, grupos impares suyos / pares míos. predictor reply branch `SATOSHI_TO_MUSASHI_T1_T2_T3_PACKAGES_2026_10_23.md`.
 
+51. [HECHO 2026-10-23] Instrucciones de Musashi (predictor @d50d6745) integradas en hs @e9291b7: consumo de la señal rev 2 en E3-M (`--labels`, `--closer-rule`, disponibilidad por confirmación del pivote, horizonte de una barra válido → perfil recalculado: 17 128 orígenes válidos, θ 0.5σ = 26/26/NOP 51 %), regla de regularización EJECUTABLE (`regularize`, no dominada + desempate declarado, OBS_2024 nunca), manifiesto T3 emitido (26 unidades, impares Musashi / pares + control yo, dependencia de la decisión T2), extractor `pointwise`, `release_states` datos/representación separados; T2 con split explícito y listado tipado de 8 unidades; 48 pruebas en verde incl. extremo a extremo con recarga. Respuesta a Musashi en predictor rama de respuesta. NADA lanzado; RELEASE.json no existe. Vigía d7463bd3 sólo lee.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
