@@ -125,7 +125,8 @@ def cmd_emit(a):
     out = Path(a.out)
     (out / "groups").mkdir(parents=True, exist_ok=True)
     m = spec["model"]
-    fixed = {"list": Path(a.list).name, "list_sha256": sha(a.list), "groups_file": Path(a.groups).name, "groups_sha256": sha(a.groups),
+    fixed = {"store_dir": Path(spec["store"]["path"]).parent.name, "store_file": Path(spec["store"]["path"]).name, "store_sha256": spec["store"]["sha256"],
+             "list": Path(a.list).name, "list_sha256": sha(a.list), "groups_file": Path(a.groups).name, "groups_sha256": sha(a.groups),
              "profiles_file": Path(a.profiles).name, "profiles_sha256": sha(a.profiles), "profiles_manifest_sha256": a.profiles_manifest_sha256,
              "model": {"units": m["units"], "depth": m["depth"], "head": m["head"], "core": m.get("core")}, "window": a.window,
              "agent_state": "none", "labels": "zigzag", "scaling": spec["scaling"], "nonstationary": spec["nonstationary"],
@@ -161,7 +162,7 @@ def cmd_emit(a):
 
 def e3m_cmd(f, u, root, groups_name, out_name):
     return (f"tools/expert_guided_e3m.py run --admitted {root}/data/admitted --csv-dir {root}/data/sel15 "
-            f"--store {root}/data/full_pool_s/full_pool_eurusd_h1.parquet --feature-list {root}/in/{f['list']} "
+            f"--store {root}/data/{f.get('store_dir', 'full_pool_s')}/{f.get('store_file', 'full_pool_eurusd_h1.parquet')} --feature-list {root}/in/{f['list']} "
             f"--groups {root}/t3/groups/{groups_name} --out {root}/out/{out_name} --variants FULL "
             f"--units {f['model']['units']} --depth {f['model']['depth']} --head {f['model']['head']} "
             f"--dropout {f['regularization']['dropout']} --wd {f['regularization']['wd']} --max-epochs {f['max_epochs']} "

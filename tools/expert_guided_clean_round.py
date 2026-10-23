@@ -403,12 +403,19 @@ def cmd_verify_t2(a):
     """Verify every T2 result against the typed unit listing AND its authenticated execution receipt; a marker in a log
     is not a result. Writes the verification document that `regularize` requires."""
     units = json.loads(Path(a.units).read_text())["units"]
-    producer = authenticate_producer(a.config, a.science_commit)
+    cfgs, commits = list(a.config), list(a.science_commit)
+    if len(cfgs) != len(commits):
+        raise SystemExit("VERIFY_CONFIGS_AND_COMMITS_MUST_PAIR")
+    producers = {}
+    for cp, sc_ in zip(cfgs, commits):                    # several producers (the peer worker, this lane) may seal units
+        pr = authenticate_producer(cp, sc_)
+        producers[pr["config_identity"]] = pr
+    producer = next(iter(producers.values()))
     lists = {}
     for u in units:
         lp = Path(a.lists_dir) / f"FEATURE_LIST_{u['list']}.json"
         lists[u["list"]] = json.loads(lp.read_text())["features"] if lp.exists() else None
-    rows, bad = [], 0 if producer.get("authenticated") else 1
+    rows, bad = [], sum(0 if pr.get("authenticated") else 1 for pr in producers.values())
     support = {}
     for u in units:
         d = Path(a.results) / u["name"]
@@ -419,19 +426,23 @@ def cmd_verify_t2(a):
             bad += 1
             continue
         e, rc = json.loads(f.read_text()), json.loads(rp.read_text())
+        producer = producers.get(rc.get("config_sha256"), {"authenticated": False, "config_identity": None})
         errs = verify_t2_arm(e, u, producer=producer) + verify_t2_receipt(rc, u, d, e, producer, lists[u["list"]])
+        if producer.get("config_identity") is None:
+            errs.append("RECEIPT_CONFIG_UNKNOWN")
         if lists[u["list"]] is None:
             errs.append(f"LIST_FILE_MISSING:{u['list']}")
         support.setdefault((u["list"], u["agent_state"]), set()).add(json.dumps({p: e.get("meta", {}).get("support_hash", {}).get(p)
                                                                                  for p in ("TRAIN", "INNER_A")}, sort_keys=True))
         rows.append({"unit": u["name"], "identity": u["identity"], "sha256": sha(f), "receipt_sha256": sha(rp),
+                     "producer": {k: producer.get(k) for k in ("config_identity", "science_commit", "authenticated", "emits_labels")},
                      "labels": "/".join(label_mode_of(e, producer)), "support": e.get("meta", {}).get("support_hash", {}).get("INNER_A"),
                      "status": "OK" if not errs else "REJECTED", "errors": errs})
         bad += int(bool(errs))
     mixed = [f"{k[0]}:{k[1]}" for k, v in support.items() if len(v) != 1]
     if mixed:
         bad += 1
-    doc = {"units": a.units, "units_sha256": sha(a.units), "results": a.results, "producer": producer,
+    doc = {"units": a.units, "units_sha256": sha(a.units), "results": a.results, "producer": producer, "producers": list(producers.values()),
            "support_mismatch_within_list_and_state": mixed, "rows": rows, "all_ok": bad == 0}
     if a.out:
         Path(a.out).write_text(json.dumps(doc, indent=1))
@@ -466,7 +477,7 @@ def cmd_regularize(a):
                 raise SystemExit(f"ARM_CONTRACT:{lst}:{s}:{e['split_contract']['arm']}")
             if e.get("exec_contract") != spec["exec_contract"] or float(e.get("min_orders_per_week", -1)) != float(spec["min_orders_per_week"]):
                 raise SystemExit(f"ARM_BUSINESS_RULES:{lst}:{s}")
-            mode, how = label_mode_of(e, producer)
+            mode, how = label_mode_of(e, vrow[u].get("producer") or producer)
             if not labels_ok(mode, how):
                 raise SystemExit(f"ARM_LABELS:{lst}:{s}:{mode}:{how}")
             table[(lst, s)] = _arm_vector(e)
@@ -533,8 +544,8 @@ def main():
     v = sub.add_parser("verify-t2", help="verify every T2 E3M.json against the typed unit listing")
     v.add_argument("--units", required=True); v.add_argument("--results", required=True); v.add_argument("--out", default=None)
     v.add_argument("--receipts", required=True, help="directory with the peer's <unit>.RESULT.json receipts")
-    v.add_argument("--config", required=True, help="the peer's run config (its identity = sha256 of the key-sorted JSON)")
-    v.add_argument("--science-commit", required=True, help="commit whose tools/expert_guided_e3m.py the config pins")
+    v.add_argument("--config", action="append", required=True, help="a producer's run config (identity = sha256 of the key-sorted JSON); repeatable")
+    v.add_argument("--science-commit", action="append", required=True, help="the commit each --config pins, in the same order")
     v.add_argument("--lists-dir", required=True, help="directory with FEATURE_LIST_<list>.json")
     a = ap.parse_args()
     sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide, "regularize": cmd_regularize,
