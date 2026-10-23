@@ -46,6 +46,13 @@ Lo que llega al modelo, en orden, y qué pasa con cada operación heredada:
    candidato sólo se registra cuando la barra es el extremo de la ventana, distancia 0): los
    pivotes dependen de Depth y Backstep. La desviación "optimizada" de 40.7 pips nunca tuvo
    efecto. Los expertos múltiples varían la profundidad.
+6. **(2026-10-23) El `MANIFEST.json` del pool fusionado `_s` salió sin la clave `features`** (el
+   script de fusión escribió sólo `columns`); el cargador de E3-M y el verificador de la ronda la
+   exigen, así que todo consumo de la store `_s` habría fallado en la primera carga. Reparado en la
+   store (manifiesto `10658d60…`, parquet intacto `32edb424…`, 316 features = columnas menos
+   `timestamp`, convención del pool v3) y en el script de fusión; el paquete T2 de Musashi lleva la
+   instrucción de reparación porque no puedo escribir en su directorio. El `check` de la ronda pasa
+   salvo la regularización pendiente (fuente: T2) y la puerta `RELEASE.json` del propietario.
 
 ## 3. Señal del experto (dirección del propietario 2026-10-22; todo sólo para entrenar, nunca como entrada)
 
