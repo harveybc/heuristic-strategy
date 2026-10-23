@@ -17,21 +17,18 @@ def test_opportunity_adverse_and_hold_values_on_a_known_path():
     o, h, l, c, sigma = _path()
     p = S.SignalParams(max_bars=72, cost_sigma=0.0)
     piv = [(2, -1, 0.9988), (4, 1, 1.0032), (7, -1, 0.9968)]        # valley, peak, valley
-    sig, H = S.hindsight_signals(o, h, l, c, sigma, piv, flat_bar=np.full(len(c), 9), p=p)
+    sig, H = S.hindsight_signals(o, h, l, c, sigma, piv, flat_bar=np.full(len(c), 50), p=p)   # no forced flat inside the data
     # decision after bar 0, entry at o[1] = c[0] = 1.0000; long horizon = next PEAK = bar 4, short = next VALLEY = bar 2
-    assert H["open"][1][0] == 4 and H["open"][-1][0] == 2 and H["close"][0] == 2
+    assert H[1]["bar"][0] == 4 and H[-1]["bar"][0] == 2 and H[1]["reason"][0] == "pivot" and sig["truncated"][1][0] == 0
     assert np.isclose(sig["opportunity"][1][0], (1.0032 - 1.0000) / 0.001)        # high of bar 4
     assert np.isclose(sig["adverse_to_peak"][1][0], (1.0000 - 0.9988) / 0.001)    # low of bar 2 before the peak
     assert sig["bars_to_peak"][1][0] == 4
     assert np.isclose(sig["opportunity"][-1][0], (1.0000 - 0.9988) / 0.001)       # short: best is the dip at bar 2
     assert np.isclose(sig["adverse_to_peak"][-1][0], (1.0007 - 1.0000) / 0.001)   # high of bar 1 before that dip
-    # closer horizon from bar 0 = first pivot of any kind = the valley at bar 2 (adverse for a long)
-    assert np.isclose(sig["hold_gain"][1][0], (1.0007 - 1.0000) / 0.001) and np.isclose(sig["hold_adverse"][1][0], (1.0000 - 0.9988) / 0.001)
-    assert sig["next_is_favourable"][1][0] == 0 and sig["next_is_favourable"][-1][0] == 1
-    # decision after bar 2 (the valley): next pivot is the peak at 4 -> a long still has the optimum ahead
-    assert sig["next_is_favourable"][1][2] == 1 and np.isclose(sig["hold_gain"][1][2], (1.0032 - 0.9990) / 0.001)
-    # decision after bar 4 (the peak): next pivot is the valley at 7 -> a long must close
-    assert sig["next_is_favourable"][1][4] == 0 and sig["hold_gain"][1][4] == 0.0
+    # the closer of a long at bar 0 shares the opener's horizon (peak at 4): further gain 3.2 sigma, dip 1.2 before it
+    assert np.isclose(sig["hold_gain"][1][0], (1.0032 - 1.0000) / 0.001) and np.isclose(sig["hold_adverse"][1][0], (1.0000 - 0.9988) / 0.001)
+    # decision after bar 4 (the peak): the next peak lies beyond the data -> horizon truncated at the end, nothing to gain
+    assert H[1]["reason"][4] == "end" and sig["truncated"][1][4] == 1 and sig["hold_gain"][1][4] == 0.0
     assert np.isnan(sig["opportunity"][1][len(c) - 1])                            # no horizon at the end
 
 
@@ -45,14 +42,40 @@ def test_labels_follow_the_declared_rules_and_purge():
     nop = S.nop_labels(sig, p)
     assert nop[0] == 0 and np.isnan(nop[len(c) - 1])
     cl = S.closer_labels(sig, 1, np.full(len(c), 2.0), p)
-    assert cl[4] == 1 and cl[2] == 0 and cl[0] == 1   # at the peak: close; after the valley: hold; before the valley: close (next pivot adverse)
-    # the SL rule: a short at bar 0 has its optimum ahead (valley at 2) but the high of bar 1 is 0.7 sigma against it:
-    # with a 2-sigma SL it holds, with a 0.5-sigma SL the stop would be hit first -> close
-    assert S.closer_labels(sig, -1, np.full(len(c), 2.0), p)[0] == 0
-    assert S.closer_labels(sig, -1, np.full(len(c), 0.5), p)[0] == 1
+    assert cl[4] == 1 and cl[2] == 0 and cl[0] == 0   # at the peak: close; after and before the valley: hold (the peak lies ahead, dip survivable)
+    assert ol[0] == 1 and cl[0] == 0                   # opener and closer of the same side agree at the same bar
+    # the SL rule: with a 0.5-sigma SL the 1.2-sigma dip before the peak would stop the long first -> close
+    assert S.closer_labels(sig, 1, np.full(len(c), 0.5), p)[0] == 1
+    # the kind of a pivot beyond the window never matters: moving the far valley to a peak leaves bar 0 untouched
+    sig2, _ = S.hindsight_signals(o, h, l, c, sigma, [(2, -1, 0.9988), (4, 1, 1.0032), (7, 1, 0.9968)], flat_bar=np.full(len(c), 9), p=p)
+    assert S.closer_labels(sig2, 1, np.full(len(c), 2.0), p)[0] == cl[0] and np.isclose(sig2["hold_gain"][1][0], sig["hold_gain"][1][0])
 
 
 def test_forced_flat_caps_the_horizon():
     o, h, l, c, sigma = _path()
     sig, H = S.hindsight_signals(o, h, l, c, sigma, [(7, 1, 0.9972)], flat_bar=np.full(len(c), 3))
-    assert H["open"][1][0] == 3 and np.isclose(sig["opportunity"][1][0], (1.0022 - 1.0000) / 0.001 - 0.06)
+    assert H[1]["bar"][0] == 3 and H[1]["reason"][0] == "flat" and sig["truncated"][1][0] == 1
+    assert np.isclose(sig["opportunity"][1][0], (1.0022 - 1.0000) / 0.001 - 0.06)
+    # auditor's witness 2: with the window truncated at bar 3, changing the kind of the pivot at bar 7 changes nothing
+    sig2, _ = S.hindsight_signals(o, h, l, c, sigma, [(7, -1, 0.9972)], flat_bar=np.full(len(c), 3))
+    for k in ("opportunity", "hold_gain", "hold_adverse"):
+        assert np.isclose(sig2[k][1][0], sig[k][1][0])
+    assert S.closer_labels(sig2, 1, np.full(len(c), 2.0))[0] == S.closer_labels(sig, 1, np.full(len(c), 2.0))[0]
+
+
+def test_optimum_closer_rule_closes_when_an_adverse_pivot_lies_inside_the_window_and_is_censored_otherwise():
+    o, h, l, c, sigma = _path()
+    p = S.SignalParams(max_bars=72, cost_sigma=0.0, theta_close=0.05)
+    piv = [(2, -1, 0.9988), (4, 1, 1.0032), (7, -1, 0.9968)]
+    sig, H = S.hindsight_signals(o, h, l, c, sigma, piv, flat_bar=np.full(len(c), 50), p=p)
+    sl = np.full(len(c), 2.0)
+    hold, opt = S.closer_labels(sig, 1, sl, p, "hold_through"), S.closer_labels(sig, 1, sl, p, "optimum")
+    assert hold[0] == 0 and opt[0] == 1        # bar 0: the valley at 2 (adverse) lies inside the long's window -> optimum closes
+    assert hold[2] == 0 and opt[2] == 0        # bar 2: next pivot inside is the peak (favourable) -> both hold
+    assert sig["next_adverse_inside"][1][0] == 1 and sig["next_adverse_inside"][1][2] == 0
+    # window truncated before any pivot: the optimum rule is censored (NaN), hold_through still decides
+    sig2, _ = S.hindsight_signals(o, h, l, c, sigma, [(7, 1, 0.9972)], flat_bar=np.full(len(c), 3), p=p)
+    assert np.isnan(S.closer_labels(sig2, 1, sl, p, "optimum")[0]) and np.isfinite(S.closer_labels(sig2, 1, sl, p)[0])
+    import pytest
+    with pytest.raises(ValueError, match="CLOSER_RULE_UNKNOWN"):
+        S.closer_labels(sig, 1, sl, p, "bogus")

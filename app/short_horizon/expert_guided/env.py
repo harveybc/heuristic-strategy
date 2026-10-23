@@ -346,6 +346,16 @@ class BarEnv:
             days[d] = days.get(d, 0) + 1
         m["weeks_with_decisions"] = len(weeks)
         m["orders_per_week"] = self.counts["entries"] / len(weeks) if weeks else 0.0
+        # per-week distribution (auditor 2026-10-22): the rule below is a PERIOD AVERAGE, not a minimum met in
+        # every week; the share of decision weeks below the minimum is reported next to it, never enforced
+        per_week = {}
+        for t in self.trades:
+            w = tuple(pd.Timestamp(int(self.v[int(t["entry_bar_abs"])]), tz="UTC").isocalendar()[:2])
+            per_week[w] = per_week.get(w, 0) + 1
+        below = sum(1 for w in weeks if per_week.get(w, 0) < self.cfg.min_orders_per_week)
+        m["weeks_below_min_orders"] = int(below)
+        m["weeks_below_min_share"] = below / len(weeks) if weeks else 0.0
+        m["min_orders_per_week_rule"] = f"period average >= {self.cfg.min_orders_per_week:g} (not per week)"
         m["max_entries_per_day"] = max(days.values(), default=0)
         m["valid_weekly_rule"] = bool(m["orders_per_week"] >= self.cfg.min_orders_per_week)
         m["valid"] = bool(m["valid_weekly_rule"] and m["max_entries_per_day"] <= self.cfg.max_entries_per_day
@@ -359,6 +369,7 @@ def summary(m: dict) -> dict:
     """Report-ready numbers (no series)."""
     keys = ("net_profit_usd", "sharpe_daily_sqrt365", "sortino_daily_sqrt365", "max_drawdown_pct", "max_drawdown_usd",
             "trades", "win_rate", "profit_factor", "orders_per_week", "max_entries_per_day", "valid", "valid_weekly_rule",
+            "weeks_with_decisions", "weeks_below_min_orders", "weeks_below_min_share", "min_orders_per_week_rule",
             "gross_usd", "cost_spread_usd", "cost_slippage_usd", "cost_commission_usd", "cost_financing_usd",
             "exposure_bar_share", "ruined")
     out = {k: m[k] for k in keys if k in m}

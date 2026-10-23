@@ -1,200 +1,265 @@
 {
- "train_rows_with_final_horizon": 19119,
+ "supports": {
+  "train_bars": 21809,
+  "eligible_flat_origins": 17128,
+  "opener_rows_both_horizons_final": 13272,
+  "excluded_opener_horizon_not_final": 3856,
+  "closer_rows_long": 16947,
+  "closer_rows_short": 16959,
+  "truncated_share_long": 0.0473,
+  "truncated_share_short": 0.0511,
+  "nan_per_target_openers": {
+   "opportunity": 0,
+   "adverse_to_peak": 0
+  }
+ },
  "grid": [
   {
    "theta_open": 0.25,
    "sl_max": 1.0,
-   "share_open_long": 0.5204,
-   "share_open_short": 0.506,
-   "share_nop": 0.1716,
-   "share_both_sides": 0.1348,
-   "zigzag_long_share": 0.1141,
+   "share_open_long": 0.5086,
+   "share_open_short": 0.488,
+   "share_nop": 0.1746,
+   "share_both_sides": 0.1712,
+   "zigzag_long_share": 0.1301,
    "p_label_long_given_zigzag_long": 0.704,
-   "p_zigzag_long_given_label_long": 0.155
+   "p_zigzag_long_given_label_long": 0.18
   },
   {
    "theta_open": 0.25,
    "sl_max": 2.0,
-   "share_open_long": 0.528,
-   "share_open_short": 0.5152,
-   "share_nop": 0.1713,
-   "share_both_sides": 0.1484,
-   "zigzag_long_share": 0.1141,
+   "share_open_long": 0.5166,
+   "share_open_short": 0.4973,
+   "share_nop": 0.1744,
+   "share_both_sides": 0.1882,
+   "zigzag_long_share": 0.1301,
    "p_label_long_given_zigzag_long": 0.705,
-   "p_zigzag_long_given_label_long": 0.153
+   "p_zigzag_long_given_label_long": 0.178
   },
   {
    "theta_open": 0.25,
    "sl_max": 3.0,
-   "share_open_long": 0.5281,
-   "share_open_short": 0.5158,
-   "share_nop": 0.1713,
-   "share_both_sides": 0.149,
-   "zigzag_long_share": 0.1141,
+   "share_open_long": 0.5166,
+   "share_open_short": 0.4978,
+   "share_nop": 0.1744,
+   "share_both_sides": 0.1887,
+   "zigzag_long_share": 0.1301,
    "p_label_long_given_zigzag_long": 0.705,
-   "p_zigzag_long_given_label_long": 0.153
+   "p_zigzag_long_given_label_long": 0.178
   },
   {
    "theta_open": 0.5,
    "sl_max": 1.0,
-   "share_open_long": 0.2881,
-   "share_open_short": 0.2859,
-   "share_nop": 0.4711,
-   "share_both_sides": 0.0255,
-   "zigzag_long_share": 0.1141,
-   "p_label_long_given_zigzag_long": 0.404,
-   "p_zigzag_long_given_label_long": 0.16
+   "share_open_long": 0.2801,
+   "share_open_short": 0.2789,
+   "share_nop": 0.4743,
+   "share_both_sides": 0.0332,
+   "zigzag_long_share": 0.1301,
+   "p_label_long_given_zigzag_long": 0.405,
+   "p_zigzag_long_given_label_long": 0.188
   },
   {
    "theta_open": 0.5,
    "sl_max": 2.0,
-   "share_open_long": 0.2934,
-   "share_open_short": 0.2908,
-   "share_nop": 0.4707,
-   "share_both_sides": 0.0334,
-   "zigzag_long_share": 0.1141,
-   "p_label_long_given_zigzag_long": 0.405,
-   "p_zigzag_long_given_label_long": 0.158
+   "share_open_long": 0.2853,
+   "share_open_short": 0.2837,
+   "share_nop": 0.4739,
+   "share_both_sides": 0.0429,
+   "zigzag_long_share": 0.1301,
+   "p_label_long_given_zigzag_long": 0.406,
+   "p_zigzag_long_given_label_long": 0.185
   },
   {
    "theta_open": 0.5,
    "sl_max": 3.0,
-   "share_open_long": 0.2934,
-   "share_open_short": 0.291,
-   "share_nop": 0.4707,
-   "share_both_sides": 0.0336,
-   "zigzag_long_share": 0.1141,
-   "p_label_long_given_zigzag_long": 0.405,
-   "p_zigzag_long_given_label_long": 0.158
+   "share_open_long": 0.2853,
+   "share_open_short": 0.2838,
+   "share_nop": 0.4739,
+   "share_both_sides": 0.043,
+   "zigzag_long_share": 0.1301,
+   "p_label_long_given_zigzag_long": 0.406,
+   "p_zigzag_long_given_label_long": 0.185
   },
   {
    "theta_open": 0.75,
    "sl_max": 1.0,
-   "share_open_long": 0.1728,
-   "share_open_short": 0.1695,
-   "share_nop": 0.668,
-   "share_both_sides": 0.0032,
-   "zigzag_long_share": 0.1141,
-   "p_label_long_given_zigzag_long": 0.236,
-   "p_zigzag_long_given_label_long": 0.156
+   "share_open_long": 0.1667,
+   "share_open_short": 0.1692,
+   "share_nop": 0.6682,
+   "share_both_sides": 0.0041,
+   "zigzag_long_share": 0.1301,
+   "p_label_long_given_zigzag_long": 0.235,
+   "p_zigzag_long_given_label_long": 0.183
   },
   {
    "theta_open": 0.75,
    "sl_max": 2.0,
-   "share_open_long": 0.1762,
-   "share_open_short": 0.1718,
-   "share_nop": 0.6675,
-   "share_both_sides": 0.0074,
-   "zigzag_long_share": 0.1141,
-   "p_label_long_given_zigzag_long": 0.237,
-   "p_zigzag_long_given_label_long": 0.154
+   "share_open_long": 0.1701,
+   "share_open_short": 0.1714,
+   "share_nop": 0.6678,
+   "share_both_sides": 0.0093,
+   "zigzag_long_share": 0.1301,
+   "p_label_long_given_zigzag_long": 0.235,
+   "p_zigzag_long_given_label_long": 0.18
   },
   {
    "theta_open": 0.75,
    "sl_max": 3.0,
-   "share_open_long": 0.1763,
-   "share_open_short": 0.1719,
-   "share_nop": 0.6675,
-   "share_both_sides": 0.0075,
-   "zigzag_long_share": 0.1141,
-   "p_label_long_given_zigzag_long": 0.237,
-   "p_zigzag_long_given_label_long": 0.154
+   "share_open_long": 0.1701,
+   "share_open_short": 0.1715,
+   "share_nop": 0.6678,
+   "share_both_sides": 0.0093,
+   "zigzag_long_share": 0.1301,
+   "p_label_long_given_zigzag_long": 0.235,
+   "p_zigzag_long_given_label_long": 0.18
   },
   {
    "theta_open": 1.0,
    "sl_max": 1.0,
-   "share_open_long": 0.1082,
-   "share_open_short": 0.1054,
-   "share_nop": 0.7884,
+   "share_open_long": 0.1044,
+   "share_open_short": 0.1064,
+   "share_nop": 0.7893,
    "share_both_sides": 0.0,
-   "zigzag_long_share": 0.1141,
+   "zigzag_long_share": 0.1301,
    "p_label_long_given_zigzag_long": 0.149,
-   "p_zigzag_long_given_label_long": 0.158
+   "p_zigzag_long_given_label_long": 0.186
   },
   {
    "theta_open": 1.0,
    "sl_max": 2.0,
-   "share_open_long": 0.11,
-   "share_open_short": 0.1067,
-   "share_nop": 0.7873,
-   "share_both_sides": 0.0017,
-   "zigzag_long_share": 0.1141,
+   "share_open_long": 0.1062,
+   "share_open_short": 0.1076,
+   "share_nop": 0.7883,
+   "share_both_sides": 0.0021,
+   "zigzag_long_share": 0.1301,
    "p_label_long_given_zigzag_long": 0.149,
-   "p_zigzag_long_given_label_long": 0.155
+   "p_zigzag_long_given_label_long": 0.182
   },
   {
    "theta_open": 1.0,
    "sl_max": 3.0,
-   "share_open_long": 0.11,
-   "share_open_short": 0.1067,
-   "share_nop": 0.7873,
-   "share_both_sides": 0.0017,
-   "zigzag_long_share": 0.1141,
+   "share_open_long": 0.1062,
+   "share_open_short": 0.1076,
+   "share_nop": 0.7883,
+   "share_both_sides": 0.0021,
+   "zigzag_long_share": 0.1301,
    "p_label_long_given_zigzag_long": 0.149,
-   "p_zigzag_long_given_label_long": 0.155
+   "p_zigzag_long_given_label_long": 0.182
   }
  ],
  "closer": [
   {
+   "rule": "hold_through",
    "theta_close": 0.05,
-   "share_close_long_sl1": 0.4964,
-   "share_close_short_sl1": 0.514,
-   "share_close_long_sl2": 0.4954,
-   "share_close_short_sl2": 0.5134
+   "share_close_long_sl1": 0.0933,
+   "share_close_short_sl1": 0.1014,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.0817,
+   "share_close_short_sl2": 0.0867,
+   "censored_long_sl2": 0
   },
   {
+   "rule": "hold_through",
    "theta_close": 0.1,
-   "share_close_long_sl1": 0.5121,
-   "share_close_short_sl1": 0.5328,
-   "share_close_long_sl2": 0.5111,
-   "share_close_short_sl2": 0.5323
+   "share_close_long_sl1": 0.1768,
+   "share_close_short_sl1": 0.1876,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.1662,
+   "share_close_short_sl2": 0.1746,
+   "censored_long_sl2": 0
   },
   {
+   "rule": "hold_through",
    "theta_close": 0.25,
-   "share_close_long_sl1": 0.6153,
-   "share_close_short_sl1": 0.6288,
-   "share_close_long_sl2": 0.6144,
-   "share_close_short_sl2": 0.6283
+   "share_close_long_sl1": 0.4057,
+   "share_close_short_sl1": 0.4228,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.3978,
+   "share_close_short_sl2": 0.4126,
+   "censored_long_sl2": 0
   },
   {
+   "rule": "hold_through",
    "theta_close": 0.5,
-   "share_close_long_sl1": 0.778,
-   "share_close_short_sl1": 0.7758,
-   "share_close_long_sl2": 0.777,
-   "share_close_short_sl2": 0.7755
+   "share_close_long_sl1": 0.6685,
+   "share_close_short_sl1": 0.6706,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.6629,
+   "share_close_short_sl2": 0.6644,
+   "censored_long_sl2": 0
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.05,
+   "share_close_long_sl1": 0.562,
+   "share_close_short_sl1": 0.5777,
+   "censored_long_sl1": 352,
+   "share_close_long_sl2": 0.5611,
+   "share_close_short_sl2": 0.5772,
+   "censored_long_sl2": 352
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.1,
+   "share_close_long_sl1": 0.5758,
+   "share_close_short_sl1": 0.5944,
+   "censored_long_sl1": 352,
+   "share_close_long_sl2": 0.5749,
+   "share_close_short_sl2": 0.5939,
+   "censored_long_sl2": 352
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.25,
+   "share_close_long_sl1": 0.6669,
+   "share_close_short_sl1": 0.6788,
+   "censored_long_sl1": 352,
+   "share_close_long_sl2": 0.6661,
+   "share_close_short_sl2": 0.6784,
+   "censored_long_sl2": 352
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.5,
+   "share_close_long_sl1": 0.8086,
+   "share_close_short_sl1": 0.8063,
+   "censored_long_sl1": 352,
+   "share_close_long_sl2": 0.8078,
+   "share_close_short_sl2": 0.806,
+   "censored_long_sl2": 352
   }
  ],
  "percentiles": {
   "opportunity": {
    "long": {
-    "5": -0.03,
-    "25": 0.09,
-    "50": 0.274,
-    "75": 0.578,
-    "95": 1.4
+    "5": -0.033,
+    "25": 0.082,
+    "50": 0.263,
+    "75": 0.563,
+    "95": 1.366
    },
    "short": {
-    "5": -0.032,
-    "25": 0.085,
-    "50": 0.263,
-    "75": 0.572,
-    "95": 1.39
+    "5": -0.035,
+    "25": 0.074,
+    "50": 0.248,
+    "75": 0.563,
+    "95": 1.396
    }
   },
   "adverse_to_peak": {
    "long": {
-    "5": 0.01,
-    "25": 0.065,
-    "50": 0.147,
-    "75": 0.288,
-    "95": 0.65
+    "5": 0.009,
+    "25": 0.061,
+    "50": 0.143,
+    "75": 0.287,
+    "95": 0.666
    },
    "short": {
-    "5": 0.01,
-    "25": 0.069,
-    "50": 0.153,
-    "75": 0.301,
-    "95": 0.67
+    "5": 0.009,
+    "25": 0.064,
+    "50": 0.148,
+    "75": 0.3,
+    "95": 0.674
    }
   },
   "bars_to_peak": {
@@ -215,55 +280,43 @@
   },
   "hold_gain": {
    "long": {
-    "5": 0.01,
-    "25": 0.075,
-    "50": 0.198,
-    "75": 0.466,
-    "95": 1.265
+    "5": 0.029,
+    "25": 0.15,
+    "50": 0.335,
+    "75": 0.639,
+    "95": 1.461
    },
    "short": {
-    "5": 0.01,
-    "25": 0.069,
-    "50": 0.186,
-    "75": 0.464,
-    "95": 1.263
+    "5": 0.028,
+    "25": 0.145,
+    "50": 0.323,
+    "75": 0.632,
+    "95": 1.451
    }
   },
   "hold_adverse": {
    "long": {
     "5": 0.01,
+    "25": 0.065,
+    "50": 0.147,
+    "75": 0.288,
+    "95": 0.651
+   },
+   "short": {
+    "5": 0.011,
     "25": 0.069,
-    "50": 0.186,
-    "75": 0.464,
-    "95": 1.263
-   },
-   "short": {
-    "5": 0.01,
-    "25": 0.075,
-    "50": 0.198,
-    "75": 0.466,
-    "95": 1.265
-   }
-  },
-  "next_is_favourable": {
-   "long": {
-    "5": 0.0,
-    "25": 0.0,
-    "50": 1.0,
-    "75": 1.0,
-    "95": 1.0
-   },
-   "short": {
-    "5": 0.0,
-    "25": 0.0,
-    "50": 0.0,
-    "75": 1.0,
-    "95": 1.0
+    "50": 0.153,
+    "75": 0.301,
+    "95": 0.671
    }
   }
  },
  "at_optimal_pivots": {
-  "long_hold_gain_at_peaks_p95": 0.286,
-  "short_hold_gain_at_valleys_p95": 0.268
+  "note": "the horizon of a long at a peak is the NEXT peak: hold gain there is the rise after the dip; the closer label is decided by that gain and the dip against the order's SL",
+  "long_hold_gain_at_peaks_p50": 0.202,
+  "long_hold_adverse_at_peaks_p50": 0.285,
+  "short_hold_gain_at_valleys_p50": 0.186,
+  "share_close_long_at_peaks_sl2_theta0.1_hold_through": 0.314,
+  "share_close_long_at_peaks_sl2_theta0.1_optimum": 1.0
  }
 }
