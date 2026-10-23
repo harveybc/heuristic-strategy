@@ -268,6 +268,71 @@ def _arm_vector(e: dict):
             "n_seeds": len(tr), "support": {p: e["meta"]["support_hash"][p] for p in ("TRAIN", "INNER_A")}}
 
 
+def label_mode_of(e: dict) -> tuple:
+    """(mode, how) of an E3M.json. The `labels` block exists from heuristic-strategy e9291b7 on; a producer that predates
+    it (e.g. the T2 package pinned at 186b131) can only have trained on the inherited ZigZag labels, so a MISSING block
+    is read as ("zigzag", "PRODUCER_PREDATES_FIELD") and kept distinct from an explicit or an unknown mode
+    (Musashi's precision 2026-10-22: never demand a new field from an old producer as if it were a failed measurement)."""
+    lab = e.get("labels")
+    if lab is None:
+        return "zigzag", "PRODUCER_PREDATES_FIELD"
+    mode = lab.get("mode")
+    return (mode, "DECLARED") if mode in ("zigzag", "opportunity", "both") else (str(mode), "UNKNOWN_MODE")
+
+
+def verify_t2_arm(e: dict, unit: dict, seeds=("20261019", "20261020", "20261021")) -> list:
+    """Errors of one T2 E3M.json against its typed unit (T2_UNITS_2026_10_23.json); [] when it conforms."""
+    errs = []
+    if e.get("split_contract", {}).get("arm") != "consolidated":
+        errs.append(f"SPLIT:{e.get('split_contract', {}).get('arm')}")
+    if e.get("agent_state", {}).get("mode") != unit["agent_state"]:
+        errs.append(f"AGENT_STATE:{e.get('agent_state', {}).get('mode')}!={unit['agent_state']}")
+    if e.get("exec_contract") != "sac":
+        errs.append(f"EXEC_CONTRACT:{e.get('exec_contract')}")
+    if float(e.get("min_orders_per_week", -1)) != 2.0:
+        errs.append(f"MIN_ORDERS:{e.get('min_orders_per_week')}")
+    if e.get("meta", {}).get("scaling", {}).get("policy") != "fixed_train":
+        errs.append("SCALING")
+    mode, how = label_mode_of(e)
+    if mode != "zigzag" or how == "UNKNOWN_MODE":
+        errs.append(f"LABELS:{mode}:{how}")
+    tr = e.get("trials", {}).get("FULL", {})
+    if sorted(tr) != sorted(seeds):
+        errs.append(f"SEEDS:{sorted(tr)}")
+    for s, t in tr.items():
+        for p in ("TRAIN", "INNER_A"):
+            if p not in t.get("trading", {}):
+                errs.append(f"PERIOD_MISSING:{s}:{p}")
+    sh = e.get("meta", {}).get("support_hash", {})
+    if not all(sh.get(p) for p in ("TRAIN", "INNER_A")):
+        errs.append("SUPPORT_HASH_MISSING")
+    if "FULL" not in e.get("decision", {}).get("means", {}):
+        errs.append("DECISION_MISSING")
+    return errs
+
+
+def cmd_verify_t2(a):
+    """Verify every T2 result against the typed unit listing; a marker in a log is not a result."""
+    units = json.loads(Path(a.units).read_text())["units"]
+    rows, bad = [], 0
+    for u in units:
+        f = Path(a.results) / u["name"] / "E3M.json"
+        if not f.exists():
+            rows.append({"unit": u["name"], "identity": u["identity"], "status": "MISSING"})
+            bad += 1
+            continue
+        e = json.loads(f.read_text())
+        errs = verify_t2_arm(e, u)
+        rows.append({"unit": u["name"], "identity": u["identity"], "sha256": sha(f)[:16], "labels": "/".join(label_mode_of(e)),
+                     "support": e.get("meta", {}).get("support_hash", {}).get("INNER_A"), "status": "OK" if not errs else "REJECTED", "errors": errs})
+        bad += int(bool(errs))
+    doc = {"units": a.units, "results": a.results, "rows": rows, "all_ok": bad == 0}
+    if a.out:
+        Path(a.out).write_text(json.dumps(doc, indent=1))
+    print(json.dumps(doc, indent=1))
+    return 0 if bad == 0 else 2
+
+
 def cmd_regularize(a):
     """Apply REG_RULE to the T2 arms (results/gap_<list>_none_<setting>/E3M.json); --apply writes the choice into the spec."""
     import numpy as np
@@ -287,7 +352,11 @@ def cmd_regularize(a):
                 raise SystemExit(f"ARM_CONTRACT:{lst}:{s}:{e['split_contract']['arm']}")
             if e.get("exec_contract") != spec["exec_contract"] or float(e.get("min_orders_per_week", -1)) != float(spec["min_orders_per_week"]):
                 raise SystemExit(f"ARM_BUSINESS_RULES:{lst}:{s}")
+            mode, how = label_mode_of(e)
+            if mode != "zigzag" or how == "UNKNOWN_MODE":
+                raise SystemExit(f"ARM_LABELS:{lst}:{s}:{mode}:{how}")
             table[(lst, s)] = _arm_vector(e)
+            table[(lst, s)]["labels"] = f"{mode}/{how}"
         sup = {s: table[(lst, s)]["support"] for s in cands}
         if len({json.dumps(v, sort_keys=True) for v in sup.values()}) != 1:
             raise SystemExit(f"SUPPORT_MISMATCH:{lst}:{sup}")
@@ -345,8 +414,11 @@ def main():
     r = sub.add_parser("regularize", help="apply REG_RULE to the T2 arms"); r.add_argument("--spec", required=True)
     r.add_argument("--results", required=True); r.add_argument("--out", required=True)
     r.add_argument("--lists", default="core15,shortlist_strict"); r.add_argument("--apply", action="store_true")
+    v = sub.add_parser("verify-t2", help="verify every T2 E3M.json against the typed unit listing")
+    v.add_argument("--units", required=True); v.add_argument("--results", required=True); v.add_argument("--out", default=None)
     a = ap.parse_args()
-    sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide, "regularize": cmd_regularize}[a.cmd](a) or 0)
+    sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide, "regularize": cmd_regularize,
+              "verify-t2": cmd_verify_t2}[a.cmd](a) or 0)
 
 
 if __name__ == "__main__":

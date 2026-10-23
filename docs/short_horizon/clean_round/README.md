@@ -126,3 +126,13 @@ python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out D
 | regla de regularización ejecutable | hecho: `CLEAN_ROUND_SPEC.json` lleva `candidates` {base, strong} y la regla no dominada con desempate declarado; `tools/expert_guided_clean_round.py regularize --results <T2 out> --out REGULARIZATION_DECISION.json [--apply]` la aplica (sólo brazos `agent_state=none`, soporte común verificado, `OBS_2024` jamás leído; `DEFAULT_BY_VALIDITY` nunca se aplica); pruebas con dominancia, desempate, invalidez y soporte distinto |
 | manifiesto T3 con dependencia de T2 y reparto sin duplicados | hecho: `tools/expert_guided_t3_manifest.py emit` → `evidence/t3/T3_MANIFEST.json` (26 unidades: control + 25 grupos de la lista estricta v4; ids estables por orden del archivo de grupos; impares Musashi / pares + control Satoshi; variante por grupo: `pointwise` para calendario/eventos/COT/diarios/factores/fuerza y grupos de una columna, `per_feature` para el resto); `queue --decision REGULARIZATION_DECISION.json` se niega sin la decisión T2; extractor `pointwise` (kernel 1) implementado en el tronco con prueba de no mezcla temporal |
 | no declarar el conjunto terminado antes de T3 y auditoría | hecho: `release_states` en el spec separa `data_features` (CANDIDATE_VERIFIED) de `representation` (PENDING_T3); `RELEASE.json` sigue sin escribirse |
+
+## 9. 2026-10-23: T1 de Musashi anexado; verificador de T2
+
+- **T1** (trabajo de Musashi, @4fc98f6d): perfiles TRAIN de core15 y la lista estricta, copiados y verificados
+  por manifiesto en `evidence/t1/`; resumen por grupo de extractor y pares duplicados en `evidence/t1/T1_ANNEX.md`.
+  Seis pares con |ρ| ≥ 0.99 cruzan grupos de extractor: T3 mide el tipo de extractor con esa información
+  redundante presente. Nada se retira ni se veta.
+- **Verificador** `verify-t2`: comprueba cada `E3M.json` contra el listado tipado; un bloque `labels` ausente del
+  productor fijado se lee como ZigZag heredado, no como fallo; `regularize` aplica la misma lectura. El primer brazo
+  sellado (`gap_core15_none_base`, sha `d07622dc…`, igual al recibo de Musashi) pasa.

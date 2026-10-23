@@ -328,3 +328,27 @@ def test_e3m_cli_signal_labels_run_end_to_end_and_checkpoints_reload(tmp_path):
     with torch.no_grad():
         lg, _ = net(X)
     assert np.allclose(lg.numpy(), np.array(pr["logits"]), atol=1e-4)
+
+
+def test_t2_verifier_reads_a_missing_labels_block_as_legacy_zigzag_and_rejects_other_modes(tmp_path):
+    """Musashi's precision 2026-10-22: the pinned producer (186b131) does not emit `labels`; that is not a failure, but an
+    explicit non-ZigZag or unknown mode is. Real fields only; no E3M.json is rewritten to satisfy a schema."""
+    res = tmp_path / "out"
+    _e3m(res / "gap_core15_none_base", (0.5, 0.6, 0.7), (3.0, 3.1, 3.2), (10, 11, 12))
+    e = json.loads((res / "gap_core15_none_base" / "E3M.json").read_text())
+    e["trials"]["FULL"] = {str(s): v for s, v in zip((20261019, 20261020, 20261021), e["trials"]["FULL"].values())}
+    e["meta"]["scaling"] = {"policy": "fixed_train"}
+    e["decision"]["means"]["FULL"].update(inner_a_sharpe_mean=0.6)
+    unit = {"name": "gap_core15_none_base", "identity": "x", "agent_state": "none"}
+    assert C.label_mode_of(e) == ("zigzag", "PRODUCER_PREDATES_FIELD") and C.verify_t2_arm(e, unit) == []
+    assert C.verify_t2_arm(dict(e, labels={"mode": "zigzag"}), unit) == []
+    assert C.verify_t2_arm(dict(e, labels={"mode": "opportunity"}), unit) == ["LABELS:opportunity:DECLARED"]
+    assert C.verify_t2_arm(dict(e, labels={"mode": "oracle"}), unit) == ["LABELS:oracle:UNKNOWN_MODE"]
+    assert "SPLIT:dev3y" in C.verify_t2_arm(dict(e, split_contract={"arm": "dev3y"}), unit)
+    (res / "gap_core15_none_base" / "E3M.json").write_text(json.dumps(e))
+    units = tmp_path / "U.json"
+    units.write_text(json.dumps({"units": [unit, {"name": "gap_core15_none_strong", "identity": "y", "agent_state": "none"}]}))
+    r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_clean_round.py"), "verify-t2", "--units", str(units), "--results", str(res)],
+                       capture_output=True, text=True, cwd=ROOT)
+    d = json.loads(r.stdout)
+    assert r.returncode == 2 and [x["status"] for x in d["rows"]] == ["OK", "MISSING"] and d["rows"][0]["labels"] == "zigzag/PRODUCER_PREDATES_FIELD"
