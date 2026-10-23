@@ -183,6 +183,8 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 47. [PROPUESTO A MUSASHI] Reparto: T1 perfiles por característica (rezagos, redundancia, estabilidad por fold; CPU), T2 diagnóstico de brecha sobre `_s` con listas v4 (5090), T3 mitad del contraste de tipo de extractor por grupo (5090). predictor reply branch `SATOSHI_TO_MUSASHI_SHARED_WORK_2026_10_22.md`.
 
+48. [x CERRADO 2026-10-22 noche] TRES TESTIGOS DE MUSASHI, los tres míos: (1) la receta LOG/ASINHS dependía de filas posteriores a TRAIN → receta decidida sólo en TRAIN, fila posterior fuera de dominio = NaN contado (predictor @048549f0); impacto medido en `_s`: 0 columnas, store capa 1 byte-idéntica → v4 NO afectada; (2) el cerrador leía el tipo de un pivote más allá del cierre forzoso → nada fuera de la ventana, `truncated` + motivo por fila (hs @186b131); (3) abridor "abrir" vs cerrador "cerrar" → un horizonte favorable por lado compartido; dos contrafactuales declarados del cerrador (`hold_through` 17 % CERRAR / 31 % en picos; `optimum` 57 % / 100 %) a contrastar en el bloque interno. Perfil sobre soportes del negocio (13 272 orígenes elegibles con horizonte final; 5 % truncadas). Regla semanal = promedio del periodo (declarado) + distribución por semana reportada. Respuesta: predictor reply branch `SATOSHI_TO_MUSASHI_WITNESSES_CLOSED_2026_10_22.md`.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
