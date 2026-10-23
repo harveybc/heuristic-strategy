@@ -177,6 +177,7 @@ def _spec_and_groups(tmp_path):
                                "units": {"px": 2, "wavelet/x": 2, "calendar": 2, "dly.z": 2}}))
     spec = tmp_path / "SPEC.json"
     spec.write_text(json.dumps({"model": {"units": 2, "depth": 2, "head": 16, "core": None, "max_epochs": 5}, "scaling": "fixed_train",
+                                "store": {"path": str(tmp_path / "store.parquet"), "sha256": "0" * 64},
                                 "nonstationary": "diff", "split_contract": "consolidated", "exec_contract": "sac", "min_orders_per_week": 2.0,
                                 "regularization": {"candidates": {"base": {"dropout": 0.1, "wd": 1e-4}, "strong": {"dropout": 0.3, "wd": 1e-2}}}}))
     return spec, grp, lst
@@ -494,3 +495,44 @@ def test_producer_authentication_compares_the_pinned_source_with_the_science_com
     assert C.authenticate_producer(p, "186b131")["error"] == "PINNED_SOURCE_DIFFERS_FROM_SCIENCE_COMMIT"
     pr_new = C.authenticate_producer(p, "e9291b7")
     assert pr_new["authenticated"] is False                           # pin does not match the newer source either
+
+
+def test_consumer_recipe_is_derived_from_sealed_artifacts_and_refuses_mismatches(tmp_path):
+    """Musashi's handoff item 3: one identified recipe for both lanes, derived (never retyped) from C's scaler, the
+    combination groups file, the list and the decision documents; mismatched columns, groups or digests are refused."""
+    import hashlib
+    spec, grp, lst, prof = _t3_inputs(tmp_path)
+    cols = json.loads(lst.read_text())["features"]
+    out = tmp_path / "t3"
+    assert _t3(tmp_path, "emit", "--spec", spec, "--groups", grp, "--list", lst, "--profiles", prof, "--profiles-manifest-sha256", "x", "--out", out).returncode == 0
+    gC = tmp_path / "unit_C.json"
+    g0 = json.loads(grp.read_text())
+    gC.write_text(json.dumps({"groups": g0["groups"], "units": g0["units"], "kinds": {k: ("pointwise" if k == "calendar" else "conv") for k in g0["groups"]}}))
+    tensor = [f"{c}@diff" if c in ("a", "b") else c for c in cols]
+    scaler = tmp_path / "SCALER.json"
+    scaler.write_text(json.dumps({"policy": "fixed_train", "features": tensor, "window": {"observations": 13, "stride_rows": 2}, "fit_period": ["2020-01-01", "2023-07-01"],
+                                  "fit_rows": 100, "ddof": 0, "rule": "std 0 -> 1", "nan_policy": "drop", "transform": {}, "stationarity": {"policy": "diff", "differenced": ["a", "b"]},
+                                  "mean": {c: 0.0 for c in tensor}, "std": {c: 1.0 for c in tensor}}))
+    e3m = tmp_path / "E3M.json"
+    e3m.write_text(json.dumps({"arch": {"group_names": list(g0["groups"]), "group_kinds": ["conv"] * 4}, "params": {"FULL": {"open_l": 1}},
+                               "split_contract": {"arm": "consolidated"}, "meta": {"periods": {"TRAIN": ["2020-01-01", "2023-07-01"]}, "support_hash": {"TRAIN": "t"}}}))
+    dec = tmp_path / "DEC.json"
+    dec.write_text(json.dumps({"groups": [{"group": "calendar", "chosen": "pointwise"}]}))
+    comb = tmp_path / "COMB.json"
+    comb.write_text(json.dumps({"frozen_rule_decision": "COMBINATION_SELECTED", "combined_result_sha256": hashlib.sha256(e3m.read_bytes()).hexdigest(), "producer_config_sha256": "p"}))
+    args = ["emit", "--spec", spec, "--scaler", scaler, "--groups", gC, "--list", lst, "--manifest", out / "T3_MANIFEST.json", "--decision", dec,
+            "--combination", comb, "--c-result", e3m, "--out", tmp_path / "RECIPE.json", "--science-commit", "abc"]
+    r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_consumer_recipe.py"), *map(str, args)], capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode == 0, r.stderr
+    rec = json.loads((tmp_path / "RECIPE.json").read_text())
+    assert rec["list"]["columns"] == cols and rec["tensor"]["order"] == tensor and rec["tensor"]["transforms"]["a@diff"] == "diff"
+    assert rec["representation"]["kinds"]["calendar"] == "pointwise" and rec["representation"]["changed_from_control"] == {"calendar": "pointwise"}
+    assert rec["representation"]["regularization"]["dropout"] == 0.1 and rec["scientific_release"] is False and rec["identity"].startswith("recipe_")
+    # a scaler fitted on other columns, or a combination not selected, is refused
+    scaler.write_text(scaler.read_text().replace('"a@diff"', '"zz@diff"'))
+    r2 = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_consumer_recipe.py"), *map(str, args)], capture_output=True, text=True, cwd=ROOT)
+    assert r2.returncode != 0 and "RECIPE_SCALER_COLUMNS_DIFFER_FROM_LIST" in r2.stderr
+    scaler.write_text(scaler.read_text().replace('"zz@diff"', '"a@diff"'))
+    comb.write_text(json.dumps({"frozen_rule_decision": "CONTROL_RETAINED", "combined_result_sha256": "x"}))
+    r3 = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_consumer_recipe.py"), *map(str, args)], capture_output=True, text=True, cwd=ROOT)
+    assert r3.returncode != 0 and "RECIPE_COMBINATION_NOT_SELECTED" in r3.stderr

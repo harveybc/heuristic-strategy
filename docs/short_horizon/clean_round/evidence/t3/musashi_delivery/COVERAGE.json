@@ -1,0 +1,179 @@
+{
+  "done": 21,
+  "failed": 0,
+  "pending": 0,
+  "total": 21,
+  "failed_units": [],
+  "units": {
+    "t3_unit_01": {
+      "unit": "t3_unit_01",
+      "origin": "inflight",
+      "receipt": "/var/tmp/expert-guided-musashi-t3-relocated-20261023/ops/t3_unit_01.RESULT.json",
+      "receipt_sha256": "3b7c242e92732d50b4c4f70743ecd1a2afb4ec5e0a273941b16c80aa5f8f4e74",
+      "config_sha256": "3d91c17b4bbf915135fcbc14f23b5b58d57310301029250552239b6c307d4a1d",
+      "output": "/var/tmp/expert-guided-musashi-t3-relocated-20261023/out/t3_unit_01"
+    },
+    "t3_unit_11": {
+      "unit": "t3_unit_11",
+      "origin": "slow",
+      "receipt": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/ops/t3_unit_11.RESULT.json",
+      "receipt_sha256": "29f9ac016ff18c0426fdf4bdf9aeb6e5f81091214360d5c6e36c71339ba1fb76",
+      "config_sha256": "8382a3e8b11cc570f178b3fc018cfefbc0d7340c157f225d640680dddd5910a3",
+      "output": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/out/t3_unit_11"
+    },
+    "t3_unit_13": {
+      "unit": "t3_unit_13",
+      "origin": "slow",
+      "receipt": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/ops/t3_unit_13.RESULT.json",
+      "receipt_sha256": "0816d152e5e07ca6b8c2bf556b2540a3aab7e6b46b31e58b40d99f44b7280aa1",
+      "config_sha256": "8382a3e8b11cc570f178b3fc018cfefbc0d7340c157f225d640680dddd5910a3",
+      "output": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/out/t3_unit_13"
+    },
+    "t3_unit_03": {
+      "unit": "t3_unit_03",
+      "origin": "slow",
+      "receipt": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/ops/t3_unit_03.RESULT.json",
+      "receipt_sha256": "54ef98491d4657f9f9c6cbe40bbab714fccd4666c9a22ba9d1fac1a05835e210",
+      "config_sha256": "8382a3e8b11cc570f178b3fc018cfefbc0d7340c157f225d640680dddd5910a3",
+      "output": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/out/t3_unit_03"
+    },
+    "t3_unit_05": {
+      "unit": "t3_unit_05",
+      "origin": "slow",
+      "receipt": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/ops/t3_unit_05.RESULT.json",
+      "receipt_sha256": "9b2a4e89833264964c60561e32cdad0e3974d8ca67c66ac5df442384dbb15eb0",
+      "config_sha256": "8382a3e8b11cc570f178b3fc018cfefbc0d7340c157f225d640680dddd5910a3",
+      "output": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/out/t3_unit_05"
+    },
+    "t3_unit_09": {
+      "unit": "t3_unit_09",
+      "origin": "slow",
+      "receipt": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/ops/t3_unit_09.RESULT.json",
+      "receipt_sha256": "167d525b396831c3e56bd4a8c1fa712a7e93acb75bb09e84572c92357221200b",
+      "config_sha256": "8382a3e8b11cc570f178b3fc018cfefbc0d7340c157f225d640680dddd5910a3",
+      "output": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/out/t3_unit_09"
+    },
+    "t3_unit_07": {
+      "unit": "t3_unit_07",
+      "origin": "slow",
+      "receipt": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/ops/t3_unit_07.RESULT.json",
+      "receipt_sha256": "fe09a502dbd5e649066f7477bb2e967833597394a449b6b5ee35005d3f2cbbe7",
+      "config_sha256": "8382a3e8b11cc570f178b3fc018cfefbc0d7340c157f225d640680dddd5910a3",
+      "output": "/var/tmp/expert-guided-musashi-t3-parallel-slow-20261023/out/t3_unit_07"
+    },
+    "t3_unit_15": {
+      "unit": "t3_unit_15",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_15.RESULT.json",
+      "receipt_sha256": "13f370eaa3e7c56966aaec3c53dbd08f46b7bf9ca0951ec3399228d56cc5ef28",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_15"
+    },
+    "t3_unit_17": {
+      "unit": "t3_unit_17",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_17.RESULT.json",
+      "receipt_sha256": "1a6c28b6d1245a7e9700a0780a4af5ce64cfed85ca17d59f73869ffe30d943f9",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_17"
+    },
+    "t3_unit_19": {
+      "unit": "t3_unit_19",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_19.RESULT.json",
+      "receipt_sha256": "dbd298bf40f59e4665faf6f23af03359b1d0219ae151229ecbcf93996df8d1c0",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_19"
+    },
+    "t3_unit_21": {
+      "unit": "t3_unit_21",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_21.RESULT.json",
+      "receipt_sha256": "7cccb4434f0375da0b074f942c827f2dba3142cb1864bd95a4a243c8104ee236",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_21"
+    },
+    "t3_unit_23": {
+      "unit": "t3_unit_23",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_23.RESULT.json",
+      "receipt_sha256": "9d4007490f51f278f04730c02b16c196eb1a7e8db46629e04b106490579c3f71",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_23"
+    },
+    "t3_unit_25": {
+      "unit": "t3_unit_25",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_25.RESULT.json",
+      "receipt_sha256": "e5b7b52b36743fe183b6578aedf67881020ebec886205f6003b6b19cb05ff3fa",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_25"
+    },
+    "t3_unit_27": {
+      "unit": "t3_unit_27",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_27.RESULT.json",
+      "receipt_sha256": "461e1c7ca4e367dc16dd92178acf703c5a0b1f37a8b06e33dbac867bf0355501",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_27"
+    },
+    "t3_unit_29": {
+      "unit": "t3_unit_29",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_29.RESULT.json",
+      "receipt_sha256": "02defe99d68804d9140179da29503828fc8452e14060b49c0bb6b801a477b3af",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_29"
+    },
+    "t3_unit_31": {
+      "unit": "t3_unit_31",
+      "origin": "fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/ops/t3_unit_31.RESULT.json",
+      "receipt_sha256": "7240496c0de09d7fc55103e5e96b44cb223d39689a69e12e42118b8b9d5cf0e3",
+      "config_sha256": "83419a98f57a1b701345069845a17cc60f4ea181f8808ca8054a714c3222821f",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-parallel-fast-20261023/out/t3_unit_31"
+    },
+    "t3_unit_39": {
+      "unit": "t3_unit_39",
+      "origin": "tail_slow",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-slow-20261023/ops/t3_unit_39.RESULT.json",
+      "receipt_sha256": "3846b65814a20100f3d5f387cb410c1806af4786036f4c2c21c1a486c7f614b7",
+      "config_sha256": "52af12883fd757f88289f5e216fd7eebda943f8e7b6848a4ff80c4302ab53dc8",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-slow-20261023/out/t3_unit_39"
+    },
+    "t3_unit_41": {
+      "unit": "t3_unit_41",
+      "origin": "tail_slow",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-slow-20261023/ops/t3_unit_41.RESULT.json",
+      "receipt_sha256": "1347d28363ee34913b30ac6545079e79ffca3293c59c3889fc3cb710b5bae838",
+      "config_sha256": "52af12883fd757f88289f5e216fd7eebda943f8e7b6848a4ff80c4302ab53dc8",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-slow-20261023/out/t3_unit_41"
+    },
+    "t3_unit_33": {
+      "unit": "t3_unit_33",
+      "origin": "tail_fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-fast-20261023/ops/t3_unit_33.RESULT.json",
+      "receipt_sha256": "166aa4c4db7036bfc7baf03e36461a804dccebea4d468679b1b966ce4f83b470",
+      "config_sha256": "f2e22910de322a0b087301160fab907a54d2dfc31798878e754b33af4a1bfaf6",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-fast-20261023/out/t3_unit_33"
+    },
+    "t3_unit_35": {
+      "unit": "t3_unit_35",
+      "origin": "tail_fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-fast-20261023/ops/t3_unit_35.RESULT.json",
+      "receipt_sha256": "8559f8d675e5810f9d0ccad5bfcccfeec72a9df84e116757950b50d36b64bbf2",
+      "config_sha256": "f2e22910de322a0b087301160fab907a54d2dfc31798878e754b33af4a1bfaf6",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-fast-20261023/out/t3_unit_35"
+    },
+    "t3_unit_37": {
+      "unit": "t3_unit_37",
+      "origin": "tail_fast",
+      "receipt": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-fast-20261023/ops/t3_unit_37.RESULT.json",
+      "receipt_sha256": "4c3b347197ed96a5af6ed32f89f58f9914ba7118acd15d6b8f05591afcd97d8f",
+      "config_sha256": "f2e22910de322a0b087301160fab907a54d2dfc31798878e754b33af4a1bfaf6",
+      "output": "/mnt/windows/experiment-logs/shared-selection-e3m-t3-tail-fast-20261023/out/t3_unit_37"
+    }
+  },
+  "metrics_recomputed": false,
+  "scientific_selection": false
+}

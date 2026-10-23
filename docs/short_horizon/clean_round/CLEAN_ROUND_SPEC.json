@@ -257,14 +257,22 @@
    "evidence": "selection_v4/, INPUT_JUSTIFICATION_*, SKEW_RULE_AUDIT, witnesses closed"
   },
   "representation": {
-   "status": "PENDING_T3_V2",
+   "status": "DECIDED_T3_V2_COMBINATION_SELECTED",
    "covers": "extractor type per group (conv | pointwise | per_feature), grouping, regularization (T2)",
-   "evidence": "evidence/t3/T3_MANIFEST.json (t3v2_8875abf84a63: 43 units, profile-driven candidates and preregistered expectations) + T3_DECISION.json + combination unit C; a negative unit result also closes it"
+   "evidence": "evidence/t3/T3_DECISION.json (frozen per-group rule, 43 units: cot.eur -> per_feature, gmm/logret_1+rv_24+log_range -> pointwise, fracdiff/log_close -> pointwise; 22 groups keep conv; profile expectations held 9/17, reported only) + evidence/t3/musashi_delivery/COMBINATION_DECISION.json (unit C, COMBINATION_SELECTED: INNER_A 1.558 vs control 0.780, pooled seed std 0.725; gap 1.128 vs 1.195) + exact probe replay of 516 + 12 checkpoints and full trading replay of control and C in their original CPU contexts (Musashi)",
+   "caveats": "OBS_2024 (read once, development year, not a holdout): control -0.760, C -0.125 mean Sharpe; one C seed invalid under the activity rule (1.51 orders/week) and it is the only one positive in 2024; nothing is tuned on 2024; TEST closed"
   },
-  "note": "Musashi 2026-10-22: no global RELEASE of 'selection+encoding+grouping+extractors finished' while T3 is pending; T3 consumes the verified data candidate (no circular dependency); global acceptance needs T3 evidence and audit, not a positive profit",
+  "note": "No global RELEASE yet: the final joint audit (Musashi) and the owner's confirmation remain; the expert-guided clean round and the SAC-without-expert contrast are separate subsequent experiments on this same recipe.",
   "regularization": {
    "status": "DECIDED",
    "evidence": "evidence/t2/T2_VERIFY.json (8/8 authenticated against the peer receipts) + REGULARIZATION_DECISION.json (base, TIE_BREAK_2_SMALLER_GAP)"
+  },
+  "consumer_recipe": {
+   "status": "EMITTED",
+   "file": "CONSUMER_RECIPE.json",
+   "identity": "recipe_6f522eec4ffdacbc",
+   "sha256": "109e769003ea26d4f8dcd5b263a938d2261ce5b947131cbcc2b12b2ac4b1c343",
+   "note": "shared by both lanes; derived from unit C's sealed scaler, groups file and decisions; not a release"
   }
  }
 }

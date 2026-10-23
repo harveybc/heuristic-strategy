@@ -157,3 +157,29 @@ python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out D
   semillas, brecha no peor más allá de su dispersión, mismo soporte, tres semillas válidas; si no, el control se queda);
   una unidad de combinación confirma la suma de las elecciones. 43 unidades (22 Satoshi, 21 Musashi), ventana 13/2 y
   modelo de la ronda (2/2/16) fijos. `evidence/t3/`.
+
+## 11. 2026-10-23: T3 v2 cerrado (43 + C), representación decidida, receta de consumo compartida
+
+- **43 unidades completas**, 22 mías (4090) y 21 de Musashi (5090 y 4070 tras un traslado por presión de memoria,
+  sin cambios científicos); una unidad mía (36) se repitió completa tras un error de la GPU, con el intento caído
+  conservado aparte. Los 44 `E3M.json` (43 + C) están en `evidence/t3/results/` con el mismo soporte y las mismas
+  116 columnas; Musashi verificó mis 22 por su cuenta (`musashi_delivery/`).
+- **Decisión por grupo** (`T3_DECISION.json`, regla congelada; mi ejecución y la de Musashi dan el **mismo hash**
+  `edb331ef…`): `cot.eur` → un extractor por columna; `gmm/logret_1+rv_24+log_range` y `fracdiff/log_close` →
+  puntual; los otros 22 grupos conservan la convolución causal. Las expectativas del perfil T1 acertaron 9 de 17:
+  se reporta, no decide.
+- **Unidad C** (combinación de las tres elecciones; archivo de grupos `a9d878cf…`, idéntico al que emite mi
+  `combine`): entrenada por Musashi en la 5090; regla de combinación **SELECCIONADA** (Sharpe INNER_A 1.558 frente a
+  0.780 del control, dispersión agrupada 0.725; brecha 1.128 frente a 1.195). Reproducción exacta de sondas (516 + 12
+  checkpoints) y de las métricas de trading del control y de C en sus CPU originales (Musashi).
+- **2024, leído una vez, no es un holdout**: control −0.760, C −0.125 de Sharpe medio; la única semilla positiva de C
+  en 2024 es inválida por la regla de actividad (1.5 órdenes/semana) y no se presenta como ganadora. Nada se ajustó
+  sobre 2024; TEST cerrado.
+- **Receta de consumo compartida** `CONSUMER_RECIPE.json` (`tools/expert_guided_consumer_recipe.py`, derivada del
+  scaler sellado de C, del archivo de grupos y de las decisiones; rechaza columnas, grupos o digests que no
+  coincidan): columnas en orden con sus transformaciones, constantes TRAIN del escalador, grupos y tipo de extractor,
+  modelo y regularización, contrato de negocio, particiones e identidades. Es una descripción para los dos
+  consumidores, no una liberación.
+- **Lo que sigue**: solicitud final de auditoría conjunta (Musashi) y la palabra del propietario para `RELEASE.json`;
+  después, por separado, la ronda limpia guiada por el experto (mía) y el contraste SAC sin experto (Musashi) sobre
+  esta misma receta.
