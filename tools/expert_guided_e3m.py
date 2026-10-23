@@ -32,6 +32,7 @@ fewer models); INNER_B reported for all; 2024 read ONCE for the chosen. No TEST.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import math
 import sys
@@ -45,6 +46,7 @@ sys.path.insert(0, str(ROOT))
 from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
 from app.short_horizon.expert_guided import oracle as OR  # noqa: E402
+from app.short_horizon.expert_guided import signals as SG  # noqa: E402
 from app.short_horizon import zigzag as Z  # noqa: E402
 from tools.expert_guided_e0 import RATE_GRID, jsonable, ledger  # noqa: E402
 from tools.expert_guided_e1t import EXPERT_CFG, MUSASHI_CFG, STUDENT_CFG, Ctx, cat, pack, summary  # noqa: E402
@@ -267,6 +269,153 @@ class AuxTargets:
         return self._get(self.hold[side], bar, r)
 
 
+def forced_flat_bars(ds):
+    """Per bar: the last bar whose availability (start + 1 h) is at or before the forced flat of its weekly segment."""
+    v = ds.bars.index.as_unit("ns").asi8
+    n = len(v)
+    seg = ds.cal.assign(ds.bars.index)
+    ff = np.array([s.force_flat.value for s in ds.cal.segments], np.int64)
+    return np.array([int(np.searchsorted(v + DG.H_NS, ff[int(seg[b])], side="right")) - 1 if seg[b] >= 0 else n - 1
+                     for b in range(n)])
+
+
+class SignalLabels:
+    """Per-agent hindsight labels (docs/short_horizon/clean_round/EXPERT_SIGNAL_PER_AGENT.md rev 2; owner 2026-10-22;
+    Musashi's instructions 2026-10-22: a candidate experiment, not a certified expert). Training-only, never an input.
+      mode "zigzag"       every label as before (byte-identical default);
+      mode "opportunity"  flat rows: OPEN side d when opportunity_d >= theta_open and adverse_to_peak_d <= sl_max, NOP
+                          when neither side qualifies (both sides: the larger net opportunity; a tie is NOP); TP head =
+                          opportunity, SL head = adverse_to_peak (bounded as the other heads); positioned rows: CLOSE /
+                          HOLD by the declared closer rule on the order's OWN SL distance (hold_through | optimum);
+      mode "both"         OR with a fixed truth table: the ZigZag side wins when it names one, otherwise the signal's
+                          side, NOP only when neither names a side; closers CLOSE when either rule says so.
+    Availability (label_available_at): a row's label is used only when its horizon AND the ZigZag that defines it are
+    final inside the row's period: avail = max(end, support_end[end]) where support_end[end] is the confirmation bar
+    of the first optimal pivot at/after the horizon end (the price at the pivot bar is not proof that the hindsight
+    ZigZag was already stable there); censored when there is none. Censored rows are DROPPED, never filled."""
+    MODES = ("zigzag", "opportunity", "both")
+    RULES = ("hold_through", "optimum")
+    TP_BOUNDS, SL_BOUNDS = (0.25, 3.0), (0.5, 3.0)
+
+    def __init__(self, cx, mode="opportunity", closer_rule="hold_through", params=None):
+        if mode not in self.MODES:
+            raise ValueError(f"LABELS_MODE_UNKNOWN:{mode}")
+        if closer_rule not in self.RULES:
+            raise ValueError(f"CLOSER_RULE_UNKNOWN:{closer_rule}")
+        ds = cx.ds
+        self.mode, self.rule, self.p = mode, closer_rule, params or SG.SignalParams()
+        o, h, l, c = (ds.bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
+        self.c, self.sigma = c, np.asarray(ds.sigma, float)
+        v = ds.bars.index.as_unit("ns").asi8
+        n = len(c)
+        piv = [(int(i), 1 if k == Z.PEAK else -1, float(lv)) for i, k, lv in ds.pivots]
+        self.sig, self.hz = SG.hindsight_signals(o, h, l, c, self.sigma, piv, forced_flat_bars(ds), self.p)
+        self.open = {d: SG.opener_labels(self.sig, d, self.p) for d in (1, -1)}
+        sup = np.asarray(ds.support_end, np.int64)
+        self.avail_bar, self.avail_ns = {}, {}
+        for d in (1, -1):
+            end = np.asarray(self.hz[d]["bar"], np.int64)
+            se = np.where(end >= 0, sup[np.clip(end, 0, n - 1)], -1)
+            avail = np.where((end >= 0) & (se >= 0), np.maximum(end, se), -1)
+            self.avail_bar[d] = avail
+            self.avail_ns[d] = np.where(avail >= 0, v[np.clip(avail, 0, n - 1)] + DG.H_NS, np.iinfo(np.int64).max)
+        ends = {p: DG._utc_ns(e) for p, (s_, e) in ds.meta["periods"].items()}
+        self.row_end = np.array([ends.get(p, 0) for p in ds.period], np.int64)
+        self.n = {k: 0 for k in ("flat_used", "flat_censored", "flat_both_sides", "closer_used", "closer_censored",
+                                 "closer_signal_censored_exit_rule_only", "truncated_used")}
+
+    def available(self, bar, r, d) -> bool:
+        return bool(self.avail_ns[d][bar] <= self.row_end[r])
+
+    def flat_action(self, bar, r):
+        """(action, tp, sl) of the opener / NOP signal at a flat row; None when either side is not final inside the
+        row's period (NOP needs both sides)."""
+        if not (self.available(bar, r, 1) and self.available(bar, r, -1)):
+            return None
+        L, S = self.open[1][bar], self.open[-1][bar]
+        if not (np.isfinite(L) and np.isfinite(S)):
+            return None
+        if L == 0 and S == 0:
+            return E.HOLD, 1.5, 2.0
+        if L == 1 and S == 1:
+            self.n["flat_both_sides"] += 1
+            oL, oS = self.sig["opportunity"][1][bar], self.sig["opportunity"][-1][bar]
+            if oL == oS:
+                return E.HOLD, 1.5, 2.0
+            d = 1 if oL > oS else -1
+        else:
+            d = 1 if L == 1 else -1
+        if self.sig["truncated"][d][bar] == 1:
+            self.n["truncated_used"] += 1
+        tp = float(np.clip(self.sig["opportunity"][d][bar], *self.TP_BOUNDS))
+        sl = float(np.clip(self.sig["adverse_to_peak"][d][bar], *self.SL_BOUNDS))
+        return (E.LONG if d > 0 else E.SHORT), tp, sl
+
+    def positioned_action(self, bar, r, info):
+        """E.CLOSE / E.HOLD by the declared closer rule for the open order (its own SL distance in causal sigma);
+        None when the signal is censored (horizon not final inside the period, or no pivot inside under `optimum`)."""
+        d, entry, sl, tp, ffb = info
+        if not self.available(bar, r, d):
+            return None
+        s = float(self.sigma[bar + 1])
+        if not np.isfinite(s) or s <= 0:
+            return None
+        sl_dist = d * (self.c[bar] - sl) / s
+        g, adv_hold = self.sig["hold_gain"][d][bar], self.sig["hold_adverse"][d][bar]
+        if not (np.isfinite(g) and np.isfinite(adv_hold)):
+            return None
+        close = bool(g < self.p.theta_close or adv_hold >= sl_dist)
+        if self.rule == "optimum":
+            nxt = self.sig["next_adverse_inside"][d][bar]
+            if not np.isfinite(nxt):
+                return None
+            close = close or nxt == 1
+        return E.CLOSE if close else E.HOLD
+
+    def profile(self, ds, period="TRAIN"):
+        """Label properties on the period's eligible rows taken as flat origins (they describe labels, not learning)."""
+        rows = ds.rows(period)
+        acts, raw_tp, trunc = [], [], 0
+        for r in rows:
+            b = int(ds.row_bar[r])
+            fa = self.flat_action(b, r)
+            if fa is None:
+                acts.append(None)
+                continue
+            acts.append(fa[0])
+            if fa[0] in (E.LONG, E.SHORT):
+                d = 1 if fa[0] == E.LONG else -1
+                raw_tp.append(float(self.sig["opportunity"][d][b]))
+                trunc += int(self.sig["truncated"][d][b] == 1)
+        raw = np.array(raw_tp, float)
+        return {"period": period, "rows": len(acts), "censored": sum(a is None for a in acts),
+                "open_long": sum(a == E.LONG for a in acts), "open_short": sum(a == E.SHORT for a in acts),
+                "nop": sum(a == E.HOLD for a in acts), "truncated_among_opens": trunc,
+                "opportunity_raw_p50_p95": [float(np.percentile(raw, 50)), float(np.percentile(raw, 95))] if len(raw) else None,
+                "tp_head_saturated_share": float(np.mean((raw < self.TP_BOUNDS[0]) | (raw > self.TP_BOUNDS[1]))) if len(raw) else None}
+
+    def describe(self, ds):
+        return {"mode": self.mode, "closer_rule": self.rule, "params": dataclasses.asdict(self.p),
+                "tp_head": "opportunity (sigma, net of cost) bounded " + str(self.TP_BOUNDS),
+                "sl_head": "adverse_to_peak (sigma) bounded " + str(self.SL_BOUNDS),
+                "availability_rule": "max(horizon end, confirmation of the first optimal pivot at/after it) + 1 h <= period end; censored rows dropped",
+                "both_truth_table": "ZigZag side if it names one; else signal side; NOP only when neither; closers CLOSE if either rule",
+                "counts": self.n, "profile_train": self.profile(ds, "TRAIN")}
+
+
+def _signal_flat(labels, mode, bar, r, lab):
+    """Flat-row label(s) under the signal modes; None when the row is dropped (censored signal)."""
+    if mode == "both" and lab[0] in (E.LONG, E.SHORT):
+        labels.n["flat_used"] += 1
+        return [lab]                                        # the ZigZag side wins when it names one
+    fa = labels.flat_action(bar, r)
+    if fa is None:
+        labels.n["flat_censored"] += 1
+        return None
+    labels.n["flat_used"] += 1
+    return [fa]
+
+
 def merge_sets(*parts):
     out = {}
     for D in parts:
@@ -275,14 +424,19 @@ def merge_sets(*parts):
     return out
 
 
-def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, tracks=None, track=None, aux=None):
+def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, tracks=None, track=None, aux=None,
+               labels=None, label_mode="zigzag"):
     """vis rows -> {module: (X, y, R, Rm)}; flat labels from the expert's issued action (round 0) or the oracle,
     positioned labels from ``exit_label``. With ``final_before_bar`` (refit sweep) a row is used only when its label
     is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows).
     ``mask`` (agent-state ablation): the state slots fed to the network; labels and partitions use the real state.
     ``track`` (round 0, from_expert): the demonstrator that drove ``vis``; its flat rows are kept only where its own
     label support is inside the period. ``tracks`` (DAgger rounds): every flat row is labelled by EACH track whose
-    support is valid there (multi-expert consensus); positioned rows keep the single exit-rule label."""
+    support is valid there (multi-expert consensus); positioned rows keep the single exit-rule label.
+    ``labels`` / ``label_mode`` (per-agent signal, rev 2): "zigzag" leaves every label as above; "opportunity" and
+    "both" relabel flat rows by ``SignalLabels.flat_action`` and positioned rows by the declared closer rule (see
+    ``SignalLabels``); a censored signal drops the row under "opportunity" and leaves the exit rule alone under "both"."""
+    use_sig = labels is not None and label_mode != "zigzag"
     acc = {m: ([], [], [], []) for m in MODULES[variant]}
     for r, bar, st, a_exp, tp_exp, sl_exp, info in vis:
         if final_before_bar is not None:
@@ -295,11 +449,28 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
                 if se < 0 or se >= final_before_bar:
                     continue
         if info is not None:
-            labs = [((E.CLOSE if exit_label(cx, bar, info) else E.HOLD), 1.5, 2.0)]
+            ex = E.CLOSE if exit_label(cx, bar, info) else E.HOLD
+            if use_sig:
+                a_sig = labels.positioned_action(bar, r, info)
+                if label_mode == "opportunity":
+                    if a_sig is None:
+                        labels.n["closer_censored"] += 1
+                        continue
+                    ex = a_sig
+                elif a_sig is None:
+                    labels.n["closer_signal_censored_exit_rule_only"] += 1
+                else:
+                    ex = E.CLOSE if (ex == E.CLOSE or a_sig == E.CLOSE) else E.HOLD
+                labels.n["closer_used"] += 1
+            labs = [(ex, 1.5, 2.0)]
         elif from_expert:
             if track is not None and not track.valid(bar, r):
                 continue
             labs = [(a_exp, float(np.clip(tp_exp, 0.25, 3.0)), float(np.clip(sl_exp, 0.5, 3.0)))]
+            if use_sig:
+                labs = _signal_flat(labels, label_mode, bar, r, labs[0])
+                if labs is None:
+                    continue
         else:
             labs = []
             for orc in ([None] if tracks is None else [t for t in tracks if t.valid(bar, r)]):
@@ -308,6 +479,8 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
                 if a in (E.LONG, E.SHORT) and int(st[0]) != 0:
                     a = E.HOLD                       # positioned rows are labelled by the exit rule only
                 labs.append((a, tp, sl))
+            if use_sig:
+                labs = [x for lab in labs for x in (_signal_flat(labels, label_mode, bar, r, lab) or [])]
         for a, tp, sl in labs:
             for m, (y, is_open) in labels_for(variant, st, a).items():
                 X, Y, R, Rm = acc[m]
@@ -475,8 +648,12 @@ def run(a):
                 names.append(g); idx.append(ii); gu.append(int(gspec.get("units", {}).get(g, a.branch or a.units)))
         if sorted(i for g in idx for i in g) != list(range(nf)):
             raise SystemExit("E3M_GROUPS_DO_NOT_PARTITION_THE_TENSOR")
-        ARCH.update(groups=idx, group_units=gu, group_names=names)
+        gk = [str(gspec.get("kinds", {}).get(g, "conv")) for g in names]     # T3: extractor type per group (conv | pointwise)
+        ARCH.update(groups=idx, group_units=gu, group_names=names, group_kinds=gk)
     AUX = AuxTargets(cx) if a.aux_targets else None
+    LMODE = a.labels
+    LABELS = (SignalLabels(cx, a.labels, a.closer_rule, SG.SignalParams(theta_open=a.theta_open, theta_close=a.theta_close))
+              if a.labels != "zigzag" else None)
     tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
                                   for d in []] + [parse_track(cx, d) for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
@@ -494,13 +671,14 @@ def run(a):
            scaling=a.scaling, split_contract=ds.meta["split_contract"], agent_state=agent_state, verify=verify,
            experts=[t.name for t in tracks], window=[WIN_E, int(ds.meta["input_contract"]["stride_rows"])],
            exec_contract=a.exec_contract, aux_targets=bool(a.aux_targets), min_orders_per_week=SCFG.min_orders_per_week,
-           extractor_groups=ARCH.get("group_names"),
+           extractor_groups=ARCH.get("group_names"), labels=a.labels, closer_rule=a.closer_rule if LABELS else None,
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
     scaler_path = DG.write_scaler(out, ds, rung="E3M", agent_state=a.agent_state, split_contract=a.split_contract)
     res = {"exec_contract": a.exec_contract, "min_orders_per_week": SCFG.min_orders_per_week, "aux_targets": ({"opportunity_at_open": "best excursion before the optimal pivot (sigma, net of cost)",
                                                               "hold_gain_at_close": "best further gain vs closing now (sigma)",
                                                               "bound": AuxTargets.BOUND, "horizon": "next optimal pivot, <= 72 bars, <= forced flat"}
                                                              if a.aux_targets else None),
+           "labels": LABELS.describe(ds) if LABELS else {"mode": "zigzag"},
            "meta": ds.meta, "arch": ARCH, "params": params, "window": {"observations": WIN_E, "stride_rows": int(ds.meta["input_contract"]["stride_rows"])},
            "experts": [{"name": t.name, "primary": t.primary, "pivots": t.n_pivots} for t in tracks], "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
@@ -548,10 +726,10 @@ def run(a):
     frozen = {}
     for v in variants:
         for seed in SEEDS:
-            D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX),
-                              *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX) for t in tracks[1:]])
-            D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask, aux=AUX),
-                              *[build_sets(v, extra_vis[(t.name, "INNER_A")], cx, True, mask=mask, track=t, aux=AUX) for t in tracks[1:]])
+            D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE),
+                              *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE) for t in tracks[1:]])
+            D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE),
+                              *[build_sets(v, extra_vis[(t.name, "INNER_A")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE) for t in tracks[1:]])
             pols, infos = {}, {}
             comp = None
             for rnd in range(ROUNDS + 1):
@@ -559,9 +737,9 @@ def run(a):
                     _, vtr = collect(cx, "TRAIN", comp(cx), SCFG)
                     _, vin = collect(cx, "INNER_A", comp(cx), SCFG)
                     multi = tracks if len(tracks) > 1 else None
-                    for m, D in build_sets(v, vtr, cx, False, mask=mask, tracks=multi, aux=AUX).items():
+                    for m, D in build_sets(v, vtr, cx, False, mask=mask, tracks=multi, aux=AUX, labels=LABELS, label_mode=LMODE).items():
                         D_tr[m] = cat(D_tr[m], D) if m in D_tr else D
-                    for m, D in build_sets(v, vin, cx, False, mask=mask, tracks=multi, aux=AUX).items():
+                    for m, D in build_sets(v, vin, cx, False, mask=mask, tracks=multi, aux=AUX, labels=LABELS, label_mode=LMODE).items():
                         D_in[m] = cat(D_in[m], D) if m in D_in else D
                 for m in MODS[v]:
                     if m not in D_tr or m not in D_in or len(np.unique(D_tr[m][1])) < 2:
@@ -660,6 +838,13 @@ def build_parser():
                          "for demonstrations, DAgger rollouts, arbiter choice and every reported period")
     ap.add_argument("--min-orders-per-week", type=float, default=None, help="activity rule for valid (default: the env's inherited 3.0; owner 2026-10-22: 2.0)")
     ap.add_argument("--aux-targets", action="store_true", help="FULL only: hindsight opportunity (openers) and hold-gain (closers) heads")
+    ap.add_argument("--labels", choices=list(SignalLabels.MODES), default="zigzag",
+                    help="training labels: zigzag (the expert's pivots, unchanged default), opportunity (per-agent hindsight "
+                         "signal rev 2: openers by opportunity/adverse, closers by --closer-rule on the order's own SL), both (OR, fixed truth table)")
+    ap.add_argument("--closer-rule", choices=list(SignalLabels.RULES), default="hold_through",
+                    help="closer counterfactual for --labels opportunity|both: hold_through (default) or optimum (declared contrast)")
+    ap.add_argument("--theta-open", type=float, default=SG.SignalParams.theta_open, help="minimum net opportunity (sigma) to label an entry")
+    ap.add_argument("--theta-close", type=float, default=SG.SignalParams.theta_close, help="further gain (sigma) below which closing now is right")
     ap.add_argument("--extra-experts", default="", help="comma list of ZigZag DEPTHS added as training-only demonstrators "
                     "(the replicated MetaTrader Deviation test is inert: pivots depend on Depth and Backstep only)")
     ap.add_argument("--eligible-from", default=None, help="shared-support option: rows before this UTC date are ineligible in every arm (matched comparisons)")

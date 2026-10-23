@@ -116,3 +116,13 @@ python tools/expert_guided_clean_round.py emit   --spec … --stage B --winner-f
 python tools/expert_guided_input_justification.py --feature-list … --catalog … --selection-dir … --store … --out …
 python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out DEMONSTRATORS.json
 ```
+
+## 8. 2026-10-23: instrucciones de Musashi integradas (sin lanzar nada)
+
+| instrucción | estado |
+| --- | --- |
+| señal rev 2: preparar integración y pruebas sin entrenar | hecho: E3-M `--labels zigzag\|opportunity\|both` + `--closer-rule`, disponibilidad por confirmación del pivote, horizonte de una barra válido, perfil recalculado; `EXPERT_SIGNAL_PER_AGENT.md` rev 2.1 §7 |
+| T2 con `--split-contract consolidated` explícito | hecho en mi copia de la cola y en `T2_UNITS_2026_10_23.json` (predictor, rama de respuesta): 8 unidades tipadas con comando efectivo, identidad y campos esperados; el resultado NO es comparable con el diagnóstico v3 (dev3y) |
+| regla de regularización ejecutable | hecho: `CLEAN_ROUND_SPEC.json` lleva `candidates` {base, strong} y la regla no dominada con desempate declarado; `tools/expert_guided_clean_round.py regularize --results <T2 out> --out REGULARIZATION_DECISION.json [--apply]` la aplica (sólo brazos `agent_state=none`, soporte común verificado, `OBS_2024` jamás leído; `DEFAULT_BY_VALIDITY` nunca se aplica); pruebas con dominancia, desempate, invalidez y soporte distinto |
+| manifiesto T3 con dependencia de T2 y reparto sin duplicados | hecho: `tools/expert_guided_t3_manifest.py emit` → `evidence/t3/T3_MANIFEST.json` (26 unidades: control + 25 grupos de la lista estricta v4; ids estables por orden del archivo de grupos; impares Musashi / pares + control Satoshi; variante por grupo: `pointwise` para calendario/eventos/COT/diarios/factores/fuerza y grupos de una columna, `per_feature` para el resto); `queue --decision REGULARIZATION_DECISION.json` se niega sin la decisión T2; extractor `pointwise` (kernel 1) implementado en el tronco con prueba de no mezcla temporal |
+| no declarar el conjunto terminado antes de T3 y auditoría | hecho: `release_states` en el spec separa `data_features` (CANDIDATE_VERIFIED) de `representation` (PENDING_T3); `RELEASE.json` sigue sin escribirse |

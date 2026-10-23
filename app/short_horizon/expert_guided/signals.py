@@ -89,7 +89,7 @@ def hindsight_signals(o, h, l, c, sigma, pivots, flat_bar, p: SignalParams = Sig
             cands = {"pivot": int(nxt_fav[d][b]), "cap": b + p.max_bars, "flat": int(flat[b]), "end": n - 1}
             reason = min(cands, key=lambda k: (cands[k], ("pivot", "flat", "cap", "end").index(k)))
             end = cands[reason]
-            if end <= b + 1:
+            if end <= b:                     # rev 2.1 (auditor 2026-10-22): a ONE-bar horizon (end == b + 1) is a valid window
                 continue
             hz[d]["bar"][b], hz[d]["reason"][b] = end, reason
             hh, ll = h[b + 1:end + 1], l[b + 1:end + 1]

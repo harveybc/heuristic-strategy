@@ -43,8 +43,11 @@ class TemporalTrunk(nn.Module):
     ``depth`` number of core convs after the fusion (1 = the registered structure; each extra conv doubles the
     dilation: 8, 16, ...). Defaults reproduce the u-design exactly, including the state_dict names."""
 
+    GROUP_KINDS = ("conv", "pointwise")
+
     def __init__(self, n_feat: int, units: int = 2, dropout: float = 0.1, branch: int | None = None,
-                 core: int | None = None, depth: int = 1, groups: list | None = None, group_units: list | None = None):
+                 core: int | None = None, depth: int = 1, groups: list | None = None, group_units: list | None = None,
+                 group_kinds: list | None = None):
         super().__init__()
         b = units if branch is None else branch
         c = units if core is None else core
@@ -65,8 +68,15 @@ class TemporalTrunk(nn.Module):
             self.groups = [list(map(int, g)) for g in groups]
             for k, g in enumerate(self.groups):
                 self.register_buffer(f"gidx{k}", torch.tensor(g, dtype=torch.long), persistent=False)
-            self.branch = nn.ModuleList([CausalConv1d(len(g), u, KERNEL, DILATIONS[0]) for g, u in zip(self.groups, gu)])
-            self.group_units = gu
+            # extractor TYPE per group (T3 contrast, 2026-10-23): "conv" = the causal kernel-3 branch (default);
+            # "pointwise" = kernel 1, a per-bar linear map with NO temporal mixing inside the extractor (identity-like
+            # branch for daily / COT / calendar inputs); temporal context then enters only through the shared fusion/core
+            gk = ["conv"] * len(groups) if group_kinds is None else [str(k) for k in group_kinds]
+            if len(gk) != len(groups) or any(k not in self.GROUP_KINDS for k in gk):
+                raise ValueError("TRUNK_GROUP_KINDS_INVALID")
+            self.branch = nn.ModuleList([CausalConv1d(len(g), u, KERNEL if k == "conv" else 1, DILATIONS[0])
+                                         for g, u, k in zip(self.groups, gu, gk)])
+            self.group_units, self.group_kinds = gu, gk
             fused_in = sum(gu)
         self.drop = nn.Dropout(dropout)
         self.fuse = CausalConv1d(fused_in, c, KERNEL, DILATIONS[1])
@@ -96,12 +106,12 @@ class TemporalPolicyNet(nn.Module):
     def __init__(self, n_feat: int, win: int, n_cls: int, n_reg: int = 0, n_state: int = 0, units: int = 2,
                  dropout: float = 0.1, reg_bounds=((0.25, 3.0), (0.5, 3.0)), branch: int | None = None,
                  core: int | None = None, depth: int = 1, head: int = 0, groups: list | None = None,
-                 group_units: list | None = None, group_names: list | None = None):
+                 group_units: list | None = None, group_names: list | None = None, group_kinds: list | None = None):
         super().__init__()
         self.n_feat, self.win, self.n_state = n_feat, win, n_state
         self.group_names = group_names                # documentation only (which family each extractor reads)
         self.trunk = TemporalTrunk(n_feat, units, dropout, branch=branch, core=core, depth=depth, groups=groups,
-                                   group_units=group_units)
+                                   group_units=group_units, group_kinds=group_kinds)
         d = self.trunk.out_dim + n_state
         self.head = head
         if head:                                 # optional hidden head layer (ladder stage "heads"); 0 = registered

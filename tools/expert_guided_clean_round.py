@@ -47,14 +47,17 @@ def receptive_field(depth: int) -> int:
 
 
 def load_groups(path, cols):
+    """(indices, units, names, kinds) of the groups file matched to the list; ``kinds`` = extractor type per group
+    ("conv" default | "pointwise", the T3 contrast)."""
     g = json.loads(Path(path).read_text())
-    idx, units, names = [], [], []
+    idx, units, names, kinds = [], [], [], []
     base = [c.split("@")[0] for c in cols]
     for name, members in g["groups"].items():
         ii = [base.index(m.split("@")[0]) for m in members if m.split("@")[0] in base]
         if ii:
             idx.append(ii), units.append(int(g.get("units", {}).get(name, 2))), names.append(name)
-    return idx, units, names
+            kinds.append(str(g.get("kinds", {}).get(name, "conv")))
+    return idx, units, names, kinds
 
 
 def arm_params(arm, spec, cols):
@@ -62,8 +65,8 @@ def arm_params(arm, spec, cols):
     m = spec["model"]
     kw = dict(units=m["units"], core=m.get("core"), depth=m["depth"], head=m["head"])
     if arm["extractor"] == "per_family":
-        idx, units, names = load_groups(arm["groups"], cols)
-        kw.update(groups=idx, group_units=units, group_names=names)
+        idx, units, names, kinds = load_groups(arm["groups"], cols)
+        kw.update(groups=idx, group_units=units, group_names=names, group_kinds=kinds)
     win = arm["window"][0]
     return {mod: int(sum(p.numel() for p in TemporalPolicyNet(len(cols), win, nc, n_reg=nr, n_state=9, **kw).parameters()))
             for mod, (nc, nr) in E3M_MODULES.items()}
@@ -133,7 +136,7 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
                 if not a.get("groups") or not Path(a["groups"]).exists():
                     errs.append(f"GROUPS_FILE_MISSING:{tag}")
                 else:
-                    idx, units, _ = load_groups(a["groups"], cols)
+                    idx, units, _, _ = load_groups(a["groups"], cols)
                     if sorted(i for g in idx for i in g) != list(range(len(cols))):
                         errs.append(f"GROUPS_DO_NOT_PARTITION_LIST:{tag}")
                     if max(units) > lim["max_extractor_units"]:
@@ -242,6 +245,95 @@ def cmd_decide(a):
     print(json.dumps(doc, indent=1))
 
 
+REG_RULE = ("Regularization from the T2 gap diagnostic on the corrected store with the v4 lists (peer worker; consolidated "
+            "contract, inner block 2023H2; replay contract; >= 2 orders/week): per list, among arms with agent_state none whose "
+            "three seeds are all valid and whose TRAIN / INNER_A support hashes match across the compared settings, each "
+            "setting's vector = (INNER_A Sharpe seed-mean UP, TRAIN-INNER_A Sharpe gap DOWN, INNER_A Sharpe seed-std DOWN, "
+            "INNER_A max drawdown % DOWN). A setting is dominated when another is at least as good on every component of every "
+            "list and strictly better on at least one. Tie-break among non-dominated settings, declared before any result is "
+            "read: (1) the higher mean INNER_A Sharpe across lists when the difference exceeds the pooled seed std, (2) the "
+            "smaller mean gap, (3) base (the control). A setting with no valid list is excluded; with no valid setting at all "
+            "the answer is base by default (DEFAULT_BY_VALIDITY) and the round is not released on it. OBS_2024 is never read.")
+
+
+def _arm_vector(e: dict):
+    """(sharpe_mean, gap_mean, sharpe_seed_std, dd_mean, all_valid, supports) of one E3M.json; INNER_A / TRAIN only."""
+    tr = e["trials"]["FULL"]
+    sh = [tr[s]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in tr]
+    gap = [tr[s]["trading"]["TRAIN"]["sharpe_daily_sqrt365"] - tr[s]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in tr]
+    dd = [tr[s]["trading"]["INNER_A"]["max_drawdown_pct"] for s in tr]
+    import numpy as np
+    return {"inner_a_sharpe_mean": float(np.mean(sh)), "gap_mean": float(np.mean(gap)), "sharpe_seed_std": float(np.std(sh)),
+            "inner_a_dd_pct_mean": float(np.mean(dd)), "all_valid": bool(e["decision"]["means"]["FULL"]["all_valid"]),
+            "n_seeds": len(tr), "support": {p: e["meta"]["support_hash"][p] for p in ("TRAIN", "INNER_A")}}
+
+
+def cmd_regularize(a):
+    """Apply REG_RULE to the T2 arms (results/gap_<list>_none_<setting>/E3M.json); --apply writes the choice into the spec."""
+    import numpy as np
+    spec = json.loads(Path(a.spec).read_text())
+    cands = spec["regularization"]["candidates"]
+    lists = a.lists.split(",")
+    table, vec = {}, {s: {} for s in cands}
+    for lst in lists:
+        for s in cands:
+            f = Path(a.results) / f"gap_{lst}_none_{s}" / "E3M.json"
+            if not f.exists():
+                raise SystemExit(f"ARM_NOT_FINISHED:gap_{lst}_none_{s}")
+            e = json.loads(f.read_text())
+            if e["agent_state"]["mode"] != "none":
+                raise SystemExit(f"ARM_AGENT_STATE:{lst}:{s}:{e['agent_state']['mode']}")
+            if e["split_contract"]["arm"] != spec["split_contract"]:
+                raise SystemExit(f"ARM_CONTRACT:{lst}:{s}:{e['split_contract']['arm']}")
+            if e.get("exec_contract") != spec["exec_contract"] or float(e.get("min_orders_per_week", -1)) != float(spec["min_orders_per_week"]):
+                raise SystemExit(f"ARM_BUSINESS_RULES:{lst}:{s}")
+            table[(lst, s)] = _arm_vector(e)
+        sup = {s: table[(lst, s)]["support"] for s in cands}
+        if len({json.dumps(v, sort_keys=True) for v in sup.values()}) != 1:
+            raise SystemExit(f"SUPPORT_MISMATCH:{lst}:{sup}")
+    valid_lists = {s: [l for l in lists if table[(l, s)]["all_valid"]] for s in cands}
+    common = [l for l in lists if all(table[(l, s)]["all_valid"] for s in cands)]
+    doc = {"rule": REG_RULE, "lists": lists, "candidates": cands,
+           "arms": {f"{l}:{s}": {k: v for k, v in table[(l, s)].items()} for (l, s) in table},
+           "valid_lists": valid_lists, "compared_lists": common}
+    if not common:
+        chosen, how = "base", "DEFAULT_BY_VALIDITY"
+    else:
+        for s in cands:
+            vec[s] = {l: (table[(l, s)]["inner_a_sharpe_mean"], -table[(l, s)]["gap_mean"], -table[(l, s)]["sharpe_seed_std"],
+                          -table[(l, s)]["inner_a_dd_pct_mean"]) for l in common}
+
+        def dominates(t, s):
+            ge = all(vec[t][l][k] >= vec[s][l][k] for l in common for k in range(4))
+            gt = any(vec[t][l][k] > vec[s][l][k] for l in common for k in range(4))
+            return ge and gt
+        nd = [s for s in cands if not any(dominates(t, s) for t in cands if t != s)]
+        doc["non_dominated"] = nd
+        if len(nd) == 1:
+            chosen, how = nd[0], "NON_DOMINATED_UNIQUE"
+        else:
+            ms = {s: float(np.mean([table[(l, s)]["inner_a_sharpe_mean"] for l in common])) for s in nd}
+            pooled = float(np.sqrt(np.mean([table[(l, s)]["sharpe_seed_std"] ** 2 for l in common for s in nd])))
+            best = max(nd, key=lambda s: ms[s])
+            if all(ms[best] - ms[s] > pooled for s in nd if s != best):
+                chosen, how = best, f"TIE_BREAK_1_SHARPE_BEYOND_POOLED_SEED_STD({pooled:.3f})"
+            else:
+                mg = {s: float(np.mean([table[(l, s)]["gap_mean"] for l in common])) for s in nd}
+                lo = min(mg.values())
+                mins = [s for s in nd if mg[s] == lo]
+                chosen, how = (mins[0], "TIE_BREAK_2_SMALLER_GAP") if len(mins) == 1 else ("base", "TIE_BREAK_3_BASE_CONTROL")
+    doc.update(chosen=chosen, how=how, values=cands[chosen], never_read=["OBS_2024", "INNER_B", "TEST"])
+    Path(a.out).write_text(json.dumps(doc, indent=1))
+    print(json.dumps({k: doc[k] for k in ("chosen", "how", "values", "compared_lists")}, indent=1))
+    if a.apply:
+        if how == "DEFAULT_BY_VALIDITY":
+            raise SystemExit("REGULARIZATION_DEFAULT_BY_VALIDITY_NOT_APPLIED")
+        spec["regularization"].update(dropout=cands[chosen]["dropout"], wd=cands[chosen]["wd"], chosen=chosen,
+                                      source=f"T2 decision {Path(a.out).name} ({how}); sha256 {sha(a.out)[:16]}", status="DECIDED")
+        Path(a.spec).write_text(json.dumps(spec, indent=1) + "\n")
+        print(f"spec updated: {a.spec}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -250,8 +342,11 @@ def main():
     e.add_argument("--winner-from", default=None); e.add_argument("--out", required=True)
     d = sub.add_parser("decide"); d.add_argument("--spec", required=True); d.add_argument("--stage", required=True)
     d.add_argument("--results", required=True); d.add_argument("--out", required=True)
+    r = sub.add_parser("regularize", help="apply REG_RULE to the T2 arms"); r.add_argument("--spec", required=True)
+    r.add_argument("--results", required=True); r.add_argument("--out", required=True)
+    r.add_argument("--lists", default="core15,shortlist_strict"); r.add_argument("--apply", action="store_true")
     a = ap.parse_args()
-    sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide}[a.cmd](a) or 0)
+    sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide, "regularize": cmd_regularize}[a.cmd](a) or 0)
 
 
 if __name__ == "__main__":

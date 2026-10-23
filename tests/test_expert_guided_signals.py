@@ -79,3 +79,18 @@ def test_optimum_closer_rule_closes_when_an_adverse_pivot_lies_inside_the_window
     import pytest
     with pytest.raises(ValueError, match="CLOSER_RULE_UNKNOWN"):
         S.closer_labels(sig, 1, sl, p, "bogus")
+
+
+def test_one_bar_horizon_is_a_valid_window_and_end_of_data_has_none():
+    """Auditor's edge cases (2026-10-22): a horizon of exactly one bar (the favourable pivot or the cap right after the
+    decision bar) is defined over that single bar; the last bars, with no bar after them, carry no signal."""
+    o, h, l, c, sigma = _path()
+    p = S.SignalParams(max_bars=72, cost_sigma=0.0)
+    sig, H = S.hindsight_signals(o, h, l, c, sigma, [(1, 1, 1.0007), (2, -1, 0.9988)], flat_bar=np.full(len(c), 50), p=p)
+    assert H[1]["bar"][0] == 1 and H[1]["reason"][0] == "pivot"                       # the peak is the very next bar
+    assert np.isclose(sig["opportunity"][1][0], (1.0007 - 1.0000) / 0.001) and sig["bars_to_peak"][1][0] == 1
+    assert np.isclose(sig["adverse_to_peak"][1][0], max(1.0000 - 1.0003, 0.0) / 0.001)
+    sig2, H2 = S.hindsight_signals(o, h, l, c, sigma, [(7, 1, 0.9972)], flat_bar=np.full(len(c), 50), p=S.SignalParams(max_bars=1, cost_sigma=0.0))
+    assert H2[1]["reason"][0] == "cap" and sig2["truncated"][1][0] == 1 and np.isclose(sig2["opportunity"][1][0], (1.0007 - 1.0000) / 0.001)
+    assert np.isnan(sig2["next_adverse_inside"][1][0])                                  # no pivot inside a 1-bar window
+    assert np.isnan(sig["opportunity"][1][len(c) - 1]) and np.isnan(sig["opportunity"][1][len(c) - 2])

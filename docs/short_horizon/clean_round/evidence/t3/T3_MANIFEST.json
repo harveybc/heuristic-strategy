@@ -1,0 +1,617 @@
+{
+ "identity": "t3_7a056b35acd8",
+ "fixed": {
+  "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+  "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1",
+  "groups_file": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/evidence/FEATURE_GROUPS_shortlist_strict.json",
+  "groups_sha256": "33ac83c1c524e3f1e2677515a5aaa6e412e0053197a3a85bf1bc40650839f3bb",
+  "model": {
+   "units": 2,
+   "depth": 2,
+   "head": 16,
+   "core": null
+  },
+  "window": [
+   24,
+   1
+  ],
+  "agent_state": "none",
+  "scaling": "fixed_train",
+  "nonstationary": "diff",
+  "split_contract": "consolidated",
+  "exec_contract": "sac",
+  "min_orders_per_week": 2.0,
+  "seeds": 3,
+  "max_epochs": 1000,
+  "regularization": {
+   "source": "REGULARIZATION_DECISION.json (T2)",
+   "status": "DEPENDENCY",
+   "values": null
+  }
+ },
+ "assignment": {
+  "musashi": "odd ids",
+  "satoshi": "even ids and the control"
+ },
+ "decision": "per unit vs the control on the inner block (same TRAIN/INNER_A support hashes): INNER_A Sharpe seed-mean, TRAIN-INNER_A gap, seed std, max DD and parameters per branch / fusion / core reported; a unit closes with a positive OR a negative result; no type is declared optimal for SAC from this proxy",
+ "axes_not_varied": [
+  "representation parent/components (selection)",
+  "encoding probabilities/one-hot (selection)",
+  "columns of the group",
+  "window",
+  "regularization (T2 decision, shared by every unit)"
+ ],
+ "units": [
+  {
+   "id": 0,
+   "group": null,
+   "kind": "conv",
+   "role": "control",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_00.json",
+   "groups_file_sha256": "3bb7fb7f894f7ac7223b32b0b6ab384d5eed11a4ec6782a830e89cf6bb25d203",
+   "worker": "satoshi",
+   "name": "t3_unit_00_control",
+   "identity": "985f6b6c19608e0e",
+   "expected": {
+    "file": "out/t3_unit_00_control/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 1,
+   "group": "inv.raw",
+   "n_columns": 8,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_01.json",
+   "groups_file_sha256": "121ea18dcada33791f7898740570a982517ab6dd88fa278ba2595e03a569683d",
+   "worker": "musashi",
+   "name": "t3_unit_01_per_feature",
+   "identity": "cb6c4d373de4d384",
+   "expected": {
+    "file": "out/t3_unit_01_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 2,
+   "group": "inv.momentum",
+   "n_columns": 8,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_02.json",
+   "groups_file_sha256": "80e7024e9355754a26fdc0e1ade001391546546ae64b235ed184d03f829fdedd",
+   "worker": "satoshi",
+   "name": "t3_unit_02_per_feature",
+   "identity": "0202da788799521f",
+   "expected": {
+    "file": "out/t3_unit_02_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 3,
+   "group": "calendar",
+   "n_columns": 13,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_03.json",
+   "groups_file_sha256": "58665f672a42147982b28059d464e616e678e9d96ba2849d547a418b360f9cbc",
+   "worker": "musashi",
+   "name": "t3_unit_03_pointwise",
+   "identity": "9cd74dded7b7a5d4",
+   "expected": {
+    "file": "out/t3_unit_03_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "group": "px.logret",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_04.json",
+   "groups_file_sha256": "2581603829cea1821bc6f6e8d60360afff2bb1ae67f4d42023e7e544492bb4d2",
+   "worker": "satoshi",
+   "name": "t3_unit_04_per_feature",
+   "identity": "c4991ac4c778bca8",
+   "expected": {
+    "file": "out/t3_unit_04_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "group": "px.range",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_05.json",
+   "groups_file_sha256": "7e608f3c2b3c8db04ce30034e38720b3d16c72089ac627238f4412b49befea49",
+   "worker": "musashi",
+   "name": "t3_unit_05_per_feature",
+   "identity": "c0a070f689938394",
+   "expected": {
+    "file": "out/t3_unit_05_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "group": "px.close_loc",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_06.json",
+   "groups_file_sha256": "f0006f41bb5d5e29039aa930a3717a1fac616217eb484b4b789cca63c46b415e",
+   "worker": "satoshi",
+   "name": "t3_unit_06_per_feature",
+   "identity": "1186dc2dfd005e3f",
+   "expected": {
+    "file": "out/t3_unit_06_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "group": "px.er",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_07.json",
+   "groups_file_sha256": "300942ebe510e8caac1777b173f9504611bcefa4c7be4475871e74b34ab6bde6",
+   "worker": "musashi",
+   "name": "t3_unit_07_per_feature",
+   "identity": "cbc55bd80cee0bbf",
+   "expected": {
+    "file": "out/t3_unit_07_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "group": "px.range_ratio",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_08.json",
+   "groups_file_sha256": "c9962134bcd54246e384f5cd7daca758ebb1927538e9c3e8e118b447282ab959",
+   "worker": "satoshi",
+   "name": "t3_unit_08_pointwise",
+   "identity": "e73bf9e6cd73fde3",
+   "expected": {
+    "file": "out/t3_unit_08_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 9,
+   "group": "px.hours_since_session_open",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_09.json",
+   "groups_file_sha256": "915a77434bcfa42aee63030eefa52b3818b2249b4403cd4d6b836965462eedd2",
+   "worker": "musashi",
+   "name": "t3_unit_09_pointwise",
+   "identity": "ac94af8e9a7b86c9",
+   "expected": {
+    "file": "out/t3_unit_09_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "group": "cdl",
+   "n_columns": 6,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_10.json",
+   "groups_file_sha256": "8881c71181b74f64cb5bf26655c8416c4fe2e0676a36296854cb470d928c21a6",
+   "worker": "satoshi",
+   "name": "t3_unit_10_per_feature",
+   "identity": "8a6a77de5478d987",
+   "expected": {
+    "file": "out/t3_unit_10_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 11,
+   "group": "fx.usdchf",
+   "n_columns": 4,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_11.json",
+   "groups_file_sha256": "634734b3f2ce2a38aed16eefeb8c3067b2c0c35e61be3e1e5aec6016dade56c1",
+   "worker": "musashi",
+   "name": "t3_unit_11_per_feature",
+   "identity": "81226f3c88b1846f",
+   "expected": {
+    "file": "out/t3_unit_11_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 12,
+   "group": "dly.gold",
+   "n_columns": 2,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_12.json",
+   "groups_file_sha256": "7e8125a9a24e1f5cc7d13316ebeb987cbc118874b0665d9141559ba4f51d2d28",
+   "worker": "satoshi",
+   "name": "t3_unit_12_pointwise",
+   "identity": "b41dce1658144b8b",
+   "expected": {
+    "file": "out/t3_unit_12_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 13,
+   "group": "cot.eur",
+   "n_columns": 4,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_13.json",
+   "groups_file_sha256": "6fdd55cda7458712ed22bbddee620188fae388792d66e346e3b6fcf8b9349b9f",
+   "worker": "musashi",
+   "name": "t3_unit_13_pointwise",
+   "identity": "c58de7ff93a2eb2a",
+   "expected": {
+    "file": "out/t3_unit_13_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 14,
+   "group": "fac.fx_f1",
+   "n_columns": 4,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_14.json",
+   "groups_file_sha256": "70880962c811863f543dabe45b3c8ccf52335847538d4b0f7921c1e2b3f5f18d",
+   "worker": "satoshi",
+   "name": "t3_unit_14_pointwise",
+   "identity": "4964e4d9f8c5f1d0",
+   "expected": {
+    "file": "out/t3_unit_14_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 15,
+   "group": "ev",
+   "n_columns": 6,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_15.json",
+   "groups_file_sha256": "ee712395df18539689e695217ed403bca7c28ff8434e93f11171d88fd9cf4643",
+   "worker": "musashi",
+   "name": "t3_unit_15_pointwise",
+   "identity": "676dbe220d1085be",
+   "expected": {
+    "file": "out/t3_unit_15_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 16,
+   "group": "act",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_16.json",
+   "groups_file_sha256": "f4b722c560284fd79ef07c68a49761a042df3a6e4021e68b028ad39dc3c8c2f7",
+   "worker": "satoshi",
+   "name": "t3_unit_16_pointwise",
+   "identity": "bcf2c1361a19af4e",
+   "expected": {
+    "file": "out/t3_unit_16_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 17,
+   "group": "wavelet/log_close",
+   "n_columns": 9,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_17.json",
+   "groups_file_sha256": "cfe91ca47da7b8d9e24150f85538e1b38ac76431aa844566991504a2c2f3d888",
+   "worker": "musashi",
+   "name": "t3_unit_17_per_feature",
+   "identity": "898a0d5150f65663",
+   "expected": {
+    "file": "out/t3_unit_17_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 18,
+   "group": "wavelet/logret_1",
+   "n_columns": 9,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_18.json",
+   "groups_file_sha256": "9806f57ad353533198c29896bddbff87b0bf2be4020570afebbf77f7fede368f",
+   "worker": "satoshi",
+   "name": "t3_unit_18_per_feature",
+   "identity": "2001dba01384cb15",
+   "expected": {
+    "file": "out/t3_unit_18_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 19,
+   "group": "hilbert/logret_1",
+   "n_columns": 3,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_19.json",
+   "groups_file_sha256": "7ebffa11476d202904717f846a69921ee993dcf59792659467554f4d676350d0",
+   "worker": "musashi",
+   "name": "t3_unit_19_per_feature",
+   "identity": "d1ed2af2694fa7a5",
+   "expected": {
+    "file": "out/t3_unit_19_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 20,
+   "group": "strength/fx.usd_strength.ret_1",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_20.json",
+   "groups_file_sha256": "4054004bb1975a2094af11e9f19e1cde128e3e0b272954d31f31b81b5f92f231",
+   "worker": "satoshi",
+   "name": "t3_unit_20_pointwise",
+   "identity": "c980e8fad944269f",
+   "expected": {
+    "file": "out/t3_unit_20_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 21,
+   "group": "strength/fx.eur_strength.ret_1",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_21.json",
+   "groups_file_sha256": "b7410b61d1e31418e3803036a4bedd3bc5fcf87c220fa1c9ef2e9caabf0ce0ea",
+   "worker": "musashi",
+   "name": "t3_unit_21_pointwise",
+   "identity": "263237c0c8445590",
+   "expected": {
+    "file": "out/t3_unit_21_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 22,
+   "group": "kalman/log_close",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_22.json",
+   "groups_file_sha256": "02839608c823d97cc1207c620ee428a643cac0ad7297dd02ac907afac18803b0",
+   "worker": "satoshi",
+   "name": "t3_unit_22_pointwise",
+   "identity": "eef3777a34a351b1",
+   "expected": {
+    "file": "out/t3_unit_22_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 23,
+   "group": "px.rv",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_23.json",
+   "groups_file_sha256": "ea440b2c786ebb2e022a2f4ddea2db3f3700aff0abb60c1975fa2c8e35605978",
+   "worker": "musashi",
+   "name": "t3_unit_23_pointwise",
+   "identity": "b8af9ad15116a2f8",
+   "expected": {
+    "file": "out/t3_unit_23_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 24,
+   "group": "gmm/logret_1+rv_24+log_range",
+   "n_columns": 4,
+   "kind": "per_feature",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_24.json",
+   "groups_file_sha256": "90e912ab783bf7a60c0a9fe1b3fca9571069814174d0e8aba3b6056f0c88697a",
+   "worker": "satoshi",
+   "name": "t3_unit_24_per_feature",
+   "identity": "d390ec0af490928f",
+   "expected": {
+    "file": "out/t3_unit_24_per_feature/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  },
+  {
+   "id": 25,
+   "group": "fracdiff/log_close",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "groups_file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/t3/groups/unit_25.json",
+   "groups_file_sha256": "f77578f0f71e35cc187eed7615ab2b78acea64891c809156b4ef6a3da4359ab6",
+   "worker": "musashi",
+   "name": "t3_unit_25_pointwise",
+   "identity": "528849723ef57f89",
+   "expected": {
+    "file": "out/t3_unit_25_pointwise/E3M.json",
+    "fields": [
+     "trials.FULL (3 seeds)",
+     "decision.means.FULL",
+     "meta.support_hash.TRAIN/INNER_A",
+     "params.FULL",
+     "arch.group_kinds"
+    ]
+   }
+  }
+ ]
+}
