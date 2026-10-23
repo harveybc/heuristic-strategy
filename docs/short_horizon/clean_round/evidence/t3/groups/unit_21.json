@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_21_pointwise",
- "rule": "T3 unit 21: group 'strength/fx.eur_strength.ret_1' -> pointwise; every other group conv",
+ "name": "t3_unit_21",
+ "rule": "T3 unit 21: group 'dly.gold' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -208,7 +208,7 @@
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
-  "dly.gold": "conv",
+  "dly.gold": "pointwise",
   "cot.eur": "conv",
   "fac.fx_f1": "conv",
   "ev": "conv",
@@ -217,7 +217,7 @@
   "wavelet/logret_1": "conv",
   "hilbert/logret_1": "conv",
   "strength/fx.usd_strength.ret_1": "conv",
-  "strength/fx.eur_strength.ret_1": "pointwise",
+  "strength/fx.eur_strength.ret_1": "conv",
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",

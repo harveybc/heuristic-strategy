@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_24_per_feature",
- "rule": "T3 unit 24: group 'gmm/logret_1+rv_24+log_range' -> per_feature; every other group conv",
+ "name": "t3_unit_24",
+ "rule": "T3 unit 24: group 'cot.eur' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -97,12 +97,6 @@
    "dly.gold.ret_1d",
    "dly.gold.ret_5d"
   ],
-  "cot.eur": [
-   "cot.eur.net_long",
-   "cot.eur.net_change",
-   "cot.eur.net_share",
-   "cot.eur.net_z156"
-  ],
   "fac.fx_f1": [
    "fac.fx_f1.ret_1",
    "fac.fx_f1.ret_4",
@@ -159,20 +153,26 @@
   "px.rv": [
    "px.rv_24"
   ],
+  "gmm/logret_1+rv_24+log_range": [
+   "rg.gmm.p0",
+   "rg.gmm.p1",
+   "rg.gmm.p2",
+   "rg.gmm.entropy"
+  ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
   ],
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p0": [
-   "rg.gmm.p0"
+  "cot.eur/cot.eur.net_long": [
+   "cot.eur.net_long"
   ],
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p1": [
-   "rg.gmm.p1"
+  "cot.eur/cot.eur.net_change": [
+   "cot.eur.net_change"
   ],
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p2": [
-   "rg.gmm.p2"
+  "cot.eur/cot.eur.net_share": [
+   "cot.eur.net_share"
   ],
-  "gmm/logret_1+rv_24+log_range/rg.gmm.entropy": [
-   "rg.gmm.entropy"
+  "cot.eur/cot.eur.net_z156": [
+   "cot.eur.net_z156"
   ]
  },
  "units": {
@@ -201,10 +201,10 @@
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
   "fracdiff/log_close": 2,
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p0": 2,
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p1": 2,
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p2": 2,
-  "gmm/logret_1+rv_24+log_range/rg.gmm.entropy": 2
+  "cot.eur/cot.eur.net_long": 2,
+  "cot.eur/cot.eur.net_change": 2,
+  "cot.eur/cot.eur.net_share": 2,
+  "cot.eur/cot.eur.net_z156": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -219,7 +219,6 @@
   "cdl": "conv",
   "fx.usdchf": "conv",
   "dly.gold": "conv",
-  "cot.eur": "conv",
   "fac.fx_f1": "conv",
   "ev": "conv",
   "act": "conv",
@@ -230,10 +229,11 @@
   "strength/fx.eur_strength.ret_1": "conv",
   "kalman/log_close": "conv",
   "px.rv": "conv",
+  "gmm/logret_1+rv_24+log_range": "conv",
   "fracdiff/log_close": "conv",
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p0": "conv",
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p1": "conv",
-  "gmm/logret_1+rv_24+log_range/rg.gmm.p2": "conv",
-  "gmm/logret_1+rv_24+log_range/rg.gmm.entropy": "conv"
+  "cot.eur/cot.eur.net_long": "conv",
+  "cot.eur/cot.eur.net_change": "conv",
+  "cot.eur/cot.eur.net_share": "conv",
+  "cot.eur/cot.eur.net_z156": "conv"
  }
 }

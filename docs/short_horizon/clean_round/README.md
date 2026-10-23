@@ -136,3 +136,24 @@ python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out D
 - **Verificador** `verify-t2`: comprueba cada `E3M.json` contra el listado tipado; un bloque `labels` ausente del
   productor fijado se lee como ZigZag heredado, no como fallo; `regularize` aplica la misma lectura. El primer brazo
   sellado (`gap_core15_none_base`, sha `d07622dc…`, igual al recibo de Musashi) pasa.
+
+## 10. 2026-10-23: T2 cerrado, regularización decidida, T3 v2 desde el perfil de cada grupo
+
+- **T2** (trabajo de Musashi, 8/8, 0 fallos): los ocho resultados se autentican contra sus recibos
+  (`verify-t2`): identidad de la configuración (sha256 del JSON con claves ordenadas), fuente E3-M fijada igual al blob
+  de 186b131 (que no emite `labels`), comando efectivo e identidad tipada recalculada, regularización, estado, lista,
+  columnas consumidas, soporte y el hash de cada archivo sellado (E3M, scaler, sonda, 12 checkpoints). Cierra C01
+  (ausencia sólo con productor autenticado; null, tipos inválidos y productores desconocidos se rechazan) y C02
+  (el mismo resultado bajo otra unidad se rechaza). `evidence/t2/T2_VERIFY.json`.
+- **Regularización = base** (dropout 0.1, wd 1e-4) por la regla congelada: ambos ajustes no dominados (el fuerte sólo
+  gana en dispersión entre semillas de la lista estricta), el desempate 1 no alcanza (diferencia 0.67 < dispersión
+  agrupada 0.75), el 2 elige la menor brecha. `regularize` exige ahora la verificación y que cada brazo sea el archivo
+  verificado. `evidence/t2/REGULARIZATION_DECISION.json`; aplicada al spec.
+- **T3 v2** (`tools/expert_guided_t3_manifest.py`): el manifiesto anterior asignaba un tipo por nombre de familia; ahora
+  cada grupo multi-columna prueba `pointwise` y `per_feature` contra el control `conv`, y cada grupo de una columna
+  prueba `pointwise`; la expectativa de cada grupo se escribe ANTES de cualquier resultado a partir de su perfil T1
+  (memoria: persistente / casi blanca / intermedia; redundancia interna: alta / media / baja) y sólo se reporta la tasa
+  de acierto; la decisión por grupo es medida y congelada (Sharpe INNER_A más allá de la dispersión agrupada de
+  semillas, brecha no peor más allá de su dispersión, mismo soporte, tres semillas válidas; si no, el control se queda);
+  una unidad de combinación confirma la suma de las elecciones. 43 unidades (22 Satoshi, 21 Musashi), ventana 13/2 y
+  modelo de la ronda (2/2/16) fijos. `evidence/t3/`.

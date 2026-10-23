@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_20_pointwise",
- "rule": "T3 unit 20: group 'strength/fx.usd_strength.ret_1' -> pointwise; every other group conv",
+ "name": "t3_unit_20",
+ "rule": "T3 unit 20: group 'fx.usdchf' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -87,12 +87,6 @@
    "cdl.close_minus_low_pips@asinh",
    "cdl.high_minus_close_pips@asinh"
   ],
-  "fx.usdchf": [
-   "fx.usdchf.ret_1",
-   "fx.usdchf.ret_4",
-   "fx.usdchf.ret_24",
-   "fx.usdchf.rv_24@log"
-  ],
   "dly.gold": [
    "dly.gold.ret_1d",
    "dly.gold.ret_5d"
@@ -167,6 +161,18 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
+  ],
+  "fx.usdchf/fx.usdchf.ret_1": [
+   "fx.usdchf.ret_1"
+  ],
+  "fx.usdchf/fx.usdchf.ret_4": [
+   "fx.usdchf.ret_4"
+  ],
+  "fx.usdchf/fx.usdchf.ret_24": [
+   "fx.usdchf.ret_24"
+  ],
+  "fx.usdchf/fx.usdchf.rv_24@log": [
+   "fx.usdchf.rv_24@log"
   ]
  },
  "units": {
@@ -194,7 +200,11 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2
+  "fracdiff/log_close": 2,
+  "fx.usdchf/fx.usdchf.ret_1": 2,
+  "fx.usdchf/fx.usdchf.ret_4": 2,
+  "fx.usdchf/fx.usdchf.ret_24": 2,
+  "fx.usdchf/fx.usdchf.rv_24@log": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -207,7 +217,6 @@
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
-  "fx.usdchf": "conv",
   "dly.gold": "conv",
   "cot.eur": "conv",
   "fac.fx_f1": "conv",
@@ -216,11 +225,15 @@
   "wavelet/log_close": "conv",
   "wavelet/logret_1": "conv",
   "hilbert/logret_1": "conv",
-  "strength/fx.usd_strength.ret_1": "pointwise",
+  "strength/fx.usd_strength.ret_1": "conv",
   "strength/fx.eur_strength.ret_1": "conv",
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv"
+  "fracdiff/log_close": "conv",
+  "fx.usdchf/fx.usdchf.ret_1": "conv",
+  "fx.usdchf/fx.usdchf.ret_4": "conv",
+  "fx.usdchf/fx.usdchf.ret_24": "conv",
+  "fx.usdchf/fx.usdchf.rv_24@log": "conv"
  }
 }

@@ -268,20 +268,62 @@ def _arm_vector(e: dict):
             "n_seeds": len(tr), "support": {p: e["meta"]["support_hash"][p] for p in ("TRAIN", "INNER_A")}}
 
 
-def label_mode_of(e: dict) -> tuple:
-    """(mode, how) of an E3M.json. The `labels` block exists from heuristic-strategy e9291b7 on; a producer that predates
-    it (e.g. the T2 package pinned at 186b131) can only have trained on the inherited ZigZag labels, so a MISSING block
-    is read as ("zigzag", "PRODUCER_PREDATES_FIELD") and kept distinct from an explicit or an unknown mode
-    (Musashi's precision 2026-10-22: never demand a new field from an old producer as if it were a failed measurement)."""
-    lab = e.get("labels")
-    if lab is None:
-        return "zigzag", "PRODUCER_PREDATES_FIELD"
+LEGACY_ABSENT, DECLARED, UNKNOWN, MALFORMED, UNAUTH = ("PRODUCER_PREDATES_FIELD", "DECLARED", "UNKNOWN_MODE", "MALFORMED",
+                                                      "ABSENT_WITHOUT_AUTHENTICATED_PRODUCER")
+
+
+def label_mode_of(e: dict, producer: dict | None = None) -> tuple:
+    """(mode, how) of an E3M.json (Musashi's C01, 2026-10-22). The `labels` block exists from heuristic-strategy e9291b7
+    on. A MISSING key is read as the inherited ZigZag ONLY when ``producer`` is authenticated (receipt -> config identity
+    -> pinned tools/expert_guided_e3m.py == the blob of the science commit) and that blob does not emit the field;
+    otherwise the absence is UNAUTH. An explicit null or a non-object is MALFORMED; an unknown mode is UNKNOWN_MODE."""
+    if "labels" not in e:
+        if producer and producer.get("authenticated") and not producer.get("emits_labels"):
+            return "zigzag", LEGACY_ABSENT
+        return "absent", UNAUTH
+    lab = e["labels"]
+    if not isinstance(lab, dict):
+        return type(lab).__name__ if lab is not None else "null", MALFORMED
     mode = lab.get("mode")
-    return (mode, "DECLARED") if mode in ("zigzag", "opportunity", "both") else (str(mode), "UNKNOWN_MODE")
+    if not isinstance(mode, str):
+        return str(mode), MALFORMED
+    if producer and producer.get("authenticated") and not producer.get("emits_labels"):
+        return mode, "PRESENT_BUT_PRODUCER_DOES_NOT_EMIT"
+    return (mode, DECLARED) if mode in ("zigzag", "opportunity", "both") else (mode, UNKNOWN)
 
 
-def verify_t2_arm(e: dict, unit: dict, seeds=("20261019", "20261020", "20261021")) -> list:
-    """Errors of one T2 E3M.json against its typed unit (T2_UNITS_2026_10_23.json); [] when it conforms."""
+def labels_ok(mode, how) -> bool:
+    return mode == "zigzag" and how in (LEGACY_ABSENT, DECLARED)
+
+
+def authenticate_producer(config_path, science_commit: str, pin_suffix="code/tools/expert_guided_e3m.py") -> dict:
+    """Producer provenance from the peer's config (its identity = sha256 of the key-sorted JSON, as its worker computes
+    it) and this repository: the pinned E3-M source must equal the blob of ``science_commit``."""
+    import subprocess
+    cfg = json.loads(Path(config_path).read_text())
+    ident = hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()
+    pins = cfg.get("pins", {})
+    hit = [k for k in pins if k.endswith(pin_suffix)]
+    out = {"config_identity": ident, "science_commit": science_commit, "authenticated": False, "emits_labels": None}
+    if len(hit) != 1:
+        out["error"] = f"PIN_NOT_FOUND:{pin_suffix}"
+        return out
+    blob = subprocess.run(["git", "show", f"{science_commit}:tools/expert_guided_e3m.py"], cwd=ROOT, capture_output=True)
+    if blob.returncode != 0:
+        out["error"] = f"SCIENCE_COMMIT_UNKNOWN:{science_commit}"
+        return out
+    bh = hashlib.sha256(blob.stdout).hexdigest()
+    out.update(pinned_e3m_sha256=pins[hit[0]], blob_e3m_sha256=bh, emits_labels=b'"labels"' in blob.stdout,
+               archives={Path(k).name: v for k, v in pins.items() if k.endswith(".tar.gz")})
+    out["authenticated"] = pins[hit[0]] == bh
+    if not out["authenticated"]:
+        out["error"] = "PINNED_SOURCE_DIFFERS_FROM_SCIENCE_COMMIT"
+    return out
+
+
+def verify_t2_arm(e: dict, unit: dict, seeds=("20261019", "20261020", "20261021"), producer=None) -> list:
+    """Content errors of one T2 E3M.json against its typed unit (T2_UNITS_2026_10_23.json); [] when it conforms.
+    Content only: identity is bound by ``verify_t2_receipt`` (Musashi's C02)."""
     errs = []
     if e.get("split_contract", {}).get("arm") != "consolidated":
         errs.append(f"SPLIT:{e.get('split_contract', {}).get('arm')}")
@@ -293,8 +335,8 @@ def verify_t2_arm(e: dict, unit: dict, seeds=("20261019", "20261020", "20261021"
         errs.append(f"MIN_ORDERS:{e.get('min_orders_per_week')}")
     if e.get("meta", {}).get("scaling", {}).get("policy") != "fixed_train":
         errs.append("SCALING")
-    mode, how = label_mode_of(e)
-    if mode != "zigzag" or how == "UNKNOWN_MODE":
+    mode, how = label_mode_of(e, producer)
+    if not labels_ok(mode, how):
         errs.append(f"LABELS:{mode}:{how}")
     tr = e.get("trials", {}).get("FULL", {})
     if sorted(tr) != sorted(seeds):
@@ -311,22 +353,83 @@ def verify_t2_arm(e: dict, unit: dict, seeds=("20261019", "20261020", "20261021"
     return errs
 
 
-def cmd_verify_t2(a):
-    """Verify every T2 result against the typed unit listing; a marker in a log is not a result."""
-    units = json.loads(Path(a.units).read_text())["units"]
-    rows, bad = [], 0
-    for u in units:
-        f = Path(a.results) / u["name"] / "E3M.json"
+def verify_t2_receipt(rcpt: dict, unit: dict, arm_dir: Path, e: dict, producer: dict, list_features=None) -> list:
+    """Bind one result to its execution receipt (Musashi's C02): config identity, unit name, typed identity recomputed
+    from the effective command, regularization / state / list, every sealed file hash (E3M, scaler, probe, the 12
+    checkpoints), the support hashes and the consumed columns."""
+    errs = []
+    job = rcpt.get("job", {})
+    if rcpt.get("config_sha256") != producer.get("config_identity"):
+        errs.append("RECEIPT_CONFIG_IDENTITY")
+    if job.get("name") != unit["name"]:
+        errs.append(f"RECEIPT_NAME:{job.get('name')}")
+    cmd = job.get("peer_command", "")
+    if cmd != unit.get("command"):
+        errs.append("RECEIPT_COMMAND_DIFFERS_FROM_UNIT")
+    if hashlib.sha256(cmd.encode()).hexdigest()[:16] != unit["identity"] or job.get("peer_command_identity") != unit["identity"]:
+        errs.append("RECEIPT_IDENTITY")
+    if (float(job.get("dropout", -1)), float(job.get("wd", -1))) != (float(unit["dropout"]), float(unit["wd"])):
+        errs.append(f"RECEIPT_REGULARIZATION:{job.get('dropout')}/{job.get('wd')}")
+    if job.get("state") != unit["agent_state"]:
+        errs.append(f"RECEIPT_STATE:{job.get('state')}")
+    if job.get("list") != f"FEATURE_LIST_{unit['list']}.json":
+        errs.append(f"RECEIPT_LIST:{job.get('list')}")
+    if job.get("split") != "consolidated":
+        errs.append(f"RECEIPT_SPLIT:{job.get('split')}")
+    hashes = rcpt.get("hashes", {})
+    need = {"E3M.json", "SCALER.json", "PROBE.json"} | {f"FULL_{m}_{s}.pt" for m in ("open_l", "open_s", "close_l", "close_s")
+                                                          for s in ("20261019", "20261020", "20261021")}
+    for n in sorted(need - set(hashes)):
+        errs.append(f"RECEIPT_HASH_MISSING:{n}")
+    for n, h in hashes.items():
+        f = arm_dir / n
         if not f.exists():
-            rows.append({"unit": u["name"], "identity": u["identity"], "status": "MISSING"})
+            errs.append(f"ARTIFACT_MISSING:{n}")
+        elif sha(f) != h:
+            errs.append(f"ARTIFACT_HASH:{n}")
+    rs = rcpt.get("support_hash", {})
+    es = e.get("meta", {}).get("support_hash", {})
+    if any(rs.get(p) != es.get(p) for p in ("TRAIN", "INNER_A")):
+        errs.append("RECEIPT_SUPPORT_DIFFERS")
+    if list_features is not None and (rcpt.get("consumed_features") != list_features or rcpt.get("requested_features") != list_features):
+        errs.append("RECEIPT_COLUMNS_DIFFER_FROM_LIST")
+    return errs
+
+
+def cmd_verify_t2(a):
+    """Verify every T2 result against the typed unit listing AND its authenticated execution receipt; a marker in a log
+    is not a result. Writes the verification document that `regularize` requires."""
+    units = json.loads(Path(a.units).read_text())["units"]
+    producer = authenticate_producer(a.config, a.science_commit)
+    lists = {}
+    for u in units:
+        lp = Path(a.lists_dir) / f"FEATURE_LIST_{u['list']}.json"
+        lists[u["list"]] = json.loads(lp.read_text())["features"] if lp.exists() else None
+    rows, bad = [], 0 if producer.get("authenticated") else 1
+    support = {}
+    for u in units:
+        d = Path(a.results) / u["name"]
+        f, rp = d / "E3M.json", Path(a.receipts) / f"{u['name']}.RESULT.json"
+        if not f.exists() or not rp.exists():
+            rows.append({"unit": u["name"], "identity": u["identity"], "status": "MISSING",
+                         "errors": [x for x, ok in (("E3M_MISSING", f.exists()), ("RECEIPT_MISSING", rp.exists())) if not ok]})
             bad += 1
             continue
-        e = json.loads(f.read_text())
-        errs = verify_t2_arm(e, u)
-        rows.append({"unit": u["name"], "identity": u["identity"], "sha256": sha(f)[:16], "labels": "/".join(label_mode_of(e)),
-                     "support": e.get("meta", {}).get("support_hash", {}).get("INNER_A"), "status": "OK" if not errs else "REJECTED", "errors": errs})
+        e, rc = json.loads(f.read_text()), json.loads(rp.read_text())
+        errs = verify_t2_arm(e, u, producer=producer) + verify_t2_receipt(rc, u, d, e, producer, lists[u["list"]])
+        if lists[u["list"]] is None:
+            errs.append(f"LIST_FILE_MISSING:{u['list']}")
+        support.setdefault((u["list"], u["agent_state"]), set()).add(json.dumps({p: e.get("meta", {}).get("support_hash", {}).get(p)
+                                                                                 for p in ("TRAIN", "INNER_A")}, sort_keys=True))
+        rows.append({"unit": u["name"], "identity": u["identity"], "sha256": sha(f), "receipt_sha256": sha(rp),
+                     "labels": "/".join(label_mode_of(e, producer)), "support": e.get("meta", {}).get("support_hash", {}).get("INNER_A"),
+                     "status": "OK" if not errs else "REJECTED", "errors": errs})
         bad += int(bool(errs))
-    doc = {"units": a.units, "results": a.results, "rows": rows, "all_ok": bad == 0}
+    mixed = [f"{k[0]}:{k[1]}" for k, v in support.items() if len(v) != 1]
+    if mixed:
+        bad += 1
+    doc = {"units": a.units, "units_sha256": sha(a.units), "results": a.results, "producer": producer,
+           "support_mismatch_within_list_and_state": mixed, "rows": rows, "all_ok": bad == 0}
     if a.out:
         Path(a.out).write_text(json.dumps(doc, indent=1))
     print(json.dumps(doc, indent=1))
@@ -337,6 +440,11 @@ def cmd_regularize(a):
     """Apply REG_RULE to the T2 arms (results/gap_<list>_none_<setting>/E3M.json); --apply writes the choice into the spec."""
     import numpy as np
     spec = json.loads(Path(a.spec).read_text())
+    ver = json.loads(Path(a.verified).read_text())
+    if not ver.get("all_ok"):
+        raise SystemExit("T2_NOT_VERIFIED: the verification document is not all_ok")
+    vrow = {r["unit"]: r for r in ver["rows"]}
+    producer = ver["producer"]
     cands = spec["regularization"]["candidates"]
     lists = a.lists.split(",")
     table, vec = {}, {s: {} for s in cands}
@@ -345,6 +453,9 @@ def cmd_regularize(a):
             f = Path(a.results) / f"gap_{lst}_none_{s}" / "E3M.json"
             if not f.exists():
                 raise SystemExit(f"ARM_NOT_FINISHED:gap_{lst}_none_{s}")
+            u = f"gap_{lst}_none_{s}"
+            if u not in vrow or vrow[u]["status"] != "OK" or vrow[u]["sha256"] != sha(f):
+                raise SystemExit(f"ARM_NOT_THE_VERIFIED_RESULT:{u}")
             e = json.loads(f.read_text())
             if e["agent_state"]["mode"] != "none":
                 raise SystemExit(f"ARM_AGENT_STATE:{lst}:{s}:{e['agent_state']['mode']}")
@@ -352,8 +463,8 @@ def cmd_regularize(a):
                 raise SystemExit(f"ARM_CONTRACT:{lst}:{s}:{e['split_contract']['arm']}")
             if e.get("exec_contract") != spec["exec_contract"] or float(e.get("min_orders_per_week", -1)) != float(spec["min_orders_per_week"]):
                 raise SystemExit(f"ARM_BUSINESS_RULES:{lst}:{s}")
-            mode, how = label_mode_of(e)
-            if mode != "zigzag" or how == "UNKNOWN_MODE":
+            mode, how = label_mode_of(e, producer)
+            if not labels_ok(mode, how):
                 raise SystemExit(f"ARM_LABELS:{lst}:{s}:{mode}:{how}")
             table[(lst, s)] = _arm_vector(e)
             table[(lst, s)]["labels"] = f"{mode}/{how}"
@@ -391,7 +502,8 @@ def cmd_regularize(a):
                 lo = min(mg.values())
                 mins = [s for s in nd if mg[s] == lo]
                 chosen, how = (mins[0], "TIE_BREAK_2_SMALLER_GAP") if len(mins) == 1 else ("base", "TIE_BREAK_3_BASE_CONTROL")
-    doc.update(chosen=chosen, how=how, values=cands[chosen], never_read=["OBS_2024", "INNER_B", "TEST"])
+    doc.update(chosen=chosen, how=how, values=cands[chosen], never_read=["OBS_2024", "INNER_B", "TEST"],
+               verification={"file": Path(a.verified).name, "sha256": sha(a.verified), "producer": producer})
     Path(a.out).write_text(json.dumps(doc, indent=1))
     print(json.dumps({k: doc[k] for k in ("chosen", "how", "values", "compared_lists")}, indent=1))
     if a.apply:
@@ -414,8 +526,13 @@ def main():
     r = sub.add_parser("regularize", help="apply REG_RULE to the T2 arms"); r.add_argument("--spec", required=True)
     r.add_argument("--results", required=True); r.add_argument("--out", required=True)
     r.add_argument("--lists", default="core15,shortlist_strict"); r.add_argument("--apply", action="store_true")
+    r.add_argument("--verified", required=True, help="T2_VERIFY.json from verify-t2 (all_ok); every arm must be the verified file")
     v = sub.add_parser("verify-t2", help="verify every T2 E3M.json against the typed unit listing")
     v.add_argument("--units", required=True); v.add_argument("--results", required=True); v.add_argument("--out", default=None)
+    v.add_argument("--receipts", required=True, help="directory with the peer's <unit>.RESULT.json receipts")
+    v.add_argument("--config", required=True, help="the peer's run config (its identity = sha256 of the key-sorted JSON)")
+    v.add_argument("--science-commit", required=True, help="commit whose tools/expert_guided_e3m.py the config pins")
+    v.add_argument("--lists-dir", required=True, help="directory with FEATURE_LIST_<list>.json")
     a = ap.parse_args()
     sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide, "regularize": cmd_regularize,
               "verify-t2": cmd_verify_t2}[a.cmd](a) or 0)

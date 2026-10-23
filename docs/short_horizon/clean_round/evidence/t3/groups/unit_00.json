@@ -1,5 +1,5 @@
 {
- "name": "t3_unit_00_control",
+ "name": "t3_unit_00",
  "rule": "T3 control: every group conv",
  "groups": {
   "inv.raw": [

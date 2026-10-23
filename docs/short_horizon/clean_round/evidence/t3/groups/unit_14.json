@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_14_pointwise",
- "rule": "T3 unit 14: group 'fac.fx_f1' -> pointwise; every other group conv",
+ "name": "t3_unit_14",
+ "rule": "T3 unit 14: group 'px.er' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -63,15 +63,6 @@
    "px.close_loc_12",
    "px.close_loc_24",
    "px.close_loc_48"
-  ],
-  "px.er": [
-   "px.er_1",
-   "px.er_2",
-   "px.er_4",
-   "px.er_6",
-   "px.er_12",
-   "px.er_24",
-   "px.er_48"
   ],
   "px.range_ratio": [
    "px.range_ratio_1_24"
@@ -167,6 +158,27 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
+  ],
+  "px.er/px.er_1": [
+   "px.er_1"
+  ],
+  "px.er/px.er_2": [
+   "px.er_2"
+  ],
+  "px.er/px.er_4": [
+   "px.er_4"
+  ],
+  "px.er/px.er_6": [
+   "px.er_6"
+  ],
+  "px.er/px.er_12": [
+   "px.er_12"
+  ],
+  "px.er/px.er_24": [
+   "px.er_24"
+  ],
+  "px.er/px.er_48": [
+   "px.er_48"
   ]
  },
  "units": {
@@ -194,7 +206,14 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2
+  "fracdiff/log_close": 2,
+  "px.er/px.er_1": 2,
+  "px.er/px.er_2": 2,
+  "px.er/px.er_4": 2,
+  "px.er/px.er_6": 2,
+  "px.er/px.er_12": 2,
+  "px.er/px.er_24": 2,
+  "px.er/px.er_48": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -203,14 +222,13 @@
   "px.logret": "conv",
   "px.range": "conv",
   "px.close_loc": "conv",
-  "px.er": "conv",
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
   "dly.gold": "conv",
   "cot.eur": "conv",
-  "fac.fx_f1": "pointwise",
+  "fac.fx_f1": "conv",
   "ev": "conv",
   "act": "conv",
   "wavelet/log_close": "conv",
@@ -221,6 +239,13 @@
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv"
+  "fracdiff/log_close": "conv",
+  "px.er/px.er_1": "conv",
+  "px.er/px.er_2": "conv",
+  "px.er/px.er_4": "conv",
+  "px.er/px.er_6": "conv",
+  "px.er/px.er_12": "conv",
+  "px.er/px.er_24": "conv",
+  "px.er/px.er_48": "conv"
  }
 }

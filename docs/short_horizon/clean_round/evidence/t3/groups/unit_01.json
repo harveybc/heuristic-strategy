@@ -1,7 +1,17 @@
 {
- "name": "t3_unit_01_per_feature",
- "rule": "T3 unit 1: group 'inv.raw' -> per_feature; every other group conv",
+ "name": "t3_unit_01",
+ "rule": "T3 unit 1: group 'inv.raw' -> pointwise; every other group conv",
  "groups": {
+  "inv.raw": [
+   "OPEN@diff",
+   "HIGH@diff",
+   "LOW@diff",
+   "CLOSE@diff",
+   "RAW_BAR_LOG_RETURN",
+   "RAW_LOG_RANGE@log",
+   "RAW_CLOSE_LOG_RETURN",
+   "RAW_ELAPSED_HOURS"
+  ],
   "inv.momentum": [
    "RSI",
    "Stochastic_K",
@@ -157,30 +167,6 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
-  ],
-  "inv.raw/OPEN@diff": [
-   "OPEN@diff"
-  ],
-  "inv.raw/HIGH@diff": [
-   "HIGH@diff"
-  ],
-  "inv.raw/LOW@diff": [
-   "LOW@diff"
-  ],
-  "inv.raw/CLOSE@diff": [
-   "CLOSE@diff"
-  ],
-  "inv.raw/RAW_BAR_LOG_RETURN": [
-   "RAW_BAR_LOG_RETURN"
-  ],
-  "inv.raw/RAW_LOG_RANGE@log": [
-   "RAW_LOG_RANGE@log"
-  ],
-  "inv.raw/RAW_CLOSE_LOG_RETURN": [
-   "RAW_CLOSE_LOG_RETURN"
-  ],
-  "inv.raw/RAW_ELAPSED_HOURS": [
-   "RAW_ELAPSED_HOURS"
   ]
  },
  "units": {
@@ -208,17 +194,10 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2,
-  "inv.raw/OPEN@diff": 2,
-  "inv.raw/HIGH@diff": 2,
-  "inv.raw/LOW@diff": 2,
-  "inv.raw/CLOSE@diff": 2,
-  "inv.raw/RAW_BAR_LOG_RETURN": 2,
-  "inv.raw/RAW_LOG_RANGE@log": 2,
-  "inv.raw/RAW_CLOSE_LOG_RETURN": 2,
-  "inv.raw/RAW_ELAPSED_HOURS": 2
+  "fracdiff/log_close": 2
  },
  "kinds": {
+  "inv.raw": "pointwise",
   "inv.momentum": "conv",
   "calendar": "conv",
   "px.logret": "conv",
@@ -242,14 +221,6 @@
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv",
-  "inv.raw/OPEN@diff": "conv",
-  "inv.raw/HIGH@diff": "conv",
-  "inv.raw/LOW@diff": "conv",
-  "inv.raw/CLOSE@diff": "conv",
-  "inv.raw/RAW_BAR_LOG_RETURN": "conv",
-  "inv.raw/RAW_LOG_RANGE@log": "conv",
-  "inv.raw/RAW_CLOSE_LOG_RETURN": "conv",
-  "inv.raw/RAW_ELAPSED_HOURS": "conv"
+  "fracdiff/log_close": "conv"
  }
 }

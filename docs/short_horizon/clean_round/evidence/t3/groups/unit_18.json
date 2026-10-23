@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_18_per_feature",
- "rule": "T3 unit 18: group 'wavelet/logret_1' -> per_feature; every other group conv",
+ "name": "t3_unit_18",
+ "rule": "T3 unit 18: group 'cdl' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -79,14 +79,6 @@
   "px.hours_since_session_open": [
    "px.hours_since_session_open"
   ],
-  "cdl": [
-   "cdl.body_pips",
-   "cdl.upper_wick_pips@asinh",
-   "cdl.lower_wick_pips@asinh",
-   "cdl.range_pips@asinh",
-   "cdl.close_minus_low_pips@asinh",
-   "cdl.high_minus_close_pips@asinh"
-  ],
   "fx.usdchf": [
    "fx.usdchf.ret_1",
    "fx.usdchf.ret_4",
@@ -131,6 +123,17 @@
    "wv.lc.energy_D2@log",
    "wv.lc.energy_D1@diff"
   ],
+  "wavelet/logret_1": [
+   "wv.r1.A4",
+   "wv.r1.D4",
+   "wv.r1.D3",
+   "wv.r1.D2",
+   "wv.r1.D1",
+   "wv.r1.energy_D4@log",
+   "wv.r1.energy_D3@log",
+   "wv.r1.energy_D2@log",
+   "wv.r1.energy_D1@diff"
+  ],
   "hilbert/logret_1": [
    "hb.r1.phase_cos",
    "hb.r1.phase_sin",
@@ -157,32 +160,23 @@
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
   ],
-  "wavelet/logret_1/wv.r1.A4": [
-   "wv.r1.A4"
+  "cdl/cdl.body_pips": [
+   "cdl.body_pips"
   ],
-  "wavelet/logret_1/wv.r1.D4": [
-   "wv.r1.D4"
+  "cdl/cdl.upper_wick_pips@asinh": [
+   "cdl.upper_wick_pips@asinh"
   ],
-  "wavelet/logret_1/wv.r1.D3": [
-   "wv.r1.D3"
+  "cdl/cdl.lower_wick_pips@asinh": [
+   "cdl.lower_wick_pips@asinh"
   ],
-  "wavelet/logret_1/wv.r1.D2": [
-   "wv.r1.D2"
+  "cdl/cdl.range_pips@asinh": [
+   "cdl.range_pips@asinh"
   ],
-  "wavelet/logret_1/wv.r1.D1": [
-   "wv.r1.D1"
+  "cdl/cdl.close_minus_low_pips@asinh": [
+   "cdl.close_minus_low_pips@asinh"
   ],
-  "wavelet/logret_1/wv.r1.energy_D4@log": [
-   "wv.r1.energy_D4@log"
-  ],
-  "wavelet/logret_1/wv.r1.energy_D3@log": [
-   "wv.r1.energy_D3@log"
-  ],
-  "wavelet/logret_1/wv.r1.energy_D2@log": [
-   "wv.r1.energy_D2@log"
-  ],
-  "wavelet/logret_1/wv.r1.energy_D1@diff": [
-   "wv.r1.energy_D1@diff"
+  "cdl/cdl.high_minus_close_pips@asinh": [
+   "cdl.high_minus_close_pips@asinh"
   ]
  },
  "units": {
@@ -211,15 +205,12 @@
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
   "fracdiff/log_close": 2,
-  "wavelet/logret_1/wv.r1.A4": 2,
-  "wavelet/logret_1/wv.r1.D4": 2,
-  "wavelet/logret_1/wv.r1.D3": 2,
-  "wavelet/logret_1/wv.r1.D2": 2,
-  "wavelet/logret_1/wv.r1.D1": 2,
-  "wavelet/logret_1/wv.r1.energy_D4@log": 2,
-  "wavelet/logret_1/wv.r1.energy_D3@log": 2,
-  "wavelet/logret_1/wv.r1.energy_D2@log": 2,
-  "wavelet/logret_1/wv.r1.energy_D1@diff": 2
+  "cdl/cdl.body_pips": 2,
+  "cdl/cdl.upper_wick_pips@asinh": 2,
+  "cdl/cdl.lower_wick_pips@asinh": 2,
+  "cdl/cdl.range_pips@asinh": 2,
+  "cdl/cdl.close_minus_low_pips@asinh": 2,
+  "cdl/cdl.high_minus_close_pips@asinh": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -231,7 +222,6 @@
   "px.er": "conv",
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
-  "cdl": "conv",
   "fx.usdchf": "conv",
   "dly.gold": "conv",
   "cot.eur": "conv",
@@ -239,6 +229,7 @@
   "ev": "conv",
   "act": "conv",
   "wavelet/log_close": "conv",
+  "wavelet/logret_1": "conv",
   "hilbert/logret_1": "conv",
   "strength/fx.usd_strength.ret_1": "conv",
   "strength/fx.eur_strength.ret_1": "conv",
@@ -246,14 +237,11 @@
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
   "fracdiff/log_close": "conv",
-  "wavelet/logret_1/wv.r1.A4": "conv",
-  "wavelet/logret_1/wv.r1.D4": "conv",
-  "wavelet/logret_1/wv.r1.D3": "conv",
-  "wavelet/logret_1/wv.r1.D2": "conv",
-  "wavelet/logret_1/wv.r1.D1": "conv",
-  "wavelet/logret_1/wv.r1.energy_D4@log": "conv",
-  "wavelet/logret_1/wv.r1.energy_D3@log": "conv",
-  "wavelet/logret_1/wv.r1.energy_D2@log": "conv",
-  "wavelet/logret_1/wv.r1.energy_D1@diff": "conv"
+  "cdl/cdl.body_pips": "conv",
+  "cdl/cdl.upper_wick_pips@asinh": "conv",
+  "cdl/cdl.lower_wick_pips@asinh": "conv",
+  "cdl/cdl.range_pips@asinh": "conv",
+  "cdl/cdl.close_minus_low_pips@asinh": "conv",
+  "cdl/cdl.high_minus_close_pips@asinh": "conv"
  }
 }

@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_12_pointwise",
- "rule": "T3 unit 12: group 'dly.gold' -> pointwise; every other group conv",
+ "name": "t3_unit_12",
+ "rule": "T3 unit 12: group 'px.close_loc' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -54,15 +54,6 @@
    "px.range_12",
    "px.range_24",
    "px.range_48"
-  ],
-  "px.close_loc": [
-   "px.close_loc_1",
-   "px.close_loc_2",
-   "px.close_loc_4",
-   "px.close_loc_6",
-   "px.close_loc_12",
-   "px.close_loc_24",
-   "px.close_loc_48"
   ],
   "px.er": [
    "px.er_1",
@@ -167,6 +158,27 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
+  ],
+  "px.close_loc/px.close_loc_1": [
+   "px.close_loc_1"
+  ],
+  "px.close_loc/px.close_loc_2": [
+   "px.close_loc_2"
+  ],
+  "px.close_loc/px.close_loc_4": [
+   "px.close_loc_4"
+  ],
+  "px.close_loc/px.close_loc_6": [
+   "px.close_loc_6"
+  ],
+  "px.close_loc/px.close_loc_12": [
+   "px.close_loc_12"
+  ],
+  "px.close_loc/px.close_loc_24": [
+   "px.close_loc_24"
+  ],
+  "px.close_loc/px.close_loc_48": [
+   "px.close_loc_48"
   ]
  },
  "units": {
@@ -194,7 +206,14 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2
+  "fracdiff/log_close": 2,
+  "px.close_loc/px.close_loc_1": 2,
+  "px.close_loc/px.close_loc_2": 2,
+  "px.close_loc/px.close_loc_4": 2,
+  "px.close_loc/px.close_loc_6": 2,
+  "px.close_loc/px.close_loc_12": 2,
+  "px.close_loc/px.close_loc_24": 2,
+  "px.close_loc/px.close_loc_48": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -202,13 +221,12 @@
   "calendar": "conv",
   "px.logret": "conv",
   "px.range": "conv",
-  "px.close_loc": "conv",
   "px.er": "conv",
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
-  "dly.gold": "pointwise",
+  "dly.gold": "conv",
   "cot.eur": "conv",
   "fac.fx_f1": "conv",
   "ev": "conv",
@@ -221,6 +239,13 @@
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv"
+  "fracdiff/log_close": "conv",
+  "px.close_loc/px.close_loc_1": "conv",
+  "px.close_loc/px.close_loc_2": "conv",
+  "px.close_loc/px.close_loc_4": "conv",
+  "px.close_loc/px.close_loc_6": "conv",
+  "px.close_loc/px.close_loc_12": "conv",
+  "px.close_loc/px.close_loc_24": "conv",
+  "px.close_loc/px.close_loc_48": "conv"
  }
 }

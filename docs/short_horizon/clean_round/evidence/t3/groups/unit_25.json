@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_25_pointwise",
- "rule": "T3 unit 25: group 'fracdiff/log_close' -> pointwise; every other group conv",
+ "name": "t3_unit_25",
+ "rule": "T3 unit 25: group 'fac.fx_f1' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -210,7 +210,7 @@
   "fx.usdchf": "conv",
   "dly.gold": "conv",
   "cot.eur": "conv",
-  "fac.fx_f1": "conv",
+  "fac.fx_f1": "pointwise",
   "ev": "conv",
   "act": "conv",
   "wavelet/log_close": "conv",
@@ -221,6 +221,6 @@
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "pointwise"
+  "fracdiff/log_close": "conv"
  }
 }

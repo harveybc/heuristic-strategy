@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_17_per_feature",
- "rule": "T3 unit 17: group 'wavelet/log_close' -> per_feature; every other group conv",
+ "name": "t3_unit_17",
+ "rule": "T3 unit 17: group 'cdl' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -120,6 +120,17 @@
   "act": [
    "act.p_hit"
   ],
+  "wavelet/log_close": [
+   "wv.lc.A4@diff",
+   "wv.lc.D4",
+   "wv.lc.D3",
+   "wv.lc.D2",
+   "wv.lc.D1",
+   "wv.lc.energy_D4@log",
+   "wv.lc.energy_D3@log",
+   "wv.lc.energy_D2@log",
+   "wv.lc.energy_D1@diff"
+  ],
   "wavelet/logret_1": [
    "wv.r1.A4",
    "wv.r1.D4",
@@ -156,33 +167,6 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
-  ],
-  "wavelet/log_close/wv.lc.A4@diff": [
-   "wv.lc.A4@diff"
-  ],
-  "wavelet/log_close/wv.lc.D4": [
-   "wv.lc.D4"
-  ],
-  "wavelet/log_close/wv.lc.D3": [
-   "wv.lc.D3"
-  ],
-  "wavelet/log_close/wv.lc.D2": [
-   "wv.lc.D2"
-  ],
-  "wavelet/log_close/wv.lc.D1": [
-   "wv.lc.D1"
-  ],
-  "wavelet/log_close/wv.lc.energy_D4@log": [
-   "wv.lc.energy_D4@log"
-  ],
-  "wavelet/log_close/wv.lc.energy_D3@log": [
-   "wv.lc.energy_D3@log"
-  ],
-  "wavelet/log_close/wv.lc.energy_D2@log": [
-   "wv.lc.energy_D2@log"
-  ],
-  "wavelet/log_close/wv.lc.energy_D1@diff": [
-   "wv.lc.energy_D1@diff"
   ]
  },
  "units": {
@@ -210,16 +194,7 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2,
-  "wavelet/log_close/wv.lc.A4@diff": 2,
-  "wavelet/log_close/wv.lc.D4": 2,
-  "wavelet/log_close/wv.lc.D3": 2,
-  "wavelet/log_close/wv.lc.D2": 2,
-  "wavelet/log_close/wv.lc.D1": 2,
-  "wavelet/log_close/wv.lc.energy_D4@log": 2,
-  "wavelet/log_close/wv.lc.energy_D3@log": 2,
-  "wavelet/log_close/wv.lc.energy_D2@log": 2,
-  "wavelet/log_close/wv.lc.energy_D1@diff": 2
+  "fracdiff/log_close": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -231,13 +206,14 @@
   "px.er": "conv",
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
-  "cdl": "conv",
+  "cdl": "pointwise",
   "fx.usdchf": "conv",
   "dly.gold": "conv",
   "cot.eur": "conv",
   "fac.fx_f1": "conv",
   "ev": "conv",
   "act": "conv",
+  "wavelet/log_close": "conv",
   "wavelet/logret_1": "conv",
   "hilbert/logret_1": "conv",
   "strength/fx.usd_strength.ret_1": "conv",
@@ -245,15 +221,6 @@
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv",
-  "wavelet/log_close/wv.lc.A4@diff": "conv",
-  "wavelet/log_close/wv.lc.D4": "conv",
-  "wavelet/log_close/wv.lc.D3": "conv",
-  "wavelet/log_close/wv.lc.D2": "conv",
-  "wavelet/log_close/wv.lc.D1": "conv",
-  "wavelet/log_close/wv.lc.energy_D4@log": "conv",
-  "wavelet/log_close/wv.lc.energy_D3@log": "conv",
-  "wavelet/log_close/wv.lc.energy_D2@log": "conv",
-  "wavelet/log_close/wv.lc.energy_D1@diff": "conv"
+  "fracdiff/log_close": "conv"
  }
 }

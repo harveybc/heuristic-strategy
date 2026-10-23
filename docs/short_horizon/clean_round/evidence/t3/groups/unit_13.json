@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_13_pointwise",
- "rule": "T3 unit 13: group 'cot.eur' -> pointwise; every other group conv",
+ "name": "t3_unit_13",
+ "rule": "T3 unit 13: group 'px.er' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -203,13 +203,13 @@
   "px.logret": "conv",
   "px.range": "conv",
   "px.close_loc": "conv",
-  "px.er": "conv",
+  "px.er": "pointwise",
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
   "dly.gold": "conv",
-  "cot.eur": "pointwise",
+  "cot.eur": "conv",
   "fac.fx_f1": "conv",
   "ev": "conv",
   "act": "conv",

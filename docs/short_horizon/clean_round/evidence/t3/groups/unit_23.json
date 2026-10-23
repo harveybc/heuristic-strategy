@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_23_pointwise",
- "rule": "T3 unit 23: group 'px.rv' -> pointwise; every other group conv",
+ "name": "t3_unit_23",
+ "rule": "T3 unit 23: group 'cot.eur' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -209,7 +209,7 @@
   "cdl": "conv",
   "fx.usdchf": "conv",
   "dly.gold": "conv",
-  "cot.eur": "conv",
+  "cot.eur": "pointwise",
   "fac.fx_f1": "conv",
   "ev": "conv",
   "act": "conv",
@@ -219,7 +219,7 @@
   "strength/fx.usd_strength.ret_1": "conv",
   "strength/fx.eur_strength.ret_1": "conv",
   "kalman/log_close": "conv",
-  "px.rv": "pointwise",
+  "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
   "fracdiff/log_close": "conv"
  }

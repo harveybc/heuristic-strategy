@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_04_per_feature",
- "rule": "T3 unit 4: group 'px.logret' -> per_feature; every other group conv",
+ "name": "t3_unit_04",
+ "rule": "T3 unit 4: group 'inv.momentum' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -11,16 +11,6 @@
    "RAW_LOG_RANGE@log",
    "RAW_CLOSE_LOG_RETURN",
    "RAW_ELAPSED_HOURS"
-  ],
-  "inv.momentum": [
-   "RSI",
-   "Stochastic_K",
-   "Stochastic_D",
-   "CCI",
-   "WilliamsR",
-   "ROC",
-   "BB_position",
-   "price_minus_ema"
   ],
   "calendar": [
    "hod_sin",
@@ -36,6 +26,15 @@
    "cal.utc_session_us",
    "cal.london_hod_sin",
    "cal.london_hod_cos"
+  ],
+  "px.logret": [
+   "px.logret_1",
+   "px.logret_2",
+   "px.logret_4",
+   "px.logret_6",
+   "px.logret_12",
+   "px.logret_24",
+   "px.logret_48"
   ],
   "px.range": [
    "px.range_1@log",
@@ -159,26 +158,29 @@
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
   ],
-  "px.logret/px.logret_1": [
-   "px.logret_1"
+  "inv.momentum/RSI": [
+   "RSI"
   ],
-  "px.logret/px.logret_2": [
-   "px.logret_2"
+  "inv.momentum/Stochastic_K": [
+   "Stochastic_K"
   ],
-  "px.logret/px.logret_4": [
-   "px.logret_4"
+  "inv.momentum/Stochastic_D": [
+   "Stochastic_D"
   ],
-  "px.logret/px.logret_6": [
-   "px.logret_6"
+  "inv.momentum/CCI": [
+   "CCI"
   ],
-  "px.logret/px.logret_12": [
-   "px.logret_12"
+  "inv.momentum/WilliamsR": [
+   "WilliamsR"
   ],
-  "px.logret/px.logret_24": [
-   "px.logret_24"
+  "inv.momentum/ROC": [
+   "ROC"
   ],
-  "px.logret/px.logret_48": [
-   "px.logret_48"
+  "inv.momentum/BB_position": [
+   "BB_position"
+  ],
+  "inv.momentum/price_minus_ema": [
+   "price_minus_ema"
   ]
  },
  "units": {
@@ -207,18 +209,19 @@
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
   "fracdiff/log_close": 2,
-  "px.logret/px.logret_1": 2,
-  "px.logret/px.logret_2": 2,
-  "px.logret/px.logret_4": 2,
-  "px.logret/px.logret_6": 2,
-  "px.logret/px.logret_12": 2,
-  "px.logret/px.logret_24": 2,
-  "px.logret/px.logret_48": 2
+  "inv.momentum/RSI": 2,
+  "inv.momentum/Stochastic_K": 2,
+  "inv.momentum/Stochastic_D": 2,
+  "inv.momentum/CCI": 2,
+  "inv.momentum/WilliamsR": 2,
+  "inv.momentum/ROC": 2,
+  "inv.momentum/BB_position": 2,
+  "inv.momentum/price_minus_ema": 2
  },
  "kinds": {
   "inv.raw": "conv",
-  "inv.momentum": "conv",
   "calendar": "conv",
+  "px.logret": "conv",
   "px.range": "conv",
   "px.close_loc": "conv",
   "px.er": "conv",
@@ -240,12 +243,13 @@
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
   "fracdiff/log_close": "conv",
-  "px.logret/px.logret_1": "conv",
-  "px.logret/px.logret_2": "conv",
-  "px.logret/px.logret_4": "conv",
-  "px.logret/px.logret_6": "conv",
-  "px.logret/px.logret_12": "conv",
-  "px.logret/px.logret_24": "conv",
-  "px.logret/px.logret_48": "conv"
+  "inv.momentum/RSI": "conv",
+  "inv.momentum/Stochastic_K": "conv",
+  "inv.momentum/Stochastic_D": "conv",
+  "inv.momentum/CCI": "conv",
+  "inv.momentum/WilliamsR": "conv",
+  "inv.momentum/ROC": "conv",
+  "inv.momentum/BB_position": "conv",
+  "inv.momentum/price_minus_ema": "conv"
  }
 }

@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_08_pointwise",
- "rule": "T3 unit 8: group 'px.range_ratio' -> pointwise; every other group conv",
+ "name": "t3_unit_08",
+ "rule": "T3 unit 8: group 'px.logret' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -36,15 +36,6 @@
    "cal.utc_session_us",
    "cal.london_hod_sin",
    "cal.london_hod_cos"
-  ],
-  "px.logret": [
-   "px.logret_1",
-   "px.logret_2",
-   "px.logret_4",
-   "px.logret_6",
-   "px.logret_12",
-   "px.logret_24",
-   "px.logret_48"
   ],
   "px.range": [
    "px.range_1@log",
@@ -167,6 +158,27 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
+  ],
+  "px.logret/px.logret_1": [
+   "px.logret_1"
+  ],
+  "px.logret/px.logret_2": [
+   "px.logret_2"
+  ],
+  "px.logret/px.logret_4": [
+   "px.logret_4"
+  ],
+  "px.logret/px.logret_6": [
+   "px.logret_6"
+  ],
+  "px.logret/px.logret_12": [
+   "px.logret_12"
+  ],
+  "px.logret/px.logret_24": [
+   "px.logret_24"
+  ],
+  "px.logret/px.logret_48": [
+   "px.logret_48"
   ]
  },
  "units": {
@@ -194,17 +206,23 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2
+  "fracdiff/log_close": 2,
+  "px.logret/px.logret_1": 2,
+  "px.logret/px.logret_2": 2,
+  "px.logret/px.logret_4": 2,
+  "px.logret/px.logret_6": 2,
+  "px.logret/px.logret_12": 2,
+  "px.logret/px.logret_24": 2,
+  "px.logret/px.logret_48": 2
  },
  "kinds": {
   "inv.raw": "conv",
   "inv.momentum": "conv",
   "calendar": "conv",
-  "px.logret": "conv",
   "px.range": "conv",
   "px.close_loc": "conv",
   "px.er": "conv",
-  "px.range_ratio": "pointwise",
+  "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
@@ -221,6 +239,13 @@
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv"
+  "fracdiff/log_close": "conv",
+  "px.logret/px.logret_1": "conv",
+  "px.logret/px.logret_2": "conv",
+  "px.logret/px.logret_4": "conv",
+  "px.logret/px.logret_6": "conv",
+  "px.logret/px.logret_12": "conv",
+  "px.logret/px.logret_24": "conv",
+  "px.logret/px.logret_48": "conv"
  }
 }

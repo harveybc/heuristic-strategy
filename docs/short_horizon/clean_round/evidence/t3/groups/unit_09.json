@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_09_pointwise",
- "rule": "T3 unit 9: group 'px.hours_since_session_open' -> pointwise; every other group conv",
+ "name": "t3_unit_09",
+ "rule": "T3 unit 9: group 'px.range' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -201,11 +201,11 @@
   "inv.momentum": "conv",
   "calendar": "conv",
   "px.logret": "conv",
-  "px.range": "conv",
+  "px.range": "pointwise",
   "px.close_loc": "conv",
   "px.er": "conv",
   "px.range_ratio": "conv",
-  "px.hours_since_session_open": "pointwise",
+  "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
   "dly.gold": "conv",

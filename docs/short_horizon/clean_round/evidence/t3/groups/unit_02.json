@@ -1,16 +1,16 @@
 {
- "name": "t3_unit_02_per_feature",
- "rule": "T3 unit 2: group 'inv.momentum' -> per_feature; every other group conv",
+ "name": "t3_unit_02",
+ "rule": "T3 unit 2: group 'inv.raw' -> per_feature; every other group conv",
  "groups": {
-  "inv.raw": [
-   "OPEN@diff",
-   "HIGH@diff",
-   "LOW@diff",
-   "CLOSE@diff",
-   "RAW_BAR_LOG_RETURN",
-   "RAW_LOG_RANGE@log",
-   "RAW_CLOSE_LOG_RETURN",
-   "RAW_ELAPSED_HOURS"
+  "inv.momentum": [
+   "RSI",
+   "Stochastic_K",
+   "Stochastic_D",
+   "CCI",
+   "WilliamsR",
+   "ROC",
+   "BB_position",
+   "price_minus_ema"
   ],
   "calendar": [
    "hod_sin",
@@ -158,29 +158,29 @@
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
   ],
-  "inv.momentum/RSI": [
-   "RSI"
+  "inv.raw/OPEN@diff": [
+   "OPEN@diff"
   ],
-  "inv.momentum/Stochastic_K": [
-   "Stochastic_K"
+  "inv.raw/HIGH@diff": [
+   "HIGH@diff"
   ],
-  "inv.momentum/Stochastic_D": [
-   "Stochastic_D"
+  "inv.raw/LOW@diff": [
+   "LOW@diff"
   ],
-  "inv.momentum/CCI": [
-   "CCI"
+  "inv.raw/CLOSE@diff": [
+   "CLOSE@diff"
   ],
-  "inv.momentum/WilliamsR": [
-   "WilliamsR"
+  "inv.raw/RAW_BAR_LOG_RETURN": [
+   "RAW_BAR_LOG_RETURN"
   ],
-  "inv.momentum/ROC": [
-   "ROC"
+  "inv.raw/RAW_LOG_RANGE@log": [
+   "RAW_LOG_RANGE@log"
   ],
-  "inv.momentum/BB_position": [
-   "BB_position"
+  "inv.raw/RAW_CLOSE_LOG_RETURN": [
+   "RAW_CLOSE_LOG_RETURN"
   ],
-  "inv.momentum/price_minus_ema": [
-   "price_minus_ema"
+  "inv.raw/RAW_ELAPSED_HOURS": [
+   "RAW_ELAPSED_HOURS"
   ]
  },
  "units": {
@@ -209,17 +209,17 @@
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
   "fracdiff/log_close": 2,
-  "inv.momentum/RSI": 2,
-  "inv.momentum/Stochastic_K": 2,
-  "inv.momentum/Stochastic_D": 2,
-  "inv.momentum/CCI": 2,
-  "inv.momentum/WilliamsR": 2,
-  "inv.momentum/ROC": 2,
-  "inv.momentum/BB_position": 2,
-  "inv.momentum/price_minus_ema": 2
+  "inv.raw/OPEN@diff": 2,
+  "inv.raw/HIGH@diff": 2,
+  "inv.raw/LOW@diff": 2,
+  "inv.raw/CLOSE@diff": 2,
+  "inv.raw/RAW_BAR_LOG_RETURN": 2,
+  "inv.raw/RAW_LOG_RANGE@log": 2,
+  "inv.raw/RAW_CLOSE_LOG_RETURN": 2,
+  "inv.raw/RAW_ELAPSED_HOURS": 2
  },
  "kinds": {
-  "inv.raw": "conv",
+  "inv.momentum": "conv",
   "calendar": "conv",
   "px.logret": "conv",
   "px.range": "conv",
@@ -243,13 +243,13 @@
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
   "fracdiff/log_close": "conv",
-  "inv.momentum/RSI": "conv",
-  "inv.momentum/Stochastic_K": "conv",
-  "inv.momentum/Stochastic_D": "conv",
-  "inv.momentum/CCI": "conv",
-  "inv.momentum/WilliamsR": "conv",
-  "inv.momentum/ROC": "conv",
-  "inv.momentum/BB_position": "conv",
-  "inv.momentum/price_minus_ema": "conv"
+  "inv.raw/OPEN@diff": "conv",
+  "inv.raw/HIGH@diff": "conv",
+  "inv.raw/LOW@diff": "conv",
+  "inv.raw/CLOSE@diff": "conv",
+  "inv.raw/RAW_BAR_LOG_RETURN": "conv",
+  "inv.raw/RAW_LOG_RANGE@log": "conv",
+  "inv.raw/RAW_CLOSE_LOG_RETURN": "conv",
+  "inv.raw/RAW_ELAPSED_HOURS": "conv"
  }
 }

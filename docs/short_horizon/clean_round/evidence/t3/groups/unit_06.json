@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_06_per_feature",
- "rule": "T3 unit 6: group 'px.close_loc' -> per_feature; every other group conv",
+ "name": "t3_unit_06",
+ "rule": "T3 unit 6: group 'calendar' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -22,21 +22,6 @@
    "BB_position",
    "price_minus_ema"
   ],
-  "calendar": [
-   "hod_sin",
-   "hod_cos",
-   "dow_sin",
-   "dow_cos",
-   "cal.utc_hod_sin",
-   "cal.utc_hod_cos",
-   "cal.utc_dow_sin",
-   "cal.utc_dow_cos",
-   "cal.utc_session_asia",
-   "cal.utc_session_europe",
-   "cal.utc_session_us",
-   "cal.london_hod_sin",
-   "cal.london_hod_cos"
-  ],
   "px.logret": [
    "px.logret_1",
    "px.logret_2",
@@ -54,6 +39,15 @@
    "px.range_12",
    "px.range_24",
    "px.range_48"
+  ],
+  "px.close_loc": [
+   "px.close_loc_1",
+   "px.close_loc_2",
+   "px.close_loc_4",
+   "px.close_loc_6",
+   "px.close_loc_12",
+   "px.close_loc_24",
+   "px.close_loc_48"
   ],
   "px.er": [
    "px.er_1",
@@ -159,26 +153,44 @@
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
   ],
-  "px.close_loc/px.close_loc_1": [
-   "px.close_loc_1"
+  "calendar/hod_sin": [
+   "hod_sin"
   ],
-  "px.close_loc/px.close_loc_2": [
-   "px.close_loc_2"
+  "calendar/hod_cos": [
+   "hod_cos"
   ],
-  "px.close_loc/px.close_loc_4": [
-   "px.close_loc_4"
+  "calendar/dow_sin": [
+   "dow_sin"
   ],
-  "px.close_loc/px.close_loc_6": [
-   "px.close_loc_6"
+  "calendar/dow_cos": [
+   "dow_cos"
   ],
-  "px.close_loc/px.close_loc_12": [
-   "px.close_loc_12"
+  "calendar/cal.utc_hod_sin": [
+   "cal.utc_hod_sin"
   ],
-  "px.close_loc/px.close_loc_24": [
-   "px.close_loc_24"
+  "calendar/cal.utc_hod_cos": [
+   "cal.utc_hod_cos"
   ],
-  "px.close_loc/px.close_loc_48": [
-   "px.close_loc_48"
+  "calendar/cal.utc_dow_sin": [
+   "cal.utc_dow_sin"
+  ],
+  "calendar/cal.utc_dow_cos": [
+   "cal.utc_dow_cos"
+  ],
+  "calendar/cal.utc_session_asia": [
+   "cal.utc_session_asia"
+  ],
+  "calendar/cal.utc_session_europe": [
+   "cal.utc_session_europe"
+  ],
+  "calendar/cal.utc_session_us": [
+   "cal.utc_session_us"
+  ],
+  "calendar/cal.london_hod_sin": [
+   "cal.london_hod_sin"
+  ],
+  "calendar/cal.london_hod_cos": [
+   "cal.london_hod_cos"
   ]
  },
  "units": {
@@ -207,20 +219,26 @@
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
   "fracdiff/log_close": 2,
-  "px.close_loc/px.close_loc_1": 2,
-  "px.close_loc/px.close_loc_2": 2,
-  "px.close_loc/px.close_loc_4": 2,
-  "px.close_loc/px.close_loc_6": 2,
-  "px.close_loc/px.close_loc_12": 2,
-  "px.close_loc/px.close_loc_24": 2,
-  "px.close_loc/px.close_loc_48": 2
+  "calendar/hod_sin": 2,
+  "calendar/hod_cos": 2,
+  "calendar/dow_sin": 2,
+  "calendar/dow_cos": 2,
+  "calendar/cal.utc_hod_sin": 2,
+  "calendar/cal.utc_hod_cos": 2,
+  "calendar/cal.utc_dow_sin": 2,
+  "calendar/cal.utc_dow_cos": 2,
+  "calendar/cal.utc_session_asia": 2,
+  "calendar/cal.utc_session_europe": 2,
+  "calendar/cal.utc_session_us": 2,
+  "calendar/cal.london_hod_sin": 2,
+  "calendar/cal.london_hod_cos": 2
  },
  "kinds": {
   "inv.raw": "conv",
   "inv.momentum": "conv",
-  "calendar": "conv",
   "px.logret": "conv",
   "px.range": "conv",
+  "px.close_loc": "conv",
   "px.er": "conv",
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
@@ -240,12 +258,18 @@
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
   "fracdiff/log_close": "conv",
-  "px.close_loc/px.close_loc_1": "conv",
-  "px.close_loc/px.close_loc_2": "conv",
-  "px.close_loc/px.close_loc_4": "conv",
-  "px.close_loc/px.close_loc_6": "conv",
-  "px.close_loc/px.close_loc_12": "conv",
-  "px.close_loc/px.close_loc_24": "conv",
-  "px.close_loc/px.close_loc_48": "conv"
+  "calendar/hod_sin": "conv",
+  "calendar/hod_cos": "conv",
+  "calendar/dow_sin": "conv",
+  "calendar/dow_cos": "conv",
+  "calendar/cal.utc_hod_sin": "conv",
+  "calendar/cal.utc_hod_cos": "conv",
+  "calendar/cal.utc_dow_sin": "conv",
+  "calendar/cal.utc_dow_cos": "conv",
+  "calendar/cal.utc_session_asia": "conv",
+  "calendar/cal.utc_session_europe": "conv",
+  "calendar/cal.utc_session_us": "conv",
+  "calendar/cal.london_hod_sin": "conv",
+  "calendar/cal.london_hod_cos": "conv"
  }
 }

@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_22_pointwise",
- "rule": "T3 unit 22: group 'kalman/log_close' -> pointwise; every other group conv",
+ "name": "t3_unit_22",
+ "rule": "T3 unit 22: group 'dly.gold' -> per_feature; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -93,10 +93,6 @@
    "fx.usdchf.ret_24",
    "fx.usdchf.rv_24@log"
   ],
-  "dly.gold": [
-   "dly.gold.ret_1d",
-   "dly.gold.ret_5d"
-  ],
   "cot.eur": [
    "cot.eur.net_long",
    "cot.eur.net_change",
@@ -167,6 +163,12 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
+  ],
+  "dly.gold/dly.gold.ret_1d": [
+   "dly.gold.ret_1d"
+  ],
+  "dly.gold/dly.gold.ret_5d": [
+   "dly.gold.ret_5d"
   ]
  },
  "units": {
@@ -194,7 +196,9 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2
+  "fracdiff/log_close": 2,
+  "dly.gold/dly.gold.ret_1d": 2,
+  "dly.gold/dly.gold.ret_5d": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -208,7 +212,6 @@
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
-  "dly.gold": "conv",
   "cot.eur": "conv",
   "fac.fx_f1": "conv",
   "ev": "conv",
@@ -218,9 +221,11 @@
   "hilbert/logret_1": "conv",
   "strength/fx.usd_strength.ret_1": "conv",
   "strength/fx.eur_strength.ret_1": "conv",
-  "kalman/log_close": "pointwise",
+  "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv"
+  "fracdiff/log_close": "conv",
+  "dly.gold/dly.gold.ret_1d": "conv",
+  "dly.gold/dly.gold.ret_5d": "conv"
  }
 }

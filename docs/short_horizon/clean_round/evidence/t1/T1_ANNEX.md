@@ -48,7 +48,10 @@ dentro de la familia. Estabilidad: máximo del cociente std de medias de fold / 
 `px.rv`, fuerza del USD). `px.er_1` es **constante** en FIT (cociente de eficiencia de una barra): se conserva y
 se marca; con el escalado fijo su std se trata con la regla de columna constante (std 0 → 1).
 
-## 2. Pares con |Spearman| ≥ 0.99 (información duplicada, no veto)
+## 2. Pares con |Spearman| ≥ 0.99 (información muy correlacionada, no veto)
+
+Cada columna del CSV guarda sólo su vecino de máxima correlación: esta tabla es el grafo de esos vecinos (10 aristas
+únicas), no una enumeración de todos los pares del conjunto (precisión de Musashi, 2026-10-22).
 
 | columna | grupo | pareja | grupo de la pareja | abs ρ del par | grupo |
 | --- | --- | --- | --- | ---: | --- |
@@ -65,11 +68,12 @@ se marca; con el escalado fijo su std se trata con la regla de columna constante
 
 Lectura, sin decidir nada todavía:
 
-- **Seis de estos diez pares cruzan grupos de extractor** (p. ej. `RAW_CLOSE_LOG_RETURN` ≡ `px.logret_1` ≈ `kf.lc.level_minus_close`,
-  `RAW_LOG_RANGE@log` ≡ `px.range_1@log`, `wv.lc.A4@diff` ≡ `wv.r1.A4`). En T3 esto importa: cambiar el tipo de
+- **Seis de estos diez pares cruzan grupos de extractor** (p. ej. `RAW_CLOSE_LOG_RETURN` con `px.logret_1` y con `kf.lc.level_minus_close`,
+  `RAW_LOG_RANGE@log` con `px.range_1@log`, `wv.lc.A4@diff` con `wv.r1.A4`; correlación de rangos ≥ 0.999, que no prueba
+  igualdad numérica ni de amplitudes). En T3 esto importa: cambiar el tipo de
   extractor de un grupo no elimina esa información del modelo, porque la copia sigue entrando por otro grupo. El
-  contraste T3 mide entonces el **tipo de extractor con la información redundante presente**, no el aporte de la
-  información del grupo. Así queda declarado; no cambia el manifiesto T3 ya emitido ni su identidad.
+  contraste T3 mide entonces el **tipo de extractor condicionado a las demás entradas presentes**, no una ablación
+  de información ni el aporte único del grupo. Así queda declarado en el manifiesto T3 v2.
 - Los pares `ev.*.hours_since` / `hours_to` son complementarios dentro del día (ρ = 1 en rango); cada par entra en
   el mismo grupo `ev` y su extractor los ve juntos.
 - Ninguna columna se retira por esto (regla del propietario: no perder información útil; regla de Musashi:

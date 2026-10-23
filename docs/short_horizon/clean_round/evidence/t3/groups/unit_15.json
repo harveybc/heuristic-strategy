@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_15_pointwise",
- "rule": "T3 unit 15: group 'ev' -> pointwise; every other group conv",
+ "name": "t3_unit_15",
+ "rule": "T3 unit 15: group 'px.range_ratio' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -204,14 +204,14 @@
   "px.range": "conv",
   "px.close_loc": "conv",
   "px.er": "conv",
-  "px.range_ratio": "conv",
+  "px.range_ratio": "pointwise",
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
   "fx.usdchf": "conv",
   "dly.gold": "conv",
   "cot.eur": "conv",
   "fac.fx_f1": "conv",
-  "ev": "pointwise",
+  "ev": "conv",
   "act": "conv",
   "wavelet/log_close": "conv",
   "wavelet/logret_1": "conv",

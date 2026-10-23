@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_03_pointwise",
- "rule": "T3 unit 3: group 'calendar' -> pointwise; every other group conv",
+ "name": "t3_unit_03",
+ "rule": "T3 unit 3: group 'inv.momentum' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -198,8 +198,8 @@
  },
  "kinds": {
   "inv.raw": "conv",
-  "inv.momentum": "conv",
-  "calendar": "pointwise",
+  "inv.momentum": "pointwise",
+  "calendar": "conv",
   "px.logret": "conv",
   "px.range": "conv",
   "px.close_loc": "conv",

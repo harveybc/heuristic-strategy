@@ -182,43 +182,108 @@ def _spec_and_groups(tmp_path):
     return spec, grp, lst
 
 
-def test_t3_manifest_is_finite_stable_partitioned_and_split_by_parity(tmp_path):
+def _profiles(path, cols, acf1, acf24, within):
+    hdr = ["column", "acf_lag1", "acf_lag24", "acf_first_insignificant_lag", "redundancy_within_family_max", "fold_stability_ratio", "constant_fit"]
+    with open(path, "w") as f:
+        f.write(",".join(hdr) + "\n")
+        for c in cols:
+            f.write(",".join([c, str(acf1[c]), str(acf24[c]), "5", str(within[c]), "0.1", "False"]) + "\n")
+
+
+def _t3_inputs(tmp_path):
     spec, grp, lst = _spec_and_groups(tmp_path)
+    s = json.loads(spec.read_text())
+    s["regularization"].update(dropout=0.1, wd=1e-4, chosen="base", status="DECIDED", source="test")
+    spec.write_text(json.dumps(s))
+    cols = json.loads(lst.read_text())["features"]
+    acf1 = {"a": 0.02, "b": 0.01, "c": 0.0, "d": 0.5, "e": 0.5, "cal.x": 0.99, "cal.y": 0.98, "dly.z": 0.97}
+    acf24 = {"a": 0.0, "b": 0.0, "c": 0.0, "d": 0.1, "e": 0.1, "cal.x": 0.99, "cal.y": 0.99, "dly.z": 0.8}
+    within = {"a": 0.99, "b": 0.99, "c": 0.99, "d": 0.3, "e": 0.3, "cal.x": 0.7, "cal.y": 0.7, "dly.z": ""}
+    prof = tmp_path / "PROFILES.csv"
+    _profiles(prof, cols, acf1, acf24, within)
+    return spec, grp, lst, prof
+
+
+def _t3(tmp_path, *args):
+    return subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_t3_manifest.py"), *map(str, args)], capture_output=True, text=True, cwd=ROOT)
+
+
+def test_t3_v2_candidates_and_expectations_come_from_each_group_profile(tmp_path):
+    spec, grp, lst, prof = _t3_inputs(tmp_path)
     out = tmp_path / "t3"
-    r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_t3_manifest.py"), "emit", "--spec", str(spec), "--groups", str(grp),
-                        "--list", str(lst), "--out", str(out)], capture_output=True, text=True, cwd=ROOT)
+    r = _t3(tmp_path, "emit", "--spec", spec, "--groups", grp, "--list", lst, "--profiles", prof, "--profiles-manifest-sha256", "x", "--out", out)
     assert r.returncode == 0, r.stderr
     man = json.loads((out / "T3_MANIFEST.json").read_text())
-    units = man["units"]
-    assert [u["id"] for u in units] == [0, 1, 2, 3, 4] and units[0]["role"] == "control"
-    assert [u["kind"] for u in units[1:]] == ["per_feature", "per_feature", "pointwise", "pointwise"]   # wavelet per scale; calendar/daily pointwise; singleton pointwise
-    assert [u["worker"] for u in units] == ["satoshi", "musashi", "satoshi", "musashi", "satoshi"]
+    u = man["units"]
+    # control + 3 multi-column groups x 2 alternatives + 1 single-column group x pointwise
+    assert [x["id"] for x in u] == list(range(8)) and u[0]["role"] == "control"
+    assert [(x["group"], x["kind"]) for x in u[1:]] == [("px", "pointwise"), ("px", "per_feature"), ("wavelet/x", "pointwise"),
+                                                         ("wavelet/x", "per_feature"), ("calendar", "pointwise"), ("calendar", "per_feature"),
+                                                         ("dly.z", "pointwise")]
+    assert [x["worker"] for x in u] == ["satoshi", "musashi"] * 4
+    ex = {x["group"]: x["expectation"] for x in u[1:]}
+    assert ex["px"]["memory"] == "near_white" and ex["px"]["redundancy"] == "high" and ex["px"]["expected"] == ["conv >= pointwise", "conv >= per_feature"]
+    assert ex["wavelet/x"]["redundancy"] == "low" and ex["wavelet/x"]["expected"] == ["per_feature >= conv"]
+    assert ex["calendar"]["memory"] == "persistent" and "pointwise >= conv" in ex["calendar"]["expected"]
     cols = json.loads(lst.read_text())["features"]
-    for u in units:
-        g = json.loads(Path(u["groups_file"]).read_text())
-        idx, un, names, kinds = C.load_groups(u["groups_file"], cols)
-        assert sorted(i for gg in idx for i in gg) == list(range(len(cols)))         # every unit partitions the list
-        assert all(k in ("conv", "pointwise") for k in kinds)
-    per = json.loads(Path(units[2]["groups_file"]).read_text())
-    assert "wavelet/x/d" in per["groups"] and "wavelet/x" not in per["groups"]
-    assert man["fixed"]["regularization"]["status"] == "DEPENDENCY"
-    # stable identities: emitting again gives the same units
-    r2 = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_t3_manifest.py"), "emit", "--spec", str(spec), "--groups", str(grp),
-                         "--list", str(lst), "--out", str(tmp_path / "t3b")], capture_output=True, text=True, cwd=ROOT)
-    assert r2.returncode == 0
-    man2 = json.loads((tmp_path / "t3b" / "T3_MANIFEST.json").read_text())
-    assert [u["identity"] for u in man2["units"]] == [u["identity"] for u in units]
-    # the queue is refused without the T2 decision and written with it
-    q = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_t3_manifest.py"), "queue", "--manifest", str(out / "T3_MANIFEST.json"),
-                        "--decision", str(tmp_path / "missing.json"), "--worker", "musashi", "--remote-root", "/r", "--store", "s.parquet",
-                        "--out", str(tmp_path / "q.sh")], capture_output=True, text=True, cwd=ROOT)
-    assert q.returncode != 0 and "T3_REGULARIZATION_DEPENDENCY_MISSING" in q.stderr
-    (tmp_path / "dec.json").write_text(json.dumps({"how": "NON_DOMINATED_UNIQUE", "values": {"dropout": 0.3, "wd": 0.01}}))
-    q = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_t3_manifest.py"), "queue", "--manifest", str(out / "T3_MANIFEST.json"),
-                        "--decision", str(tmp_path / "dec.json"), "--worker", "musashi", "--remote-root", "/r", "--store", "s.parquet",
-                        "--out", str(tmp_path / "q.sh")], capture_output=True, text=True, cwd=ROOT)
-    assert q.returncode == 0 and (tmp_path / "q.sh").read_text().count("expert_guided_e3m.py run") == 2   # ids 1 and 3
-    assert "--dropout 0.3 --wd 0.01" in (tmp_path / "q.sh").read_text() and "--split-contract consolidated" in (tmp_path / "q.sh").read_text()
+    for x in u:
+        idx, _, _, kinds = C.load_groups(out / "groups" / x["groups_file"], cols)
+        assert sorted(i for g in idx for i in g) == list(range(len(cols)))
+    # stable identities
+    r2 = _t3(tmp_path, "emit", "--spec", spec, "--groups", grp, "--list", lst, "--profiles", prof, "--profiles-manifest-sha256", "x", "--out", tmp_path / "t3b")
+    assert [x["identity"] for x in json.loads((tmp_path / "t3b" / "T3_MANIFEST.json").read_text())["units"]] == [x["identity"] for x in u]
+    # the T2 decision is a hard dependency
+    s = json.loads(spec.read_text()); s["regularization"].update(status="PENDING_T2", dropout=None); spec.write_text(json.dumps(s))
+    r3 = _t3(tmp_path, "emit", "--spec", spec, "--groups", grp, "--list", lst, "--profiles", prof, "--profiles-manifest-sha256", "x", "--out", tmp_path / "t3c")
+    assert r3.returncode != 0 and "T3_REGULARIZATION_NOT_DECIDED" in r3.stderr
+    # typed queue per worker, no duplicates across workers
+    for w in ("satoshi", "musashi"):
+        q = _t3(tmp_path, "queue", "--manifest", out / "T3_MANIFEST.json", "--worker", w, "--out", tmp_path / f"q_{w}.sh", "--out-units", tmp_path / f"U_{w}.json")
+        assert q.returncode == 0, q.stderr
+    us = json.loads((tmp_path / "U_satoshi.json").read_text())["units"] + json.loads((tmp_path / "U_musashi.json").read_text())["units"]
+    assert sorted(x["id"] for x in us) == list(range(8))
+    sh = (tmp_path / "q_musashi.sh").read_text()
+    assert sh.count("expert_guided_e3m.py run") == 4 and "--dropout 0.1 --wd 0.0001" in sh and "--split-contract consolidated" in sh and "--window 13 --stride 2" in sh
+
+
+def _t3_result(path, sharpe, gap, params=100, support=("t", "i"), valid=True):
+    seeds = {str(s): {"trading": {"INNER_A": {"sharpe_daily_sqrt365": x}, "TRAIN": {"sharpe_daily_sqrt365": x + g},
+                                  "OBS_2024": {"sharpe_daily_sqrt365": 99.0}}} for s, x, g in zip((1, 2, 3), sharpe, gap)}
+    path.mkdir(parents=True)
+    (path / "E3M.json").write_text(json.dumps({"trials": {"FULL": seeds}, "decision": {"means": {"FULL": {"all_valid": valid}}},
+                                               "params": {"FULL": {"m": params}}, "meta": {"support_hash": {"TRAIN": support[0], "INNER_A": support[1]}}}))
+
+
+def test_t3_v2_decision_rule_and_combination(tmp_path):
+    spec, grp, lst, prof = _t3_inputs(tmp_path)
+    out = tmp_path / "t3"
+    assert _t3(tmp_path, "emit", "--spec", spec, "--groups", grp, "--list", lst, "--profiles", prof, "--profiles-manifest-sha256", "x", "--out", out).returncode == 0
+    man = json.loads((out / "T3_MANIFEST.json").read_text())
+    res = tmp_path / "res"
+    ctl = ((0.20, 0.25, 0.30), (1.0, 1.0, 1.0))
+    for u in man["units"]:
+        sharpe, gap = ctl
+        if (u["group"], u["kind"]) == ("px", "per_feature"):
+            sharpe = (0.80, 0.85, 0.90)                                 # beyond the pooled seed std, same gap -> replaces conv
+        if (u["group"], u["kind"]) == ("calendar", "pointwise"):
+            sharpe, gap = (0.80, 0.85, 0.90), (3.0, 3.0, 3.0)           # better inner but a much larger gap -> does not qualify
+        if (u["group"], u["kind"]) == ("dly.z", "pointwise"):
+            sharpe = (0.22, 0.27, 0.32)                                 # within the seed noise -> control stays
+        _t3_result(res / u["name"], sharpe, gap)
+    d = _t3(tmp_path, "decide", "--manifest", out / "T3_MANIFEST.json", "--results", res, "--out", tmp_path / "DEC.json")
+    assert d.returncode == 0, d.stderr
+    dec = {x["group"]: x["chosen"] for x in json.loads((tmp_path / "DEC.json").read_text())["groups"]}
+    assert dec == {"px": "per_feature", "wavelet/x": "conv", "calendar": "conv", "dly.z": "conv"}
+    c = _t3(tmp_path, "combine", "--manifest", out / "T3_MANIFEST.json", "--decision", tmp_path / "DEC.json")
+    assert c.returncode == 0, c.stderr
+    gC = json.loads((out / "groups" / "unit_C.json").read_text())
+    assert "px" not in gC["groups"] and gC["groups"]["px/a"] == ["a"] and gC["kinds"]["calendar"] == "conv"
+    # a unit on a different support is refused
+    import shutil
+    shutil.rmtree(res / man["units"][3]["name"])
+    _t3_result(res / man["units"][3]["name"], *ctl, support=("t", "other"))
+    d2 = _t3(tmp_path, "decide", "--manifest", out / "T3_MANIFEST.json", "--results", res, "--out", tmp_path / "DEC2.json")
+    assert d2.returncode != 0 and "T3_SUPPORT_DIFFERS" in d2.stderr
 
 
 def _e3m(path, inner, train, dd, valid=True, support=("t1", "i1"), state="none", arm="consolidated"):
@@ -233,10 +298,19 @@ def _e3m(path, inner, train, dd, valid=True, support=("t1", "i1"), state="none",
                                                "exec_contract": "sac", "min_orders_per_week": 2.0}))
 
 
+def _verified(tmp_path, res):
+    """A verification document for the synthetic arms (what verify-t2 writes when all_ok)."""
+    rows = [{"unit": d.name, "status": "OK", "sha256": C.sha(d / "E3M.json")} for d in sorted(res.iterdir())]
+    v = tmp_path / f"T2_VERIFY_{res.name}.json"
+    v.write_text(json.dumps({"all_ok": True, "rows": rows, "producer": {"authenticated": True, "emits_labels": False}}))
+    return v
+
+
 def _run_reg(tmp_path, spec, res, extra=()):
     out = tmp_path / "REGULARIZATION_DECISION.json"
     r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_clean_round.py"), "regularize", "--spec", str(spec),
-                        "--results", str(res), "--out", str(out), "--lists", "core15,shortlist_strict", *extra], capture_output=True, text=True, cwd=ROOT)
+                        "--results", str(res), "--out", str(out), "--lists", "core15,shortlist_strict",
+                        "--verified", str(_verified(tmp_path, res)), *extra], capture_output=True, text=True, cwd=ROOT)
     return r, (json.loads(out.read_text()) if out.exists() else None)
 
 
@@ -330,25 +404,93 @@ def test_e3m_cli_signal_labels_run_end_to_end_and_checkpoints_reload(tmp_path):
     assert np.allclose(lg.numpy(), np.array(pr["logits"]), atol=1e-4)
 
 
-def test_t2_verifier_reads_a_missing_labels_block_as_legacy_zigzag_and_rejects_other_modes(tmp_path):
-    """Musashi's precision 2026-10-22: the pinned producer (186b131) does not emit `labels`; that is not a failure, but an
-    explicit non-ZigZag or unknown mode is. Real fields only; no E3M.json is rewritten to satisfy a schema."""
-    res = tmp_path / "out"
-    _e3m(res / "gap_core15_none_base", (0.5, 0.6, 0.7), (3.0, 3.1, 3.2), (10, 11, 12))
-    e = json.loads((res / "gap_core15_none_base" / "E3M.json").read_text())
-    e["trials"]["FULL"] = {str(s): v for s, v in zip((20261019, 20261020, 20261021), e["trials"]["FULL"].values())}
-    e["meta"]["scaling"] = {"policy": "fixed_train"}
-    e["decision"]["means"]["FULL"].update(inner_a_sharpe_mean=0.6)
-    unit = {"name": "gap_core15_none_base", "identity": "x", "agent_state": "none"}
-    assert C.label_mode_of(e) == ("zigzag", "PRODUCER_PREDATES_FIELD") and C.verify_t2_arm(e, unit) == []
-    assert C.verify_t2_arm(dict(e, labels={"mode": "zigzag"}), unit) == []
-    assert C.verify_t2_arm(dict(e, labels={"mode": "opportunity"}), unit) == ["LABELS:opportunity:DECLARED"]
-    assert C.verify_t2_arm(dict(e, labels={"mode": "oracle"}), unit) == ["LABELS:oracle:UNKNOWN_MODE"]
-    assert "SPLIT:dev3y" in C.verify_t2_arm(dict(e, split_contract={"arm": "dev3y"}), unit)
-    (res / "gap_core15_none_base" / "E3M.json").write_text(json.dumps(e))
-    units = tmp_path / "U.json"
-    units.write_text(json.dumps({"units": [unit, {"name": "gap_core15_none_strong", "identity": "y", "agent_state": "none"}]}))
-    r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_clean_round.py"), "verify-t2", "--units", str(units), "--results", str(res)],
-                       capture_output=True, text=True, cwd=ROOT)
-    d = json.loads(r.stdout)
-    assert r.returncode == 2 and [x["status"] for x in d["rows"]] == ["OK", "MISSING"] and d["rows"][0]["labels"] == "zigzag/PRODUCER_PREDATES_FIELD"
+def test_regularize_refuses_a_result_that_is_not_the_verified_file(tmp_path):
+    spec, _, _ = _spec_and_groups(tmp_path)
+    res = tmp_path / "res"
+    for lst, sup in (("core15", ("t1", "i1")), ("shortlist_strict", ("t2", "i2"))):
+        _e3m(res / f"gap_{lst}_none_base", (0.5, 0.6, 0.7), (3.0, 3.1, 3.2), (10, 11, 12), support=sup)
+        _e3m(res / f"gap_{lst}_none_strong", (0.8, 0.8, 0.8), (2.0, 2.0, 2.0), (8, 8, 8), support=sup)
+    v = _verified(tmp_path, res)
+    f = res / "gap_core15_none_strong" / "E3M.json"
+    f.write_text(f.read_text().replace('"max_drawdown_pct": 8', '"max_drawdown_pct": 1'))      # swapped after the check
+    r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_clean_round.py"), "regularize", "--spec", str(spec),
+                        "--results", str(res), "--out", str(tmp_path / "D.json"), "--verified", str(v)], capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode != 0 and "ARM_NOT_THE_VERIFIED_RESULT:gap_core15_none_strong" in r.stderr
+    v.write_text(json.dumps({"all_ok": False, "rows": [], "producer": {}}))
+    r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_clean_round.py"), "regularize", "--spec", str(spec),
+                        "--results", str(res), "--out", str(tmp_path / "D.json"), "--verified", str(v)], capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode != 0 and "T2_NOT_VERIFIED" in r.stderr
+
+
+AUTH = {"authenticated": True, "emits_labels": False, "config_identity": "cfg"}
+
+
+def test_label_mode_requires_an_authenticated_legacy_producer_musashi_c01():
+    """Musashi's C01 witnesses as regressions: absence is legacy ZigZag ONLY with an authenticated producer that does not
+    emit the field; null, a list, an unknown producer, or a field the pinned producer cannot emit are rejected explicitly."""
+    e = {"trials": {}}
+    assert C.label_mode_of(e, AUTH) == ("zigzag", C.LEGACY_ABSENT) and C.labels_ok(*C.label_mode_of(e, AUTH))
+    assert C.label_mode_of(e, None) == ("absent", C.UNAUTH) and not C.labels_ok(*C.label_mode_of(e, None))      # arbitrary producer
+    assert C.label_mode_of(e, {"authenticated": False}) == ("absent", C.UNAUTH)
+    assert C.label_mode_of(dict(e, labels=None), AUTH) == ("null", C.MALFORMED)                                 # null is not absent
+    assert C.label_mode_of(dict(e, labels=["zigzag"]), AUTH) == ("list", C.MALFORMED)                           # no AttributeError
+    assert C.label_mode_of(dict(e, labels={"mode": 3})) == ("3", C.MALFORMED)
+    assert C.label_mode_of(dict(e, labels={"mode": "zigzag"}), AUTH)[1] == "PRESENT_BUT_PRODUCER_DOES_NOT_EMIT"
+    assert C.labels_ok(*C.label_mode_of(dict(e, labels={"mode": "zigzag"})))                                     # a new producer declares it
+    assert not C.labels_ok(*C.label_mode_of(dict(e, labels={"mode": "opportunity"})))
+    assert C.label_mode_of(dict(e, labels={"mode": "oracle"})) == ("oracle", C.UNKNOWN)
+
+
+def _receipt_case(tmp_path):
+    arm = tmp_path / "out" / "gap_core15_none_base"
+    arm.mkdir(parents=True)
+    files = {"E3M.json": b"{}", "SCALER.json": b"s", "PROBE.json": b"p"}
+    files |= {f"FULL_{m}_{s}.pt": f"{m}{s}".encode() for m in ("open_l", "open_s", "close_l", "close_s") for s in ("20261019", "20261020", "20261021")}
+    for n, b in files.items():
+        (arm / n).write_bytes(b)
+    cmd = "tools/expert_guided_e3m.py run --feature-list <musashi-root>/in/FEATURE_LIST_core15.json --dropout 0.1 --wd 1e-4"
+    import hashlib
+    unit = {"name": "gap_core15_none_base", "identity": hashlib.sha256(cmd.encode()).hexdigest()[:16], "command": cmd,
+            "agent_state": "none", "list": "core15", "dropout": 0.1, "wd": 0.0001}
+    rc = {"config_sha256": "cfg", "job": {"name": unit["name"], "peer_command": cmd, "peer_command_identity": unit["identity"],
+                                         "dropout": 0.1, "wd": 0.0001, "state": "none", "list": "FEATURE_LIST_core15.json", "split": "consolidated"},
+          "hashes": {n: C.sha(arm / n) for n in files}, "support_hash": {"TRAIN": "t", "INNER_A": "i"},
+          "requested_features": ["a", "b"], "consumed_features": ["a", "b"]}
+    e = {"meta": {"support_hash": {"TRAIN": "t", "INNER_A": "i"}}}
+    return rc, unit, arm, e
+
+
+def test_receipt_binds_identity_regularization_list_and_every_sealed_file_musashi_c02(tmp_path):
+    """Musashi's C02 witness: the same result presented under an altered unit (name, identity, list, dropout, wd) must
+    fail; so must a receipt from another config, a swapped checkpoint or a different support."""
+    rc, unit, arm, e = _receipt_case(tmp_path)
+    assert C.verify_t2_receipt(rc, unit, arm, e, AUTH, ["a", "b"]) == []
+    bad = dict(unit, name="gap_shortlist_strict_none_strong", identity="0" * 16, list="shortlist_strict", dropout=0.3, wd=0.01)
+    errs = C.verify_t2_receipt(rc, bad, arm, e, AUTH, ["a", "b"])
+    for code in ("RECEIPT_NAME", "RECEIPT_IDENTITY", "RECEIPT_REGULARIZATION", "RECEIPT_LIST"):
+        assert any(x.startswith(code) for x in errs), (code, errs)
+    assert "RECEIPT_CONFIG_IDENTITY" in C.verify_t2_receipt(rc, unit, arm, e, dict(AUTH, config_identity="other"), ["a", "b"])
+    (arm / "FULL_open_l_20261020.pt").write_bytes(b"swapped")
+    assert "ARTIFACT_HASH:FULL_open_l_20261020.pt" in C.verify_t2_receipt(rc, unit, arm, e, AUTH, ["a", "b"])
+    rc2, unit2, arm2, e2 = _receipt_case(tmp_path / "b")
+    assert "RECEIPT_SUPPORT_DIFFERS" in C.verify_t2_receipt(rc2, unit2, arm2, {"meta": {"support_hash": {"TRAIN": "t", "INNER_A": "x"}}}, AUTH, ["a", "b"])
+    assert "RECEIPT_COLUMNS_DIFFER_FROM_LIST" in C.verify_t2_receipt(rc2, unit2, arm2, e2, AUTH, ["a", "c"])
+    del rc2["hashes"]["PROBE.json"]
+    assert "RECEIPT_HASH_MISSING:PROBE.json" in C.verify_t2_receipt(rc2, unit2, arm2, e2, AUTH, ["a", "b"])
+
+
+def test_producer_authentication_compares_the_pinned_source_with_the_science_commit(tmp_path):
+    import hashlib
+    blob = subprocess.run(["git", "show", "186b131:tools/expert_guided_e3m.py"], cwd=ROOT, capture_output=True)
+    if blob.returncode != 0:
+        pytest.skip("science commit not in this clone")
+    cfg = {"pins": {"<root>/code/tools/expert_guided_e3m.py": hashlib.sha256(blob.stdout).hexdigest(), "<root>/a.tar.gz": "x"}}
+    p = tmp_path / "CONFIG.json"
+    p.write_text(json.dumps(cfg))
+    pr = C.authenticate_producer(p, "186b131")
+    assert pr["authenticated"] and pr["emits_labels"] is False and pr["config_identity"] == hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()
+    cfg["pins"]["<root>/code/tools/expert_guided_e3m.py"] = "0" * 64
+    p.write_text(json.dumps(cfg))
+    assert C.authenticate_producer(p, "186b131")["error"] == "PINNED_SOURCE_DIFFERS_FROM_SCIENCE_COMMIT"
+    pr_new = C.authenticate_producer(p, "e9291b7")
+    assert pr_new["authenticated"] is False                           # pin does not match the newer source either

@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_19_per_feature",
- "rule": "T3 unit 19: group 'hilbert/logret_1' -> per_feature; every other group conv",
+ "name": "t3_unit_19",
+ "rule": "T3 unit 19: group 'fx.usdchf' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -142,6 +142,11 @@
    "wv.r1.energy_D2@log",
    "wv.r1.energy_D1@diff"
   ],
+  "hilbert/logret_1": [
+   "hb.r1.phase_cos",
+   "hb.r1.phase_sin",
+   "hb.r1.inst_freq"
+  ],
   "strength/fx.usd_strength.ret_1": [
    "wv.usd.energy_D4@log"
   ],
@@ -162,15 +167,6 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
-  ],
-  "hilbert/logret_1/hb.r1.phase_cos": [
-   "hb.r1.phase_cos"
-  ],
-  "hilbert/logret_1/hb.r1.phase_sin": [
-   "hb.r1.phase_sin"
-  ],
-  "hilbert/logret_1/hb.r1.inst_freq": [
-   "hb.r1.inst_freq"
   ]
  },
  "units": {
@@ -198,10 +194,7 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2,
-  "hilbert/logret_1/hb.r1.phase_cos": 2,
-  "hilbert/logret_1/hb.r1.phase_sin": 2,
-  "hilbert/logret_1/hb.r1.inst_freq": 2
+  "fracdiff/log_close": 2
  },
  "kinds": {
   "inv.raw": "conv",
@@ -214,7 +207,7 @@
   "px.range_ratio": "conv",
   "px.hours_since_session_open": "conv",
   "cdl": "conv",
-  "fx.usdchf": "conv",
+  "fx.usdchf": "pointwise",
   "dly.gold": "conv",
   "cot.eur": "conv",
   "fac.fx_f1": "conv",
@@ -222,14 +215,12 @@
   "act": "conv",
   "wavelet/log_close": "conv",
   "wavelet/logret_1": "conv",
+  "hilbert/logret_1": "conv",
   "strength/fx.usd_strength.ret_1": "conv",
   "strength/fx.eur_strength.ret_1": "conv",
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv",
-  "hilbert/logret_1/hb.r1.phase_cos": "conv",
-  "hilbert/logret_1/hb.r1.phase_sin": "conv",
-  "hilbert/logret_1/hb.r1.inst_freq": "conv"
+  "fracdiff/log_close": "conv"
  }
 }

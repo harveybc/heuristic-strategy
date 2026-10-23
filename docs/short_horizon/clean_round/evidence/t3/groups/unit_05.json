@@ -1,6 +1,6 @@
 {
- "name": "t3_unit_05_per_feature",
- "rule": "T3 unit 5: group 'px.range' -> per_feature; every other group conv",
+ "name": "t3_unit_05",
+ "rule": "T3 unit 5: group 'calendar' -> pointwise; every other group conv",
  "groups": {
   "inv.raw": [
    "OPEN@diff",
@@ -45,6 +45,15 @@
    "px.logret_12",
    "px.logret_24",
    "px.logret_48"
+  ],
+  "px.range": [
+   "px.range_1@log",
+   "px.range_2@log",
+   "px.range_4@log",
+   "px.range_6@log",
+   "px.range_12",
+   "px.range_24",
+   "px.range_48"
   ],
   "px.close_loc": [
    "px.close_loc_1",
@@ -158,27 +167,6 @@
   ],
   "fracdiff/log_close": [
    "fd.lc.d0.3@diff"
-  ],
-  "px.range/px.range_1@log": [
-   "px.range_1@log"
-  ],
-  "px.range/px.range_2@log": [
-   "px.range_2@log"
-  ],
-  "px.range/px.range_4@log": [
-   "px.range_4@log"
-  ],
-  "px.range/px.range_6@log": [
-   "px.range_6@log"
-  ],
-  "px.range/px.range_12": [
-   "px.range_12"
-  ],
-  "px.range/px.range_24": [
-   "px.range_24"
-  ],
-  "px.range/px.range_48": [
-   "px.range_48"
   ]
  },
  "units": {
@@ -206,20 +194,14 @@
   "kalman/log_close": 2,
   "px.rv": 2,
   "gmm/logret_1+rv_24+log_range": 2,
-  "fracdiff/log_close": 2,
-  "px.range/px.range_1@log": 2,
-  "px.range/px.range_2@log": 2,
-  "px.range/px.range_4@log": 2,
-  "px.range/px.range_6@log": 2,
-  "px.range/px.range_12": 2,
-  "px.range/px.range_24": 2,
-  "px.range/px.range_48": 2
+  "fracdiff/log_close": 2
  },
  "kinds": {
   "inv.raw": "conv",
   "inv.momentum": "conv",
-  "calendar": "conv",
+  "calendar": "pointwise",
   "px.logret": "conv",
+  "px.range": "conv",
   "px.close_loc": "conv",
   "px.er": "conv",
   "px.range_ratio": "conv",
@@ -239,13 +221,6 @@
   "kalman/log_close": "conv",
   "px.rv": "conv",
   "gmm/logret_1+rv_24+log_range": "conv",
-  "fracdiff/log_close": "conv",
-  "px.range/px.range_1@log": "conv",
-  "px.range/px.range_2@log": "conv",
-  "px.range/px.range_4@log": "conv",
-  "px.range/px.range_6@log": "conv",
-  "px.range/px.range_12": "conv",
-  "px.range/px.range_24": "conv",
-  "px.range/px.range_48": "conv"
+  "fracdiff/log_close": "conv"
  }
 }
