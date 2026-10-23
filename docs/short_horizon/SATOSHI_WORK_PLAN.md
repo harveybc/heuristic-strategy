@@ -193,6 +193,9 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 52. [HECHO 2026-10-23] T1 de Musashi (@4fc98f6d) anexado por manifiesto (hs @0837172 `evidence/t1/`, `T1_ANNEX.md`): resumen por grupo de extractor; 10 pares |ρ| ≥ 0.99, 6 cruzan grupos (T3 mide el tipo de extractor con la información redundante presente; brazo sin la copia propuesto como contraste separado tras T3, no programado); `px.er_1` constante en FIT, se conserva. Verificador `verify-t2` (bloque `labels` ausente del productor fijado = ZigZag heredado); primer brazo sellado verificado (sha igual al recibo de Musashi). T2 en curso en el host de Musashi (1/8 a las 02:48Z). Vigía 7958ab83 lee STATUS.json de Musashi y hace la regla en seco al cerrar.
 
+53. [HECHO 2026-10-23 05:20Z] T2 cerrado por Musashi (8/8, 0 fallos); verificador autenticado contra sus recibos (C01/C02 cerrados, 52 pruebas); 8/8 OK; regularización = **base** (0.1/1e-4) por la regla congelada (no dominados ambos; desempate 2, menor brecha), aplicada al spec (check válido salvo RELEASE). T3 v2 desde el perfil T1 de cada grupo: 43 unidades (pointwise y per_feature por grupo multi-columna, expectativa preregistrada, decisión congelada, unidad de combinación); hs @1aaf367.
+54. [CORRIENDO] T3 v2: mi mitad (22) en el 4090 (`/var/tmp/satoshi-t3-20261023`); la de Musashi (21) preparada en su host (`satoshi-t3-for-musashi-20261023`), él la lanza. Luego: decide → combine → unidad C → solicitud final de auditoría → RELEASE sólo por palabra del propietario.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
