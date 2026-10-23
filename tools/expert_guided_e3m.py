@@ -430,6 +430,9 @@ def run(a):
         ECFG = dataclasses.replace(EXPERT_CFG, max_entries_per_day=MUSASHI_CFG.max_entries_per_day, sizing=MUSASHI_CFG.sizing)
     else:
         SCFG, ECFG = STUDENT_CFG, EXPERT_CFG
+    if a.min_orders_per_week is not None:   # owner 2026-10-22: the weekly activity rule is >= 2 orders/week (was 3)
+        SCFG = dataclasses.replace(SCFG, min_orders_per_week=float(a.min_orders_per_week))
+        ECFG = dataclasses.replace(ECFG, min_orders_per_week=float(a.min_orders_per_week))
     if a.aux_targets and a.variants != "FULL":
         raise SystemExit("E3M_AUX_TARGETS_ONLY_FOR_FULL")
     if (a.window, a.stride) != (DG.WIN, DG.STRIDE) and not a.store:
@@ -490,11 +493,11 @@ def run(a):
            dropout=a.dropout, wd=a.wd, cost_sigma=COST_SIGMA, rounds=ROUNDS, seeds=SEEDS, params=params, device=device,
            scaling=a.scaling, split_contract=ds.meta["split_contract"], agent_state=agent_state, verify=verify,
            experts=[t.name for t in tracks], window=[WIN_E, int(ds.meta["input_contract"]["stride_rows"])],
-           exec_contract=a.exec_contract, aux_targets=bool(a.aux_targets),
+           exec_contract=a.exec_contract, aux_targets=bool(a.aux_targets), min_orders_per_week=SCFG.min_orders_per_week,
            extractor_groups=ARCH.get("group_names"),
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
     scaler_path = DG.write_scaler(out, ds, rung="E3M", agent_state=a.agent_state, split_contract=a.split_contract)
-    res = {"exec_contract": a.exec_contract, "aux_targets": ({"opportunity_at_open": "best excursion before the optimal pivot (sigma, net of cost)",
+    res = {"exec_contract": a.exec_contract, "min_orders_per_week": SCFG.min_orders_per_week, "aux_targets": ({"opportunity_at_open": "best excursion before the optimal pivot (sigma, net of cost)",
                                                               "hold_gain_at_close": "best further gain vs closing now (sigma)",
                                                               "bound": AuxTargets.BOUND, "horizon": "next optimal pivot, <= 72 bars, <= forced flat"}
                                                              if a.aux_targets else None),
@@ -655,6 +658,7 @@ def build_parser():
     ap.add_argument("--exec-contract", choices=("native", "sac"), default="native",
                     help="native: max 4 entries/day, leverage 1:100 (inherited); sac: max 1 entry/day, leverage 1:50 (the replay contract) "
                          "for demonstrations, DAgger rollouts, arbiter choice and every reported period")
+    ap.add_argument("--min-orders-per-week", type=float, default=None, help="activity rule for valid (default: the env's inherited 3.0; owner 2026-10-22: 2.0)")
     ap.add_argument("--aux-targets", action="store_true", help="FULL only: hindsight opportunity (openers) and hold-gain (closers) heads")
     ap.add_argument("--extra-experts", default="", help="comma list of ZigZag DEPTHS added as training-only demonstrators "
                     "(the replicated MetaTrader Deviation test is inert: pivots depend on Depth and Backstep only)")

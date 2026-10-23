@@ -76,6 +76,8 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
         errs.append(f"SCALING_FORBIDDEN:{spec['scaling']}")
     if spec["nonstationary"] not in ("diff", "refuse"):
         errs.append(f"NONSTATIONARY_POLICY_FORBIDDEN:{spec['nonstationary']}")
+    if float(spec.get("min_orders_per_week", 0)) != 2.0:
+        errs.append(f"MIN_ORDERS_PER_WEEK_NOT_OWNER_RULE:{spec.get('min_orders_per_week')}")
     if spec.get("exec_contract") != "sac":
         errs.append(f"EXEC_CONTRACT_NOT_REPLAY:{spec.get('exec_contract')}")
     if spec["split_contract"] != "consolidated":
@@ -157,7 +159,8 @@ def e3m_cmd(spec, arm, out, remote):
            "--out", out, "--variants", "FULL", "--units", str(m["units"]), "--depth", str(m["depth"]), "--head", str(m["head"]),
            "--dropout", str(reg["dropout"]), "--wd", str(reg["wd"]), "--max-epochs", str(m["max_epochs"]),
            "--scaling", spec["scaling"], "--nonstationary", spec["nonstationary"], "--split-contract", spec["split_contract"],
-           "--agent-state", arm["agent_state"], "--window", str(win), "--stride", str(stride), "--exec-contract", spec["exec_contract"]]
+           "--agent-state", arm["agent_state"], "--window", str(win), "--stride", str(stride), "--exec-contract", spec["exec_contract"],
+           "--min-orders-per-week", str(spec["min_orders_per_week"])]
     if arm.get("aux_targets"):
         cmd += ["--aux-targets"]
     if m.get("core"):

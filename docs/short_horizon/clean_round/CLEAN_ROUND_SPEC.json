@@ -218,5 +218,7 @@
   ],
   "bound_evidence": "SIGNAL_PROFILE.json TRAIN percentiles: opportunity p1 -0.06 / p99 2.12; hold gain p1 0.00 / p99 2.19",
   "use": "auxiliary bounded regression heads (Huber, per-target masks, label-support purge); training-only, never an observation"
- }
+ },
+ "min_orders_per_week": 2.0,
+ "min_orders_per_week_note": "owner 2026-10-22: >= 2 orders/week (was 3); applied to valid and to the arbiter choice through the env config"
 }
