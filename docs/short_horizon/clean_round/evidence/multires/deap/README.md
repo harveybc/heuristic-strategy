@@ -5,8 +5,11 @@ limitation are in its docstring and copied into `FINAL.json`). Pre-registered bu
 generations, convergence = hypervolume change < 1 % over the last 20 generations after >= 80, seeds 1/2/3, SBX eta 15 /
 polynomial mutation eta 20, crossover probability 0.9. Replays are label-only (~0.2 s each on CPU).
 
-Run location: the secondary GPU host (CPU only, 3 forked workers under a 4 GiB cap; the GPU is busy with Stage A of
-the clean round), directory `<root>/multires-deap-20261024/` with `in/` (read-only hard links of the admitted bars and
+Run location (actual): the coordinator, one process under a 3 GiB cap (`--workers 1`), directory
+`<root>/multires-deap-20261024/`. First launched on the secondary GPU host (CPU, 3 workers, 4 GiB cap) but crispdm
+admission stayed queued on host headroom behind Stage A's 6 GiB reservation, so it was withdrawn there (recorded in that
+host's `RUN.json`) — the lane's declared fallback. Observed pace: ~23 s per generation of 48 (~0.24 s per replay) →
+worst case ≈ 2 h for 3 seeds × 200 generations. Code at commit a193005. Directory layout: with `in/` (read-only hard links of the admitted bars and
 sel15), `code/` (this branch at the commit named in `RUN.json`), `out/` (FINAL.json, CHOSEN_THRESHOLDS.json,
 READ_LEDGER.jsonl, CLOSURE_TABLE.md, CACHE.json, seed_<s>.json) and `deap.log`.
 
