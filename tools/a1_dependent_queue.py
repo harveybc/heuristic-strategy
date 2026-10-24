@@ -45,10 +45,16 @@ class Q:
         with self.log_f.open("a") as fh:
             fh.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + f" [a1q] {msg}\n")
 
-    def sh(self, argv, name, cwd, mem="4G", wall="14400s", gpu=""):
+    def sh(self, argv, name, cwd, mem="4G", wall="14400s", gpu="", child_admits=False):
         cr = [str(Path.home() / ".local/bin/crispdm-run"), "-q", "-m", mem, "-t", wall, "-n", f"a1q-{name}", "--"]
+        if child_admits:
+            if argv[:3] != [PY, "tools/receipted_run.py", "run"]:
+                raise ValueError("CHILD_ADMISSION_REQUIRES_RECEIPTED_RUN")
+            # The receipted runner acquires the fit's own lease and memory cap.
+            # Reserving again for its waiting parent can prevent that fit from admission.
+            cr = []
         env = dict(os.environ, CUDA_VISIBLE_DEVICES=gpu, OMP_NUM_THREADS="8")
-        with (self.W / "a1q" / f"{name}.log").open("w") as fh:
+        with (self.W / "a1q" / f"{name}.log").open("a") as fh:
             rc = subprocess.run(cr + argv, cwd=cwd, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
         if rc != 0:
             self.log(f"{name} FAILED rc={rc}")
@@ -148,7 +154,7 @@ class Q:
             if (R / "ops" / f"{u['name']}.RESULT.json").exists():
                 continue
             self.sh([PY, "tools/receipted_run.py", "run", "--root", str(R), "--config", str(R / "CONFIG.json"), "--unit", str(R / f"{u['name']}.unit.json"),
-                     "--name", u["name"], "--gpu", self.c["gpu"], "--mem", "4G"], f"t2_{u['name']}", R / "code", mem="6G", wall="50000s", gpu=self.c["gpu"])
+                     "--name", u["name"], "--gpu", self.c["gpu"], "--mem", "4G"], f"t2_{u['name']}", R / "code", mem="6G", wall="50000s", gpu=self.c["gpu"], child_admits=True)
 
     def regularize(self):
         R, M = self.W / "t2_a1", Path(self.c["musashi_t2_replica"])
@@ -213,7 +219,7 @@ class Q:
                 continue
             (P / f"{u['name']}.unit.json").write_text(json.dumps(u))
             self.sh([PY, "tools/receipted_run.py", "run", "--root", str(P), "--config", str(P / "CONFIG.json"), "--unit", str(P / f"{u['name']}.unit.json"),
-                     "--name", u["name"], "--gpu", self.c["gpu"], "--mem", "4G"], f"t3_{u['name']}", P / "code", mem="6G", wall="50000s", gpu=self.c["gpu"])
+                     "--name", u["name"], "--gpu", self.c["gpu"], "--mem", "4G"], f"t3_{u['name']}", P / "code", mem="6G", wall="50000s", gpu=self.c["gpu"], child_admits=True)
             self.log(f"t3 {u['name']} sealed")
 
 
