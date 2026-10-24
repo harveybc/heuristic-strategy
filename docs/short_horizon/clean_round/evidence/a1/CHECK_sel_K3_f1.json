@@ -1,0 +1,49 @@
+{
+ "scope": "sel_K3_f1",
+ "perturbed_bars": 8897,
+ "span": [
+  "2021-04-27 22:00:00+00:00",
+  "2022-09-28 19:00:00+00:00"
+ ],
+ "scope_fit": {
+  "parameters_identical": true,
+  "values_before_span_identical": {
+   "kf.lc.level_minus_close": true,
+   "kf.lc.slope": true,
+   "kf.lc.innovation": true,
+   "kf.lc.innovation_std": true,
+   "rg.gmm.p0": true,
+   "rg.gmm.p1": true,
+   "rg.gmm.p2": true,
+   "rg.gmm.entropy": true,
+   "rg.hmm.p0": true,
+   "rg.hmm.p1": true,
+   "rg.hmm.p2": true,
+   "rg.hmm.entropy": true,
+   "rg.hmm.surprise": true,
+   "fd.lc.d0.2": true
+  },
+  "all_before_identical": true,
+  "cells_changed_inside_span": {
+   "kf.lc.level_minus_close": 8896,
+   "kf.lc.slope": 8597,
+   "kf.lc.innovation": 8897,
+   "kf.lc.innovation_std": 8897,
+   "rg.gmm.p0": 7530,
+   "rg.gmm.p1": 8714,
+   "rg.gmm.p2": 8594,
+   "rg.gmm.entropy": 8753,
+   "rg.hmm.p0": 6906,
+   "rg.hmm.p1": 8205,
+   "rg.hmm.p2": 7766,
+   "rg.hmm.entropy": 8354,
+   "rg.hmm.surprise": 8897,
+   "fd.lc.d0.2": 8896
+  }
+ },
+ "global_fit_baseline": {
+  "cells_changed_before_span": 104447,
+  "note": "the contaminated fit (2020-2023 including the span) moves earlier values"
+ },
+ "passed": true
+}

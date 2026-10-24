@@ -251,28 +251,32 @@
   "pairing_audit": "contrast 714/714, encoding 72/72, rescue 120/120 (arm-aware check)"
  },
  "release_states": {
+  "audit": "Musashi's final joint audit 2026-10-23 = REVISE_BEFORE_SHARED_CONSUMPTION (A1 fit scope, A2 exporter, A3 consumption, A4 semantics); corrected 2026-10-24; his re-review pending",
   "data_features": {
-   "status": "CANDIDATE_VERIFIED",
-   "covers": "admitted bars, stores _s (layer 1 r4s / layer 2 s / merged pool), selection v4 lists, encodings (rel24), preprocessing recipes",
-   "evidence": "selection_v4/, INPUT_JUSTIFICATION_*, SKEW_RULE_AUDIT, witnesses closed"
+   "status": "CANDIDATE_VERIFIED_A1",
+   "covers": "admitted bars, stores _s, consumer store full_pool_s_a1 (learned producers fitted on the consumer scope only; act.p_hit cross-fitted), selection v5 (fold-local producers; 3 882 units, 0 errors) lists 15/121/165",
+   "evidence": "evidence/a1/SCOPES.json, SCOPES_REPORT.json, scopes/, CHECK_consumer.json, CHECK_sel_K3_f1.json, AFFECTED.json; selection v5 LEDGER on the 4090 host",
+   "declared": "the selection fits on 2020-2023 including 2023 S2 = the consumers' inner block: INNER_A is not an independent holdout of the LIST, only of the consumer fits"
+  },
+  "regularization": {
+   "status": "DECIDED_A1",
+   "value": "strong (dropout 0.3, wd 1e-2)",
+   "evidence": "evidence/a1/T2_VERIFY_A1.json (4/4, two producers), REGULARIZATION_DECISION_A1.json (TIE_BREAK_2_SMALLER_GAP)",
+   "note": "the v4 strict INNER_A gain (0.571) was contaminated; strict v5 INNER_A ~0"
   },
   "representation": {
-   "status": "DECIDED_T3_V2_COMBINATION_SELECTED",
-   "covers": "extractor type per group (conv | pointwise | per_feature), grouping, regularization (T2)",
-   "evidence": "evidence/t3/T3_DECISION.json (frozen per-group rule, 43 units: cot.eur -> per_feature, gmm/logret_1+rv_24+log_range -> pointwise, fracdiff/log_close -> pointwise; 22 groups keep conv; profile expectations held 9/17, reported only) + evidence/t3/musashi_delivery/COMBINATION_DECISION.json (unit C, COMBINATION_SELECTED: INNER_A 1.558 vs control 0.780, pooled seed std 0.725; gap 1.128 vs 1.195) + exact probe replay of 516 + 12 checkpoints and full trading replay of control and C in their original CPU contexts (Musashi)",
-   "caveats": "OBS_2024 (read once, development year, not a holdout): control -0.760, C -0.125 mean Sharpe; one C seed invalid under the activity rule (1.51 orders/week) and it is the only one positive in 2024; nothing is tuned on 2024; TEST closed"
-  },
-  "note": "No global RELEASE yet: the final joint audit (Musashi) and the owner's confirmation remain; the expert-guided clean round and the SAC-without-expert contrast are separate subsequent experiments on this same recipe.",
-  "regularization": {
-   "status": "DECIDED",
-   "evidence": "evidence/t2/T2_VERIFY.json (8/8 authenticated against the peer receipts) + REGULARIZATION_DECISION.json (base, TIE_BREAK_2_SMALLER_GAP)"
+   "status": "DECIDED_A1_COMBINATION_SELECTED",
+   "evidence": "evidence/a1/T3_DECISION.json (= Musashi's digest 7291c1aa...; inv.raw, inv.momentum, hilbert/log_close -> pointwise; px.close_loc -> per_feature; expectations 7/18), unit_C.json (a9f553a7...), musashi_v5/COMBINATION_RESULT.json (C INNER_A 1.392 vs control 0.836, pooled 0.713; replay exact)",
+   "caveats": "OBS_2024 read once: control -0.572, C -1.011 (C worse); TRAIN 2.997 vs 2.572; not a holdout; TEST closed"
   },
   "consumer_recipe": {
-   "status": "EMITTED",
+   "status": "EMITTED_V2",
    "file": "CONSUMER_RECIPE.json",
-   "identity": "recipe_6f522eec4ffdacbc",
-   "sha256": "109e769003ea26d4f8dcd5b263a938d2261ce5b947131cbcc2b12b2ac4b1c343",
-   "note": "shared by both lanes; derived from unit C's sealed scaler, groups file and decisions; not a release"
-  }
+   "identity": "recipe_5a8f2155318ba7c7",
+   "sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+   "probe_reference": "evidence/a1/PROBE_a1_reference.json",
+   "note": "derived from C's receipt chain; v1 kept as CONSUMER_RECIPE_v1_contaminated.json; the SAC consumer must produce an equal probe before any campaign"
+  },
+  "note": "No global RELEASE: Musashi's re-review of A1-A4 and the owner's confirmation remain; the expert-guided clean round and the SAC-without-expert contrast are separate subsequent experiments on this recipe."
  }
 }

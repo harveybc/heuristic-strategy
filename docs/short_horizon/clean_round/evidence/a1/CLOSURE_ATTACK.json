@@ -1,0 +1,103 @@
+{
+ "baseline_verify_package": {
+  "accepted": true,
+  "result": "t3v2_7db1953f99ad",
+  "expected": "ACCEPT",
+  "ok": true
+ },
+ "changed_manifest": {
+  "accepted": false,
+  "error": "ValueError:V5_PACKAGE_PIN_CHANGED:t3/T3_MANIFEST.json",
+  "expected": "V5_PACKAGE_PIN_CHANGED",
+  "ok": true
+ },
+ "swapped_group_kind": {
+  "accepted": false,
+  "error": "ValueError:V5_PEER_PIN_CHANGED:./t3/groups/unit_07.json",
+  "expected": "V5_PEER_PIN_CHANGED",
+  "ok": true
+ },
+ "swapped_group_with_rewritten_pins_file": {
+  "accepted": false,
+  "error": "ValueError:V5_PACKAGE_PIN_CHANGED:PINS.sha256",
+  "expected": "V5_PACKAGE_PIN_CHANGED",
+  "ok": true
+ },
+ "baseline_paired": {
+  "accepted": true,
+  "result": "{'support_hash': {'TRAIN': 't', 'INNER_A': 'i'}, 'consumed_features': ['a'], 'seeds': ['1']}",
+  "expected": "ACCEPT",
+  "ok": true
+ },
+ "changed_support": {
+  "accepted": false,
+  "error": "ValueError:V5_PAIRING_MISMATCH:t3_unit_31",
+  "expected": "V5_PAIRING_MISMATCH",
+  "ok": true
+ },
+ "missing_unit": {
+  "accepted": false,
+  "error": "ValueError:V5_INCOMPLETE_UNITS",
+  "expected": "V5_INCOMPLETE_UNITS",
+  "ok": true
+ },
+ "baseline_validate_mirror_C": {
+  "accepted": true,
+  "result": "1",
+  "expected": "ACCEPT",
+  "ok": true
+ },
+ "altered_weights": {
+  "accepted": false,
+  "error": "ValueError:MIRROR_OUTPUT_CHANGED:t3_unit_C:FULL_open_l_20261020.pt",
+  "expected": "MIRROR_OUTPUT_CHANGED",
+  "ok": true
+ },
+ "altered_scaler": {
+  "accepted": false,
+  "error": "ValueError:MIRROR_OUTPUT_CHANGED:t3_unit_C:SCALER.json",
+  "expected": "MIRROR_OUTPUT_CHANGED",
+  "ok": true
+ },
+ "altered_result_metrics": {
+  "accepted": false,
+  "error": "ValueError:MIRROR_OUTPUT_CHANGED:t3_unit_07:E3M.json",
+  "expected": "MIRROR_OUTPUT_CHANGED",
+  "ok": true
+ },
+ "tick_without_replica_status_returns": {
+  "result": "{'state': 'WAITING_FOR_REPLICA'}",
+  "ok": true
+ },
+ "stale_replay": {
+  "accepted": false,
+  "error": "ValueError:COMBINATION_FINAL_STALE_REPLAY",
+  "expected": "COMBINATION_FINAL_STALE_REPLAY",
+  "ok": true
+ },
+ "replay_missing_checkpoint": {
+  "accepted": false,
+  "error": "ValueError:COMBINATION_FINAL_REPLAY_CONTRACT",
+  "expected": "COMBINATION_FINAL_REPLAY_CONTRACT",
+  "ok": true
+ },
+ "replay_one_inexact_module": {
+  "accepted": false,
+  "error": "ValueError:COMBINATION_FINAL_REPLAY_CONTRACT",
+  "expected": "COMBINATION_FINAL_REPLAY_CONTRACT",
+  "ok": true
+ },
+ "decide_reproduced": {
+  "state": "COMBINATION_SELECTED",
+  "pooled": 0.7133863982377388,
+  "ok": true
+ },
+ "decide_control_retained_on_bad_C": {
+  "state": "CONTROL_RETAINED",
+  "ok": true
+ },
+ "replica_config_roots": {
+  "C": "/var/tmp/expert-guided-musashi-t3-v5-confirmation-20261024",
+  "pins_point_to_root": true
+ }
+}

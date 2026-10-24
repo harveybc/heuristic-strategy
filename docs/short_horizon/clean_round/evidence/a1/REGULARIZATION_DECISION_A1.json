@@ -1,0 +1,114 @@
+{
+ "rule": "Regularization from the T2 gap diagnostic on the corrected store with the v4 lists (peer worker; consolidated contract, inner block 2023H2; replay contract; >= 2 orders/week): per list, among arms with agent_state none whose three seeds are all valid and whose TRAIN / INNER_A support hashes match across the compared settings, each setting's vector = (INNER_A Sharpe seed-mean UP, TRAIN-INNER_A Sharpe gap DOWN, INNER_A Sharpe seed-std DOWN, INNER_A max drawdown % DOWN). A setting is dominated when another is at least as good on every component of every list and strictly better on at least one. Tie-break among non-dominated settings, declared before any result is read: (1) the higher mean INNER_A Sharpe across lists when the difference exceeds the pooled seed std, (2) the smaller mean gap, (3) base (the control). A setting with no valid list is excluded; with no valid setting at all the answer is base by default (DEFAULT_BY_VALIDITY) and the round is not released on it. OBS_2024 is never read.",
+ "lists": [
+  "core15",
+  "shortlist_strict"
+ ],
+ "candidates": {
+  "base": {
+   "dropout": 0.1,
+   "wd": 0.0001
+  },
+  "strong": {
+   "dropout": 0.3,
+   "wd": 0.01
+  }
+ },
+ "arms": {
+  "core15:base": {
+   "inner_a_sharpe_mean": 0.2438975655140049,
+   "gap_mean": 0.12155325880988854,
+   "sharpe_seed_std": 0.20250817746801486,
+   "inner_a_dd_pct_mean": 10.450818266186003,
+   "all_valid": true,
+   "n_seeds": 3,
+   "support": {
+    "TRAIN": "7ee5f4936ec1a500",
+    "INNER_A": "78b5834ee53e8707"
+   },
+   "labels": "zigzag/PRODUCER_PREDATES_FIELD"
+  },
+  "core15:strong": {
+   "inner_a_sharpe_mean": -0.8485420822098289,
+   "gap_mean": 1.0754410048832124,
+   "sharpe_seed_std": 1.1741289781777466,
+   "inner_a_dd_pct_mean": 17.91749179808172,
+   "all_valid": true,
+   "n_seeds": 3,
+   "support": {
+    "TRAIN": "7ee5f4936ec1a500",
+    "INNER_A": "78b5834ee53e8707"
+   },
+   "labels": "zigzag/PRODUCER_PREDATES_FIELD"
+  },
+  "shortlist_strict:base": {
+   "inner_a_sharpe_mean": -0.22693038456217962,
+   "gap_mean": 4.457166398761299,
+   "sharpe_seed_std": 0.9463225328501277,
+   "inner_a_dd_pct_mean": 8.572602941706075,
+   "all_valid": true,
+   "n_seeds": 3,
+   "support": {
+    "TRAIN": "fa480f4e00514304",
+    "INNER_A": "f1c592d53da55019"
+   },
+   "labels": "zigzag/DECLARED"
+  },
+  "shortlist_strict:strong": {
+   "inner_a_sharpe_mean": -0.023718517822036767,
+   "gap_mean": 3.2365790308777087,
+   "sharpe_seed_std": 0.18988329235210857,
+   "inner_a_dd_pct_mean": 7.273493938665858,
+   "all_valid": true,
+   "n_seeds": 3,
+   "support": {
+    "TRAIN": "fa480f4e00514304",
+    "INNER_A": "f1c592d53da55019"
+   },
+   "labels": "zigzag/DECLARED"
+  }
+ },
+ "valid_lists": {
+  "base": [
+   "core15",
+   "shortlist_strict"
+  ],
+  "strong": [
+   "core15",
+   "shortlist_strict"
+  ]
+ },
+ "compared_lists": [
+  "core15",
+  "shortlist_strict"
+ ],
+ "non_dominated": [
+  "base",
+  "strong"
+ ],
+ "chosen": "strong",
+ "how": "TIE_BREAK_2_SMALLER_GAP",
+ "values": {
+  "dropout": 0.3,
+  "wd": 0.01
+ },
+ "never_read": [
+  "OBS_2024",
+  "INNER_B",
+  "TEST"
+ ],
+ "verification": {
+  "file": "T2_VERIFY_A1.json",
+  "sha256": "bda1533b55c36ed866cb2bbca8a2e4136819bfffa0daa6ac8bb784a12641f271",
+  "producer": {
+   "config_identity": "f91fd21f0e5c36cc57c0dd9a17a9cb84630870e7ee8ce22c986330a3d35fdace",
+   "science_commit": "fb1c25b84a5d87ab51102ac5c0273daee697afa8",
+   "authenticated": true,
+   "emits_labels": true,
+   "pinned_e3m_sha256": "a5e0d3dc36945d49a80ae15b898b4fcbeb1a386795cb84c97aa595034a0f5368",
+   "blob_e3m_sha256": "a5e0d3dc36945d49a80ae15b898b4fcbeb1a386795cb84c97aa595034a0f5368",
+   "science_source": "exported_blob",
+   "archives": {}
+  }
+ }
+}

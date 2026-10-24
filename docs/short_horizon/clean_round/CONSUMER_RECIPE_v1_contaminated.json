@@ -1,0 +1,1765 @@
+{
+ "schema": "expert_guided_consumer_recipe.v1",
+ "scientific_release": false,
+ "scope": "shared representation for both lanes (expert-guided learning; SAC without expert input); E3-M selection is a proxy, not evidence that SAC benefits",
+ "store": {
+  "file": "full_pool_eurusd_h1.parquet",
+  "sha256": "32edb4248d659661764ee5abf982a7ee9a0e7659e08a88c03b5a28ce2466ae67"
+ },
+ "list": {
+  "file": "FEATURE_LIST_shortlist_strict.json",
+  "sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1",
+  "n": 116,
+  "columns": [
+   "OPEN@diff",
+   "HIGH@diff",
+   "LOW@diff",
+   "CLOSE@diff",
+   "RAW_BAR_LOG_RETURN",
+   "RAW_LOG_RANGE@log",
+   "RAW_CLOSE_LOG_RETURN",
+   "RAW_ELAPSED_HOURS",
+   "RSI",
+   "Stochastic_K",
+   "Stochastic_D",
+   "CCI",
+   "WilliamsR",
+   "ROC",
+   "BB_position",
+   "price_minus_ema",
+   "hod_sin",
+   "hod_cos",
+   "dow_sin",
+   "dow_cos",
+   "cal.utc_hod_sin",
+   "cal.utc_hod_cos",
+   "cal.utc_dow_sin",
+   "cal.utc_dow_cos",
+   "cal.utc_session_asia",
+   "cal.utc_session_europe",
+   "cal.utc_session_us",
+   "cal.london_hod_sin",
+   "cal.london_hod_cos",
+   "px.logret_1",
+   "px.logret_2",
+   "px.logret_4",
+   "px.logret_6",
+   "px.logret_12",
+   "px.logret_24",
+   "px.logret_48",
+   "px.range_1@log",
+   "px.range_2@log",
+   "px.range_4@log",
+   "px.range_6@log",
+   "px.range_12",
+   "px.range_24",
+   "px.range_48",
+   "px.close_loc_1",
+   "px.close_loc_2",
+   "px.close_loc_4",
+   "px.close_loc_6",
+   "px.close_loc_12",
+   "px.close_loc_24",
+   "px.close_loc_48",
+   "px.er_1",
+   "px.er_2",
+   "px.er_4",
+   "px.er_6",
+   "px.er_12",
+   "px.er_24",
+   "px.er_48",
+   "px.range_ratio_1_24",
+   "px.hours_since_session_open",
+   "cdl.body_pips",
+   "cdl.upper_wick_pips@asinh",
+   "cdl.lower_wick_pips@asinh",
+   "cdl.range_pips@asinh",
+   "cdl.close_minus_low_pips@asinh",
+   "cdl.high_minus_close_pips@asinh",
+   "fx.usdchf.ret_1",
+   "fx.usdchf.ret_4",
+   "fx.usdchf.ret_24",
+   "fx.usdchf.rv_24@log",
+   "dly.gold.ret_1d",
+   "dly.gold.ret_5d",
+   "cot.eur.net_long",
+   "cot.eur.net_change",
+   "cot.eur.net_share",
+   "cot.eur.net_z156",
+   "fac.fx_f1.ret_1",
+   "fac.fx_f1.ret_4",
+   "fac.fx_f1.ret_24",
+   "fac.fx_f1.kalman_slope",
+   "ev.tokyo_fix.hours_since",
+   "ev.tokyo_fix.hours_to",
+   "ev.london_fix.hours_since",
+   "ev.london_fix.hours_to",
+   "ev.ny_cut.hours_since",
+   "ev.ny_cut.hours_to",
+   "act.p_hit",
+   "wv.lc.A4@diff",
+   "wv.lc.D4",
+   "wv.lc.D3",
+   "wv.lc.D2",
+   "wv.lc.D1",
+   "wv.lc.energy_D4@log",
+   "wv.lc.energy_D3@log",
+   "wv.lc.energy_D2@log",
+   "wv.lc.energy_D1@diff",
+   "wv.r1.A4",
+   "wv.r1.D4",
+   "wv.r1.D3",
+   "wv.r1.D2",
+   "wv.r1.D1",
+   "wv.r1.energy_D4@log",
+   "wv.r1.energy_D3@log",
+   "wv.r1.energy_D2@log",
+   "wv.r1.energy_D1@diff",
+   "hb.r1.phase_cos",
+   "hb.r1.phase_sin",
+   "hb.r1.inst_freq",
+   "wv.usd.energy_D4@log",
+   "wv.eur.A4",
+   "kf.lc.level_minus_close",
+   "px.rv_24",
+   "rg.gmm.p0",
+   "rg.gmm.p1",
+   "rg.gmm.p2",
+   "rg.gmm.entropy",
+   "fd.lc.d0.3@diff"
+  ]
+ },
+ "tensor": {
+  "order": [
+   "OPEN@diff",
+   "HIGH@diff",
+   "LOW@diff",
+   "CLOSE@diff",
+   "RAW_BAR_LOG_RETURN",
+   "RAW_LOG_RANGE@log",
+   "RAW_CLOSE_LOG_RETURN",
+   "RAW_ELAPSED_HOURS",
+   "RSI",
+   "Stochastic_K",
+   "Stochastic_D",
+   "CCI",
+   "WilliamsR",
+   "ROC",
+   "BB_position",
+   "price_minus_ema",
+   "hod_sin",
+   "hod_cos",
+   "dow_sin",
+   "dow_cos",
+   "cal.utc_hod_sin",
+   "cal.utc_hod_cos",
+   "cal.utc_dow_sin",
+   "cal.utc_dow_cos",
+   "cal.utc_session_asia",
+   "cal.utc_session_europe",
+   "cal.utc_session_us",
+   "cal.london_hod_sin",
+   "cal.london_hod_cos",
+   "px.logret_1",
+   "px.logret_2",
+   "px.logret_4",
+   "px.logret_6",
+   "px.logret_12",
+   "px.logret_24",
+   "px.logret_48",
+   "px.range_1@log",
+   "px.range_2@log",
+   "px.range_4@log",
+   "px.range_6@log",
+   "px.range_12",
+   "px.range_24",
+   "px.range_48",
+   "px.close_loc_1",
+   "px.close_loc_2",
+   "px.close_loc_4",
+   "px.close_loc_6",
+   "px.close_loc_12",
+   "px.close_loc_24",
+   "px.close_loc_48",
+   "px.er_1",
+   "px.er_2",
+   "px.er_4",
+   "px.er_6",
+   "px.er_12",
+   "px.er_24",
+   "px.er_48",
+   "px.range_ratio_1_24",
+   "px.hours_since_session_open",
+   "cdl.body_pips",
+   "cdl.upper_wick_pips@asinh",
+   "cdl.lower_wick_pips@asinh",
+   "cdl.range_pips@asinh",
+   "cdl.close_minus_low_pips@asinh",
+   "cdl.high_minus_close_pips@asinh",
+   "fx.usdchf.ret_1",
+   "fx.usdchf.ret_4",
+   "fx.usdchf.ret_24",
+   "fx.usdchf.rv_24@log",
+   "dly.gold.ret_1d",
+   "dly.gold.ret_5d",
+   "cot.eur.net_long",
+   "cot.eur.net_change",
+   "cot.eur.net_share",
+   "cot.eur.net_z156",
+   "fac.fx_f1.ret_1",
+   "fac.fx_f1.ret_4",
+   "fac.fx_f1.ret_24",
+   "fac.fx_f1.kalman_slope",
+   "ev.tokyo_fix.hours_since",
+   "ev.tokyo_fix.hours_to",
+   "ev.london_fix.hours_since",
+   "ev.london_fix.hours_to",
+   "ev.ny_cut.hours_since",
+   "ev.ny_cut.hours_to",
+   "act.p_hit",
+   "wv.lc.A4@diff",
+   "wv.lc.D4",
+   "wv.lc.D3",
+   "wv.lc.D2",
+   "wv.lc.D1",
+   "wv.lc.energy_D4@log",
+   "wv.lc.energy_D3@log",
+   "wv.lc.energy_D2@log",
+   "wv.lc.energy_D1@diff",
+   "wv.r1.A4",
+   "wv.r1.D4",
+   "wv.r1.D3",
+   "wv.r1.D2",
+   "wv.r1.D1",
+   "wv.r1.energy_D4@log",
+   "wv.r1.energy_D3@log",
+   "wv.r1.energy_D2@log",
+   "wv.r1.energy_D1@diff",
+   "hb.r1.phase_cos",
+   "hb.r1.phase_sin",
+   "hb.r1.inst_freq",
+   "wv.usd.energy_D4@log",
+   "wv.eur.A4",
+   "kf.lc.level_minus_close",
+   "px.rv_24",
+   "rg.gmm.p0",
+   "rg.gmm.p1",
+   "rg.gmm.p2",
+   "rg.gmm.entropy",
+   "fd.lc.d0.3@diff"
+  ],
+  "n_features": 116,
+  "transforms": {
+   "OPEN@diff": "diff",
+   "HIGH@diff": "diff",
+   "LOW@diff": "diff",
+   "CLOSE@diff": "diff",
+   "RAW_BAR_LOG_RETURN": "none",
+   "RAW_LOG_RANGE@log": "log",
+   "RAW_CLOSE_LOG_RETURN": "none",
+   "RAW_ELAPSED_HOURS": "none",
+   "RSI": "none",
+   "Stochastic_K": "none",
+   "Stochastic_D": "none",
+   "CCI": "none",
+   "WilliamsR": "none",
+   "ROC": "none",
+   "BB_position": "none",
+   "price_minus_ema": "none",
+   "hod_sin": "none",
+   "hod_cos": "none",
+   "dow_sin": "none",
+   "dow_cos": "none",
+   "cal.utc_hod_sin": "none",
+   "cal.utc_hod_cos": "none",
+   "cal.utc_dow_sin": "none",
+   "cal.utc_dow_cos": "none",
+   "cal.utc_session_asia": "none",
+   "cal.utc_session_europe": "none",
+   "cal.utc_session_us": "none",
+   "cal.london_hod_sin": "none",
+   "cal.london_hod_cos": "none",
+   "px.logret_1": "none",
+   "px.logret_2": "none",
+   "px.logret_4": "none",
+   "px.logret_6": "none",
+   "px.logret_12": "none",
+   "px.logret_24": "none",
+   "px.logret_48": "none",
+   "px.range_1@log": "log",
+   "px.range_2@log": "log",
+   "px.range_4@log": "log",
+   "px.range_6@log": "log",
+   "px.range_12": "none",
+   "px.range_24": "none",
+   "px.range_48": "none",
+   "px.close_loc_1": "none",
+   "px.close_loc_2": "none",
+   "px.close_loc_4": "none",
+   "px.close_loc_6": "none",
+   "px.close_loc_12": "none",
+   "px.close_loc_24": "none",
+   "px.close_loc_48": "none",
+   "px.er_1": "none",
+   "px.er_2": "none",
+   "px.er_4": "none",
+   "px.er_6": "none",
+   "px.er_12": "none",
+   "px.er_24": "none",
+   "px.er_48": "none",
+   "px.range_ratio_1_24": "none",
+   "px.hours_since_session_open": "none",
+   "cdl.body_pips": "none",
+   "cdl.upper_wick_pips@asinh": "asinh",
+   "cdl.lower_wick_pips@asinh": "asinh",
+   "cdl.range_pips@asinh": "asinh",
+   "cdl.close_minus_low_pips@asinh": "asinh",
+   "cdl.high_minus_close_pips@asinh": "asinh",
+   "fx.usdchf.ret_1": "none",
+   "fx.usdchf.ret_4": "none",
+   "fx.usdchf.ret_24": "none",
+   "fx.usdchf.rv_24@log": "log",
+   "dly.gold.ret_1d": "none",
+   "dly.gold.ret_5d": "none",
+   "cot.eur.net_long": "none",
+   "cot.eur.net_change": "none",
+   "cot.eur.net_share": "none",
+   "cot.eur.net_z156": "none",
+   "fac.fx_f1.ret_1": "none",
+   "fac.fx_f1.ret_4": "none",
+   "fac.fx_f1.ret_24": "none",
+   "fac.fx_f1.kalman_slope": "none",
+   "ev.tokyo_fix.hours_since": "none",
+   "ev.tokyo_fix.hours_to": "none",
+   "ev.london_fix.hours_since": "none",
+   "ev.london_fix.hours_to": "none",
+   "ev.ny_cut.hours_since": "none",
+   "ev.ny_cut.hours_to": "none",
+   "act.p_hit": "none",
+   "wv.lc.A4@diff": "diff",
+   "wv.lc.D4": "none",
+   "wv.lc.D3": "none",
+   "wv.lc.D2": "none",
+   "wv.lc.D1": "none",
+   "wv.lc.energy_D4@log": "log",
+   "wv.lc.energy_D3@log": "log",
+   "wv.lc.energy_D2@log": "log",
+   "wv.lc.energy_D1@diff": "diff",
+   "wv.r1.A4": "none",
+   "wv.r1.D4": "none",
+   "wv.r1.D3": "none",
+   "wv.r1.D2": "none",
+   "wv.r1.D1": "none",
+   "wv.r1.energy_D4@log": "log",
+   "wv.r1.energy_D3@log": "log",
+   "wv.r1.energy_D2@log": "log",
+   "wv.r1.energy_D1@diff": "diff",
+   "hb.r1.phase_cos": "none",
+   "hb.r1.phase_sin": "none",
+   "hb.r1.inst_freq": "none",
+   "wv.usd.energy_D4@log": "log",
+   "wv.eur.A4": "none",
+   "kf.lc.level_minus_close": "none",
+   "px.rv_24": "none",
+   "rg.gmm.p0": "none",
+   "rg.gmm.p1": "none",
+   "rg.gmm.p2": "none",
+   "rg.gmm.entropy": "none",
+   "fd.lc.d0.3@diff": "diff"
+  },
+  "window": {
+   "observations": 13,
+   "stride_rows": 2,
+   "includes_current_completed_bar": true
+  },
+  "stride_note": "window slots are observed rows (session gaps never compressed)"
+ },
+ "scaler": {
+  "policy": "fixed_train",
+  "fit_period": [
+   "2020-01-01",
+   "2023-07-01"
+  ],
+  "fit_rows": 21552,
+  "ddof": 0,
+  "rule": [
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "std_zero_to_one",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z"
+  ],
+  "nan_policy": "nanmean/nanstd over TRAIN; empty TRAIN, all-NaN feature or non-finite constant refused; NaN windows excluded",
+  "transform": "(x - mean) / std per feature; std = 1 where rule == std_zero_to_one",
+  "stationarity": {
+   "policy": "diff",
+   "rule": "ADF p > 0.05 and KPSS p < 0.05 on TRAIN -> NON_STATIONARY",
+   "features": {
+    "OPEN@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "HIGH@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "LOW@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "CLOSE@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_BAR_LOG_RETURN": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_LOG_RANGE@log": {
+     "adf_p": 3.283328099618704e-11,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_CLOSE_LOG_RETURN": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_ELAPSED_HOURS": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RSI": {
+     "adf_p": 0.0,
+     "kpss_p": 0.0825560433126287,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "Stochastic_K": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "Stochastic_D": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "CCI": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "WilliamsR": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ROC": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "BB_position": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "price_minus_ema": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hod_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hod_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dow_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dow_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_hod_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_hod_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_dow_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_dow_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_session_asia": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_session_europe": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_session_us": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.london_hod_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.london_hod_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_6": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_12": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_24": {
+     "adf_p": 5.141530950571714e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_48": {
+     "adf_p": 6.0477113380921456e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_1@log": {
+     "adf_p": 3.283328099618704e-11,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_2@log": {
+     "adf_p": 1.1254797454918996e-13,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_4@log": {
+     "adf_p": 6.528877571231671e-18,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_6@log": {
+     "adf_p": 1.4934183154142229e-19,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_12": {
+     "adf_p": 1.3264376871260617e-25,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_24": {
+     "adf_p": 6.748849610396699e-22,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_48": {
+     "adf_p": 3.6176260339567377e-23,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01595078755737172,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_6": {
+     "adf_p": 0.0,
+     "kpss_p": 0.05038301305305913,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_12": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_24": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_48": {
+     "adf_p": 0.0,
+     "kpss_p": 0.09681873068221829,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_1": {
+     "adf_p": null,
+     "kpss_p": null,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_6": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_12": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_24": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_48": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_ratio_1_24": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.hours_since_session_open": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.body_pips": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.upper_wick_pips@asinh": {
+     "adf_p": 1.2460794173713607e-27,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.lower_wick_pips@asinh": {
+     "adf_p": 3.274390370532765e-28,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.range_pips@asinh": {
+     "adf_p": 4.952275629553428e-13,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.close_minus_low_pips@asinh": {
+     "adf_p": 2.156897971054883e-27,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.high_minus_close_pips@asinh": {
+     "adf_p": 4.6141946625162775e-27,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fx.usdchf.ret_1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fx.usdchf.ret_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fx.usdchf.ret_24": {
+     "adf_p": 4.039277805168507e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fx.usdchf.rv_24@log": {
+     "adf_p": 4.477944200201158e-18,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dly.gold.ret_1d": {
+     "adf_p": 3.531507583072465e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dly.gold.ret_5d": {
+     "adf_p": 7.199163983879102e-20,
+     "kpss_p": 0.0747392770778087,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_long": {
+     "adf_p": 6.840662026141545e-10,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_change": {
+     "adf_p": 1.373684833532585e-23,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_share": {
+     "adf_p": 3.146881884106157e-08,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_z156": {
+     "adf_p": 3.635567526395266e-10,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.ret_1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.ret_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.ret_24": {
+     "adf_p": 5.551782229629575e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.kalman_slope": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.tokyo_fix.hours_since": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.tokyo_fix.hours_to": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.london_fix.hours_since": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.london_fix.hours_to": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.ny_cut.hours_since": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.ny_cut.hours_to": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "act.p_hit": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.A4@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D3": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D4@log": {
+     "adf_p": 0.00024131310406009935,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D3@log": {
+     "adf_p": 0.014778989109551314,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D2@log": {
+     "adf_p": 0.0400932458684181,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D1@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.A4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D3": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D4@log": {
+     "adf_p": 1.5621047387131733e-05,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D3@log": {
+     "adf_p": 0.029692380572348832,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D2@log": {
+     "adf_p": 0.0326939518874015,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D1@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.r1.phase_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.r1.phase_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.r1.inst_freq": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.usd.energy_D4@log": {
+     "adf_p": 3.3485345975043626e-05,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.eur.A4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "kf.lc.level_minus_close": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.rv_24": {
+     "adf_p": 2.227955931634395e-15,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.p0": {
+     "adf_p": 4.217887053547256e-14,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.p1": {
+     "adf_p": 5.15312824227457e-24,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.p2": {
+     "adf_p": 6.858877290197623e-23,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.entropy": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fd.lc.d0.3@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    }
+   },
+   "differenced": []
+  },
+  "mean": [
+   -1.0565144766146973e-06,
+   -1.063474387527842e-06,
+   -1.0207869339272467e-06,
+   -1.0240348923533692e-06,
+   -4.830710257661306e-07,
+   -6.811632958808078,
+   -9.292949748224999e-07,
+   1.4044172234595398,
+   49.76177633186433,
+   49.74034149595468,
+   49.73723596970003,
+   -0.5244327456136852,
+   -50.25655007599545,
+   -0.0004978997221927824,
+   0.498189950176591,
+   -1.3763406423183516e-05,
+   -0.00030728110385391127,
+   -0.0007178241084312236,
+   0.3479193020392902,
+   -0.05883977075521053,
+   -0.00011102420384738072,
+   -0.000772895046944134,
+   0.34504556882119597,
+   -0.0460727152172852,
+   0.29134187082405344,
+   0.2502783964365256,
+   0.33356533036377134,
+   -0.00011102420384737767,
+   -0.0007728950469441465,
+   -9.292949748224999e-07,
+   -1.8878832006912085e-06,
+   -3.866974816203449e-06,
+   -5.9112810726515365e-06,
+   -1.2823410483602208e-05,
+   -2.7422312758622246e-05,
+   -5.166707574349136e-05,
+   -6.811632958808078,
+   -6.4435681058655145,
+   -6.059477034316062,
+   -5.826266770371712,
+   0.005183401829463354,
+   0.0075342099867382025,
+   0.010670538435900512,
+   0.4946853086057241,
+   0.49762499240098973,
+   0.4993377714814989,
+   0.4995308714147709,
+   0.4980828775124643,
+   0.49632969536804034,
+   0.4937348164675719,
+   1.0,
+   0.7140392186407686,
+   0.5061521412504949,
+   0.41845403635276923,
+   0.3061941694754991,
+   0.22489586918496937,
+   0.16107320546832327,
+   0.19898670641381683,
+   59.384743875278396,
+   -0.005581848552341,
+   1.6806174020135456,
+   1.6403540779672197,
+   3.2067624227076093,
+   2.2553971023583306,
+   2.285480564525955,
+   -3.465740475886348e-06,
+   -1.4020041358044596e-05,
+   -7.822335417145956e-05,
+   -5.427925726600398,
+   0.00033017686115586456,
+   0.0012161137606280597,
+   40620.60235708983,
+   1168.43643281366,
+   0.19424623222103954,
+   0.2753582495168087,
+   0.010471428787239565,
+   0.042566576070610304,
+   0.2418790794537364,
+   0.007519252028660182,
+   11.584168522646497,
+   12.415831477353684,
+   11.502041573867855,
+   12.497958426132145,
+   11.500556792873052,
+   12.499443207126948,
+   0.2886148609717441,
+   -3.655212940454144e-06,
+   -7.810927610156972e-07,
+   -2.7614419001899724e-07,
+   -5.200643086663594e-08,
+   -5.734629471494694e-08,
+   -11.64100874468558,
+   -12.821469981568939,
+   -14.020073121733216,
+   6.027616495293532e-12,
+   -3.6552129404541466e-06,
+   4.2684635776675586e-08,
+   1.5263496804802648e-07,
+   -1.1909482122351502e-07,
+   -1.1936840789880504e-08,
+   -14.233388205043445,
+   -14.06298311711352,
+   -13.956544132398557,
+   1.7415045416334025e-11,
+   0.002312469909765194,
+   -0.0035470471718636043,
+   0.1536218513483045,
+   -14.35979938766975,
+   2.4004124266745652e-05,
+   1.284961331655341e-08,
+   0.004704153271781809,
+   0.4907623477600674,
+   0.4197014612120364,
+   0.08953619102789528,
+   0.24675420789634742,
+   -7.2991460033076e-08
+  ],
+  "std": [
+   0.0011633704411617143,
+   0.0010567921694277004,
+   0.001050930433701283,
+   0.0011589800306195035,
+   0.0010604165874093501,
+   0.6757147993291099,
+   0.001065555461047895,
+   4.415182158736398,
+   12.564279102302638,
+   27.59134998546781,
+   26.77510456772154,
+   118.15758236055724,
+   29.784846686225652,
+   0.32583270914402906,
+   0.34234004380279615,
+   0.0025645024016205907,
+   0.7071455272185017,
+   0.7070676018895248,
+   0.522490839490051,
+   0.7762044597236607,
+   0.7071291813080076,
+   0.7070839492234994,
+   0.5276971147219579,
+   0.7748268293389992,
+   0.4543806610418057,
+   0.43317331486785743,
+   0.4714864799154392,
+   0.7071291813080076,
+   0.7070839492234994,
+   0.001065555461047895,
+   0.0014886077003355843,
+   0.0020925922526374846,
+   0.0025447187004565518,
+   0.003550056746071181,
+   0.004929112976851832,
+   0.007099088342535987,
+   0.6757147993291099,
+   0.6598937972173182,
+   0.6322280267825006,
+   0.6069095249606153,
+   0.0030819120999810577,
+   0.0038184772659114866,
+   0.0051502667743926756,
+   0.3020557887236663,
+   0.2974779224765165,
+   0.2964467523546497,
+   0.29687806003145895,
+   0.2978289769154395,
+   0.298106621084948,
+   0.3010490912668445,
+   1.0,
+   0.3421769946204054,
+   0.312385636916111,
+   0.2746647459036516,
+   0.21360296213338378,
+   0.160489111851201,
+   0.11604235571741002,
+   0.13231070715792,
+   34.59058163935593,
+   11.53339096736064,
+   0.9262189099427246,
+   0.9347723536899879,
+   0.65513799115901,
+   1.0249377562507358,
+   1.0075219561691027,
+   0.0010561325316045989,
+   0.0020550606651084506,
+   0.004964168148974517,
+   0.3738467649031022,
+   0.010777065146460221,
+   0.02339750110920433,
+   67578.7160369562,
+   67016.79982353248,
+   0.3389259185896718,
+   1.0307012432893854,
+   1.5421233319484215,
+   2.9929291148759494,
+   7.328924995720523,
+   0.6047328286801531,
+   6.919068905674161,
+   6.9190689056741155,
+   6.925014339145993,
+   6.925014339145993,
+   6.9254434211366735,
+   6.9254434211366735,
+   0.2521280377543414,
+   0.0029690997121007002,
+   0.003921601508381553,
+   0.0019659461944986864,
+   0.001033422465101804,
+   0.0006272649382043879,
+   0.7919595284546613,
+   0.7612345627664673,
+   0.7339975298669773,
+   1.1552386308517569e-07,
+   0.002969099712100698,
+   0.0010719860041187741,
+   0.001049382943767362,
+   0.00105916262932823,
+   0.0010776813750143857,
+   0.7987572439813876,
+   0.751555548724479,
+   0.7213873749127845,
+   1.893353827653961e-07,
+   0.6886997549741494,
+   0.7250342877670118,
+   0.2393328423250594,
+   0.8210953273608349,
+   0.0023496638420540845,
+   2.0874068382559605e-05,
+   0.0022601143422584192,
+   0.443937910965334,
+   0.41561245571605004,
+   0.2505693234013704,
+   0.2132090673888551,
+   0.0011289634552063795
+  ],
+  "artifact_sha256": "6e6d9725b0670cc4ceaefdaa3133e80c4e2e9f022a1887970282bae5d6f23be5"
+ },
+ "representation": {
+  "groups": {
+   "inv.raw": [
+    "OPEN@diff",
+    "HIGH@diff",
+    "LOW@diff",
+    "CLOSE@diff",
+    "RAW_BAR_LOG_RETURN",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS"
+   ],
+   "inv.momentum": [
+    "RSI",
+    "Stochastic_K",
+    "Stochastic_D",
+    "CCI",
+    "WilliamsR",
+    "ROC",
+    "BB_position",
+    "price_minus_ema"
+   ],
+   "calendar": [
+    "hod_sin",
+    "hod_cos",
+    "dow_sin",
+    "dow_cos",
+    "cal.utc_hod_sin",
+    "cal.utc_hod_cos",
+    "cal.utc_dow_sin",
+    "cal.utc_dow_cos",
+    "cal.utc_session_asia",
+    "cal.utc_session_europe",
+    "cal.utc_session_us",
+    "cal.london_hod_sin",
+    "cal.london_hod_cos"
+   ],
+   "px.logret": [
+    "px.logret_1",
+    "px.logret_2",
+    "px.logret_4",
+    "px.logret_6",
+    "px.logret_12",
+    "px.logret_24",
+    "px.logret_48"
+   ],
+   "px.range": [
+    "px.range_1@log",
+    "px.range_2@log",
+    "px.range_4@log",
+    "px.range_6@log",
+    "px.range_12",
+    "px.range_24",
+    "px.range_48"
+   ],
+   "px.close_loc": [
+    "px.close_loc_1",
+    "px.close_loc_2",
+    "px.close_loc_4",
+    "px.close_loc_6",
+    "px.close_loc_12",
+    "px.close_loc_24",
+    "px.close_loc_48"
+   ],
+   "px.er": [
+    "px.er_1",
+    "px.er_2",
+    "px.er_4",
+    "px.er_6",
+    "px.er_12",
+    "px.er_24",
+    "px.er_48"
+   ],
+   "px.range_ratio": [
+    "px.range_ratio_1_24"
+   ],
+   "px.hours_since_session_open": [
+    "px.hours_since_session_open"
+   ],
+   "cdl": [
+    "cdl.body_pips",
+    "cdl.upper_wick_pips@asinh",
+    "cdl.lower_wick_pips@asinh",
+    "cdl.range_pips@asinh",
+    "cdl.close_minus_low_pips@asinh",
+    "cdl.high_minus_close_pips@asinh"
+   ],
+   "fx.usdchf": [
+    "fx.usdchf.ret_1",
+    "fx.usdchf.ret_4",
+    "fx.usdchf.ret_24",
+    "fx.usdchf.rv_24@log"
+   ],
+   "dly.gold": [
+    "dly.gold.ret_1d",
+    "dly.gold.ret_5d"
+   ],
+   "fac.fx_f1": [
+    "fac.fx_f1.ret_1",
+    "fac.fx_f1.ret_4",
+    "fac.fx_f1.ret_24",
+    "fac.fx_f1.kalman_slope"
+   ],
+   "ev": [
+    "ev.tokyo_fix.hours_since",
+    "ev.tokyo_fix.hours_to",
+    "ev.london_fix.hours_since",
+    "ev.london_fix.hours_to",
+    "ev.ny_cut.hours_since",
+    "ev.ny_cut.hours_to"
+   ],
+   "act": [
+    "act.p_hit"
+   ],
+   "wavelet/log_close": [
+    "wv.lc.A4@diff",
+    "wv.lc.D4",
+    "wv.lc.D3",
+    "wv.lc.D2",
+    "wv.lc.D1",
+    "wv.lc.energy_D4@log",
+    "wv.lc.energy_D3@log",
+    "wv.lc.energy_D2@log",
+    "wv.lc.energy_D1@diff"
+   ],
+   "wavelet/logret_1": [
+    "wv.r1.A4",
+    "wv.r1.D4",
+    "wv.r1.D3",
+    "wv.r1.D2",
+    "wv.r1.D1",
+    "wv.r1.energy_D4@log",
+    "wv.r1.energy_D3@log",
+    "wv.r1.energy_D2@log",
+    "wv.r1.energy_D1@diff"
+   ],
+   "hilbert/logret_1": [
+    "hb.r1.phase_cos",
+    "hb.r1.phase_sin",
+    "hb.r1.inst_freq"
+   ],
+   "strength/fx.usd_strength.ret_1": [
+    "wv.usd.energy_D4@log"
+   ],
+   "strength/fx.eur_strength.ret_1": [
+    "wv.eur.A4"
+   ],
+   "kalman/log_close": [
+    "kf.lc.level_minus_close"
+   ],
+   "px.rv": [
+    "px.rv_24"
+   ],
+   "gmm/logret_1+rv_24+log_range": [
+    "rg.gmm.p0",
+    "rg.gmm.p1",
+    "rg.gmm.p2",
+    "rg.gmm.entropy"
+   ],
+   "fracdiff/log_close": [
+    "fd.lc.d0.3@diff"
+   ],
+   "cot.eur/cot.eur.net_long": [
+    "cot.eur.net_long"
+   ],
+   "cot.eur/cot.eur.net_change": [
+    "cot.eur.net_change"
+   ],
+   "cot.eur/cot.eur.net_share": [
+    "cot.eur.net_share"
+   ],
+   "cot.eur/cot.eur.net_z156": [
+    "cot.eur.net_z156"
+   ]
+  },
+  "units": {
+   "inv.raw": 2,
+   "inv.momentum": 2,
+   "calendar": 2,
+   "px.logret": 2,
+   "px.range": 2,
+   "px.close_loc": 2,
+   "px.er": 2,
+   "px.range_ratio": 2,
+   "px.hours_since_session_open": 2,
+   "cdl": 2,
+   "fx.usdchf": 2,
+   "dly.gold": 2,
+   "cot.eur": 2,
+   "fac.fx_f1": 2,
+   "ev": 2,
+   "act": 2,
+   "wavelet/log_close": 2,
+   "wavelet/logret_1": 2,
+   "hilbert/logret_1": 2,
+   "strength/fx.usd_strength.ret_1": 2,
+   "strength/fx.eur_strength.ret_1": 2,
+   "kalman/log_close": 2,
+   "px.rv": 2,
+   "gmm/logret_1+rv_24+log_range": 2,
+   "fracdiff/log_close": 2,
+   "cot.eur/cot.eur.net_long": 2,
+   "cot.eur/cot.eur.net_change": 2,
+   "cot.eur/cot.eur.net_share": 2,
+   "cot.eur/cot.eur.net_z156": 2
+  },
+  "kinds": {
+   "inv.raw": "conv",
+   "inv.momentum": "conv",
+   "calendar": "conv",
+   "px.logret": "conv",
+   "px.range": "conv",
+   "px.close_loc": "conv",
+   "px.er": "conv",
+   "px.range_ratio": "conv",
+   "px.hours_since_session_open": "conv",
+   "cdl": "conv",
+   "fx.usdchf": "conv",
+   "dly.gold": "conv",
+   "fac.fx_f1": "conv",
+   "ev": "conv",
+   "act": "conv",
+   "wavelet/log_close": "conv",
+   "wavelet/logret_1": "conv",
+   "hilbert/logret_1": "conv",
+   "strength/fx.usd_strength.ret_1": "conv",
+   "strength/fx.eur_strength.ret_1": "conv",
+   "kalman/log_close": "conv",
+   "px.rv": "conv",
+   "gmm/logret_1+rv_24+log_range": "pointwise",
+   "fracdiff/log_close": "pointwise",
+   "cot.eur/cot.eur.net_long": "conv",
+   "cot.eur/cot.eur.net_change": "conv",
+   "cot.eur/cot.eur.net_share": "conv",
+   "cot.eur/cot.eur.net_z156": "conv"
+  },
+  "changed_from_control": {
+   "gmm/logret_1+rv_24+log_range": "pointwise",
+   "fracdiff/log_close": "pointwise",
+   "cot.eur": "per_feature"
+  },
+  "groups_file_sha256": "a9d878cf8c63a5b0ecf13f3e3a664e020ae70cc9cf2fa2d252f1643b227f76ef",
+  "model": {
+   "units": 2,
+   "depth": 2,
+   "head": 16,
+   "core": null
+  },
+  "regularization": {
+   "dropout": 0.1,
+   "wd": 0.0001,
+   "source": "T2 decision REGULARIZATION_DECISION.json (TIE_BREAK_2_SMALLER_GAP); sha256 3d8db8eb3eaee625"
+  },
+  "params_per_module": {
+   "open_l": 1358,
+   "open_s": 1358,
+   "close_l": 1324,
+   "close_s": 1324
+  }
+ },
+ "business": {
+  "execution_contract": "replay (Musashi's): max 1 entry per day, leverage 1:50, rel_volume 0.10, capital 10000",
+  "activity_rule": "orders_per_week >= 2.0 as the PERIOD AVERAGE (not per week); weeks_below_min_orders reported; no forced trading",
+  "orders": "every order carries broker-side SL and TP computed at entry; early close is additional; integer units = f*balance*rel_volume*leverage/price",
+  "forced_flat": "weekly forced flat from the admitted closure calendar; SL and TP in the same H1 bar -> SL first (conservative)",
+  "agent_state": "none: no agent feedback slots in the observation (constant zeros); the env enforces every rule with its real state",
+  "scaling": "fixed TRAIN-only standardization; rolling z-score forbidden; no clipping of observations"
+ },
+ "split": {
+  "arm": "consolidated",
+  "train": [
+   "2020-01-01",
+   "2024-01-01"
+  ],
+  "validation": [
+   "2024-01-01",
+   "2025-01-01"
+  ],
+  "selection_period": "INNER_A",
+  "read_once": "OBS_2024",
+  "test_closed_from": "2025-01-01",
+  "periods": {
+   "TRAIN": [
+    "2020-01-01",
+    "2023-07-01"
+   ],
+   "INNER_A": [
+    "2023-07-01",
+    "2024-01-01"
+   ],
+   "OBS_2024": [
+    "2024-01-01",
+    "2025-01-01"
+   ]
+  },
+  "support_hash": {
+   "TRAIN": "fa480f4e00514304",
+   "INNER_A": "f1c592d53da55019",
+   "OBS_2024": "3364cd2677e7771a"
+  }
+ },
+ "labels": {
+  "mode": "zigzag (inherited hindsight demonstrations, training-only)",
+  "note": "opportunity/both labels are a separate experiment; hindsight never enters observations"
+ },
+ "identities": {
+  "science_commit": "1aaf367923fae467988b1ca87d5aa3c74321141f",
+  "t3_manifest": "t3v2_8875abf84a63",
+  "t3_manifest_sha256": "2ca6648c3c3868d17e5c52719fc0a1c605e7162534b5384c141cd5883df59b32",
+  "t3_decision_sha256": "edb331ef24629b5331b524e76f9f213c3464a8eac72b57e1d75f4d34d5d47c0c",
+  "combination_decision_sha256": "86d771f12918158230804154cd692c66fd27e7e429ecc884b34a6a0fc887ce39",
+  "c_result_sha256": "d7d062b4204b4f575074006b8ea3eb463d6af3163706b3ea843f53910d236e4b",
+  "c_producer_config_sha256": "7ffebafb8253936ed6100b6ca4dd9aff53243b7a763189b39320777f7b4257d1",
+  "t2_regularization_decision": "T2 decision REGULARIZATION_DECISION.json (TIE_BREAK_2_SMALLER_GAP); sha256 3d8db8eb3eaee625",
+  "selection_v4": "selection v4 on the scale-corrected stores (family_union_v1)",
+  "selection_ledger_sha256": "69558d89a25d8e846825d2177a5ffbb784c46529e603d2eed91941f61b70e1c7"
+ },
+ "custody": "reports and physical copies verified by hash; OLAP ingestion / read-back NOT certified by this recipe",
+ "identity": "recipe_6f522eec4ffdacbc"
+}

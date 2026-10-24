@@ -1,0 +1,586 @@
+{
+ "allowed_bars": 21809,
+ "diag_bars": 18698,
+ "fit_bars_by_family": {
+  "kalman": 21809,
+  "gmm": 21785,
+  "hmm": 21785,
+  "fracdiff": 21554
+ },
+ "params": {
+  "kalman": {
+   "q_level": 1.0742657920999552e-06,
+   "q_slope": 2.5566456963200593e-24,
+   "r": 2.721127432558399e-08,
+   "negloglik": -117846.32986380524,
+   "iterations": 227,
+   "boundary_hits": [
+    "q_slope"
+   ],
+   "boundary_note": "a parameter below 1e-6 x max(q_level, r) is at the zero boundary of the likelihood: with q_slope ~ 0 the local linear trend degenerates to a local level with a drift that converges to a constant, so the slope output carries little information",
+   "function_evaluations": 455,
+   "converged": true,
+   "burn_in": 100,
+   "fit_rows": 21809,
+   "init_var_diff": 1.1258079887747572e-06,
+   "method": "Nelder-Mead on log(q_level, q_slope, r), exact innovation likelihood"
+  },
+  "gmm": {
+   "inputs": [
+    "logret_1",
+    "rv_24",
+    "log_range"
+   ],
+   "mu": [
+    -1.0864935344383306e-06,
+    0.0046808679881292295,
+    0.0013829430877272725
+   ],
+   "sd": [
+    0.0010610748875193076,
+    0.00226044044507127,
+    0.0010914615316591524
+   ],
+   "weights": [
+    0.4895715013438948,
+    0.4238610457030754,
+    0.08656745295302985
+   ],
+   "means": [
+    [
+     0.0049963624280852294,
+     -0.5150671274698319,
+     -0.5991041196272602
+    ],
+    [
+     -0.0004130948315067712,
+     0.27236222358750806,
+     0.24630240680821655
+    ],
+    [
+     -0.02623366831817412,
+     1.5793285504502388,
+     2.1821862738737305
+    ]
+   ],
+   "variances": [
+    [
+     0.11735885596552471,
+     0.21913513900970824,
+     0.07074051370665643
+    ],
+    [
+     0.8427369147525894,
+     0.7588534294089023,
+     0.2923410787372278
+    ],
+    [
+     6.760857675529456,
+     2.238993393971066,
+     2.631409517995614
+    ]
+   ],
+   "converged": true,
+   "n_iter": 25,
+   "lower_bound": -3.197729287961508,
+   "fit_rows": 21785,
+   "config": {
+    "k": 3,
+    "covariance_type": "diag",
+    "n_init": 5,
+    "max_iter": 500,
+    "reg_covar": 1e-06,
+    "random_state": 0
+   },
+   "state_rv24_mean_raw": [
+    0.0035165894212697423,
+    0.005296526574035977,
+    0.008250846119622731
+   ]
+  },
+  "hmm": {
+   "k": 3,
+   "dims": 3,
+   "means": [
+    [
+     -0.002287759541944319,
+     -0.7998126859913607,
+     -0.4588030876262218
+    ],
+    [
+     0.01468521913448657,
+     0.007647288484570498,
+     -0.112067678924589
+    ],
+    [
+     -0.021154093265714505,
+     1.3763975960203798,
+     0.9888245729794458
+    ]
+   ],
+   "variances": [
+    [
+     0.2642848496444623,
+     0.056837238717729416,
+     0.19492233684010934
+    ],
+    [
+     0.5383779227160987,
+     0.10159988129005727,
+     0.34084337818518495
+    ],
+    [
+     3.0672054291588293,
+     1.1699151548893691,
+     2.16158346011785
+    ]
+   ],
+   "transmat": [
+    [
+     0.9764958086532246,
+     0.00580926178869972,
+     0.017694929558075733
+    ],
+    [
+     0.017642578513785007,
+     0.948381333108878,
+     0.03397608837733701
+    ],
+    [
+     0.010647517610288124,
+     0.07822402884426005,
+     0.9111284535454518
+    ]
+   ],
+   "startprob": [
+    1.513049048917291e-67,
+    1.0,
+    2.1709608367285834e-40
+   ],
+   "loglik": -59953.90994890464,
+   "iterations": 15,
+   "converged": true,
+   "loglik_history": [
+    -84717.6345431761,
+    -61167.49281404718,
+    -60175.73205207984,
+    -60053.960720042305,
+    -60009.59634541926,
+    -59989.01340747016,
+    -59976.42417838209,
+    -59968.245511354515,
+    -59962.95627489435,
+    -59959.554494140546,
+    -59957.35730177021,
+    -59955.92329422549,
+    -59954.975356117546,
+    -59954.340473798315,
+    -59953.90994890464
+   ],
+   "order_dim": 1,
+   "fit_rows": 21785,
+   "var_floor": 1e-06,
+   "max_iter": 100,
+   "tol": 1e-05,
+   "inputs": [
+    "logret_1",
+    "rv_24",
+    "log_range"
+   ],
+   "mu": [
+    -1.0864935344383306e-06,
+    0.0046808679881292295,
+    0.0013829430877272725
+   ],
+   "sd": [
+    0.0010610748875193076,
+    0.00226044044507127,
+    0.0010914615316591524
+   ],
+   "config": {
+    "k": 3,
+    "max_iter": 100,
+    "tol": 1e-05,
+    "var_floor": 1e-06
+   },
+   "state_rv24_mean_raw": [
+    0.0028729390442332704,
+    0.00469815422831488,
+    0.007792132782672562
+   ],
+   "fit_note": "EM on the fit-period rows with finite inputs treated as one sequence (rows with a NaN input dropped from the fit sequence only)"
+  },
+  "fracdiff": {
+   "d": 0.3,
+   "window": 256,
+   "adf_table": [
+    {
+     "d": 0.1,
+     "adf_stat": -1.602509953820217,
+     "adf_p": 0.4823325203488125,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.10521499492029296
+    },
+    {
+     "d": 0.2,
+     "adf_stat": -2.1845896026346687,
+     "adf_p": 0.21188600713144312,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.1001114491281116
+    },
+    {
+     "d": 0.3,
+     "adf_stat": -3.111657702324182,
+     "adf_p": 0.025702409082639217,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.07008407919491333
+    },
+    {
+     "d": 0.4,
+     "adf_stat": -4.605951082037386,
+     "adf_p": 0.00012594625926362865,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.04254919277948913
+    },
+    {
+     "d": 0.5,
+     "adf_stat": -7.017561886787944,
+     "adf_p": 6.671632500334864e-10,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.02343329892150315
+    },
+    {
+     "d": 0.6,
+     "adf_stat": -10.76072141505326,
+     "adf_p": 2.5249642485761755e-19,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.011827293975131355
+    },
+    {
+     "d": 0.7,
+     "adf_stat": -15.868379744088903,
+     "adf_p": 9.041767472974567e-29,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.0054051467948458155
+    },
+    {
+     "d": 0.8,
+     "adf_stat": -21.294386275919198,
+     "adf_p": 0.0,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.0021342037670699977
+    },
+    {
+     "d": 0.9,
+     "adf_stat": -25.688284583839053,
+     "adf_p": 0.0,
+     "nobs": 21529,
+     "crit_5pct": -2.861674260613654,
+     "weights_abs_sum_dropped": 0.0006164096387044638
+    }
+   ],
+   "rule": "smallest d in the grid with ADF p < 0.05 on the fit period (maxlag 24, no autolag)",
+   "config": {
+    "window": 256,
+    "d_grid": [
+     0.1,
+     0.2,
+     0.3,
+     0.4,
+     0.5,
+     0.6,
+     0.7,
+     0.8,
+     0.9
+    ],
+    "adf_alpha": 0.05,
+    "adf_maxlag": 24
+   }
+  }
+ },
+ "learned_decisions": {
+  "kf.lc.level_minus_close": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "kf.lc.level_minus_close",
+   "flip": false,
+   "reason": "stationary, not strongly skewed"
+  },
+  "kf.lc.slope": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "kf.lc.slope",
+   "flip": false,
+   "reason": "stationary, not strongly skewed"
+  },
+  "kf.lc.innovation": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "kf.lc.innovation",
+   "flip": false,
+   "reason": "stationary, not strongly skewed"
+  },
+  "kf.lc.innovation_std": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "kf.lc.innovation_std",
+   "flip": false,
+   "reason": "stationary, not strongly skewed"
+  },
+  "rg.gmm.p0": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.gmm.p0",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.gmm.p1": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.gmm.p1",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.gmm.p2": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.gmm.p2",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.gmm.entropy": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.gmm.entropy",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.hmm.p0": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.hmm.p0",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.hmm.p1": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.hmm.p1",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.hmm.p2": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.hmm.p2",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.hmm.entropy": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.hmm.entropy",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rg.hmm.surprise": {
+   "global": "NONE",
+   "scope": "NONE",
+   "slot": "rg.hmm.surprise",
+   "flip": false,
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "fd.lc.d0.3": {
+   "global": "DIFF",
+   "scope": "DIFF",
+   "slot": "fd.lc.d0.3@diff",
+   "flip": false,
+   "reason": "non-stationary level (ADF p=0.079, KPSS p=0.010)"
+  }
+ },
+ "fixed_decisions_changed": {
+  "px.rv_1": {
+   "global": "ASINHS",
+   "scope": "ASINHS",
+   "slot": "px.rv_1@asinhs",
+   "flip": false,
+   "asinhs_scale": 0.0004493578385384189,
+   "reason": "positive and skewed (TRAIN skew 3.89 -> 0.72 with asinh(x / 0.000449358) with the TRAIN median of positive values); LOG rejected: outside its domain on TRAIN (zeros); ASINH 3.89->3.89 does not halve it"
+  },
+  "px.rv_2": {
+   "global": "ASINHS",
+   "scope": "ASINHS",
+   "slot": "px.rv_2@asinhs",
+   "flip": false,
+   "asinhs_scale": 0.0007980443270809544,
+   "reason": "positive and skewed (TRAIN skew 3.28 -> 0.75 with asinh(x / 0.000798044) with the TRAIN median of positive values); LOG rejected: outside its domain on TRAIN (zeros); ASINH 3.28->3.28 does not halve it"
+  }
+ },
+ "activity": {
+  "fit_rows_full": 17128,
+  "oof_folds": 5,
+  "embargo_bars": 96,
+  "input_lookback_bars": 121,
+  "allowed_bars": 21809,
+  "features": [
+   "cal.utc_dow_cos@0",
+   "cal.utc_dow_cos@1",
+   "cal.utc_dow_cos@120",
+   "cal.utc_dow_sin@24",
+   "cal.utc_dow_sin@48",
+   "dly.dax.ret_5d@48",
+   "dly.spx.ret_1d@48",
+   "dow_cos@0",
+   "dow_cos@1",
+   "dow_cos@120",
+   "dow_sin@48",
+   "ev.tokyo_fix.hours_since@8",
+   "ev.tokyo_fix.hours_to@8",
+   "px.hours_since_session_open@2"
+  ]
+ },
+ "columns": {
+  "kf.lc.level_minus_close": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 7.822757643611601e-05,
+   "cells_changed": 31115
+  },
+  "kf.lc.slope": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 1.2523140150903322e-06,
+   "cells_changed": 31115
+  },
+  "kf.lc.innovation": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 7.823198476509391e-05,
+   "cells_changed": 31114
+  },
+  "kf.lc.innovation_std": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.29852728169763054,
+   "cells_changed": 31115
+  },
+  "rg.gmm.p0": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.08264264954097711,
+   "cells_changed": 31070
+  },
+  "rg.gmm.p1": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.08158978995421351,
+   "cells_changed": 31092
+  },
+  "rg.gmm.p2": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.044295870213517885,
+   "cells_changed": 30918
+  },
+  "rg.gmm.entropy": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.09062068128940759,
+   "cells_changed": 31092
+  },
+  "rg.hmm.p0": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.5107251962484682,
+   "cells_changed": 31089
+  },
+  "rg.hmm.p1": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.5433083217840813,
+   "cells_changed": 31091
+  },
+  "rg.hmm.p2": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.5415683009175611,
+   "cells_changed": 30373
+  },
+  "rg.hmm.entropy": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.6126728241539386,
+   "cells_changed": 31091
+  },
+  "rg.hmm.surprise": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 2.942059528970077,
+   "cells_changed": 31092
+  },
+  "fd.lc.d0.3@diff": {
+   "identical": true,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.0,
+   "cells_changed": 0
+  },
+  "px.rv_1@asinhs": {
+   "identical": true,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.0,
+   "cells_changed": 0
+  },
+  "px.rv_2@asinhs": {
+   "identical": true,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.0,
+   "cells_changed": 0
+  },
+  "act.p_hit": {
+   "identical": false,
+   "finite_mask_identical": true,
+   "max_abs_diff": 0.6963831437035639,
+   "cells_changed": 31116
+  }
+ },
+ "changed": [
+  "act.p_hit",
+  "kf.lc.innovation",
+  "kf.lc.innovation_std",
+  "kf.lc.level_minus_close",
+  "kf.lc.slope",
+  "rg.gmm.entropy",
+  "rg.gmm.p0",
+  "rg.gmm.p1",
+  "rg.gmm.p2",
+  "rg.hmm.entropy",
+  "rg.hmm.p0",
+  "rg.hmm.p1",
+  "rg.hmm.p2",
+  "rg.hmm.surprise"
+ ],
+ "scope": {
+  "name": "consumer",
+  "kind": "consumer",
+  "fit_window": [
+   "2020-01-01",
+   "2023-07-01"
+  ],
+  "exclude": [],
+  "diag_window": [
+   "2020-01-01",
+   "2023-01-01"
+  ],
+  "note": "consumers: fit 2020-01-01 .. 2023-07-01 by availability; the inner block 2023 S2, 2024 and TEST are never fitted on"
+ },
+ "file": "SCOPE_consumer.parquet",
+ "sha256": "c312fc8f1c4178937560689d7241686c2c36edc50ac40ac94b654b8120d09a26"
+}

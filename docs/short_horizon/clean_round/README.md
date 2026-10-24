@@ -183,3 +183,25 @@ python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out D
 - **Lo que sigue**: solicitud final de auditoría conjunta (Musashi) y la palabra del propietario para `RELEASE.json`;
   después, por separado, la ronda limpia guiada por el experto (mía) y el contraste SAC sin experto (Musashi) sobre
   esta misma receta.
+
+## 12. 2026-10-24: corrección A1–A4 ejecutada sobre la cadena completa (v5)
+
+- **Selección v5** con productores locales a cada fold (3 882 unidades, 0 errores; 3 540 recalculadas, 342 reutilizadas con
+  procedencia): listas 15 / 121 / 165; estricta 116 → 121 (+15 / −10); 11 familias cambian de estado; las codificaciones
+  ganadoras cambian y **no** se adoptan (contraste afectado, pendiente). Testigos reales de aislamiento del ajuste:
+  `evidence/a1/CHECK_consumer.json`, `CHECK_sel_K3_f1.json` (parámetros y valores anteriores idénticos; el ajuste
+  contaminado mueve 270 509 celdas).
+- **T2 v5**: 4/4 autenticados con dos productores → regularización **fuerte**; la ganancia interna de la estricta v4 era
+  contaminada y desaparece.
+- **T3 v5**: 45 unidades (23 mías, 22 de Musashi) autenticadas por mí con cinco productores; mi `decide` y `combine` dan
+  los **mismos digests** que los de Musashi (`7291c1aa…`, `a9f553a7…`): `inv.raw`, `inv.momentum`, `hilbert/log_close`
+  → puntual; `px.close_loc` → por columna; 21 grupos conv; expectativas 7/18. **C** (entrenada por Musashi en la 5090):
+  SELECCIONADA (INNER_A 1.392 vs 0.836, dispersión agrupada 0.713); replay exacto (12 checkpoints, trading). Lectura
+  honesta: en 2024 (una lectura) C −1.011 frente a −0.572 del control; TRAIN 2.572 frente a 2.997.
+- **Receta v2** `CONSUMER_RECIPE.json` (`recipe_5a8f2155…`) derivada de la cadena de recibos de la C nueva, con
+  etapas aguas arriba / consumidor, ventana tipada y contrato de negocio; sonda de referencia
+  `evidence/a1/PROBE_a1_reference.json`; la v1 queda como `CONSUMER_RECIPE_v1_contaminated.json`.
+- **Testigos contra el cierre de Musashi** (su ítem 2): 18 casos sobre copias (manifiesto, grupo, soporte, pesos,
+  escalador, resultado, replay viejo / incompleto / inexacto): todos rechazados con su código; mi primer arnés era
+  inválido para los tres de replay (la copia carecía del estado de réplica y su finalizador salía antes), queda
+  registrado y corregido. `evidence/a1/CLOSURE_ATTACK.json`, `closure_attack_witnesses.py`.
