@@ -119,9 +119,10 @@ Lecturas:
   trades intermedios contra la escala óptima. Con tu regla ("siempre respecto al óptimo") su aptitud es negativa por
   construcción; propongo medirla como −(pérdida hasta el fin del tramo óptimo contrario)/(tramo) para que entren como
   **ejemplos negativos graduados**, no como NOP ciego ni como positivos. Es la siguiente medición si apruebas la regla.
-- Incluso el **óptimo** abre con aptitud mediana 0.77, no 1: la etiqueta hold_through marca todo el tramo, así que la
-  mayoría de sus filas son entradas tardías. El agente de apertura hoy aprende "abre en cualquier punto del tramo";
-  con f_open como peso o como objetivo auxiliar aprende **cuánto queda**.
+- Incluso el **óptimo** abre con aptitud mediana 0.77, no 1. **Corrección (L1, 2026-10-24):** mi primera lectura ("la
+  etiqueta marca todo el tramo, entradas tardías") era falsa: las aperturas del óptimo medidas aquí son **sólo sus
+  barras de pivote**; el 0.77 refleja el llenado en la apertura siguiente frente al extremo intrabarra del pivote, no
+  entradas tardías. Lo que sí vale: con f_open como peso u objetivo auxiliar el abridor aprende **cuánto queda**.
 - Cerrar al cierre de la barra del pivote óptimo captura la mediana del 78 % del tramo (el 100 % es el extremo
   intrabarra). θ_close no debería exigir más que eso.
 
@@ -177,7 +178,18 @@ que recorta su actividad frente al estudio. Si quieres un óptimo con profit com
 el contrato de replay (misma herramienta, horas), y cambiaría la vara de §4.1: lo haría antes de medir aptitudes
 definitivas, no después.
 
-### 4.6 Lo que sigue (sin lanzar nada)
+### 4.6 Estado de ejecución (orden del propietario "orquesta y ejecuta", 2026-10-24)
+
+- Implementado (`app/short_horizon/expert_guided/multires.py`, `--labels multires`, 8 pruebas, suite 132/132; perfil en
+  `evidence/multires/MULTIRES_LABELS_PROFILE.json`): TRAIN 17 128 orígenes → NOP duro 9 000, negativos 1 918,
+  conflicto 91, NOP graduado 2 002, abrir L 2 037 / S 2 054; censurados 26. Convención decidida por L1: tras el cierre
+  óptimo, `remaining` es la devolución desde el nivel óptimo (≤ 0), para que el cerrador no MANTENGA un largo en el
+  retroceso posterior al pico. Los pesos por muestra se calculan y perfilan; entrar en la pérdida exige la bandera
+  `--sample-weights` (apagada por defecto: aditividad), en construcción en L2 junto con el DEAP de umbrales.
+- Etapa A (receta v2, 7 brazos × 3 semillas) corriendo en el 4090; los brazos `multires` van a la etapa A' sobre la
+  receta v3 de Musashi (sin `px.er_1`) con el control `zz_hold` repetido como puente entre soportes.
+
+### 4.7 Lo que sigue
 
 1. Tu palabra sobre §4.1 (regla para las aperturas contra el óptimo), §4.3 (NOP), §4.4 y §4.5 (re-optimizar o no).
 2. Con ella: `MultiResLabels` (aptitud, NOP graduado, cerrador por aptitud; misma disponibilidad por confirmación
