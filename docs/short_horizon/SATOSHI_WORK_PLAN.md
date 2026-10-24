@@ -257,3 +257,7 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   puente entre soportes.
 - Carriles: L1 `multires.py` + `--labels multires` + pruebas + perfil de etiquetas; L3 lanzamiento de la etapa A;
   L2 (tras L1) DEAP NSGA-II de umbrales con el objetivo del óptimo (Sharpe↑/DD↓ 2020-2022, elección 2023).
+- 22:30Z: L1 y L2 regresaron (hs @a193005, 141 pruebas): `multires.py` + `--labels multires` + `--sample-weights` +
+  DEAP NSGA-II de umbrales (corriendo en el coordinador, tope 3 GiB, ≈ 2 h) + emisor corregido. Etapa A ≈ 35 min/brazo,
+  fin ≈ 01:30–02:00Z. Retractación registrada: las aperturas del óptimo medidas son barras de pivote, no "entradas
+  tardías". Siguiente: con `CHOSEN_THRESHOLDS.json` y la receta v3 de Musashi, etapa A' (puente + 3 brazos multires).
