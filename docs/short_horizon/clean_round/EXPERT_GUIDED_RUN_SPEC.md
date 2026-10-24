@@ -58,3 +58,20 @@ resultados negativos. La etapa B hereda el ganador. Ninguna cifra de este experi
 - Lectura de vuelta: `E3M.json` de cada brazo (con `recipe.identity` y `recipe.sha256` registrados), `SCALER.json`,
   sonda, 12 checkpoints por brazo, recibo de ejecución en el formato compartido (`tools/receipted_run.py`), decisión
   `decide` sobre los recibos verificados; publicación al almacén con lectura de vuelta como punto aparte.
+
+## 5. Etapa A' (multi-resolución sobre la receta v3; pre-registrada 2026-10-24, aún no emitida)
+
+Entradas que faltan: la receta v3 de Musashi (v2 sin `px.er_1`, identidad y sonda nuevas) y `CHOSEN_THRESHOLDS.json`
+del DEAP (`evidence/multires/deap/`). Cuando existan, `CLEAN_ROUND_SPEC.json` recibe la etapa `A_prime` apuntando a la
+v3 y el lanzador la valida como a la A (misma receta, modelo, regularización, partición; sólo tratamientos).
+
+| brazo | etiquetas | umbrales | pesos en la pérdida | papel |
+| --- | --- | --- | --- | --- |
+| `zz_hold_v3` | ZigZag heredado, hold_through | — | no | **puente**: mismo control que en A, sobre el soporte de la v3; la diferencia A→A' del control mide el efecto del soporte recuperado, no del tratamiento |
+| `multires_default` | multires | por defecto (0.5 / 0.5 / 0.25σ / 0.1 / 0.9) | no | tratamiento base |
+| `multires_deap` | multires | `CHOSEN_THRESHOLDS.json` | no | umbrales optimizados (objetivo hindsight declarado) |
+| `multires_deap_weighted` | multires | `CHOSEN_THRESHOLDS.json` | sí (`--sample-weights`) | NOP graduado y negativos con su peso |
+
+Decisión congelada: igual que en A (Sharpe medio INNER_A de tres semillas válidas; empates → menos parámetros, luego el
+puente). Comparaciones A↔A' sólo a través del puente; nunca brazo de A contra brazo de A' directamente. 2024 una lectura
+por brazo, nunca para decidir; TEST cerrado. La etapa B hereda al ganador de A o de A' según el puente lo justifique.
