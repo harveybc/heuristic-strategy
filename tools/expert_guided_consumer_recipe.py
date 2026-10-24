@@ -118,7 +118,7 @@ def cmd_emit(a):
     arg = lambda f: tok[tok.index(f) + 1] if f in tok else None  # noqa: E731
     need(Path(arg("--groups") or "").name == Path(a.groups).name and Path(arg("--feature-list") or "").name == Path(a.list).name, "RECEIPT_COMMAND_INPUTS")
     need(job.get("groups_sha256") == sha(a.groups), "RECEIPT_GROUPS_DIGEST")
-    prod = C.authenticate_producer(a.c_config, a.science_commit)
+    prod = C.authenticate_producer(a.c_config, a.science_commit, blobs=a.science_blobs)
     need(prod.get("authenticated"), "PRODUCER_NOT_AUTHENTICATED")
     # --- combination decision and replay
     comb, rep = json.loads(Path(a.combination).read_text()), json.loads(Path(a.replay).read_text())
@@ -219,6 +219,7 @@ def main():
     for k in ("spec", "c-dir", "c-receipt", "c-config", "groups", "list", "manifest", "decision", "combination", "replay",
               "store", "store-manifest", "layer1-manifest", "layer2-manifest", "admitted-dir", "science-commit", "out"):
         e.add_argument(f"--{k}", required=True)
+    e.add_argument("--science-blobs", default=None, help="science_blobs/<commit>/tools/expert_guided_e3m.py exported from git (hosts without the repository)")
     a = ap.parse_args()
     try:
         sys.exit({"emit": cmd_emit}[a.cmd](a) or 0)
