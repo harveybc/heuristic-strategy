@@ -76,6 +76,14 @@ class Q:
                  "--scope-parquet", str(so / "SCOPE_consumer.parquet"), "--scope-report", str(so / "SCOPE_consumer.json"),
                  "--out", str(self.D / "full_pool_s_a1")], "consumer_store", self.W / "predictor")
 
+    def lists(self):
+        """FEATURE_LIST_<name>.json from the aggregate's SHORTLIST.json (the v4 driver did this outside the engine)."""
+        fin = self.W / "selection_v5" / "final"
+        sl = json.loads((fin / "SHORTLIST.json").read_text())
+        for n, cols in sl["lists"].items():
+            (fin / f"FEATURE_LIST_{n}.json").write_text(json.dumps({"name": n, "features": cols, "n": len(cols),
+                "source": "pool_selection v5 (fold-local producers, audit A1) SHORTLIST.json"}, indent=1))
+
     def justification(self):
         fin = self.W / "selection_v5" / "final"
         for name in ("core15", "shortlist_strict"):
@@ -215,7 +223,7 @@ def main():
     a = ap.parse_args()
     q = Q(json.loads(Path(a.config).read_text()))
     q.wait_selection()
-    for name in ("consumer_store", "justification", "profiles_t1", "spec", "t2_strict", "regularize", "t3_manifest", "t3_satoshi"):
+    for name in ("consumer_store", "lists", "justification", "profiles_t1", "spec", "t2_strict", "regularize", "t3_manifest", "t3_satoshi"):
         q.step(name, getattr(q, name))
     q.log("A1Q_SATOSHI_PART_DONE (peer half, decision, combination and recipe follow from the session)")
 
