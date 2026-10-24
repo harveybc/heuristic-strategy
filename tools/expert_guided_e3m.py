@@ -426,8 +426,23 @@ def merge_sets(*parts):
     return out
 
 
+def check_sample_weights(a) -> bool:
+    """``--sample-weights`` is a multires-only treatment (the fitness weights exist in no other mode)."""
+    if getattr(a, "sample_weights", False) and a.labels != "multires":
+        raise SystemExit(f"SAMPLE_WEIGHTS_REQUIRE_MULTIRES:labels={a.labels}")
+    return bool(getattr(a, "sample_weights", False))
+
+
+def row_weight(labels, label_mode, sample_weights, info, bar, r):
+    """Per-row loss weight: the multires label fitness of a FLAT row when ``--sample-weights`` is on (positioned rows
+    and every other mode weigh 1)."""
+    if not sample_weights or info is not None or label_mode != "multires" or labels is None:
+        return 1.0
+    return float(labels.weight(bar, r))
+
+
 def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, tracks=None, track=None, aux=None,
-               labels=None, label_mode="zigzag"):
+               labels=None, label_mode="zigzag", sample_weights=False):
     """vis rows -> {module: (X, y, R, Rm)}; flat labels from the expert's issued action (round 0) or the oracle,
     positioned labels from ``exit_label``. With ``final_before_bar`` (refit sweep) a row is used only when its label
     is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows).
@@ -437,9 +452,11 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
     support is valid there (multi-expert consensus); positioned rows keep the single exit-rule label.
     ``labels`` / ``label_mode`` (per-agent signal, rev 2): "zigzag" leaves every label as above; "opportunity" and
     "both" relabel flat rows by ``SignalLabels.flat_action`` and positioned rows by the declared closer rule (see
-    ``SignalLabels``); a censored signal drops the row under "opportunity" and leaves the exit rule alone under "both"."""
+    ``SignalLabels``); a censored signal drops the row under "opportunity" and leaves the exit rule alone under "both".
+    ``sample_weights`` (multires only): the returned tuples carry a fifth element, the per-row loss weight (label
+    fitness on flat rows, 1 on positioned rows); default False returns the 4-tuples unchanged."""
     use_sig = labels is not None and label_mode != "zigzag"
-    acc = {m: ([], [], [], []) for m in MODULES[variant]}
+    acc = {m: ([], [], [], [], []) for m in MODULES[variant]}
     for r, bar, st, a_exp, tp_exp, sl_exp, info in vis:
         if final_before_bar is not None:
             if info is not None:
@@ -483,11 +500,13 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
                 labs.append((a, tp, sl))
             if use_sig:
                 labs = [x for lab in labs for x in (_signal_flat(labels, label_mode, bar, r, lab) or [])]
+        wt = row_weight(labels, label_mode, sample_weights, info, bar, r)
         for a, tp, sl in labs:
             for m, (y, is_open) in labels_for(variant, st, a).items():
-                X, Y, R, Rm = acc[m]
+                X, Y, R, Rm, W = acc[m]
                 X.append(np.r_[cx.Xw[r], E.masked_state(st, mask)])
                 Y.append(y)
+                W.append(wt)
                 if aux is None:
                     R.append((tp, sl))
                     Rm.append(float(is_open))
@@ -499,7 +518,7 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
                     hv, ok = aux.hold_gain(bar, r, 1 if m == "close_l" else -1)
                     R.append((hv,))
                     Rm.append((ok,))
-    return {m: pack(*v) for m, v in acc.items() if len(v[1])}
+    return {m: (pack(*v[:4]) + (np.asarray(v[4], np.float32),) if sample_weights else pack(*v[:4])) for m, v in acc.items() if len(v[1])}
 
 
 # ----------------------------------------------------------------------------- composed policy
@@ -694,6 +713,7 @@ def run(a):
         ARCH.update(groups=idx, group_units=gu, group_names=names, group_kinds=gk)
     AUX = AuxTargets(cx) if a.aux_targets else None
     LMODE = a.labels
+    SW = check_sample_weights(a)
     if a.labels == "multires":
         # owner 2026-10-24: ladder candidates scored against the optimum; thresholds from JSON (defaults declared in multires.Thresholds)
         TH = MR.Thresholds.from_json(Path(a.multires_thresholds).read_text()) if a.multires_thresholds else MR.Thresholds()
@@ -725,7 +745,7 @@ def run(a):
                                                               "hold_gain_at_close": "best further gain vs closing now (sigma)",
                                                               "bound": AuxTargets.BOUND, "horizon": "next optimal pivot, <= 72 bars, <= forced flat"}
                                                              if a.aux_targets else None),
-           "labels": LABELS.describe(ds) if LABELS else {"mode": "zigzag"},
+           "labels": (LABELS.describe(ds) | {"weights_in_loss": SW}) if LMODE == "multires" else (LABELS.describe(ds) if LABELS else {"mode": "zigzag"}),
            "recipe": ({"identity": RECIPE["identity"], "sha256": DG.sha256(a.recipe)} if RECIPE else None),
            "meta": ds.meta, "arch": ARCH, "params": params, "window": {"observations": WIN_E, "stride_rows": int(ds.meta["input_contract"]["stride_rows"])},
            "experts": [{"name": t.name, "primary": t.primary, "pivots": t.n_pivots} for t in tracks], "scaling": a.scaling, "variants": variants, "arbiters": list(ARBITERS),
@@ -750,6 +770,7 @@ def run(a):
         model, hist, info = L.fit(D_tr[0], D_tr[1], D_in[0], D_in[1], seed=seed, n_cls=nc,
                                   R=D_tr[2] if nr else None, Rm=D_tr[3] if nr else None,
                                   Ri=D_in[2] if nr else None, Rmi=D_in[3] if nr else None, class_weight=w,
+                                  sample_weight=D_tr[4] if len(D_tr) > 4 else None,
                                   dropout=a.dropout, lr=1e-3, wd=a.wd, batch=256, max_epochs=a.max_epochs, patience=10,
                                   device=device, net=lambda: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS,
                                                                                   dropout=a.dropout, reg_bounds=BOUNDS[m], **ARCH))
@@ -774,10 +795,10 @@ def run(a):
     frozen = {}
     for v in variants:
         for seed in SEEDS:
-            D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE),
-                              *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE) for t in tracks[1:]])
-            D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE),
-                              *[build_sets(v, extra_vis[(t.name, "INNER_A")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE) for t in tracks[1:]])
+            D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW),
+                              *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW) for t in tracks[1:]])
+            D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW),
+                              *[build_sets(v, extra_vis[(t.name, "INNER_A")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW) for t in tracks[1:]])
             pols, infos = {}, {}
             comp = None
             for rnd in range(ROUNDS + 1):
@@ -785,9 +806,9 @@ def run(a):
                     _, vtr = collect(cx, "TRAIN", comp(cx), SCFG)
                     _, vin = collect(cx, "INNER_A", comp(cx), SCFG)
                     multi = tracks if len(tracks) > 1 else None
-                    for m, D in build_sets(v, vtr, cx, False, mask=mask, tracks=multi, aux=AUX, labels=LABELS, label_mode=LMODE).items():
+                    for m, D in build_sets(v, vtr, cx, False, mask=mask, tracks=multi, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW).items():
                         D_tr[m] = cat(D_tr[m], D) if m in D_tr else D
-                    for m, D in build_sets(v, vin, cx, False, mask=mask, tracks=multi, aux=AUX, labels=LABELS, label_mode=LMODE).items():
+                    for m, D in build_sets(v, vin, cx, False, mask=mask, tracks=multi, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW).items():
                         D_in[m] = cat(D_in[m], D) if m in D_in else D
                 for m in MODS[v]:
                     if m not in D_tr or m not in D_in or len(np.unique(D_tr[m][1])) < 2:
@@ -891,6 +912,7 @@ def build_parser():
                          "signal rev 2: openers by opportunity/adverse, closers by --closer-rule on the order's own SL), both (OR, fixed truth table), "
                          "multires (owner 2026-10-24: ladder candidates scored against the optimum; NOP hard/graded; closers by remaining/f_close)")
     ap.add_argument("--multires-thresholds", default="", help="JSON file with multires.Thresholds fields (default: the declared defaults)")
+    ap.add_argument("--sample-weights", action="store_true", help="multires only: weigh every flat training row by its label fitness in the CE loss (default off)")
     ap.add_argument("--closer-rule", choices=list(SignalLabels.RULES), default="hold_through",
                     help="closer counterfactual for --labels opportunity|both: hold_through (default) or optimum (declared contrast)")
     ap.add_argument("--theta-open", type=float, default=SG.SignalParams.theta_open, help="minimum net opportunity (sigma) to label an entry")

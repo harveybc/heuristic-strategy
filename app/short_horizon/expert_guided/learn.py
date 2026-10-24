@@ -86,9 +86,11 @@ def _loss(model, X, y, R, Rm, w, device, batch=8192, train=False):
 
 def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, class_weight=None, hidden=(128, 64),
         dropout=0.1, lr=1e-3, wd=1e-4, batch=256, max_epochs=200, patience=10, min_delta=1e-8, device="cpu",
-        log_every=None, init_state=None, net=None):
+        log_every=None, init_state=None, net=None, sample_weight=None):
     """``net``: optional zero-argument factory returning a model with PolicyNet's forward contract (e.g. the
-    temporal trunk of ``temporal.py``); default None keeps the MLP path unchanged."""
+    temporal trunk of ``temporal.py``); default None keeps the MLP path unchanged. ``sample_weight`` (per training row,
+    default None = unchanged loss): the CE term becomes sum(s * w_y * l) / sum(s * w_y), the class-weighted mean with
+    every row scaled by s (multires label fitness); the monitored TRAIN/INNER losses stay unweighted by s."""
     set_seed(seed)
     n_reg = 0 if R is None else R.shape[1]
     model = (PolicyNet(X.shape[1], n_cls, n_reg, hidden, dropout) if net is None else net()).to(device)
@@ -97,6 +99,8 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=wd)
     w = None if class_weight is None else torch.as_tensor(np.asarray(class_weight, np.float32), device=device)
     ce = nn.CrossEntropyLoss(weight=w)
+    St = None if sample_weight is None else torch.as_tensor(np.asarray(sample_weight, np.float32), device=device)
+    ce_rows = None if St is None else nn.CrossEntropyLoss(weight=w, reduction="none")
     Xt = torch.as_tensor(X, device=device)
     yt = torch.as_tensor(y, device=device)
     Rt = None if R is None else torch.as_tensor(R, device=device)
@@ -111,7 +115,12 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
         for i in range(0, len(X), batch):
             idx = perm[i:i + batch]
             lg, rg = model(Xt[idx])
-            loss = ce(lg, yt[idx])
+            if St is None:
+                loss = ce(lg, yt[idx])
+            else:
+                yb, sb = yt[idx], St[idx]
+                cw = torch.ones_like(sb) if w is None else w[yb]
+                loss = (sb * ce_rows(lg, yb)).sum() / torch.clamp((sb * cw).sum(), min=1e-12)
             if Rt is not None:
                 loss = loss + _masked_huber(rg, Rt[idx], Rmt[idx]).sum() / max(len(idx), 1)
             opt.zero_grad()
@@ -140,7 +149,9 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
             "optimizer": {"name": "AdamW", "lr": lr, "weight_decay": wd}, "dropout": dropout,
             "hidden": list(hidden) if net is None else None, "architecture": type(model).__name__,
             "params": int(sum(p.numel() for p in model.parameters() if p.requires_grad)),
-            "batchnorm": False, "batch": batch, "class_weight": None if class_weight is None else list(map(float, class_weight))}
+            "batchnorm": False, "batch": batch, "class_weight": None if class_weight is None else list(map(float, class_weight)),
+            **({"sample_weights": {"rows": int(len(sample_weight)), "mean": float(np.mean(sample_weight)), "min": float(np.min(sample_weight)),
+                                   "max": float(np.max(sample_weight))}} if sample_weight is not None else {})}
     return model, hist, info
 
 

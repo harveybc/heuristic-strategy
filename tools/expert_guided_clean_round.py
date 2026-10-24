@@ -184,12 +184,15 @@ def gates_open(spec) -> list:
     return missing
 
 
-def e3m_cmd(spec, arm, out, remote):
+def e3m_cmd(spec, arm, out, remote, recipe_root=None):
     """The pinned E3-M command of one arm: the recipe supplies columns, consumer operations, scaler constants, window,
-    groups and model (E3-M refuses contradicting flags); the arm supplies only training-side treatments."""
+    groups and model (E3-M refuses contradicting flags); the arm supplies only training-side treatments. ``remote`` is
+    the data root (admitted / sel15 / store); ``recipe_root`` (default ``remote``) holds ``recipe/`` — the staged
+    package keeps the recipe beside its digest at ``<root>/recipe/``, not under ``<root>/data/``."""
     m, reg, rec = spec["model"], spec["regularization"], spec["recipe"]
+    rr = remote if recipe_root is None else recipe_root
     cmd = ["tools/expert_guided_e3m.py", "run", "--admitted", f"{remote}/admitted", "--csv-dir", f"{remote}/sel15",
-           "--store", f"{remote}/store/{Path(spec['store']['path']).name}", "--recipe", f"{remote}/recipe/{Path(rec['path']).name}",
+           "--store", f"{remote}/store/{Path(spec['store']['path']).name}", "--recipe", f"{rr}/recipe/{Path(rec['path']).name}",
            "--out", out, "--variants", "FULL", "--units", str(m["units"]), "--depth", str(m["depth"]), "--head", str(m["head"]),
            "--dropout", str(reg["dropout"]), "--wd", str(reg["wd"]), "--max-epochs", str(m["max_epochs"]),
            "--scaling", spec["scaling"], "--nonstationary", spec["nonstationary"], "--split-contract", spec["split_contract"],
@@ -199,7 +202,9 @@ def e3m_cmd(spec, arm, out, remote):
     if arm.get("aux_targets"):
         cmd += ["--aux-targets"]
     if arm.get("multires_thresholds"):
-        cmd += ["--multires-thresholds", f"{remote}/recipe/{Path(arm['multires_thresholds']).name}"]
+        cmd += ["--multires-thresholds", f"{rr}/recipe/{Path(arm['multires_thresholds']).name}"]
+    if arm.get("sample_weights"):
+        cmd += ["--sample-weights"]
     if m.get("core"):
         cmd += ["--core", str(m["core"])]
     if arm.get("extra_experts"):
@@ -259,7 +264,7 @@ def cmd_emit(a):
          "cd $Q/code || exit 1"]
     for arm in arms:
         out = f"$Q/out/{a.stage}_{arm['name']}"
-        cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data"))
+        cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data", recipe_root="$Q"))
         L += [f'if [ ! -f $Q/STATE/{a.stage}_{arm["name"]} ]; then',
               f'  echo "{spec["recipe"]["sha256"]}  $Q/recipe/{rec_name}" | sha256sum -c --quiet || {{ log "recipe digest differs before {arm["name"]}: refusing"; exit 4; }}',
               f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {spec["memory"]} -t 43200s -n clean-{a.stage}-{arm["name"]} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{a.stage}_{arm["name"]}; log "{arm["name"]} DONE"; break; }}',
