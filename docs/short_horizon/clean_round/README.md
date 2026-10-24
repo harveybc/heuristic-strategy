@@ -205,3 +205,20 @@ python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out D
   escalador, resultado, replay viejo / incompleto / inexacto): todos rechazados con su código; mi primer arnés era
   inválido para los tres de replay (la copia carecía del estado de réplica y su finalizador salía antes), queda
   registrado y corregido. `evidence/a1/CLOSURE_ATTACK.json`, `closure_attack_witnesses.py`.
+
+## 13. 2026-10-24: receta aceptada; lanzador ligado a la receta; lanzamiento EN ESPERA por diseño multi-resolución
+
+- Musashi: `ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT` (predictor @1e507f14): receta `recipe_5a8f2155…` como base compartida de
+  desarrollo (no óptima ni rentable por demostrar); paridad exacta de la sonda en su consumidor SAC; corrigió el
+  exportador (replay ligado a la unidad y a los módulos; integrado como merge `8208dd6`); su receta resultante es idéntica.
+- Lanzador reparado (`tools/expert_guided_clean_round.py`): cada brazo consume `--recipe`; se rechazan flags que la
+  contradigan y cualquier desvío de store / modelo / regularización / partición; la puerta `RELEASE.json` del lanzador
+  antiguo queda sustituida por `LAUNCH_EXPERT_GUIDED.json` (palabra del propietario para esta línea); `check` prueba
+  que el cargador por receta reproduce la sonda de referencia (tensor `f087d1a7…`): sin reajuste ni transformación implícita.
+- Spec v2 `CLEAN_ROUND_SPEC.json` (`clean-expert-guided-a1-20261024`) y `EXPERT_GUIDED_RUN_SPEC.md`: 7 brazos A + 2 B que
+  varían sólo tratamientos de entrenamiento (etiquetas ZigZag / opportunity / both, cerrador, demostradores cortos,
+  cabezas auxiliares, control de estado mínimo). Paquete fijado en el host del 4090 (`PINS.sha256` `59ff4552…`).
+- **Propietario 2026-10-24: no lanzar todavía.** Antes hay que definir el ZigZag **multi-resolución** (varios periodos
+  decrecientes por debajo del óptimo, la máxima resolución posible) y sus métricas, porque el óptimo deja muy pocos
+  ejemplos para abrir-compra / abrir-venta / cerrar-compra / cerrar-venta y sobre todo para NOP. Diseño y medidas en
+  `ZIGZAG_MULTIRESOLUTION_DESIGN.md` (siguiente).
