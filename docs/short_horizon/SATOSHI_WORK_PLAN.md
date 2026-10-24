@@ -228,3 +228,20 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 ## 6. Cómo se actualiza
 
 Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link; (2) tachar o añadir pendientes en §4; (3) registrar decisiones nuevas en §5; (4) commit en la rama de este plan y link al propietario. Nada se borra: lo superado se marca SUPERSEDED con fecha.
+
+## 2026-10-24 (tarde) — px.er_1 diagnosticado; aptitud frente al óptimo medida; NOP propuesto; nada lanzado
+
+- **Bloqueo de Musashi (`px.er_1`)**: productor predictor `tools/timing_price_pool.py::price_pool` (`7ef9cb26`): k = 1
+  hace la columna constante 1.0 donde está definida y NaN en barras planas; escalada vale exactamente 0. Ventanas
+  inválidas sólo por ella: TRAIN 1 707 / INNER_A 216 / 2024 608. Testigo exacto sobre los 12 checkpoints de la C v5:
+  quitar el canal deja todas las salidas idénticas (Δ 0.0). Prueba de regresión predictor
+  `tests/test_timing_price_pool_flat_price.py` (@12dde626). Propuesta: **receta v3** (120 columnas, identidad nueva,
+  mismo store), convención NaN conservada para `px.er_2..48`, bloque `no_observation` en la sonda. Documento
+  `SATOSHI_PX_ER_SUPPORT_DIAGNOSIS_2026_10_24.md` (reply branch). **Nada modificado en sitio; espera la palabra.**
+- **Multi-resolución**: propietario aceptó la escalera; aptitud de aperturas/cierres **respecto al óptimo** medida
+  (`tools/expert_guided_fitness_vs_optimum.py`): f_open p50 0.77 (óptimo) → 0.67 (rev5), 25 % de las aperturas de rev5
+  contra el tramo óptimo; f_close p50 0.78 → 0.65. Diseño §4: NOP duro + graduado con umbrales como genes DEAP (mismo
+  objetivo que el óptimo: Sharpe↑/DD↓ 2020-2022, elección 2023), cerradores en dos brazos, θ en aptitud normalizada;
+  nota de que el óptimo se optimizó por Sharpe/DD (no profit). hs @ccafab2.
+- **Siguiente**: palabra del propietario sobre §4.1/4.3/4.4/4.5 y sobre la receta v3 → `MultiResLabels` + pruebas →
+  spec → revisión de Musashi → lanzamiento sólo con la puerta.
