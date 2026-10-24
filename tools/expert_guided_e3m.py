@@ -45,6 +45,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
+from app.short_horizon.expert_guided import multires as MR  # noqa: E402
 from app.short_horizon.expert_guided import oracle as OR  # noqa: E402
 from app.short_horizon.expert_guided import signals as SG  # noqa: E402
 from app.short_horizon import zigzag as Z  # noqa: E402
@@ -57,6 +58,7 @@ VARIANTS = ("JOINT", "TASK", "DIR", "FULL")
 ARBITERS = ("prob", "expected_gain", "gain_over_risk")
 COST_SIGMA = 0.1          # declared round-trip cost in sigma units for the gain arbiters (not broker-verified)
 EXIT = 1                  # closer class
+DROP_CENSORED_MODES = ("opportunity", "multires")   # a censored signal drops the row; "both" keeps the exit rule
 
 
 def flat_state(st):
@@ -452,7 +454,7 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
             ex = E.CLOSE if exit_label(cx, bar, info) else E.HOLD
             if use_sig:
                 a_sig = labels.positioned_action(bar, r, info)
-                if label_mode == "opportunity":
+                if label_mode in DROP_CENSORED_MODES:
                     if a_sig is None:
                         labels.n["closer_censored"] += 1
                         continue
@@ -692,8 +694,13 @@ def run(a):
         ARCH.update(groups=idx, group_units=gu, group_names=names, group_kinds=gk)
     AUX = AuxTargets(cx) if a.aux_targets else None
     LMODE = a.labels
-    LABELS = (SignalLabels(cx, a.labels, a.closer_rule, SG.SignalParams(theta_open=a.theta_open, theta_close=a.theta_close))
-              if a.labels != "zigzag" else None)
+    if a.labels == "multires":
+        # owner 2026-10-24: ladder candidates scored against the optimum; thresholds from JSON (defaults declared in multires.Thresholds)
+        TH = MR.Thresholds.from_json(Path(a.multires_thresholds).read_text()) if a.multires_thresholds else MR.Thresholds()
+        LABELS = MR.MultiResLabels(cx, TH, MR.LADDER, DG.EXPERT)
+    else:
+        LABELS = (SignalLabels(cx, a.labels, a.closer_rule, SG.SignalParams(theta_open=a.theta_open, theta_close=a.theta_close))
+                  if a.labels != "zigzag" else None)
     tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
                                   for d in []] + [parse_track(cx, d) for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
@@ -879,9 +886,11 @@ def build_parser():
                          "for demonstrations, DAgger rollouts, arbiter choice and every reported period")
     ap.add_argument("--min-orders-per-week", type=float, default=None, help="activity rule for valid (default: the env's inherited 3.0; owner 2026-10-22: 2.0)")
     ap.add_argument("--aux-targets", action="store_true", help="FULL only: hindsight opportunity (openers) and hold-gain (closers) heads")
-    ap.add_argument("--labels", choices=list(SignalLabels.MODES), default="zigzag",
+    ap.add_argument("--labels", choices=list(SignalLabels.MODES) + [MR.MultiResLabels.MODE], default="zigzag",
                     help="training labels: zigzag (the expert's pivots, unchanged default), opportunity (per-agent hindsight "
-                         "signal rev 2: openers by opportunity/adverse, closers by --closer-rule on the order's own SL), both (OR, fixed truth table)")
+                         "signal rev 2: openers by opportunity/adverse, closers by --closer-rule on the order's own SL), both (OR, fixed truth table), "
+                         "multires (owner 2026-10-24: ladder candidates scored against the optimum; NOP hard/graded; closers by remaining/f_close)")
+    ap.add_argument("--multires-thresholds", default="", help="JSON file with multires.Thresholds fields (default: the declared defaults)")
     ap.add_argument("--closer-rule", choices=list(SignalLabels.RULES), default="hold_through",
                     help="closer counterfactual for --labels opportunity|both: hold_through (default) or optimum (declared contrast)")
     ap.add_argument("--theta-open", type=float, default=SG.SignalParams.theta_open, help="minimum net opportunity (sigma) to label an entry")

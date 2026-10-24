@@ -1,0 +1,113 @@
+{
+ "rule": "labels only; eligible flat origins per period; closer labels for a hypothetical position of each side; nothing fitted",
+ "ladder": [
+  "3",
+  "rev20",
+  "rev15",
+  "rev10",
+  "rev8",
+  "rev5"
+ ],
+ "thresholds": {
+  "theta_f": 0.5,
+  "theta_mae": 0.5,
+  "theta_vol": 0.25,
+  "theta_close": 0.1,
+  "f_close_take": 0.9,
+  "min_votes": 1
+ },
+ "periods": {
+  "TRAIN": [
+   "2020-01-01",
+   "2023-07-01"
+  ],
+  "INNER_A": [
+   "2023-07-01",
+   "2024-01-01"
+  ]
+ },
+ "profile": {
+  "TRAIN": {
+   "period": "TRAIN",
+   "rows": 17128,
+   "censored": 26,
+   "kinds": {
+    "nop_hard": 9000,
+    "negative": 1918,
+    "conflict": 91,
+    "nop_graded": 2002,
+    "open": 4091
+   },
+   "classes": {
+    "nop": 13011,
+    "open_long": 2037,
+    "open_short": 2054
+   },
+   "weight_mean": {
+    "nop_hard": 1.0,
+    "negative": 0.4841173168829172,
+    "conflict": 0.2766061450106498,
+    "nop_graded": 0.6094318511080432,
+    "open": 0.7731888671321672
+   },
+   "fitness_p10_p50_p90": [
+    -0.5267820399763782,
+    0.5702029789720264,
+    0.9175177441628994
+   ],
+   "closer": {
+    "long": {
+     "CLOSE": 7250,
+     "HOLD": 9878,
+     "censored": 0
+    },
+    "short": {
+     "CLOSE": 7494,
+     "HOLD": 9625,
+     "censored": 9
+    }
+   }
+  },
+  "INNER_A": {
+   "period": "INNER_A",
+   "rows": 2436,
+   "censored": 6,
+   "kinds": {
+    "nop_hard": 1336,
+    "negative": 236,
+    "conflict": 9,
+    "nop_graded": 273,
+    "open": 576
+   },
+   "classes": {
+    "nop": 1854,
+    "open_long": 272,
+    "open_short": 304
+   },
+   "weight_mean": {
+    "nop_hard": 1.0,
+    "negative": 0.49221040215786843,
+    "conflict": 0.38918643024272026,
+    "nop_graded": 0.5932297763998837,
+    "open": 0.7814096860483756
+   },
+   "fitness_p10_p50_p90": [
+    -0.512931642001387,
+    0.6097560975609708,
+    0.919844155844197
+   ],
+   "closer": {
+    "long": {
+     "CLOSE": 1096,
+     "HOLD": 1338,
+     "censored": 2
+    },
+    "short": {
+     "CLOSE": 1028,
+     "HOLD": 1408,
+     "censored": 0
+    }
+   }
+  }
+ }
+}

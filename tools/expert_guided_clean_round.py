@@ -84,7 +84,7 @@ def arm_params(arm, spec, rec):
             for mod, (nc, nr) in arm_modules(arm).items()}
 
 
-LABEL_MODES, CLOSER_RULES = ("zigzag", "opportunity", "both"), ("hold_through", "optimum")
+LABEL_MODES, CLOSER_RULES = ("zigzag", "opportunity", "both", "multires"), ("hold_through", "optimum")
 FORBIDDEN_FLAGS = ("--feature-list", "--groups", "--window", "--stride", "--eligible-from")
 
 
@@ -198,6 +198,8 @@ def e3m_cmd(spec, arm, out, remote):
            "--labels", arm.get("labels", "zigzag"), "--closer-rule", arm.get("closer_rule", "hold_through")]
     if arm.get("aux_targets"):
         cmd += ["--aux-targets"]
+    if arm.get("multires_thresholds"):
+        cmd += ["--multires-thresholds", f"{remote}/recipe/{Path(arm['multires_thresholds']).name}"]
     if m.get("core"):
         cmd += ["--core", str(m["core"])]
     if arm.get("extra_experts"):
@@ -335,7 +337,7 @@ def label_mode_of(e: dict, producer: dict | None = None) -> tuple:
         return str(mode), MALFORMED
     if producer and producer.get("authenticated") and not producer.get("emits_labels"):
         return mode, "PRESENT_BUT_PRODUCER_DOES_NOT_EMIT"
-    return (mode, DECLARED) if mode in ("zigzag", "opportunity", "both") else (mode, UNKNOWN)
+    return (mode, DECLARED) if mode in LABEL_MODES else (mode, UNKNOWN)
 
 
 def labels_ok(mode, how) -> bool:

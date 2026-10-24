@@ -1,5 +1,5 @@
 {
- "definition": "Owner 2026-10-24: fitness of every intermediate OPEN and CLOSE point relative to the OPTIMUM ZigZag leg.\n  open fitness  f_open(b, d)  = gain captured by opening at open(b+1) on side d and closing at the optimum's next\n                               favourable pivot, as a fraction of the full optimal leg (valley->peak for long);\n                               1 = the optimal open; < 0 = opening against the optimal leg\n  close fitness f_close(b, d) = gain of a trade opened at the optimal open of the leg containing b, closed at close(b),\n                               as a fraction of the full optimal leg; 1 at the optimal close, < 1 before, falling after\nMeasured on TRAIN for every resolution's demonstrated opens (where the finer ZigZag says open) and closes (its pivots).",
+ "definition": "Owner 2026-10-24: fitness of every intermediate OPEN and CLOSE point relative to the OPTIMUM ZigZag leg, measured on\nTRAIN for every resolution of the ladder (the math lives in ``app.short_horizon.expert_guided.multires.leg_tables``):\n  f_open(b, d)  = d * (level[e] - o[b+1]) / leg   for the optimum leg [s, e] containing b; 1 = the optimal open,\n                  negative when b lies in the optimum's contrary leg (open against the optimal scale)\n  f_close(b, d) = d * (c[b] - level[s_d]) / leg_d for a trade opened at the optimal open of side d and closed at c[b]\nOpens are each resolution's own pivot bars (where it says open); closes are its pivots of the closing kind.",
  "train": [
   "2020-01-01",
   "2023-07-01"
@@ -7,156 +7,170 @@
  "by_resolution": {
   "3": {
    "open": {
-    "n": 4947,
-    "share_inside_optimal_leg": 0.9997978981406629,
-    "p10": 0.41864130434784197,
-    "p50": 0.7677902621722976,
-    "p90": 0.9483926904095075,
-    "share_ge_0.5": 0.8473822518698201,
-    "share_le_0": 0.0066707095209217705,
-    "n_total": 4948
+    "n": 4948,
+    "n_total": 4948,
+    "share_defined": 1.0,
+    "p10": 0.4183585114222466,
+    "p50": 0.7677813870103207,
+    "p90": 0.9483893557423067,
+    "share_ge_0.5": 0.847210994341148,
+    "share_le_0": 0.0068714632174616,
+    "share_negative_counter_leg": 0.005456750202101859
    },
    "close": {
     "n": 4946,
-    "share_inside_optimal_leg": 0.9995957962813258,
+    "n_total": 4948,
+    "share_defined": 0.9995957962813258,
     "p10": 0.44776785714281697,
     "p50": 0.7759876383126051,
     "p90": 0.9425287356321431,
     "share_ge_0.5": 0.8633238980994743,
     "share_le_0": 0.0014152850788515972,
-    "n_total": 4948
-   }
-  },
-  "rev30": {
-   "open": {
-    "n": 2288,
-    "share_inside_optimal_leg": 0.9130087789305666,
-    "p10": 0.3867064216461886,
-    "p50": 0.7431887523707381,
-    "p90": 0.9331462605368731,
-    "share_ge_0.5": 0.826048951048951,
-    "share_le_0": 0.006993006993006993,
-    "n_total": 2506
-   },
-   "close": {
-    "n": 2506,
-    "share_inside_optimal_leg": 1.0,
-    "p10": 0.29965892107174963,
-    "p50": 0.7456813559322132,
-    "p90": 0.9323455695648344,
-    "share_ge_0.5": 0.7948922585794094,
-    "share_le_0": 0.047885075818036714,
-    "n_total": 2506
+    "share_negative_counter_leg": 0.0014152850788515972
    }
   },
   "rev20": {
    "open": {
-    "n": 3731,
-    "share_inside_optimal_leg": 0.860867558837102,
-    "p10": 0.33809523809523406,
-    "p50": 0.723163841807914,
-    "p90": 0.9316309719934106,
-    "share_ge_0.5": 0.7893326186009113,
-    "share_le_0": 0.0075046904315197,
-    "n_total": 4334
+    "n": 4334,
+    "n_total": 4334,
+    "share_defined": 1.0,
+    "p10": -0.29430366173740696,
+    "p50": 0.6764095679765895,
+    "p90": 0.9219526488513757,
+    "share_ge_0.5": 0.6806645131518227,
+    "share_le_0": 0.13959390862944163,
+    "share_negative_counter_leg": 0.1389017074296262
    },
    "close": {
     "n": 4333,
-    "share_inside_optimal_leg": 0.9997692662667282,
+    "n_total": 4334,
+    "share_defined": 0.9997692662667282,
     "p10": 0.19544953589182515,
     "p50": 0.7125850340136051,
     "p90": 0.9250611620795381,
     "share_ge_0.5": 0.7449803831063928,
     "share_le_0": 0.06415878144472652,
-    "n_total": 4334
+    "share_negative_counter_leg": 0.06369720747749827
    }
   },
   "rev15": {
    "open": {
-    "n": 4818,
-    "share_inside_optimal_leg": 0.8258484744600617,
-    "p10": 0.31585170697012427,
-    "p50": 0.7061507441589921,
-    "p90": 0.9281559161060636,
-    "share_ge_0.5": 0.7621419676214197,
-    "share_le_0": 0.006434205064342051,
-    "n_total": 5834
+    "n": 5834,
+    "n_total": 5834,
+    "share_defined": 1.0,
+    "p10": -0.4087099162348057,
+    "p50": 0.6352201257862131,
+    "p90": 0.9169272191200356,
+    "share_ge_0.5": 0.6302708261912924,
+    "share_le_0": 0.17398011655810763,
+    "share_negative_counter_leg": 0.1731230716489544
    },
    "close": {
     "n": 5833,
-    "share_inside_optimal_leg": 0.9998285910181693,
+    "n_total": 5834,
+    "share_defined": 0.9998285910181693,
     "p10": 0.13994566584495624,
     "p50": 0.6917808219177697,
     "p90": 0.9191577249803513,
     "share_ge_0.5": 0.7138693639636551,
     "share_le_0": 0.07388993656780388,
-    "n_total": 5834
+    "share_negative_counter_leg": 0.07337562146408366
    }
   },
   "rev10": {
    "open": {
-    "n": 6120,
-    "share_inside_optimal_leg": 0.7865312941781262,
-    "p10": 0.2922857441501031,
-    "p50": 0.6912225625384217,
-    "p90": 0.925964912280641,
-    "share_ge_0.5": 0.7375816993464053,
-    "share_le_0": 0.006045751633986928,
-    "n_total": 7781
+    "n": 7781,
+    "n_total": 7781,
+    "share_defined": 1.0,
+    "p10": -0.4926727145847934,
+    "p50": 0.591836734693863,
+    "p90": 0.9099099099099153,
+    "share_ge_0.5": 0.5809021976609691,
+    "share_le_0": 0.21385426037784347,
+    "share_negative_counter_leg": 0.2129546330805809
    },
    "close": {
     "n": 7779,
-    "share_inside_optimal_leg": 0.9997429636293536,
+    "n_total": 7781,
+    "share_defined": 0.9997429636293536,
     "p10": 0.0965840260918653,
     "p50": 0.6694214876033846,
     "p90": 0.9144748280228607,
     "share_ge_0.5": 0.6833783262630159,
     "share_le_0": 0.08124437588378969,
-    "n_total": 7781
+    "share_negative_counter_leg": 0.08085872220079701
    }
   },
   "rev8": {
    "open": {
-    "n": 6689,
-    "share_inside_optimal_leg": 0.7692926969522714,
-    "p10": 0.280000000000064,
-    "p50": 0.681415929203439,
-    "p90": 0.924216217976917,
-    "share_ge_0.5": 0.722081028554343,
-    "share_le_0": 0.006278965465689939,
-    "n_total": 8695
+    "n": 8695,
+    "n_total": 8695,
+    "share_defined": 1.0,
+    "p10": -0.5153249029673374,
+    "p50": 0.5699999999999589,
+    "p90": 0.9038872159868595,
+    "share_ge_0.5": 0.5561817136285221,
+    "share_le_0": 0.2313973548016101,
+    "share_negative_counter_leg": 0.23024726854514088
    },
    "close": {
     "n": 8693,
-    "share_inside_optimal_leg": 0.9997699827487061,
+    "n_total": 8695,
+    "share_defined": 0.9997699827487061,
     "p10": 0.08657646061593299,
     "p50": 0.6608442503638845,
     "p90": 0.9124938330707112,
     "share_ge_0.5": 0.6750258828942828,
     "share_le_0": 0.0835154722190268,
-    "n_total": 8695
+    "share_negative_counter_leg": 0.08317036696192338
    }
   },
   "rev5": {
    "open": {
-    "n": 7302,
-    "share_inside_optimal_leg": 0.7451780793958567,
-    "p10": 0.270729742173124,
-    "p50": 0.6730775157959564,
-    "p90": 0.9217162730507905,
-    "share_ge_0.5": 0.7093946863872912,
-    "share_le_0": 0.005751848808545604,
-    "n_total": 9799
+    "n": 9799,
+    "n_total": 9799,
+    "share_defined": 1.0,
+    "p10": -0.5494123595644334,
+    "p50": 0.5354838709677225,
+    "p90": 0.8978361463430978,
+    "share_ge_0.5": 0.5291356260842943,
+    "share_le_0": 0.2554342279824472,
+    "share_negative_counter_leg": 0.2543116644555567
    },
    "close": {
     "n": 9797,
-    "share_inside_optimal_leg": 0.9997958975405654,
+    "n_total": 9799,
+    "share_defined": 0.9997958975405654,
     "p10": 0.08197585433435638,
     "p50": 0.6514657980456231,
     "p90": 0.9090909090909269,
     "share_ge_0.5": 0.6630601204450342,
     "share_le_0": 0.08441359599877514,
-    "n_total": 9799
+    "share_negative_counter_leg": 0.08410737981014596
+   }
+  },
+  "rev30": {
+   "open": {
+    "n": 2506,
+    "n_total": 2506,
+    "share_defined": 1.0,
+    "p10": 0.14407426993359584,
+    "p50": 0.7159582059809476,
+    "p90": 0.9289140378702458,
+    "share_ge_0.5": 0.7557861133280128,
+    "share_le_0": 0.087390263367917,
+    "share_negative_counter_leg": 0.08699122106943336
+   },
+   "close": {
+    "n": 2506,
+    "n_total": 2506,
+    "share_defined": 1.0,
+    "p10": 0.29965892107174963,
+    "p50": 0.7456813559322132,
+    "p90": 0.9323455695648344,
+    "share_ge_0.5": 0.7948922585794094,
+    "share_le_0": 0.047885075818036714,
+    "share_negative_counter_leg": 0.047885075818036714
    }
   }
  }
