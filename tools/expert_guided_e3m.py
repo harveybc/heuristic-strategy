@@ -636,6 +636,9 @@ def run(a):
             raise SystemExit(f"E3M_RECIPE_CONFLICT: --split-contract {a.split_contract} != {RECIPE['split']['arm']}")
         if a.agent_state != "none":
             raise SystemExit("E3M_RECIPE_CONFLICT: the shared recipe has no agent feedback (agent_state none)")
+        rr = RECIPE.get("regularization", {})
+        if (float(a.dropout), float(a.wd)) != (float(rr.get("dropout", -1)), float(rr.get("wd", -1))):
+            raise SystemExit("E3M_RECIPE_CONFLICT: --dropout/--wd differ from the recipe's regularization")
     if a.store:
         feats = ([c["store_column"] for c in RECIPE["tensor"]["columns"]] if RECIPE else json.loads(Path(a.feature_list).read_text())["features"])
         ds = DG.load_store(a.admitted, a.store, feats, scaling=a.scaling, verify=verify, contract=a.split_contract, nonstationary=a.nonstationary, eligible_from=a.eligible_from,

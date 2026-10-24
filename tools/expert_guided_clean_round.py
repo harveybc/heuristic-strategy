@@ -63,19 +63,34 @@ def load_groups_doc(g: dict, cols):
     return idx, units, names, kinds
 
 
-def arm_params(arm, spec, cols):
+def load_recipe(spec: dict) -> dict:
+    return json.loads(Path(spec["recipe"]["path"]).read_text())
+
+
+def arm_modules(arm) -> dict:
+    """module -> (n_cls, n_reg) of the FULL variant; the aux heads add opportunity / hold-gain regressions."""
+    return {"open_l": (2, 3), "open_s": (2, 3), "close_l": (2, 1), "close_s": (2, 1)} if arm.get("aux_targets") else dict(E3M_MODULES)
+
+
+def arm_params(arm, spec, rec):
+    """Parameters per module of an arm on the ACCEPTED recipe (columns, window, resolved groups and model all come
+    from the recipe; the arm only chooses training-side treatments and, for aux heads, extra regression outputs)."""
     from app.short_horizon.expert_guided.temporal import TemporalPolicyNet
-    m = spec["model"]
-    kw = dict(units=m["units"], core=m.get("core"), depth=m["depth"], head=m["head"])
-    if arm["extractor"] == "per_family":
-        idx, units, names, kinds = load_groups(arm["groups"], cols)
-        kw.update(groups=idx, group_units=units, group_names=names, group_kinds=kinds)
-    win = arm["window"][0]
-    return {mod: int(sum(p.numel() for p in TemporalPolicyNet(len(cols), win, nc, n_reg=nr, n_state=9, **kw).parameters()))
-            for mod, (nc, nr) in E3M_MODULES.items()}
+    r, m = rec["representation"]["resolved"], rec["representation"]["model"]
+    n, win = rec["list"]["n"], int(rec["tensor"]["window"]["observations"])
+    kw = dict(units=m["units"], core=m.get("core"), depth=m["depth"], head=m["head"], groups=r["indices"], group_units=r["units"],
+              group_names=r["names"], group_kinds=r["kinds"])
+    return {mod: int(sum(p.numel() for p in TemporalPolicyNet(n, win, nc, n_reg=nr, n_state=9, **kw).parameters()))
+            for mod, (nc, nr) in arm_modules(arm).items()}
+
+
+LABEL_MODES, CLOSER_RULES = ("zigzag", "opportunity", "both"), ("hold_through", "optimum")
+FORBIDDEN_FLAGS = ("--feature-list", "--groups", "--window", "--stride", "--eligible-from")
 
 
 def validate(spec: dict, local_root: Path | None = None) -> list:
+    """Refuse every configuration the owner forbade and every drift from the ACCEPTED shared recipe (Musashi's
+    re-review 2026-10-24): the launcher consumes the recipe and varies only training-side treatments."""
     errs = []
     m, lim = spec["model"], spec["limits"]
     if spec["scaling"] != "fixed_train":
@@ -93,57 +108,70 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
         errs.append("REGULARIZATION_NOT_DECLARED")
     if m["units"] > lim["max_extractor_units"] or (m.get("core") or m["units"]) > lim["max_core_width"] or m["head"] > lim["max_head"]:
         errs.append("MODEL_EXCEEDS_DECLARED_LIMITS")
+    # --- the accepted recipe binds store, columns, scaler, window, groups, model, regularization and split
+    rp = Path(spec.get("recipe", {}).get("path", ""))
+    if not rp.exists():
+        errs.append("RECIPE_FILE_MISSING")
+        return errs
+    if sha(rp) != spec["recipe"].get("sha256"):
+        errs.append("RECIPE_DIGEST_MISMATCH")
+    rec = json.loads(rp.read_text())
+    if rec.get("identity") != spec["recipe"].get("identity"):
+        errs.append("RECIPE_IDENTITY_MISMATCH")
+    if rec.get("schema") != "expert_guided_consumer_recipe.v2" or rec.get("scientific_release") is not False:
+        errs.append("RECIPE_SCHEMA")
+    rr = rec.get("regularization", {})
+    if reg.get("dropout") is not None and (float(reg["dropout"]), float(reg["wd"])) != (float(rr.get("dropout", -1)), float(rr.get("wd", -1))):
+        errs.append("REGULARIZATION_DIFFERS_FROM_RECIPE")
+    if spec["store"]["sha256"] != rec.get("store", {}).get("sha256") or Path(spec["store"]["path"]).name != rec["store"]["file"]:
+        errs.append("STORE_DIFFERS_FROM_RECIPE")
     store = Path(spec["store"]["path"])
-    man = None
-    if store.exists():
-        if sha(store) != spec["store"]["sha256"]:
-            errs.append("STORE_DIGEST_MISMATCH")
-        man = json.loads((store.parent / "MANIFEST.json").read_text())
-    adopted = bool(spec.get("encodings", {}).get("adopted"))
+    if store.exists() and sha(store) != spec["store"]["sha256"]:
+        errs.append("STORE_DIGEST_MISMATCH")
+    rm = rec.get("representation", {}).get("model", {})
+    if (m["units"], m["depth"], m["head"], m.get("core")) != (rm.get("units"), rm.get("depth"), rm.get("head"), rm.get("core")):
+        errs.append("MODEL_DIFFERS_FROM_RECIPE")
+    if rec.get("split", {}).get("arm") != spec["split_contract"]:
+        errs.append("RECIPE_SPLIT_MISMATCH")
+    win = int(rec.get("tensor", {}).get("window", {}).get("observations", 0))
+    if receptive_field(m["depth"]) < win:
+        errs.append(f"RECEPTIVE_FIELD_BELOW_WINDOW:{receptive_field(m['depth'])}<{win}")
+    if (rec.get("business", {}).get("evaluation_and_policy", {}).get("max_entries_per_day") != 1
+            or float(rec.get("business", {}).get("evaluation_and_policy", {}).get("min_orders_per_week", 0)) != 2.0):
+        errs.append("RECIPE_BUSINESS_CONTRACT")
+    # --- arms: training-side treatments only
+    adm = {}
+    dem = Path(spec["demonstrators"]["file"])
+    if dem.exists():
+        adm = {str(d["spec"]): bool(d.get("admitted")) for d in json.loads(dem.read_text())["demonstrators"]}
     for stage, arms in spec["stages"].items():
-        if not any(a["agent_state"] == "none" for a in arms):
+        if not any(a.get("agent_state", "none") == "none" for a in arms):
             errs.append(f"STAGE_WITHOUT_NO_FEEDBACK_ARM:{stage}")
         for a in arms:
-            tag = f"{stage}:{a['name']}"
-            if a["agent_state"] not in ("none", "minimal"):
-                errs.append(f"AGENT_STATE_FORBIDDEN:{tag}:{a['agent_state']}")
-            win, stride = a["window"]
-            if receptive_field(m["depth"]) < win:
-                errs.append(f"RECEPTIVE_FIELD_BELOW_WINDOW:{tag}:{receptive_field(m['depth'])}<{win}")
+            tag = f"{stage}/{a['name']}"
+            if stage == "A" and a.get("agent_state", "none") != "none":
+                errs.append(f"AGENT_STATE_FORBIDDEN:{tag}")
+            if a.get("agent_state", "none") not in ("none", "minimal"):
+                errs.append(f"AGENT_STATE_UNKNOWN:{tag}")
+            if a.get("labels", "zigzag") not in LABEL_MODES:
+                errs.append(f"LABELS_MODE_UNKNOWN:{tag}")
+            if a.get("closer_rule", "hold_through") not in CLOSER_RULES:
+                errs.append(f"CLOSER_RULE_UNKNOWN:{tag}")
+            for k in ("list", "groups", "window", "extractor"):
+                if a.get(k) is not None:
+                    errs.append(f"ARM_OVERRIDES_RECIPE:{tag}:{k}")
             if a.get("extra_experts"):
-                adm = json.loads(Path(spec["demonstrators"]["file"]).read_text())
-                ok = {str(d.get("spec", d.get("depth"))) for d in adm["demonstrators"] if d["admitted"]}
-                miss = [d for d in a["extra_experts"] if str(d) not in ok]
+                miss = [d for d in a["extra_experts"] if not adm.get(str(d))]
                 if miss:
                     errs.append(f"DEMONSTRATOR_NOT_ADMITTED:{tag}:{miss}")
                 longer = [d for d in a["extra_experts"] if not str(d).startswith("rev") and int(d) >= 3]
                 if longer:
                     errs.append(f"DEMONSTRATOR_NOT_SHORTER_THAN_OPTIMUM:{tag}:{longer}")
-            if a.get("list") is None:
-                continue                                    # stage B arms inherit the stage-A winner's list
-            lp = Path(a["list"])
-            if not lp.exists():
-                errs.append(f"LIST_MISSING:{tag}")
-                continue
-            if a.get("list_sha256") and sha(lp) != a["list_sha256"]:
-                errs.append(f"LIST_DIGEST_MISMATCH:{tag}")
-            cols = json.loads(lp.read_text())["features"]
-            bad = [c for c in cols if c.startswith(FORBIDDEN_PREFIXES) or (c.startswith("enc.") and not adopted)]
-            if bad:
-                errs.append(f"FORBIDDEN_COLUMNS:{tag}:{bad[:5]}")
-            if man is not None:
-                miss = [c for c in cols if c not in man["features"]]
-                if miss:
-                    errs.append(f"COLUMNS_NOT_IN_STORE:{tag}:{miss[:5]}")
-            if a["extractor"] == "per_family":
-                if not a.get("groups") or not Path(a["groups"]).exists():
-                    errs.append(f"GROUPS_FILE_MISSING:{tag}")
-                else:
-                    idx, units, _, _ = load_groups(a["groups"], cols)
-                    if sorted(i for g in idx for i in g) != list(range(len(cols))):
-                        errs.append(f"GROUPS_DO_NOT_PARTITION_LIST:{tag}")
-                    if max(units) > lim["max_extractor_units"]:
-                        errs.append(f"EXTRACTOR_TOO_LARGE:{tag}")
+    for stage, arms in spec["stages"].items():
+        for a in arms:
+            cmd = " ".join(e3m_cmd(spec, a, "OUT", "ROOT"))
+            if "--recipe" not in cmd or any(f in cmd for f in FORBIDDEN_FLAGS) or "rolling" in cmd:
+                errs.append(f"COMMAND_NOT_RECIPE_BOUND:{stage}/{a['name']}")
     return errs
 
 
@@ -157,22 +185,21 @@ def gates_open(spec) -> list:
 
 
 def e3m_cmd(spec, arm, out, remote):
-    m, reg = spec["model"], spec["regularization"]
-    win, stride = arm["window"]
-    r = lambda p: str(Path(remote) / Path(p).name)  # noqa: E731
+    """The pinned E3-M command of one arm: the recipe supplies columns, consumer operations, scaler constants, window,
+    groups and model (E3-M refuses contradicting flags); the arm supplies only training-side treatments."""
+    m, reg, rec = spec["model"], spec["regularization"], spec["recipe"]
     cmd = ["tools/expert_guided_e3m.py", "run", "--admitted", f"{remote}/admitted", "--csv-dir", f"{remote}/sel15",
-           "--store", f"{remote}/store/{Path(spec['store']['path']).name}", "--feature-list", r(arm["list"]),
+           "--store", f"{remote}/store/{Path(spec['store']['path']).name}", "--recipe", f"{remote}/recipe/{Path(rec['path']).name}",
            "--out", out, "--variants", "FULL", "--units", str(m["units"]), "--depth", str(m["depth"]), "--head", str(m["head"]),
            "--dropout", str(reg["dropout"]), "--wd", str(reg["wd"]), "--max-epochs", str(m["max_epochs"]),
            "--scaling", spec["scaling"], "--nonstationary", spec["nonstationary"], "--split-contract", spec["split_contract"],
-           "--agent-state", arm["agent_state"], "--window", str(win), "--stride", str(stride), "--exec-contract", spec["exec_contract"],
-           "--min-orders-per-week", str(spec["min_orders_per_week"])]
+           "--agent-state", arm.get("agent_state", "none"), "--exec-contract", spec["exec_contract"],
+           "--min-orders-per-week", str(spec["min_orders_per_week"]),
+           "--labels", arm.get("labels", "zigzag"), "--closer-rule", arm.get("closer_rule", "hold_through")]
     if arm.get("aux_targets"):
         cmd += ["--aux-targets"]
     if m.get("core"):
         cmd += ["--core", str(m["core"])]
-    if arm["extractor"] == "per_family":
-        cmd += ["--groups", r(arm["groups"])]
     if arm.get("extra_experts"):
         cmd += ["--extra-experts", ",".join(str(d) for d in arm["extra_experts"])]
     return cmd
@@ -181,17 +208,27 @@ def e3m_cmd(spec, arm, out, remote):
 def cmd_check(a):
     spec = json.loads(Path(a.spec).read_text())
     errs = validate(spec)
-    rows = []
-    for stage, arms in spec["stages"].items():
-        for arm in arms:
-            if arm.get("list") and Path(arm["list"]).exists() and not errs:
-                cols = json.loads(Path(arm["list"]).read_text())["features"]
-                p = arm_params(arm, spec, cols)
-                rows.append({"stage": stage, "arm": arm["name"], "cols": len(cols), "extractor": arm["extractor"], "window": arm["window"],
-                             "agent_state": arm["agent_state"], "experts": ["3"] + [str(x) for x in (arm.get("extra_experts") or [])],
-                             "aux_targets": bool(arm.get("aux_targets")),
-                             "params_per_module": p, "params_total": sum(p.values()), "receptive_field": receptive_field(spec["model"]["depth"])})
-    print(json.dumps({"valid": not errs, "errors": errs, "gates_missing": [g["path"] for g in gates_open(spec)], "arms": rows}, indent=1))
+    rows, probe = [], None
+    if not errs:
+        rec = load_recipe(spec)
+        for stage, arms in spec["stages"].items():
+            for arm in arms:
+                p = arm_params(arm, spec, rec)
+                rows.append({"stage": stage, "arm": arm["name"], "labels": arm.get("labels", "zigzag"), "closer_rule": arm.get("closer_rule", "hold_through"),
+                             "agent_state": arm.get("agent_state", "none"), "experts": ["3"] + [str(x) for x in (arm.get("extra_experts") or [])],
+                             "aux_targets": bool(arm.get("aux_targets")), "params_per_module": p, "params_total": sum(p.values()),
+                             "receptive_field": receptive_field(spec["model"]["depth"]), "command": " ".join(e3m_cmd(spec, arm, "<out>", "<root>"))})
+        if a.probe_reference:
+            # proof of no refit / implicit transform: the loader through the recipe reproduces the accepted reference probe
+            from tools import consumer_probe as CP
+            _, doc = CP.reference(spec["recipe"]["path"], a.admitted, spec["store"]["path"], verify=True)
+            ref = json.loads(Path(a.probe_reference).read_text())
+            probe = {"reference": Path(a.probe_reference).name, "equal": not CP.compare(ref, doc), "errors": CP.compare(ref, doc),
+                     "tensor_sha256": doc["tensor_sha256"], "recipe": doc["recipe"]}
+            if probe["errors"]:
+                errs.append("PROBE_DIFFERS_FROM_REFERENCE")
+    print(json.dumps({"valid": not errs, "errors": errs, "gates_missing": [g["path"] for g in gates_open(spec)],
+                      "recipe": spec.get("recipe", {}).get("identity"), "arms": rows, "probe": probe}, indent=1))
     return 0 if not errs else 2
 
 
@@ -209,16 +246,21 @@ def cmd_emit(a):
         win = next(x for x in spec["stages"]["A"] if x["name"] == dec["chosen"])
         arms = [dict(win, **{k: v for k, v in x.items() if v is not None}, name=x["name"]) for x in arms]
     R = spec["remote_root"]
+    gate = Path(spec["gates"][0]["path"]).name
+    rec_name = Path(spec["recipe"]["path"]).name
     L = ["#!/bin/bash", f"# clean round {spec['identity']} stage {a.stage}: sequential, resumable (STATE markers); generated by "
-         "tools/expert_guided_clean_round.py emit; the gates were open at generation time and are re-checked here",
+         "tools/expert_guided_clean_round.py emit; the recipe digest and the launch gate are re-checked before every unit",
          f"Q={R}; PY=~/anaconda3/envs/trading-stack/bin/python; CR=~/.local/bin/crispdm-run", "mkdir -p $Q/STATE $Q/out",
-         'log(){ echo "$(date -u +%FT%TZ) [' + a.stage + '] $*" >> $Q/LOG; }', f'test -f $Q/RELEASE.json || {{ log "RELEASE marker missing: refusing"; exit 3; }}',
+         'log(){ echo "$(date -u +%FT%TZ) [' + a.stage + '] $*" >> $Q/LOG; }',
+         f'test -f $Q/{gate} || {{ log "launch gate {gate} missing: refusing"; exit 3; }}',
+         f'echo "{spec["recipe"]["sha256"]}  $Q/recipe/{rec_name}" | sha256sum -c --quiet || {{ log "recipe digest differs: refusing"; exit 4; }}',
          "cd $Q/code || exit 1"]
     for arm in arms:
         out = f"$Q/out/{a.stage}_{arm['name']}"
         cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data"))
         L += [f'if [ ! -f $Q/STATE/{a.stage}_{arm["name"]} ]; then',
-              f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=0 $CR -q -m {spec["memory"]} -t 43200s -n clean-{a.stage}-{arm["name"]} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{a.stage}_{arm["name"]}; log "{arm["name"]} DONE"; break; }}',
+              f'  echo "{spec["recipe"]["sha256"]}  $Q/recipe/{rec_name}" | sha256sum -c --quiet || {{ log "recipe digest differs before {arm["name"]}: refusing"; exit 4; }}',
+              f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {spec["memory"]} -t 43200s -n clean-{a.stage}-{arm["name"]} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{a.stage}_{arm["name"]}; log "{arm["name"]} DONE"; break; }}',
               f'    grep -q "REFUSED\\|QUEUED HOST_HEADROOM" {out}.log && {{ log "{arm["name"]} not admitted (try $try)"; sleep 600; }} || {{ log "{arm["name"]} FAILED"; break; }}',
               "  done", "fi"]
     L.append(f'log "STAGE_{a.stage}_DONE"')
@@ -240,9 +282,10 @@ def cmd_decide(a):
         tr = e["trials"]["FULL"]
         gap = [tr[s]["trading"]["TRAIN"]["sharpe_daily_sqrt365"] - tr[s]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in tr]
         res.append({"arm": arm["name"], "inner_a_sharpe_mean": mean["inner_a_sharpe_mean"], "all_valid": mean["all_valid"],
-                    "params": sum(e["params"]["FULL"].values()), "train_minus_inner_sharpe_mean": float(sum(gap) / len(gap))})
+                    "params": sum(e["params"]["FULL"].values()), "train_minus_inner_sharpe_mean": float(sum(gap) / len(gap)),
+                "is_control": arm["name"] == spec.get("decision_control")})
     ok = [r for r in res if r["all_valid"]] or res
-    chosen = max(ok, key=lambda r: (r["inner_a_sharpe_mean"], -r["params"]))
+    chosen = max(ok, key=lambda r: (r["inner_a_sharpe_mean"], -r["params"], r["is_control"]))
     doc = {"stage": a.stage, "rule": cmd_decide.__doc__.strip(), "arms": res, "chosen": chosen["arm"]}
     Path(a.out).write_text(json.dumps(doc, indent=1))
     print(json.dumps(doc, indent=1))
@@ -541,6 +584,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("check"); c.add_argument("--spec", required=True)
+    c.add_argument("--probe-reference", default=None, help="accepted reference probe: the loader through the recipe must reproduce it exactly")
+    c.add_argument("--admitted", default=None, help="admitted directory for the probe proof")
     e = sub.add_parser("emit"); e.add_argument("--spec", required=True); e.add_argument("--stage", default="A")
     e.add_argument("--winner-from", default=None); e.add_argument("--out", required=True)
     d = sub.add_parser("decide"); d.add_argument("--spec", required=True); d.add_argument("--stage", required=True)
