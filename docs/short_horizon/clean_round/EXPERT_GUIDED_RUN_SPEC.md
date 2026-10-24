@@ -59,7 +59,12 @@ resultados negativos. La etapa B hereda el ganador. Ninguna cifra de este experi
   sonda, 12 checkpoints por brazo, recibo de ejecución en el formato compartido (`tools/receipted_run.py`), decisión
   `decide` sobre los recibos verificados; publicación al almacén con lectura de vuelta como punto aparte.
 
-## 5. Etapa A' (multi-resolución sobre la receta v3; pre-registrada 2026-10-24, aún no emitida)
+## 5. Etapa A' (multi-resolución; pre-registrada 2026-10-24, aún no emitida)
+
+**Revisión 2026-10-24 (noche):** A' corre sobre la **receta v2**, el mismo soporte que A, para que sus brazos se comparen
+**directamente** con los siete de A sin puente. La v3 de Musashi (sin `px.er_1`) se usará después en un **par puente**
+(control + ganador repetidos sobre v3) que mide por separado el efecto del soporte recuperado. El texto siguiente
+queda como se escribió, con esa sustitución (v3 → v2 en A'; el puente pasa al par v3).
 
 Entradas que faltan: la receta v3 de Musashi (v2 sin `px.er_1`, identidad y sonda nuevas) y `CHOSEN_THRESHOLDS.json`
 del DEAP (`evidence/multires/deap/`). Cuando existan, `CLEAN_ROUND_SPEC.json` recibe la etapa `A_prime` apuntando a la
