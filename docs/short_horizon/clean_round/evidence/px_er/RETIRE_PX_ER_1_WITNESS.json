@@ -1,0 +1,90 @@
+{
+ "equal": false,
+ "modules": {
+  "FULL_open_l_20261019": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_open_s_20261019": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_close_l_20261019": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_close_s_20261019": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_open_l_20261020": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_open_s_20261020": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_close_l_20261020": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_close_s_20261020": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_open_l_20261021": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_open_s_20261021": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_close_l_20261021": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  },
+  "FULL_close_s_20261021": {
+   "identical_after_retirement": true,
+   "matches_sealed_probe": false,
+   "max_abs_delta": 0.0
+  }
+ },
+ "support": {
+  "TRAIN": {
+   "valid_now": 19514,
+   "invalid_only_because_px_er_1": 1707,
+   "valid_after_retirement": 21221
+  },
+  "INNER_A": {
+   "valid_now": 2589,
+   "invalid_only_because_px_er_1": 216,
+   "valid_after_retirement": 2805
+  },
+  "OBS_2024": {
+   "valid_now": 5600,
+   "invalid_only_because_px_er_1": 608,
+   "valid_after_retirement": 6208
+  }
+ },
+ "scaled_px_er_1_unique": [
+  0.0
+ ],
+ "sealed_probe_replay": {
+  "note": "matches_sealed_probe=False is exact-list equality of a CPU replay against logits sealed on the GPU; max |delta| 4.77e-07 (float32 device noise); the retirement comparison is CPU vs CPU and exact (0.0) on all 12 modules",
+  "max_abs_delta_cpu_vs_sealed": 4.76837158203125e-07
+ },
+ "checkpoints": "musashi t3_unit_C FULL_{open_l,open_s,close_l,close_s}_{20261019,20261020,20261021}.pt (read-only replica copy)"
+}
