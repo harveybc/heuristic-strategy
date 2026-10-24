@@ -245,3 +245,15 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   nota de que el óptimo se optimizó por Sharpe/DD (no profit). hs @ccafab2.
 - **Siguiente**: palabra del propietario sobre §4.1/4.3/4.4/4.5 y sobre la receta v3 → `MultiResLabels` + pruebas →
   spec → revisión de Musashi → lanzamiento sólo con la puerta.
+
+## 2026-10-24 (noche) — ORDEN DEL PROPIETARIO: "orquesta y ejecuta"
+
+- Musashi retira `px.er_1` él mismo en una receta derivada (v3) y arranca su SAC; conserva `px.er_2..48` y añade revisión
+  por columna de constantes/indefinidos. Su precisión, aceptada: salidas idénticas en filas comunes no certifican los
+  resultados de trading sobre las ventanas recuperadas.
+- Decisiones propias (sin preguntar): el óptimo registrado sigue siendo la vara (sin re-optimizar por profit); la
+  **etapa A** (7 brazos × 3 semillas, receta v2) se lanza ya en el 4090 con la puerta escrita con las palabras del
+  propietario; los brazos multi-resolución van a una **etapa A'** sobre la v3 con el control `zz_hold` repetido como
+  puente entre soportes.
+- Carriles: L1 `multires.py` + `--labels multires` + pruebas + perfil de etiquetas; L3 lanzamiento de la etapa A;
+  L2 (tras L1) DEAP NSGA-II de umbrales con el objetivo del óptimo (Sharpe↑/DD↓ 2020-2022, elección 2023).
