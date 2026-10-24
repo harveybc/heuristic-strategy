@@ -179,7 +179,8 @@ class Q:
             raise SystemExit(4)
         self.sh([PY, "tools/expert_guided_clean_round.py", "verify-t2", "--units", str(R / "T2_UNITS_A1.json"), "--results", str(J / "out"),
                  "--receipts", str(J / "ops"), "--config", str(M / "ops" / "CONFIG.private.json"), "--science-commit", self.c["musashi_t2_commit"],
-                 "--config", str(R / "CONFIG.json"), "--science-commit", self.c["science_commit"], "--lists-dir", str(J / "lists"),
+                 "--config", str(R / "CONFIG.json"), "--science-commit", json.loads((R / "CONFIG.json").read_text())["science_commit"],
+                 "--lists-dir", str(J / "lists"), "--science-blobs", str(self.W / "science_blobs"),
                  "--out", str(self.W / "T2_VERIFY_A1.json")], "verify_t2", self.W / "hs", mem="2G")
         self.sh([PY, "tools/expert_guided_clean_round.py", "regularize", "--spec", str(self.W / "spec_a1.json"), "--results", str(J / "out"),
                  "--out", str(self.W / "REGULARIZATION_DECISION_A1.json"), "--verified", str(self.W / "T2_VERIFY_A1.json"), "--apply"],

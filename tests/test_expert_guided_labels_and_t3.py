@@ -495,3 +495,20 @@ def test_producer_authentication_compares_the_pinned_source_with_the_science_com
     assert C.authenticate_producer(p, "186b131")["error"] == "PINNED_SOURCE_DIFFERS_FROM_SCIENCE_COMMIT"
     pr_new = C.authenticate_producer(p, "e9291b7")
     assert pr_new["authenticated"] is False                           # pin does not match the newer source either
+
+
+def test_producer_authentication_uses_an_exported_blob_when_git_is_absent(tmp_path, monkeypatch):
+    import hashlib
+    blob = subprocess.run(["git", "show", "186b131:tools/expert_guided_e3m.py"], cwd=ROOT, capture_output=True)
+    if blob.returncode != 0:
+        pytest.skip("science commit not in this clone")
+    cfg = tmp_path / "CONFIG.json"
+    cfg.write_text(json.dumps({"pins": {"<root>/code/tools/expert_guided_e3m.py": hashlib.sha256(blob.stdout).hexdigest()}}))
+    d = tmp_path / "blobs" / "cafe123" / "tools"
+    d.mkdir(parents=True)
+    (d / "expert_guided_e3m.py").write_bytes(blob.stdout)
+    pr = C.authenticate_producer(cfg, "cafe123", blobs=tmp_path / "blobs")            # unknown to git: the blob decides
+    assert pr["authenticated"] and pr["science_source"] == "exported_blob" and pr["emits_labels"] is False
+    (d / "expert_guided_e3m.py").write_bytes(blob.stdout + b"# altered")
+    assert C.authenticate_producer(cfg, "cafe123", blobs=tmp_path / "blobs")["authenticated"] is False
+    assert C.authenticate_producer(cfg, "cafe123")["error"] == "SCIENCE_COMMIT_UNKNOWN:cafe123"

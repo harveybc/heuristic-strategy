@@ -299,7 +299,7 @@ def labels_ok(mode, how) -> bool:
     return mode == "zigzag" and how in (LEGACY_ABSENT, DECLARED)
 
 
-def authenticate_producer(config_path, science_commit: str, pin_suffix="code/tools/expert_guided_e3m.py") -> dict:
+def authenticate_producer(config_path, science_commit: str, pin_suffix="code/tools/expert_guided_e3m.py", blobs=None) -> dict:
     """Producer provenance from the peer's config (its identity = sha256 of the key-sorted JSON, as its worker computes
     it) and this repository: the pinned E3-M source must equal the blob of ``science_commit``."""
     import subprocess
@@ -311,12 +311,20 @@ def authenticate_producer(config_path, science_commit: str, pin_suffix="code/too
     if len(hit) != 1:
         out["error"] = f"PIN_NOT_FOUND:{pin_suffix}"
         return out
+    # the science source: git when this host has the repository; otherwise the blob exported from git by the session
+    # (science_blobs/<commit>/tools/expert_guided_e3m.py, shipped with the package; its digest must equal the config's
+    # pin, so a wrong blob fails exactly like a wrong pin)
+    src = None
     blob = subprocess.run(["git", "show", f"{science_commit}:tools/expert_guided_e3m.py"], cwd=ROOT, capture_output=True)
-    if blob.returncode != 0:
+    if blob.returncode == 0:
+        data, src = blob.stdout, "git"
+    elif blobs and (Path(blobs) / science_commit / "tools" / "expert_guided_e3m.py").exists():
+        data, src = (Path(blobs) / science_commit / "tools" / "expert_guided_e3m.py").read_bytes(), "exported_blob"
+    else:
         out["error"] = f"SCIENCE_COMMIT_UNKNOWN:{science_commit}"
         return out
-    bh = hashlib.sha256(blob.stdout).hexdigest()
-    out.update(pinned_e3m_sha256=pins[hit[0]], blob_e3m_sha256=bh, emits_labels=b'"labels"' in blob.stdout,
+    bh = hashlib.sha256(data).hexdigest()
+    out.update(pinned_e3m_sha256=pins[hit[0]], blob_e3m_sha256=bh, emits_labels=b'"labels"' in data, science_source=src,
                archives={Path(k).name: v for k, v in pins.items() if k.endswith(".tar.gz")})
     out["authenticated"] = pins[hit[0]] == bh
     if not out["authenticated"]:
@@ -408,7 +416,7 @@ def cmd_verify_t2(a):
         raise SystemExit("VERIFY_CONFIGS_AND_COMMITS_MUST_PAIR")
     producers = {}
     for cp, sc_ in zip(cfgs, commits):                    # several producers (the peer worker, this lane) may seal units
-        pr = authenticate_producer(cp, sc_)
+        pr = authenticate_producer(cp, sc_, blobs=a.science_blobs)
         producers[pr["config_identity"]] = pr
     producer = next(iter(producers.values()))
     lists = {}
@@ -547,6 +555,7 @@ def main():
     v.add_argument("--config", action="append", required=True, help="a producer's run config (identity = sha256 of the key-sorted JSON); repeatable")
     v.add_argument("--science-commit", action="append", required=True, help="the commit each --config pins, in the same order")
     v.add_argument("--lists-dir", required=True, help="directory with FEATURE_LIST_<list>.json")
+    v.add_argument("--science-blobs", default=None, help="science_blobs/<commit>/tools/expert_guided_e3m.py exported from git (hosts without the repository)")
     a = ap.parse_args()
     sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide, "regularize": cmd_regularize,
               "verify-t2": cmd_verify_t2}[a.cmd](a) or 0)
