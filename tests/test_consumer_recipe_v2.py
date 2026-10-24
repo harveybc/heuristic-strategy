@@ -91,7 +91,13 @@ def make_chain(t: Path):
     comb.write_text(json.dumps({"state": "COMBINATION_SELECTED", "frozen_rule_decision": "COMBINATION_SELECTED", "combined_result_sha256": sha(cdir / "E3M.json"),
                                 "producer_config_sha256": cfg_id, "checkpoint_probe_replay": "PASS", "full_trading_metrics_exact": True}))
     rep = t / "REPLAY.json"
-    rep.write_text(json.dumps({"state": "PASS", "checkpoints": 12, "threshold": "exact equality; no tolerance"}))
+    rep.write_text(json.dumps({"schema": "t3_checkpoint_probe_replay.v1", "state": "PASS", "count": 1,
+                              "checkpoints": 12, "threshold": "exact equality; no tolerance", "torch_cpu_threads": 1,
+                              "full_trading_metrics_replayed": True, "units": {"t3_unit_C": {
+                                  "result_sha256": sha(cdir / "E3M.json"), "checkpoints": 12, "exact": True,
+                                  "modules": {n[:-3]: {"logits": {"exact": True}, "reg": {"exact": True}} for n in CKPTS},
+                                  "trading_exact": True, "trading": {str(s): {p: {"exact": True, "differences": {}}
+                                      for p in ("TRAIN", "INNER_A", "OBS_2024")} for s in (20261019, 20261020, 20261021)}}}}))
     for name in ("L1.json", "L2.json"):
         (t / name).write_text(json.dumps({"decisions": {c: "NONE" for c in COLS}, "columns": {}}))
     adm = t / "admitted"
@@ -119,6 +125,9 @@ def reseal(args):
     comb = json.loads(Path(args["combination"]).read_text())
     comb["combined_result_sha256"] = sha(Path(args["c-dir"]) / "E3M.json")
     Path(args["combination"]).write_text(json.dumps(comb))
+    rep = json.loads(Path(args["replay"]).read_text())
+    rep["units"]["t3_unit_C"]["result_sha256"] = comb["combined_result_sha256"]
+    Path(args["replay"]).write_text(json.dumps(rep))
 
 
 def edit_json(p, fn):
@@ -163,6 +172,26 @@ def test_inconsistent_inputs_are_rejected(tmp_path, name, mutate, code):
     mutate(args)
     r = emit(args)
     assert r.returncode != 0 and f"RECIPE_{code}" in r.stderr, (name, r.stderr[-400:])
+
+
+@pytest.mark.parametrize("mutation", ["stale", "missing", "inexact", "trading", "threshold"])
+def test_replay_header_cannot_substitute_for_bound_exact_evidence(tmp_path, mutation):
+    args = make_chain(tmp_path)
+    rep = json.loads(Path(args["replay"]).read_text())
+    unit = rep["units"]["t3_unit_C"]
+    if mutation == "stale":
+        unit["result_sha256"] = "0" * 64
+    elif mutation == "missing":
+        rep.pop("units")
+    elif mutation == "inexact":
+        next(iter(unit["modules"].values()))["logits"]["exact"] = False
+    elif mutation == "trading":
+        unit["trading"]["20261019"]["TRAIN"]["exact"] = False
+    else:
+        rep["threshold"] = "inexact"
+    Path(args["replay"]).write_text(json.dumps(rep))
+    r = emit(args)
+    assert r.returncode != 0 and "RECIPE_REPLAY_" in r.stderr, (mutation, r.stdout, r.stderr)
 
 
 def _recipe_for(cols, mean, std, ops=None, win=3, stride=1):
