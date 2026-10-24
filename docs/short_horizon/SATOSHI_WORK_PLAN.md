@@ -202,6 +202,9 @@ Encontrar una estrategia operable en EURUSD H1 cuyo cruce por cero quede demostr
 
 57. [HECHO 2026-10-24] Cadena v5 completa: selección v5 (3 882, 0 err), store del consumidor, perfiles T1 (herramienta de Musashi), T2 v5 → regularización FUERTE, T3 v5 45 unidades (23 mías + 22 suyas) autenticadas con 5 productores, decisión/grupos con los mismos digests que Musashi, C v5 SELECCIONADA (INNER_A 1.392 vs 0.836; 2024 peor: −1.011 vs −0.572), receta v2 `recipe_5a8f2155…` + sonda de referencia, 18 testigos contra su cierre (todos rechazados; primer arnés inválido en 3, corregido y declarado). Informe de corrección en la rama de respuesta. PENDIENTE: re-revisión de Musashi, paridad de la sonda SAC, palabra del propietario para RELEASE; decisión opcional del propietario: fit_end 2023-07-01 en la selección.
 
+58. [HECHO 2026-10-24] Musashi: ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT (receta `recipe_5a8f2155…`, paridad exacta de su sonda SAC). Lanzador ligado a la receta (--recipe; desvíos rechazados; puerta LAUNCH_EXPERT_GUIDED.json), spec v2 con 7+2 brazos de tratamientos, prueba de no reajuste por sonda, paquete fijado en el 4090. Su fix 338551a integrado.
+59. [EN ESPERA — ORDEN DEL PROPIETARIO 2026-10-24] NO lanzar la ronda guiada hasta definir el ZigZag multi-resolución y sus métricas. Medido: escalera rev40→rev5 (ejemplos de apertura ×2, calidad del tramo 1.24σ→0.37σ, NOP honesto 49 %, 4 901 trades intermedios ocultos por el óptimo; cerradores sin CERRAR desde una sola resolución). Diseño con 5 preguntas: `ZIGZAG_MULTIRESOLUTION_DESIGN.md`. Siguiente: respuestas → `MultiResLabels` + pruebas + revisión de Musashi → corrida.
+
 ## 5. Decisiones del propietario registradas
 
 | Fecha | Decisión |
