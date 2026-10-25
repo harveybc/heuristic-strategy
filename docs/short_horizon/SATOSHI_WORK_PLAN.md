@@ -276,3 +276,22 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   derivada), ensamble de semillas como una política, errores estándar de Sharpe (Lo 2002 + bootstrap por bloques) con
   regla pre-registrada ("sostiene" si Sharpe − 1 EE > 0 en ambos folds; "separable" si |Δ| > EE agrupado). Nada de DEAP
   sobre etiquetas, ni modelos mayores, ni TEST. `both_hold` a 5 semillas ≈ 0.88.
+
+## 2026-10-25 — Contrato de salidas v1 y fitness de la estrategia (orden del propietario: ejecución inmediata, secuencial, sin vigilancia)
+
+- **Auditoría medida** (`OUTPUT_CONTRACT_AUDIT_AND_DESIGN_2026_10_25.md`, hs @87104b6): árbitro/τ elegido sobre INNER_A
+  infla su Sharpe +1.08 (decisiones A/A' sesgadas; el walk-forward es honesto); sin especialista NOP; argmax sin
+  calibrar; la actividad es un umbral elegido (0–4.2 trades/sem, 9/30 semillas con candidato de cero órdenes); TP/SL
+  recortados por el entorno.
+- **v1** (carril L8): cinco especialistas incl. `nop`; TP/SL acotados en la red + Huber enmascarado a filas OPEN;
+  calibración afín (los pesos de clase desplazan el prior) con Brier/ECE; capa superior paramétrica (umbral apertura,
+  veto NOP, margen de ganancia esperada con costos en σ, umbral de cierre, reversión) optimizada por NSGA-II sólo en el
+  bloque de calibración, punto elegido por cota inferior; DAgger con la estrategia congelada previa; ensamble →
+  recalibrar → re-optimizar; prueba de mutación sobre parada temprana, calibración y estrategia.
+- **Fitness de la estrategia** (idea del propietario + mías + reutilizadas): F0 Sharpe − 1 EE; F1 Sharpe + retorno;
+  F2 Sharpe + retorno + órdenes/día; F3 t-estadístico por trade (= `_sharpe_fitness` de `walk_forward_optimizer.py`);
+  F4 Calmar; F5 retorno − DD (= fitness GA del SAC de agent-multi); F6 balanceada. Coeficientes c_k = 1/mediana|término|
+  sobre el frente F0 del bloque de calibración (respaldo fijo declarado). Cero trades = inválido. Variante elegida en
+  el año de decisión de wf2022, confirmada en wf2023; todas reportadas; sin GPU extra.
+- **Cadena**: walk-forward actual (línea base) → WF_V1 (control y `both_hold` con v1, 5 semillas, 2 folds, 7
+  variantes de fitness) → informe; todo encadenado en el 4090.
