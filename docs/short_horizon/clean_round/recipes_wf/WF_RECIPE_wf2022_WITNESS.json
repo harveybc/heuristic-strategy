@@ -1,0 +1,41 @@
+{
+ "recipe": "CONSUMER_RECIPE_wf2022.json",
+ "sha256": "2edf5c7306ba5a55a1cbce0413e0c1de2edf296cef51cee04d3758b65cd81df5",
+ "identity": "recipe_54b3f7a63771df9a",
+ "derived_from": {
+  "identity": "recipe_5a8f2155318ba7c7",
+  "sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+  "deviation": [
+   "scaler.constants_refitted_on_fold_fit_block",
+   "split.walk_forward_fold"
+  ],
+  "fold": "wf2022"
+ },
+ "witness": {
+  "fold": "wf2022",
+  "fit_rows_scored": 8300,
+  "columns": 121,
+  "positive_std_columns": 120,
+  "max_abs_mean": 0.03367249829267101,
+  "max_abs_std_minus_1": 0.032064119125374324,
+  "tolerance": 0.05,
+  "ok": true,
+  "base_constants_on_this_fold": {
+   "max_abs_mean": 0.3784561673993058,
+   "max_abs_std_minus_1": 0.3499725133992231
+  },
+  "rows_eligible": {
+   "TRAIN": 6576,
+   "INNER_A": 2289,
+   "INNER_B": 4345,
+   "OBS_2024": 4379
+  },
+  "support_hash": {
+   "TRAIN": "a3009df004f2057b",
+   "INNER_A": "d55a9dc1b8325088",
+   "INNER_B": "58fa0048cb3ed1c8",
+   "OBS_2024": "3364cd2677e7771a"
+  },
+  "columns_with_changed_constants": 120
+ }
+}

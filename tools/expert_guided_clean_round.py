@@ -202,6 +202,59 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
             cmd = " ".join(e3m_cmd(spec, a, "OUT", "ROOT"))
             if "--recipe" not in cmd or any(f in cmd for f in FORBIDDEN_FLAGS) or "rolling" in cmd:
                 errs.append(f"COMMAND_NOT_RECIPE_BOUND:{stage}/{a['name']}")
+    errs += walk_forward_errors(spec, rec)
+    return errs
+
+
+WF_COPIED_KEYS = ("store", "list", "tensor", "representation", "regularization", "business", "labels")
+WF_STAGE = "WF"
+
+
+def walk_forward_errors(spec: dict, rec: dict) -> list:
+    """The diagnostic walk-forward stage (owner 2026-10-25) runs stage-A arms on DERIVED recipes: one per fold, equal to
+    the accepted recipe on every identity key except the scaler constants (re-fitted on the fold's fit block) and the
+    split (a declared ``wf*`` contract). Each fold recipe is pinned by digest and identity and must declare its base; any
+    other divergence is refused, so the stage can never smuggle a different representation."""
+    wf = spec.get("walk_forward")
+    if not wf:
+        return []
+    errs = []
+    from app.short_horizon.expert_guided import data as DG
+    names = {x["name"] for x in spec["stages"].get("A", [])}
+    for arm in wf.get("arms", []):
+        if arm not in names:
+            errs.append(f"WF_ARM_UNKNOWN:{arm}")
+    if not wf.get("seeds"):
+        errs.append("WF_SEEDS_MISSING")
+    if not wf.get("rule"):
+        errs.append("WF_RULE_NOT_PREREGISTERED")
+    for fold, fd in wf.get("folds", {}).items():
+        tag = f"WF/{fold}"
+        if fold not in getattr(DG, "WALK_FORWARD_FOLDS", ()):
+            errs.append(f"WF_FOLD_UNKNOWN:{tag}")
+            continue
+        fp = Path(fd.get("recipe", {}).get("path", ""))
+        if not fp.exists():
+            errs.append(f"WF_FOLD_RECIPE_MISSING:{tag}")
+            continue
+        if sha(fp) != fd["recipe"].get("sha256"):
+            errs.append(f"WF_FOLD_DIGEST_MISMATCH:{tag}")
+        fr = json.loads(fp.read_text())
+        if fr.get("identity") != fd["recipe"].get("identity"):
+            errs.append(f"WF_FOLD_IDENTITY_MISMATCH:{tag}")
+        if fr.get("schema") != "expert_guided_consumer_recipe.v2" or fr.get("scientific_release") is not False:
+            errs.append(f"WF_FOLD_SCHEMA:{tag}")
+        d = fr.get("derived_from") or {}
+        if d.get("identity") != rec.get("identity") or d.get("sha256") != spec["recipe"].get("sha256") or d.get("fold") != fold:
+            errs.append(f"WF_FOLD_NOT_DERIVED_FROM_RECIPE:{tag}")
+        if fr.get("split", {}).get("arm") != fold:
+            errs.append(f"WF_FOLD_SPLIT_MISMATCH:{tag}")
+        for k in WF_COPIED_KEYS:
+            if fr.get(k) != rec.get(k):
+                errs.append(f"WF_FOLD_DIVERGES:{tag}:{k}")
+        sc = fr.get("scaler", {})
+        if list(sc.get("fit_period", [])) != list(DG.SPLIT_CONTRACTS[fold]["scaler_fit"]) or sc.get("features") != rec.get("scaler", {}).get("features"):
+            errs.append(f"WF_FOLD_SCALER_NOT_FOLD_LOCAL:{tag}")
     return errs
 
 
@@ -217,18 +270,19 @@ def gates_open(spec) -> list:
     return missing
 
 
-def e3m_cmd(spec, arm, out, remote, recipe_root=None):
+def e3m_cmd(spec, arm, out, remote, recipe_root=None, recipe_file=None, split_contract=None):
     """The pinned E3-M command of one arm: the recipe supplies columns, consumer operations, scaler constants, window,
     groups and model (E3-M refuses contradicting flags); the arm supplies only training-side treatments. ``remote`` is
     the data root (admitted / sel15 / store); ``recipe_root`` (default ``remote``) holds ``recipe/`` — the staged
     package keeps the recipe beside its digest at ``<root>/recipe/``, not under ``<root>/data/``."""
     m, reg, rec = spec["model"], spec["regularization"], spec["recipe"]
     rr = remote if recipe_root is None else recipe_root
+    rname = Path(rec["path"]).name if recipe_file is None else Path(recipe_file).name     # WF: the fold's derived recipe
     cmd = ["tools/expert_guided_e3m.py", "run", "--admitted", f"{remote}/admitted", "--csv-dir", f"{remote}/sel15",
-           "--store", f"{remote}/store/{Path(spec['store']['path']).name}", "--recipe", f"{rr}/recipe/{Path(rec['path']).name}",
+           "--store", f"{remote}/store/{Path(spec['store']['path']).name}", "--recipe", f"{rr}/recipe/{rname}",
            "--out", out, "--variants", "FULL", "--units", str(m["units"]), "--depth", str(m["depth"]), "--head", str(m["head"]),
            "--dropout", str(reg["dropout"]), "--wd", str(reg["wd"]), "--max-epochs", str(m["max_epochs"]),
-           "--scaling", spec["scaling"], "--nonstationary", spec["nonstationary"], "--split-contract", spec["split_contract"],
+           "--scaling", spec["scaling"], "--nonstationary", spec["nonstationary"], "--split-contract", split_contract or spec["split_contract"],
            "--agent-state", arm.get("agent_state", "none"), "--exec-contract", spec["exec_contract"],
            "--min-orders-per-week", str(spec["min_orders_per_week"]),
            "--labels", arm.get("labels", "zigzag")]
@@ -282,6 +336,8 @@ def cmd_emit(a):
     miss = gates_open(spec)
     if miss:
         raise SystemExit(f"GATES_CLOSED:{[g['path'] for g in miss]}")
+    if a.stage == WF_STAGE:
+        return emit_walk_forward(spec, a)
     arms = spec["stages"][a.stage]
     if a.stage == "B":                                            # A and A_prime carry their own labels; B inherits the winner
         dec = json.loads(Path(a.winner_from).read_text())
@@ -319,6 +375,36 @@ def cmd_emit(a):
     L.append(f'log "STAGE_{a.stage}_DONE"')
     Path(a.out).write_text("\n".join(L) + "\n")
     print(f"written {a.out} ({len(arms)} arms)")
+
+
+def emit_walk_forward(spec, a):
+    """Stage WF: fold x arm units on the fold's derived recipe (its own digest re-checked before every unit), the fold's
+    split contract and the pre-registered seeds; same gate, caps, STATE marks and retries as the other stages."""
+    wf = spec["walk_forward"]
+    R = spec["remote_root"]
+    gate = Path(spec["gates"][0]["path"]).name
+    byname = {x["name"]: x for x in spec["stages"]["A"]}
+    L = ["#!/bin/bash", f"# clean round {spec['identity']} stage WF (walk-forward inside development): sequential, resumable (STATE markers); "
+         "generated by tools/expert_guided_clean_round.py emit; each fold's derived recipe digest and the launch gate are re-checked before every unit",
+         f"Q={R}; PY=~/anaconda3/envs/trading-stack/bin/python; CR=~/.local/bin/crispdm-run", "mkdir -p $Q/STATE $Q/out",
+         'log(){ echo "$(date -u +%FT%TZ) [WF] $*" >> $Q/LOG; }',
+         f'test -f $Q/{gate} || {{ log "launch gate {gate} missing: refusing"; exit 3; }}',
+         "cd $Q/code || exit 1"]
+    for fold, fd in wf["folds"].items():
+        rname = Path(fd["recipe"]["path"]).name
+        for name in wf["arms"]:
+            arm = byname[name]
+            unit = f"WF_{fold}_{name}"
+            out = f"$Q/out/{unit}"
+            cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data", recipe_root="$Q", recipe_file=rname, split_contract=fold) + ["--seeds", str(wf["seeds"])])
+            L += [f'if [ ! -f $Q/STATE/{unit} ]; then',
+                  f'  echo "{fd["recipe"]["sha256"]}  $Q/recipe/{rname}" | sha256sum -c --quiet || {{ log "fold recipe digest differs before {unit}: refusing"; exit 4; }}',
+                  f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {wf.get("memory", spec["memory"])} -t 43200s -n clean-{unit} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{unit}; log "{unit} DONE"; break; }}',
+                  f'    grep -q "REFUSED\\|QUEUED HOST_HEADROOM" {out}.log && {{ log "{unit} not admitted (try $try)"; sleep 600; }} || {{ log "{unit} FAILED"; break; }}',
+                  "  done", "fi"]
+    L.append('log "STAGE_WF_DONE"')
+    Path(a.out).write_text("\n".join(L) + "\n")
+    print(f"written {a.out} ({len(wf['folds']) * len(wf['arms'])} units)")
 
 
 def cmd_decide(a):
@@ -380,6 +466,8 @@ def localize(spec: dict, root: str, thresholds_dir="recipe") -> dict:
         for arm in arms:
             if arm.get("multires_thresholds"):
                 arm["multires_thresholds"] = f"{root}/{thresholds_dir}/{Path(arm['multires_thresholds']).name}"
+    for fd in (s.get("walk_forward") or {}).get("folds", {}).values():
+        fd["recipe"]["path"] = f"{root}/recipe/{Path(fd['recipe']['path']).name}"
     return s
 
 

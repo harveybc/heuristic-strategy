@@ -1,0 +1,4250 @@
+{
+ "store": {
+  "file": "full_pool_eurusd_h1.parquet",
+  "sha256": "cd0eb8d20c0d0888f7814cda410557a79a927e5cc125e9de5c15dbe073d2f543",
+  "manifest_sha256": "7970e3c4feae0186ea5867063774d2855587e01ee068377e3100ba36b29ce535"
+ },
+ "list": {
+  "file": "FEATURE_LIST_shortlist_strict.json",
+  "sha256": "80219f7cbe257cd33de781890b4737abfaa635787e7b74e081f831f871df8be4",
+  "n": 121,
+  "columns": [
+   "OPEN@diff",
+   "HIGH@diff",
+   "LOW@diff",
+   "CLOSE@diff",
+   "RAW_BAR_LOG_RETURN",
+   "RAW_LOG_RANGE@log",
+   "RAW_CLOSE_LOG_RETURN",
+   "RAW_ELAPSED_HOURS",
+   "ATR",
+   "BB_Width",
+   "ATR_ratio",
+   "rolling_std_24",
+   "RSI",
+   "Stochastic_K",
+   "Stochastic_D",
+   "CCI",
+   "WilliamsR",
+   "ROC",
+   "BB_position",
+   "price_minus_ema",
+   "hod_sin",
+   "hod_cos",
+   "dow_sin",
+   "dow_cos",
+   "cal.utc_hod_sin",
+   "cal.utc_hod_cos",
+   "cal.utc_dow_sin",
+   "cal.utc_dow_cos",
+   "cal.utc_session_asia",
+   "cal.utc_session_europe",
+   "cal.utc_session_us",
+   "cal.london_hod_sin",
+   "cal.london_hod_cos",
+   "px.logret_1",
+   "px.logret_2",
+   "px.logret_4",
+   "px.logret_6",
+   "px.logret_12",
+   "px.logret_24",
+   "px.logret_48",
+   "px.range_1@log",
+   "px.range_2@log",
+   "px.range_4@log",
+   "px.range_6@log",
+   "px.range_12",
+   "px.range_24",
+   "px.range_48",
+   "px.close_loc_1",
+   "px.close_loc_2",
+   "px.close_loc_4",
+   "px.close_loc_6",
+   "px.close_loc_12",
+   "px.close_loc_24",
+   "px.close_loc_48",
+   "px.er_1",
+   "px.er_2",
+   "px.er_4",
+   "px.er_6",
+   "px.er_12",
+   "px.er_24",
+   "px.er_48",
+   "px.hours_since_session_open",
+   "cdl.body_pips",
+   "cdl.upper_wick_pips@asinh",
+   "cdl.lower_wick_pips@asinh",
+   "cdl.range_pips@asinh",
+   "cdl.close_minus_low_pips@asinh",
+   "cdl.high_minus_close_pips@asinh",
+   "dly.us10y.level@diff",
+   "dly.us10y.chg_1d",
+   "dly.us10y.chg_5d",
+   "cot.eur.net_long",
+   "cot.eur.net_change",
+   "cot.eur.net_share",
+   "cot.eur.net_z156",
+   "fac.fx_f1.ret_1",
+   "fac.fx_f1.ret_4",
+   "fac.fx_f1.ret_24",
+   "fac.fx_f1.kalman_slope",
+   "ev.tokyo_fix.hours_since",
+   "ev.tokyo_fix.hours_to",
+   "ev.london_fix.hours_since",
+   "ev.london_fix.hours_to",
+   "ev.ny_cut.hours_since",
+   "ev.ny_cut.hours_to",
+   "act.p_hit",
+   "ssa.trend_minus_close_pips",
+   "ssa.c2_pips",
+   "ssa.c3_pips",
+   "wv.lc.A4@diff",
+   "wv.lc.D4",
+   "wv.lc.D3",
+   "wv.lc.D2",
+   "wv.lc.D1",
+   "wv.lc.energy_D4@log",
+   "wv.lc.energy_D3@log",
+   "wv.lc.energy_D2@log",
+   "wv.lc.energy_D1@diff",
+   "wv.r1.A4",
+   "wv.r1.D4",
+   "wv.r1.D3",
+   "wv.r1.D2",
+   "wv.r1.D1",
+   "wv.r1.energy_D4@log",
+   "wv.r1.energy_D3@log",
+   "wv.r1.energy_D2@log",
+   "wv.r1.energy_D1@diff",
+   "hb.r1.phase_cos",
+   "hb.r1.phase_sin",
+   "hb.r1.inst_freq",
+   "hb.lc_detr.inst_freq",
+   "wv.usd.A4",
+   "hb.eur.phase_cos",
+   "hb.eur.phase_sin",
+   "hb.eur.inst_freq",
+   "kf.lc.level_minus_close",
+   "px.rv_24",
+   "rg.gmm.p0",
+   "rg.gmm.p1",
+   "rg.gmm.p2",
+   "rg.gmm.entropy"
+  ]
+ },
+ "tensor": {
+  "columns": [
+   {
+    "store_column": "OPEN@diff",
+    "tensor_name": "OPEN@diff",
+    "upstream": {
+     "store_column": "OPEN@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "HIGH@diff",
+    "tensor_name": "HIGH@diff",
+    "upstream": {
+     "store_column": "HIGH@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "LOW@diff",
+    "tensor_name": "LOW@diff",
+    "upstream": {
+     "store_column": "LOW@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "CLOSE@diff",
+    "tensor_name": "CLOSE@diff",
+    "upstream": {
+     "store_column": "CLOSE@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "RAW_BAR_LOG_RETURN",
+    "tensor_name": "RAW_BAR_LOG_RETURN",
+    "upstream": {
+     "store_column": "RAW_BAR_LOG_RETURN",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "RAW_LOG_RANGE@log",
+    "tensor_name": "RAW_LOG_RANGE@log",
+    "upstream": {
+     "store_column": "RAW_LOG_RANGE@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "RAW_CLOSE_LOG_RETURN",
+    "tensor_name": "RAW_CLOSE_LOG_RETURN",
+    "upstream": {
+     "store_column": "RAW_CLOSE_LOG_RETURN",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "RAW_ELAPSED_HOURS",
+    "tensor_name": "RAW_ELAPSED_HOURS",
+    "upstream": {
+     "store_column": "RAW_ELAPSED_HOURS",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ATR",
+    "tensor_name": "ATR",
+    "upstream": {
+     "store_column": "ATR",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "BB_Width",
+    "tensor_name": "BB_Width",
+    "upstream": {
+     "store_column": "BB_Width",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ATR_ratio",
+    "tensor_name": "ATR_ratio",
+    "upstream": {
+     "store_column": "ATR_ratio",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "rolling_std_24",
+    "tensor_name": "rolling_std_24",
+    "upstream": {
+     "store_column": "rolling_std_24",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "RSI",
+    "tensor_name": "RSI",
+    "upstream": {
+     "store_column": "RSI",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "Stochastic_K",
+    "tensor_name": "Stochastic_K",
+    "upstream": {
+     "store_column": "Stochastic_K",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "Stochastic_D",
+    "tensor_name": "Stochastic_D",
+    "upstream": {
+     "store_column": "Stochastic_D",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "CCI",
+    "tensor_name": "CCI",
+    "upstream": {
+     "store_column": "CCI",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "WilliamsR",
+    "tensor_name": "WilliamsR",
+    "upstream": {
+     "store_column": "WilliamsR",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ROC",
+    "tensor_name": "ROC",
+    "upstream": {
+     "store_column": "ROC",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "BB_position",
+    "tensor_name": "BB_position",
+    "upstream": {
+     "store_column": "BB_position",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "price_minus_ema",
+    "tensor_name": "price_minus_ema",
+    "upstream": {
+     "store_column": "price_minus_ema",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hod_sin",
+    "tensor_name": "hod_sin",
+    "upstream": {
+     "store_column": "hod_sin",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hod_cos",
+    "tensor_name": "hod_cos",
+    "upstream": {
+     "store_column": "hod_cos",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "dow_sin",
+    "tensor_name": "dow_sin",
+    "upstream": {
+     "store_column": "dow_sin",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "dow_cos",
+    "tensor_name": "dow_cos",
+    "upstream": {
+     "store_column": "dow_cos",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.utc_hod_sin",
+    "tensor_name": "cal.utc_hod_sin",
+    "upstream": {
+     "store_column": "cal.utc_hod_sin",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.utc_hod_cos",
+    "tensor_name": "cal.utc_hod_cos",
+    "upstream": {
+     "store_column": "cal.utc_hod_cos",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.utc_dow_sin",
+    "tensor_name": "cal.utc_dow_sin",
+    "upstream": {
+     "store_column": "cal.utc_dow_sin",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.utc_dow_cos",
+    "tensor_name": "cal.utc_dow_cos",
+    "upstream": {
+     "store_column": "cal.utc_dow_cos",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.utc_session_asia",
+    "tensor_name": "cal.utc_session_asia",
+    "upstream": {
+     "store_column": "cal.utc_session_asia",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.utc_session_europe",
+    "tensor_name": "cal.utc_session_europe",
+    "upstream": {
+     "store_column": "cal.utc_session_europe",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.utc_session_us",
+    "tensor_name": "cal.utc_session_us",
+    "upstream": {
+     "store_column": "cal.utc_session_us",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.london_hod_sin",
+    "tensor_name": "cal.london_hod_sin",
+    "upstream": {
+     "store_column": "cal.london_hod_sin",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cal.london_hod_cos",
+    "tensor_name": "cal.london_hod_cos",
+    "upstream": {
+     "store_column": "cal.london_hod_cos",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.logret_1",
+    "tensor_name": "px.logret_1",
+    "upstream": {
+     "store_column": "px.logret_1",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.logret_2",
+    "tensor_name": "px.logret_2",
+    "upstream": {
+     "store_column": "px.logret_2",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.logret_4",
+    "tensor_name": "px.logret_4",
+    "upstream": {
+     "store_column": "px.logret_4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.logret_6",
+    "tensor_name": "px.logret_6",
+    "upstream": {
+     "store_column": "px.logret_6",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.logret_12",
+    "tensor_name": "px.logret_12",
+    "upstream": {
+     "store_column": "px.logret_12",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.logret_24",
+    "tensor_name": "px.logret_24",
+    "upstream": {
+     "store_column": "px.logret_24",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.logret_48",
+    "tensor_name": "px.logret_48",
+    "upstream": {
+     "store_column": "px.logret_48",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.range_1@log",
+    "tensor_name": "px.range_1@log",
+    "upstream": {
+     "store_column": "px.range_1@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.range_2@log",
+    "tensor_name": "px.range_2@log",
+    "upstream": {
+     "store_column": "px.range_2@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.range_4@log",
+    "tensor_name": "px.range_4@log",
+    "upstream": {
+     "store_column": "px.range_4@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.range_6@log",
+    "tensor_name": "px.range_6@log",
+    "upstream": {
+     "store_column": "px.range_6@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.range_12",
+    "tensor_name": "px.range_12",
+    "upstream": {
+     "store_column": "px.range_12",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.range_24",
+    "tensor_name": "px.range_24",
+    "upstream": {
+     "store_column": "px.range_24",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.range_48",
+    "tensor_name": "px.range_48",
+    "upstream": {
+     "store_column": "px.range_48",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.close_loc_1",
+    "tensor_name": "px.close_loc_1",
+    "upstream": {
+     "store_column": "px.close_loc_1",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.close_loc_2",
+    "tensor_name": "px.close_loc_2",
+    "upstream": {
+     "store_column": "px.close_loc_2",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.close_loc_4",
+    "tensor_name": "px.close_loc_4",
+    "upstream": {
+     "store_column": "px.close_loc_4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.close_loc_6",
+    "tensor_name": "px.close_loc_6",
+    "upstream": {
+     "store_column": "px.close_loc_6",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.close_loc_12",
+    "tensor_name": "px.close_loc_12",
+    "upstream": {
+     "store_column": "px.close_loc_12",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.close_loc_24",
+    "tensor_name": "px.close_loc_24",
+    "upstream": {
+     "store_column": "px.close_loc_24",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.close_loc_48",
+    "tensor_name": "px.close_loc_48",
+    "upstream": {
+     "store_column": "px.close_loc_48",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.er_1",
+    "tensor_name": "px.er_1",
+    "upstream": {
+     "store_column": "px.er_1",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.er_2",
+    "tensor_name": "px.er_2",
+    "upstream": {
+     "store_column": "px.er_2",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.er_4",
+    "tensor_name": "px.er_4",
+    "upstream": {
+     "store_column": "px.er_4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.er_6",
+    "tensor_name": "px.er_6",
+    "upstream": {
+     "store_column": "px.er_6",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.er_12",
+    "tensor_name": "px.er_12",
+    "upstream": {
+     "store_column": "px.er_12",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.er_24",
+    "tensor_name": "px.er_24",
+    "upstream": {
+     "store_column": "px.er_24",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.er_48",
+    "tensor_name": "px.er_48",
+    "upstream": {
+     "store_column": "px.er_48",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.hours_since_session_open",
+    "tensor_name": "px.hours_since_session_open",
+    "upstream": {
+     "store_column": "px.hours_since_session_open",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cdl.body_pips",
+    "tensor_name": "cdl.body_pips",
+    "upstream": {
+     "store_column": "cdl.body_pips",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cdl.upper_wick_pips@asinh",
+    "tensor_name": "cdl.upper_wick_pips@asinh",
+    "upstream": {
+     "store_column": "cdl.upper_wick_pips@asinh",
+     "decision": "ASINH",
+     "applied_in_store": true,
+     "suffix": "asinh"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cdl.lower_wick_pips@asinh",
+    "tensor_name": "cdl.lower_wick_pips@asinh",
+    "upstream": {
+     "store_column": "cdl.lower_wick_pips@asinh",
+     "decision": "ASINH",
+     "applied_in_store": true,
+     "suffix": "asinh"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cdl.range_pips@asinh",
+    "tensor_name": "cdl.range_pips@asinh",
+    "upstream": {
+     "store_column": "cdl.range_pips@asinh",
+     "decision": "ASINH",
+     "applied_in_store": true,
+     "suffix": "asinh"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cdl.close_minus_low_pips@asinh",
+    "tensor_name": "cdl.close_minus_low_pips@asinh",
+    "upstream": {
+     "store_column": "cdl.close_minus_low_pips@asinh",
+     "decision": "ASINH",
+     "applied_in_store": true,
+     "suffix": "asinh"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cdl.high_minus_close_pips@asinh",
+    "tensor_name": "cdl.high_minus_close_pips@asinh",
+    "upstream": {
+     "store_column": "cdl.high_minus_close_pips@asinh",
+     "decision": "ASINH",
+     "applied_in_store": true,
+     "suffix": "asinh"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "dly.us10y.level@diff",
+    "tensor_name": "dly.us10y.level@diff",
+    "upstream": {
+     "store_column": "dly.us10y.level@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "dly.us10y.chg_1d",
+    "tensor_name": "dly.us10y.chg_1d",
+    "upstream": {
+     "store_column": "dly.us10y.chg_1d",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "dly.us10y.chg_5d",
+    "tensor_name": "dly.us10y.chg_5d",
+    "upstream": {
+     "store_column": "dly.us10y.chg_5d",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cot.eur.net_long",
+    "tensor_name": "cot.eur.net_long",
+    "upstream": {
+     "store_column": "cot.eur.net_long",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cot.eur.net_change",
+    "tensor_name": "cot.eur.net_change",
+    "upstream": {
+     "store_column": "cot.eur.net_change",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cot.eur.net_share",
+    "tensor_name": "cot.eur.net_share",
+    "upstream": {
+     "store_column": "cot.eur.net_share",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "cot.eur.net_z156",
+    "tensor_name": "cot.eur.net_z156",
+    "upstream": {
+     "store_column": "cot.eur.net_z156",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "fac.fx_f1.ret_1",
+    "tensor_name": "fac.fx_f1.ret_1",
+    "upstream": {
+     "store_column": "fac.fx_f1.ret_1",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "fac.fx_f1.ret_4",
+    "tensor_name": "fac.fx_f1.ret_4",
+    "upstream": {
+     "store_column": "fac.fx_f1.ret_4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "fac.fx_f1.ret_24",
+    "tensor_name": "fac.fx_f1.ret_24",
+    "upstream": {
+     "store_column": "fac.fx_f1.ret_24",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "fac.fx_f1.kalman_slope",
+    "tensor_name": "fac.fx_f1.kalman_slope",
+    "upstream": {
+     "store_column": "fac.fx_f1.kalman_slope",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ev.tokyo_fix.hours_since",
+    "tensor_name": "ev.tokyo_fix.hours_since",
+    "upstream": {
+     "store_column": "ev.tokyo_fix.hours_since",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ev.tokyo_fix.hours_to",
+    "tensor_name": "ev.tokyo_fix.hours_to",
+    "upstream": {
+     "store_column": "ev.tokyo_fix.hours_to",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ev.london_fix.hours_since",
+    "tensor_name": "ev.london_fix.hours_since",
+    "upstream": {
+     "store_column": "ev.london_fix.hours_since",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ev.london_fix.hours_to",
+    "tensor_name": "ev.london_fix.hours_to",
+    "upstream": {
+     "store_column": "ev.london_fix.hours_to",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ev.ny_cut.hours_since",
+    "tensor_name": "ev.ny_cut.hours_since",
+    "upstream": {
+     "store_column": "ev.ny_cut.hours_since",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ev.ny_cut.hours_to",
+    "tensor_name": "ev.ny_cut.hours_to",
+    "upstream": {
+     "store_column": "ev.ny_cut.hours_to",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "act.p_hit",
+    "tensor_name": "act.p_hit",
+    "upstream": {
+     "store_column": "act.p_hit",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null,
+     "learned_producer": "activity",
+     "fit_scope": {
+      "fit_window": {
+       "start": "2020-01-01 00:00:00+00:00",
+       "end_exclusive": "2024-01-01 00:00:00+00:00",
+       "rows": 24895,
+       "applies_to": [
+        "kalman",
+        "gmm",
+        "hmm",
+        "fracdiff"
+       ]
+      },
+      "note": "learned producers fitted on the consumer scope only"
+     }
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ssa.trend_minus_close_pips",
+    "tensor_name": "ssa.trend_minus_close_pips",
+    "upstream": {
+     "store_column": "ssa.trend_minus_close_pips",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ssa.c2_pips",
+    "tensor_name": "ssa.c2_pips",
+    "upstream": {
+     "store_column": "ssa.c2_pips",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "ssa.c3_pips",
+    "tensor_name": "ssa.c3_pips",
+    "upstream": {
+     "store_column": "ssa.c3_pips",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.A4@diff",
+    "tensor_name": "wv.lc.A4@diff",
+    "upstream": {
+     "store_column": "wv.lc.A4@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.D4",
+    "tensor_name": "wv.lc.D4",
+    "upstream": {
+     "store_column": "wv.lc.D4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.D3",
+    "tensor_name": "wv.lc.D3",
+    "upstream": {
+     "store_column": "wv.lc.D3",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.D2",
+    "tensor_name": "wv.lc.D2",
+    "upstream": {
+     "store_column": "wv.lc.D2",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.D1",
+    "tensor_name": "wv.lc.D1",
+    "upstream": {
+     "store_column": "wv.lc.D1",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.energy_D4@log",
+    "tensor_name": "wv.lc.energy_D4@log",
+    "upstream": {
+     "store_column": "wv.lc.energy_D4@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.energy_D3@log",
+    "tensor_name": "wv.lc.energy_D3@log",
+    "upstream": {
+     "store_column": "wv.lc.energy_D3@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.energy_D2@log",
+    "tensor_name": "wv.lc.energy_D2@log",
+    "upstream": {
+     "store_column": "wv.lc.energy_D2@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.lc.energy_D1@diff",
+    "tensor_name": "wv.lc.energy_D1@diff",
+    "upstream": {
+     "store_column": "wv.lc.energy_D1@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.A4",
+    "tensor_name": "wv.r1.A4",
+    "upstream": {
+     "store_column": "wv.r1.A4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.D4",
+    "tensor_name": "wv.r1.D4",
+    "upstream": {
+     "store_column": "wv.r1.D4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.D3",
+    "tensor_name": "wv.r1.D3",
+    "upstream": {
+     "store_column": "wv.r1.D3",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.D2",
+    "tensor_name": "wv.r1.D2",
+    "upstream": {
+     "store_column": "wv.r1.D2",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.D1",
+    "tensor_name": "wv.r1.D1",
+    "upstream": {
+     "store_column": "wv.r1.D1",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.energy_D4@log",
+    "tensor_name": "wv.r1.energy_D4@log",
+    "upstream": {
+     "store_column": "wv.r1.energy_D4@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.energy_D3@log",
+    "tensor_name": "wv.r1.energy_D3@log",
+    "upstream": {
+     "store_column": "wv.r1.energy_D3@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.energy_D2@log",
+    "tensor_name": "wv.r1.energy_D2@log",
+    "upstream": {
+     "store_column": "wv.r1.energy_D2@log",
+     "decision": "LOG",
+     "applied_in_store": true,
+     "suffix": "log"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.r1.energy_D1@diff",
+    "tensor_name": "wv.r1.energy_D1@diff",
+    "upstream": {
+     "store_column": "wv.r1.energy_D1@diff",
+     "decision": "DIFF",
+     "applied_in_store": true,
+     "suffix": "diff"
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hb.r1.phase_cos",
+    "tensor_name": "hb.r1.phase_cos",
+    "upstream": {
+     "store_column": "hb.r1.phase_cos",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hb.r1.phase_sin",
+    "tensor_name": "hb.r1.phase_sin",
+    "upstream": {
+     "store_column": "hb.r1.phase_sin",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hb.r1.inst_freq",
+    "tensor_name": "hb.r1.inst_freq",
+    "upstream": {
+     "store_column": "hb.r1.inst_freq",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hb.lc_detr.inst_freq",
+    "tensor_name": "hb.lc_detr.inst_freq",
+    "upstream": {
+     "store_column": "hb.lc_detr.inst_freq",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "wv.usd.A4",
+    "tensor_name": "wv.usd.A4",
+    "upstream": {
+     "store_column": "wv.usd.A4",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hb.eur.phase_cos",
+    "tensor_name": "hb.eur.phase_cos",
+    "upstream": {
+     "store_column": "hb.eur.phase_cos",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hb.eur.phase_sin",
+    "tensor_name": "hb.eur.phase_sin",
+    "upstream": {
+     "store_column": "hb.eur.phase_sin",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "hb.eur.inst_freq",
+    "tensor_name": "hb.eur.inst_freq",
+    "upstream": {
+     "store_column": "hb.eur.inst_freq",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "kf.lc.level_minus_close",
+    "tensor_name": "kf.lc.level_minus_close",
+    "upstream": {
+     "store_column": "kf.lc.level_minus_close",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null,
+     "learned_producer": "kalman",
+     "fit_scope": {
+      "fit_window": {
+       "start": "2020-01-01 00:00:00+00:00",
+       "end_exclusive": "2024-01-01 00:00:00+00:00",
+       "rows": 24895,
+       "applies_to": [
+        "kalman",
+        "gmm",
+        "hmm",
+        "fracdiff"
+       ]
+      },
+      "note": "learned producers fitted on the consumer scope only"
+     }
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "px.rv_24",
+    "tensor_name": "px.rv_24",
+    "upstream": {
+     "store_column": "px.rv_24",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "rg.gmm.p0",
+    "tensor_name": "rg.gmm.p0",
+    "upstream": {
+     "store_column": "rg.gmm.p0",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null,
+     "learned_producer": "gmm",
+     "fit_scope": {
+      "fit_window": {
+       "start": "2020-01-01 00:00:00+00:00",
+       "end_exclusive": "2024-01-01 00:00:00+00:00",
+       "rows": 24895,
+       "applies_to": [
+        "kalman",
+        "gmm",
+        "hmm",
+        "fracdiff"
+       ]
+      },
+      "note": "learned producers fitted on the consumer scope only"
+     }
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "rg.gmm.p1",
+    "tensor_name": "rg.gmm.p1",
+    "upstream": {
+     "store_column": "rg.gmm.p1",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null,
+     "learned_producer": "gmm",
+     "fit_scope": {
+      "fit_window": {
+       "start": "2020-01-01 00:00:00+00:00",
+       "end_exclusive": "2024-01-01 00:00:00+00:00",
+       "rows": 24895,
+       "applies_to": [
+        "kalman",
+        "gmm",
+        "hmm",
+        "fracdiff"
+       ]
+      },
+      "note": "learned producers fitted on the consumer scope only"
+     }
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "rg.gmm.p2",
+    "tensor_name": "rg.gmm.p2",
+    "upstream": {
+     "store_column": "rg.gmm.p2",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null,
+     "learned_producer": "gmm",
+     "fit_scope": {
+      "fit_window": {
+       "start": "2020-01-01 00:00:00+00:00",
+       "end_exclusive": "2024-01-01 00:00:00+00:00",
+       "rows": 24895,
+       "applies_to": [
+        "kalman",
+        "gmm",
+        "hmm",
+        "fracdiff"
+       ]
+      },
+      "note": "learned producers fitted on the consumer scope only"
+     }
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   },
+   {
+    "store_column": "rg.gmm.entropy",
+    "tensor_name": "rg.gmm.entropy",
+    "upstream": {
+     "store_column": "rg.gmm.entropy",
+     "decision": "NONE",
+     "applied_in_store": false,
+     "suffix": null,
+     "learned_producer": "gmm",
+     "fit_scope": {
+      "fit_window": {
+       "start": "2020-01-01 00:00:00+00:00",
+       "end_exclusive": "2024-01-01 00:00:00+00:00",
+       "rows": 24895,
+       "applies_to": [
+        "kalman",
+        "gmm",
+        "hmm",
+        "fracdiff"
+       ]
+      },
+      "note": "learned producers fitted on the consumer scope only"
+     }
+    },
+    "consumer_ops": [],
+    "then": "fixed TRAIN z with this recipe's constants"
+   }
+  ],
+  "window": {
+   "observations": 13,
+   "stride_rows": 2,
+   "row_unit": "observed admitted market bar (H1); closures occupy no slot",
+   "includes_current_completed_bar": true,
+   "slot_offsets_rows": [
+    -24,
+    -22,
+    -20,
+    -18,
+    -16,
+    -14,
+    -12,
+    -10,
+    -8,
+    -6,
+    -4,
+    -2,
+    0
+   ],
+   "elapsed_hours_first_to_last_slot": {
+    "min": 24.0,
+    "median": 24.0,
+    "max": 105.0
+   },
+   "note": "no interpolation over closures; not a clock-hour window"
+  }
+ },
+ "representation": {
+  "groups": {
+   "name": "t3_unit_C",
+   "rule": "T3 combination: every per-group choice of the decision",
+   "groups": {
+    "inv.raw": [
+     "OPEN@diff",
+     "HIGH@diff",
+     "LOW@diff",
+     "CLOSE@diff",
+     "RAW_BAR_LOG_RETURN",
+     "RAW_LOG_RANGE@log",
+     "RAW_CLOSE_LOG_RETURN",
+     "RAW_ELAPSED_HOURS"
+    ],
+    "inv.volatility": [
+     "ATR",
+     "BB_Width",
+     "ATR_ratio",
+     "rolling_std_24"
+    ],
+    "inv.momentum": [
+     "RSI",
+     "Stochastic_K",
+     "Stochastic_D",
+     "CCI",
+     "WilliamsR",
+     "ROC",
+     "BB_position",
+     "price_minus_ema"
+    ],
+    "calendar": [
+     "hod_sin",
+     "hod_cos",
+     "dow_sin",
+     "dow_cos",
+     "cal.utc_hod_sin",
+     "cal.utc_hod_cos",
+     "cal.utc_dow_sin",
+     "cal.utc_dow_cos",
+     "cal.utc_session_asia",
+     "cal.utc_session_europe",
+     "cal.utc_session_us",
+     "cal.london_hod_sin",
+     "cal.london_hod_cos"
+    ],
+    "px.logret": [
+     "px.logret_1",
+     "px.logret_2",
+     "px.logret_4",
+     "px.logret_6",
+     "px.logret_12",
+     "px.logret_24",
+     "px.logret_48"
+    ],
+    "px.range": [
+     "px.range_1@log",
+     "px.range_2@log",
+     "px.range_4@log",
+     "px.range_6@log",
+     "px.range_12",
+     "px.range_24",
+     "px.range_48"
+    ],
+    "px.er": [
+     "px.er_1",
+     "px.er_2",
+     "px.er_4",
+     "px.er_6",
+     "px.er_12",
+     "px.er_24",
+     "px.er_48"
+    ],
+    "px.hours_since_session_open": [
+     "px.hours_since_session_open"
+    ],
+    "cdl": [
+     "cdl.body_pips",
+     "cdl.upper_wick_pips@asinh",
+     "cdl.lower_wick_pips@asinh",
+     "cdl.range_pips@asinh",
+     "cdl.close_minus_low_pips@asinh",
+     "cdl.high_minus_close_pips@asinh"
+    ],
+    "dly.us10y": [
+     "dly.us10y.level@diff",
+     "dly.us10y.chg_1d",
+     "dly.us10y.chg_5d"
+    ],
+    "cot.eur": [
+     "cot.eur.net_long",
+     "cot.eur.net_change",
+     "cot.eur.net_share",
+     "cot.eur.net_z156"
+    ],
+    "fac.fx_f1": [
+     "fac.fx_f1.ret_1",
+     "fac.fx_f1.ret_4",
+     "fac.fx_f1.ret_24",
+     "fac.fx_f1.kalman_slope"
+    ],
+    "ev": [
+     "ev.tokyo_fix.hours_since",
+     "ev.tokyo_fix.hours_to",
+     "ev.london_fix.hours_since",
+     "ev.london_fix.hours_to",
+     "ev.ny_cut.hours_since",
+     "ev.ny_cut.hours_to"
+    ],
+    "act": [
+     "act.p_hit"
+    ],
+    "ssa/BidClose": [
+     "ssa.trend_minus_close_pips",
+     "ssa.c2_pips",
+     "ssa.c3_pips"
+    ],
+    "wavelet/log_close": [
+     "wv.lc.A4@diff",
+     "wv.lc.D4",
+     "wv.lc.D3",
+     "wv.lc.D2",
+     "wv.lc.D1",
+     "wv.lc.energy_D4@log",
+     "wv.lc.energy_D3@log",
+     "wv.lc.energy_D2@log",
+     "wv.lc.energy_D1@diff"
+    ],
+    "wavelet/logret_1": [
+     "wv.r1.A4",
+     "wv.r1.D4",
+     "wv.r1.D3",
+     "wv.r1.D2",
+     "wv.r1.D1",
+     "wv.r1.energy_D4@log",
+     "wv.r1.energy_D3@log",
+     "wv.r1.energy_D2@log",
+     "wv.r1.energy_D1@diff"
+    ],
+    "hilbert/logret_1": [
+     "hb.r1.phase_cos",
+     "hb.r1.phase_sin",
+     "hb.r1.inst_freq"
+    ],
+    "hilbert/log_close": [
+     "hb.lc_detr.inst_freq"
+    ],
+    "strength/fx.usd_strength.ret_1": [
+     "wv.usd.A4"
+    ],
+    "strength/fx.eur_strength.ret_1": [
+     "hb.eur.phase_cos",
+     "hb.eur.phase_sin",
+     "hb.eur.inst_freq"
+    ],
+    "kalman/log_close": [
+     "kf.lc.level_minus_close"
+    ],
+    "px.rv": [
+     "px.rv_24"
+    ],
+    "gmm/logret_1+rv_24+log_range": [
+     "rg.gmm.p0",
+     "rg.gmm.p1",
+     "rg.gmm.p2",
+     "rg.gmm.entropy"
+    ],
+    "px.close_loc/px.close_loc_1": [
+     "px.close_loc_1"
+    ],
+    "px.close_loc/px.close_loc_2": [
+     "px.close_loc_2"
+    ],
+    "px.close_loc/px.close_loc_4": [
+     "px.close_loc_4"
+    ],
+    "px.close_loc/px.close_loc_6": [
+     "px.close_loc_6"
+    ],
+    "px.close_loc/px.close_loc_12": [
+     "px.close_loc_12"
+    ],
+    "px.close_loc/px.close_loc_24": [
+     "px.close_loc_24"
+    ],
+    "px.close_loc/px.close_loc_48": [
+     "px.close_loc_48"
+    ]
+   },
+   "units": {
+    "inv.raw": 2,
+    "inv.volatility": 2,
+    "inv.momentum": 2,
+    "calendar": 2,
+    "px.logret": 2,
+    "px.range": 2,
+    "px.close_loc": 2,
+    "px.er": 2,
+    "px.hours_since_session_open": 2,
+    "cdl": 2,
+    "dly.us10y": 2,
+    "cot.eur": 2,
+    "fac.fx_f1": 2,
+    "ev": 2,
+    "act": 2,
+    "ssa/BidClose": 2,
+    "wavelet/log_close": 2,
+    "wavelet/logret_1": 2,
+    "hilbert/logret_1": 2,
+    "hilbert/log_close": 2,
+    "strength/fx.usd_strength.ret_1": 2,
+    "strength/fx.eur_strength.ret_1": 2,
+    "kalman/log_close": 2,
+    "px.rv": 2,
+    "gmm/logret_1+rv_24+log_range": 2,
+    "px.close_loc/px.close_loc_1": 2,
+    "px.close_loc/px.close_loc_2": 2,
+    "px.close_loc/px.close_loc_4": 2,
+    "px.close_loc/px.close_loc_6": 2,
+    "px.close_loc/px.close_loc_12": 2,
+    "px.close_loc/px.close_loc_24": 2,
+    "px.close_loc/px.close_loc_48": 2
+   },
+   "kinds": {
+    "inv.raw": "pointwise",
+    "inv.volatility": "conv",
+    "inv.momentum": "pointwise",
+    "calendar": "conv",
+    "px.logret": "conv",
+    "px.range": "conv",
+    "px.er": "conv",
+    "px.hours_since_session_open": "conv",
+    "cdl": "conv",
+    "dly.us10y": "conv",
+    "cot.eur": "conv",
+    "fac.fx_f1": "conv",
+    "ev": "conv",
+    "act": "conv",
+    "ssa/BidClose": "conv",
+    "wavelet/log_close": "conv",
+    "wavelet/logret_1": "conv",
+    "hilbert/logret_1": "conv",
+    "hilbert/log_close": "pointwise",
+    "strength/fx.usd_strength.ret_1": "conv",
+    "strength/fx.eur_strength.ret_1": "conv",
+    "kalman/log_close": "conv",
+    "px.rv": "conv",
+    "gmm/logret_1+rv_24+log_range": "conv",
+    "px.close_loc/px.close_loc_1": "conv",
+    "px.close_loc/px.close_loc_2": "conv",
+    "px.close_loc/px.close_loc_4": "conv",
+    "px.close_loc/px.close_loc_6": "conv",
+    "px.close_loc/px.close_loc_12": "conv",
+    "px.close_loc/px.close_loc_24": "conv",
+    "px.close_loc/px.close_loc_48": "conv"
+   }
+  },
+  "resolved": {
+   "names": [
+    "inv.raw",
+    "inv.volatility",
+    "inv.momentum",
+    "calendar",
+    "px.logret",
+    "px.range",
+    "px.er",
+    "px.hours_since_session_open",
+    "cdl",
+    "dly.us10y",
+    "cot.eur",
+    "fac.fx_f1",
+    "ev",
+    "act",
+    "ssa/BidClose",
+    "wavelet/log_close",
+    "wavelet/logret_1",
+    "hilbert/logret_1",
+    "hilbert/log_close",
+    "strength/fx.usd_strength.ret_1",
+    "strength/fx.eur_strength.ret_1",
+    "kalman/log_close",
+    "px.rv",
+    "gmm/logret_1+rv_24+log_range",
+    "px.close_loc/px.close_loc_1",
+    "px.close_loc/px.close_loc_2",
+    "px.close_loc/px.close_loc_4",
+    "px.close_loc/px.close_loc_6",
+    "px.close_loc/px.close_loc_12",
+    "px.close_loc/px.close_loc_24",
+    "px.close_loc/px.close_loc_48"
+   ],
+   "indices": [
+    [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    [
+     8,
+     9,
+     10,
+     11
+    ],
+    [
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19
+    ],
+    [
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32
+    ],
+    [
+     33,
+     34,
+     35,
+     36,
+     37,
+     38,
+     39
+    ],
+    [
+     40,
+     41,
+     42,
+     43,
+     44,
+     45,
+     46
+    ],
+    [
+     54,
+     55,
+     56,
+     57,
+     58,
+     59,
+     60
+    ],
+    [
+     61
+    ],
+    [
+     62,
+     63,
+     64,
+     65,
+     66,
+     67
+    ],
+    [
+     68,
+     69,
+     70
+    ],
+    [
+     71,
+     72,
+     73,
+     74
+    ],
+    [
+     75,
+     76,
+     77,
+     78
+    ],
+    [
+     79,
+     80,
+     81,
+     82,
+     83,
+     84
+    ],
+    [
+     85
+    ],
+    [
+     86,
+     87,
+     88
+    ],
+    [
+     89,
+     90,
+     91,
+     92,
+     93,
+     94,
+     95,
+     96,
+     97
+    ],
+    [
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ],
+    [
+     107,
+     108,
+     109
+    ],
+    [
+     110
+    ],
+    [
+     111
+    ],
+    [
+     112,
+     113,
+     114
+    ],
+    [
+     115
+    ],
+    [
+     116
+    ],
+    [
+     117,
+     118,
+     119,
+     120
+    ],
+    [
+     47
+    ],
+    [
+     48
+    ],
+    [
+     49
+    ],
+    [
+     50
+    ],
+    [
+     51
+    ],
+    [
+     52
+    ],
+    [
+     53
+    ]
+   ],
+   "units": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+   ],
+   "kinds": [
+    "pointwise",
+    "conv",
+    "pointwise",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "pointwise",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv",
+    "conv"
+   ]
+  },
+  "groups_file_sha256": "a9f553a762db63c665260263700fc1351319d70a7675f72ed002cfb463487be4",
+  "model": {
+   "units": 2,
+   "depth": 2,
+   "head": 16,
+   "core": null
+  },
+  "params_per_module": {
+   "open_l": 1382,
+   "open_s": 1382,
+   "close_l": 1348,
+   "close_s": 1348
+  }
+ },
+ "regularization": {
+  "dropout": 0.3,
+  "wd": 0.01,
+  "source": "T2 decision REGULARIZATION_DECISION_A1.json (TIE_BREAK_2_SMALLER_GAP); sha256 7f533d221a40de6d"
+ },
+ "business": {
+  "exec_contract": "sac",
+  "evaluation_and_policy": {
+   "capital": 10000.0,
+   "max_entries_per_day": 1,
+   "min_orders_per_week": 2.0,
+   "tp_bounds": [
+    0.25,
+    3.0
+   ],
+   "sl_bounds": [
+    0.5,
+    3.0
+   ],
+   "level_policy": "clip",
+   "percentual_order_size": 1.0,
+   "sizing": {
+    "rel_volume": 0.1,
+    "leverage": 50.0,
+    "basis": "margin",
+    "min_units": 1,
+    "margin_closeout": 0.5,
+    "rel_volume_bound": 0.2,
+    "leverage_bound": 100.0
+   },
+   "profile": {
+    "spread_schedule": [
+     [
+      0,
+      1,
+      0.0003
+     ],
+     [
+      1,
+      3,
+      0.0001
+     ],
+     [
+      3,
+      9,
+      6e-05
+     ],
+     [
+      9,
+      21,
+      3e-05
+     ],
+     [
+      21,
+      23,
+      6e-05
+     ],
+     [
+      23,
+      24,
+      0.00015
+     ]
+    ],
+    "weekly_open_spread": 0.0003,
+    "slippage_market": 2e-05,
+    "slippage_stop": 5e-05,
+    "limit_through": 0.0001,
+    "entry_delay_bars": 0,
+    "commission_per_lot_side": 3.5,
+    "swap_long_per_lot": -7.0,
+    "swap_short_per_lot": 2.5,
+    "triple_swap_rollover_index": 3,
+    "lot_units": 100000.0
+   },
+   "rules": {
+    "min_distance": 5e-05,
+    "effectiveness_c": 1.5
+   },
+   "same_direction": "IGNORE",
+   "reverse": "CLOSE_AND_OPEN"
+  },
+  "expert_demonstrations": {
+   "capital": 10000.0,
+   "max_entries_per_day": 1,
+   "min_orders_per_week": 2.0,
+   "tp_bounds": [
+    1e-06,
+    1000.0
+   ],
+   "sl_bounds": [
+    1e-06,
+    1000.0
+   ],
+   "level_policy": "refuse",
+   "percentual_order_size": 1.0,
+   "sizing": {
+    "rel_volume": 0.1,
+    "leverage": 50.0,
+    "basis": "margin",
+    "min_units": 1,
+    "margin_closeout": 0.5,
+    "rel_volume_bound": 0.2,
+    "leverage_bound": 100.0
+   },
+   "profile": {
+    "spread_schedule": [
+     [
+      0,
+      1,
+      0.0003
+     ],
+     [
+      1,
+      3,
+      0.0001
+     ],
+     [
+      3,
+      9,
+      6e-05
+     ],
+     [
+      9,
+      21,
+      3e-05
+     ],
+     [
+      21,
+      23,
+      6e-05
+     ],
+     [
+      23,
+      24,
+      0.00015
+     ]
+    ],
+    "weekly_open_spread": 0.0003,
+    "slippage_market": 2e-05,
+    "slippage_stop": 5e-05,
+    "limit_through": 0.0001,
+    "entry_delay_bars": 0,
+    "commission_per_lot_side": 3.5,
+    "swap_long_per_lot": -7.0,
+    "swap_short_per_lot": 2.5,
+    "triple_swap_rollover_index": 3,
+    "lot_units": 100000.0
+   },
+   "rules": {
+    "min_distance": 5e-05,
+    "effectiveness_c": 1.5
+   },
+   "same_direction": "IGNORE",
+   "reverse": "CLOSE_AND_OPEN"
+  },
+  "calendar": {
+   "id": "ADMITTED_CLOSURE_COMPLEMENT",
+   "entry_delay_after_open_hours": 12,
+   "force_flat_before_close_hours": 12,
+   "entry_cutoff_before_flat_hours": 0,
+   "closures_sha256": "71078e8f9a95c4438405a9fa3dafdffdc0f44183bbf27ba828168c18065e8350",
+   "admitted_sha256": "c80847bb149c7af1ad50e42301b5cd70608e6c37702ce8cc6a7b9eb70f36d2ca"
+  },
+  "execution_timing": "decision after the completed bar b (availability = bar start + 1 h); fill at open(b + 1); SL and TP broker-side on every order; SL and TP touched in the same bar -> SL first; forced flat has priority",
+  "activity_rule": "orders_per_week >= 2.0 as the PERIOD AVERAGE; weeks_below_min_orders reported; no forced trading",
+  "agent_state": "none: no agent feedback in the observation"
+ },
+ "labels": {
+  "mode": "zigzag",
+  "how": "DECLARED",
+  "note": "training-only hindsight demonstrations; never an observation; opportunity/both is a separate experiment"
+ },
+ "schema": "expert_guided_consumer_recipe.v2",
+ "scientific_release": false,
+ "scope": "DIAGNOSTIC walk-forward fold wf2023 derived from recipe_5a8f2155318ba7c7: same representation, constants re-fitted on the fold's fit block 2020-01-01..2022-07-01; validation year 2023-01-01..2024-01-01 scored after freeze; never a release",
+ "scaler": {
+  "policy": "fixed_train",
+  "features": [
+   "OPEN@diff",
+   "HIGH@diff",
+   "LOW@diff",
+   "CLOSE@diff",
+   "RAW_BAR_LOG_RETURN",
+   "RAW_LOG_RANGE@log",
+   "RAW_CLOSE_LOG_RETURN",
+   "RAW_ELAPSED_HOURS",
+   "ATR",
+   "BB_Width",
+   "ATR_ratio",
+   "rolling_std_24",
+   "RSI",
+   "Stochastic_K",
+   "Stochastic_D",
+   "CCI",
+   "WilliamsR",
+   "ROC",
+   "BB_position",
+   "price_minus_ema",
+   "hod_sin",
+   "hod_cos",
+   "dow_sin",
+   "dow_cos",
+   "cal.utc_hod_sin",
+   "cal.utc_hod_cos",
+   "cal.utc_dow_sin",
+   "cal.utc_dow_cos",
+   "cal.utc_session_asia",
+   "cal.utc_session_europe",
+   "cal.utc_session_us",
+   "cal.london_hod_sin",
+   "cal.london_hod_cos",
+   "px.logret_1",
+   "px.logret_2",
+   "px.logret_4",
+   "px.logret_6",
+   "px.logret_12",
+   "px.logret_24",
+   "px.logret_48",
+   "px.range_1@log",
+   "px.range_2@log",
+   "px.range_4@log",
+   "px.range_6@log",
+   "px.range_12",
+   "px.range_24",
+   "px.range_48",
+   "px.close_loc_1",
+   "px.close_loc_2",
+   "px.close_loc_4",
+   "px.close_loc_6",
+   "px.close_loc_12",
+   "px.close_loc_24",
+   "px.close_loc_48",
+   "px.er_1",
+   "px.er_2",
+   "px.er_4",
+   "px.er_6",
+   "px.er_12",
+   "px.er_24",
+   "px.er_48",
+   "px.hours_since_session_open",
+   "cdl.body_pips",
+   "cdl.upper_wick_pips@asinh",
+   "cdl.lower_wick_pips@asinh",
+   "cdl.range_pips@asinh",
+   "cdl.close_minus_low_pips@asinh",
+   "cdl.high_minus_close_pips@asinh",
+   "dly.us10y.level@diff",
+   "dly.us10y.chg_1d",
+   "dly.us10y.chg_5d",
+   "cot.eur.net_long",
+   "cot.eur.net_change",
+   "cot.eur.net_share",
+   "cot.eur.net_z156",
+   "fac.fx_f1.ret_1",
+   "fac.fx_f1.ret_4",
+   "fac.fx_f1.ret_24",
+   "fac.fx_f1.kalman_slope",
+   "ev.tokyo_fix.hours_since",
+   "ev.tokyo_fix.hours_to",
+   "ev.london_fix.hours_since",
+   "ev.london_fix.hours_to",
+   "ev.ny_cut.hours_since",
+   "ev.ny_cut.hours_to",
+   "act.p_hit",
+   "ssa.trend_minus_close_pips",
+   "ssa.c2_pips",
+   "ssa.c3_pips",
+   "wv.lc.A4@diff",
+   "wv.lc.D4",
+   "wv.lc.D3",
+   "wv.lc.D2",
+   "wv.lc.D1",
+   "wv.lc.energy_D4@log",
+   "wv.lc.energy_D3@log",
+   "wv.lc.energy_D2@log",
+   "wv.lc.energy_D1@diff",
+   "wv.r1.A4",
+   "wv.r1.D4",
+   "wv.r1.D3",
+   "wv.r1.D2",
+   "wv.r1.D1",
+   "wv.r1.energy_D4@log",
+   "wv.r1.energy_D3@log",
+   "wv.r1.energy_D2@log",
+   "wv.r1.energy_D1@diff",
+   "hb.r1.phase_cos",
+   "hb.r1.phase_sin",
+   "hb.r1.inst_freq",
+   "hb.lc_detr.inst_freq",
+   "wv.usd.A4",
+   "hb.eur.phase_cos",
+   "hb.eur.phase_sin",
+   "hb.eur.inst_freq",
+   "kf.lc.level_minus_close",
+   "px.rv_24",
+   "rg.gmm.p0",
+   "rg.gmm.p1",
+   "rg.gmm.p2",
+   "rg.gmm.entropy"
+  ],
+  "n_features": 121,
+  "fit_period": [
+   "2020-01-01",
+   "2022-07-01"
+  ],
+  "fit_rows": 15308,
+  "ddof": 0,
+  "mean": [
+   -4.321269924222624e-06,
+   -4.3147373922132326e-06,
+   -4.274235693754891e-06,
+   -4.269009668147361e-06,
+   -3.2085499974937498e-06,
+   -6.892754835084945,
+   -3.952729995301757e-06,
+   1.4051476352234127,
+   0.0014482629320952693,
+   0.0064410259398248165,
+   1.018299795409044,
+   0.001756168286208997,
+   49.62992953211182,
+   49.62863991837862,
+   49.62342681453711,
+   -1.814037512171354,
+   -50.36624388593707,
+   -0.003694326980735856,
+   0.4947273880123343,
+   -5.170618027673196e-05,
+   0.000171715853131466,
+   -0.0002370411732256173,
+   0.34908716737992,
+   -0.05629348987953376,
+   0.00022721554742715324,
+   -0.00018452085797601405,
+   0.34606437889642594,
+   -0.043546513806275784,
+   0.29174287954010975,
+   0.25006532532009407,
+   0.3332244577998432,
+   0.0002565000872810961,
+   -0.0001676134210082682,
+   -3.952729995301757e-06,
+   -7.951471114224364e-06,
+   -1.5993331721992822e-05,
+   -2.4224931806945965e-05,
+   -5.028626572444815e-05,
+   -0.0001019437405918092,
+   -0.000195532658372878,
+   -6.892754835084945,
+   -6.526291776871838,
+   -6.14507651178273,
+   -5.914016776177741,
+   0.004688218405117424,
+   0.006792322117081909,
+   0.009643533160830196,
+   0.4955449905079363,
+   0.49774306819481257,
+   0.49932260841957615,
+   0.49901575415658,
+   0.49735742413338474,
+   0.49350607329228435,
+   0.49090050504032834,
+   1.0,
+   0.7123647527244622,
+   0.5029880661871373,
+   0.41603725864291075,
+   0.30418677147746037,
+   0.22376295459674045,
+   0.1616580248210145,
+   59.3325712045989,
+   -0.03434152077345271,
+   1.632900368372221,
+   1.598312059811584,
+   3.1527259049375296,
+   2.2069611153302984,
+   2.2333583144731253,
+   8.361640972040769e-05,
+   0.0032786778155213733,
+   0.011106610922393106,
+   37263.34021426705,
+   508.1825189443428,
+   0.131025702557046,
+   0.29316216806538886,
+   0.008165236786336374,
+   0.03365904326998058,
+   0.18749813403941165,
+   0.005863903717385082,
+   11.580916296490946,
+   12.41908370350847,
+   11.501698458322446,
+   12.498301541677554,
+   11.500979879801411,
+   12.499020120198589,
+   0.2915868794498299,
+   0.34676759644738836,
+   -0.17863860652681599,
+   -0.016948227564219553,
+   -1.5626114044031843e-05,
+   -5.744169015585325e-06,
+   -1.3519130460239975e-06,
+   -1.3961609285844257e-07,
+   -2.551303011442683e-07,
+   -11.875086391135683,
+   -13.027254933909019,
+   -14.234127907333193,
+   2.938960668809306e-11,
+   -1.5626114044031928e-05,
+   -5.6305224075977425e-08,
+   3.0293503644261334e-07,
+   -1.8055511603939586e-07,
+   -3.1786644549048633e-08,
+   -14.461448177918781,
+   -14.275161891611592,
+   -14.166977089468844,
+   5.994362183826701e-11,
+   0.0036617598433092793,
+   -0.0035280663148679887,
+   0.15277651760006222,
+   0.0466010726666517,
+   1.911615858047764e-05,
+   0.004117845168379123,
+   -0.002511718507225983,
+   0.15575071001041432,
+   1.273342588732864e-07,
+   0.004208332978477385,
+   0.5522270957685199,
+   0.38316841191935314,
+   0.06460449231212617,
+   0.23976633037796613
+  ],
+  "std": [
+   0.0010740830049587988,
+   0.0009704707032752365,
+   0.0009728297063847755,
+   0.0010688311837276905,
+   0.0009410424478627005,
+   0.6598601424555364,
+   0.0009457804878894784,
+   4.422807677030451,
+   0.0005700537591563249,
+   0.00396330853473453,
+   0.327799299497637,
+   0.0010684961042261153,
+   12.549393691169847,
+   27.497711007416434,
+   26.67854537208038,
+   117.70951233591339,
+   29.693036035647378,
+   0.2894196934899908,
+   0.34170691917040824,
+   0.0023863554208862284,
+   0.7071298559484415,
+   0.7070836450883567,
+   0.5218473804204079,
+   0.7763018125164132,
+   0.7070636456640099,
+   0.7071498535002668,
+   0.527221968013219,
+   0.7748420117925592,
+   0.45456459582522996,
+   0.4330504109138153,
+   0.4713660133312385,
+   0.7070436324308228,
+   0.7071698579213297,
+   0.0009457804878894784,
+   0.0013293819648366935,
+   0.0018662780296078685,
+   0.002271160238256023,
+   0.0031500948401400383,
+   0.004413687142298517,
+   0.006423734575071748,
+   0.6598601424555364,
+   0.6435245617835781,
+   0.6156371549462578,
+   0.5897478893311626,
+   0.00273238123926712,
+   0.0033782852361348655,
+   0.004581072548936278,
+   0.3025303305189454,
+   0.2974847657756386,
+   0.2960979560880895,
+   0.2965622488108429,
+   0.29722755741784973,
+   0.29751753543861525,
+   0.30103412969090076,
+   1.0,
+   0.34240665433318324,
+   0.31032065969742306,
+   0.27340331521003913,
+   0.21206344072283584,
+   0.15984407617645843,
+   0.11614059891973129,
+   34.57663415479613,
+   10.634230098838461,
+   0.9115127950199856,
+   0.9236417498515812,
+   0.6464604554655201,
+   1.015232696131413,
+   0.998221321312932,
+   0.011088206607790963,
+   0.057401568856280345,
+   0.11516471600075526,
+   66371.18222749195,
+   62423.391804454164,
+   0.30715062881187166,
+   1.0339928491093007,
+   1.4361459205990783,
+   2.789705762584167,
+   6.880069676828569,
+   0.5636023931584119,
+   6.921547524309797,
+   6.921547524309975,
+   6.922425412969364,
+   6.922425412969364,
+   6.922869065843338,
+   6.922869065843338,
+   0.24520007287124115,
+   27.062754740691084,
+   20.887610117170308,
+   12.045605968625374,
+   0.0026483718238340917,
+   0.0034485187966833437,
+   0.0017715370741165858,
+   0.0009234362353445128,
+   0.0005540210413355471,
+   0.7192393885018725,
+   0.7200181359075659,
+   0.6815990888080666,
+   8.527575995547189e-08,
+   0.0026483718238340926,
+   0.0009461606533057067,
+   0.0009437873307077072,
+   0.0009480727411391102,
+   0.0009488782726406778,
+   0.7320732679198606,
+   0.7092956644736079,
+   0.6689258508315449,
+   1.208865867929022e-07,
+   0.6891269883710177,
+   0.7246227557575162,
+   0.23825921184422277,
+   0.106261020989452,
+   0.002449093376459845,
+   0.6893000588471273,
+   0.7244599115856264,
+   0.23867556294768386,
+   2.2811188049363423e-05,
+   0.0019329506107382017,
+   0.4374952502742475,
+   0.4097298589064396,
+   0.2170176540676284,
+   0.21107070907026076
+  ],
+  "std_raw": [
+   0.0010740830049587988,
+   0.0009704707032752365,
+   0.0009728297063847755,
+   0.0010688311837276905,
+   0.0009410424478627005,
+   0.6598601424555364,
+   0.0009457804878894784,
+   4.422807677030451,
+   0.0005700537591563249,
+   0.00396330853473453,
+   0.327799299497637,
+   0.0010684961042261153,
+   12.549393691169847,
+   27.497711007416434,
+   26.67854537208038,
+   117.70951233591339,
+   29.693036035647378,
+   0.2894196934899908,
+   0.34170691917040824,
+   0.0023863554208862284,
+   0.7071298559484415,
+   0.7070836450883567,
+   0.5218473804204079,
+   0.7763018125164132,
+   0.7070636456640099,
+   0.7071498535002668,
+   0.527221968013219,
+   0.7748420117925592,
+   0.45456459582522996,
+   0.4330504109138153,
+   0.4713660133312385,
+   0.7070436324308228,
+   0.7071698579213297,
+   0.0009457804878894784,
+   0.0013293819648366935,
+   0.0018662780296078685,
+   0.002271160238256023,
+   0.0031500948401400383,
+   0.004413687142298517,
+   0.006423734575071748,
+   0.6598601424555364,
+   0.6435245617835781,
+   0.6156371549462578,
+   0.5897478893311626,
+   0.00273238123926712,
+   0.0033782852361348655,
+   0.004581072548936278,
+   0.3025303305189454,
+   0.2974847657756386,
+   0.2960979560880895,
+   0.2965622488108429,
+   0.29722755741784973,
+   0.29751753543861525,
+   0.30103412969090076,
+   0.0,
+   0.34240665433318324,
+   0.31032065969742306,
+   0.27340331521003913,
+   0.21206344072283584,
+   0.15984407617645843,
+   0.11614059891973129,
+   34.57663415479613,
+   10.634230098838461,
+   0.9115127950199856,
+   0.9236417498515812,
+   0.6464604554655201,
+   1.015232696131413,
+   0.998221321312932,
+   0.011088206607790963,
+   0.057401568856280345,
+   0.11516471600075526,
+   66371.18222749195,
+   62423.391804454164,
+   0.30715062881187166,
+   1.0339928491093007,
+   1.4361459205990783,
+   2.789705762584167,
+   6.880069676828569,
+   0.5636023931584119,
+   6.921547524309797,
+   6.921547524309975,
+   6.922425412969364,
+   6.922425412969364,
+   6.922869065843338,
+   6.922869065843338,
+   0.24520007287124115,
+   27.062754740691084,
+   20.887610117170308,
+   12.045605968625374,
+   0.0026483718238340917,
+   0.0034485187966833437,
+   0.0017715370741165858,
+   0.0009234362353445128,
+   0.0005540210413355471,
+   0.7192393885018725,
+   0.7200181359075659,
+   0.6815990888080666,
+   8.527575995547189e-08,
+   0.0026483718238340926,
+   0.0009461606533057067,
+   0.0009437873307077072,
+   0.0009480727411391102,
+   0.0009488782726406778,
+   0.7320732679198606,
+   0.7092956644736079,
+   0.6689258508315449,
+   1.208865867929022e-07,
+   0.6891269883710177,
+   0.7246227557575162,
+   0.23825921184422277,
+   0.106261020989452,
+   0.002449093376459845,
+   0.6893000588471273,
+   0.7244599115856264,
+   0.23867556294768386,
+   2.2811188049363423e-05,
+   0.0019329506107382017,
+   0.4374952502742475,
+   0.4097298589064396,
+   0.2170176540676284,
+   0.21107070907026076
+  ],
+  "variance": [
+   1.1536543015413229e-06,
+   9.418133859155322e-07,
+   9.463976376246884e-07,
+   1.1424000993087362e-06,
+   8.855608886794234e-07,
+   0.43541540760144076,
+   8.945007312724598e-07,
+   19.561227747999492,
+   3.249612883282573e-07,
+   1.5707814541499565e-05,
+   0.10745238075114151,
+   1.1416839247463855e-06,
+   157.48728201597356,
+   756.1241106473909,
+   711.7447831701514,
+   13855.529294358546,
+   881.6763890142537,
+   0.08376375897984023,
+   0.1167636186089319,
+   5.694692194793088e-06,
+   0.5000326331736635,
+   0.49996728115143724,
+   0.2723246884516419,
+   0.6026445041162684,
+   0.4999389990196806,
+   0.5000609153054488,
+   0.27796300355573167,
+   0.6003801432387404,
+   0.20662897177775466,
+   0.18753265839262429,
+   0.22218591852378533,
+   0.49991069816097244,
+   0.5000892079524736,
+   8.945007312724598e-07,
+   1.7672564084330679e-06,
+   3.4829936837970284e-06,
+   5.158168827835155e-06,
+   9.923097501876893e-06,
+   1.948063419009125e-05,
+   4.1264365890972214e-05,
+   0.43541540760144076,
+   0.4141238616187462,
+   0.37900910655032266,
+   0.3478025729705612,
+   7.465907236698922e-06,
+   1.1412811136686805e-05,
+   2.0986225698617526e-05,
+   0.09152460088390235,
+   0.08849718586858656,
+   0.08767399959954417,
+   0.0879491674197443,
+   0.08834422088858115,
+   0.08851668389346769,
+   0.09062154723875807,
+   0.0,
+   0.11724231693164403,
+   0.09629891183504385,
+   0.07474937276784002,
+   0.04497090289120771,
+   0.025550128688705445,
+   0.013488638717433889,
+   1195.5436294746144,
+   113.08684979504187,
+   0.8308555754851463,
+   0.8531140820688909,
+   0.41791112048068774,
+   1.0306974272942582,
+   0.9964458063237357,
+   0.00012294832577705917,
+   0.0032949401071622935,
+   0.013262911811534614,
+   4405133830.274944,
+   3896679844.3723955,
+   0.09434150877952817,
+   1.069141212009169,
+   2.0625151052533743,
+   7.782458241795309,
+   47.33535875801597,
+   0.3176476575738891,
+   47.907820131279074,
+   47.90782013128155,
+   47.91997359812407,
+   47.91997359812407,
+   47.92611610281062,
+   47.92611610281062,
+   0.06012307573606197,
+   732.3926941547977,
+   436.2922564069154,
+   145.09662315138323,
+   7.013873317278313e-06,
+   1.1892281891078336e-05,
+   3.1383436049695536e-06,
+   8.527344807472464e-07,
+   3.06939314242524e-07,
+   0.5173052979725475,
+   0.518426116035806,
+   0.4645773178639867,
+   7.271955235983264e-15,
+   7.013873317278318e-06,
+   8.952199818638817e-07,
+   8.907345256043791e-07,
+   8.988419224910262e-07,
+   9.003699762895565e-07,
+   0.535931269602864,
+   0.5031003396410569,
+   0.44746179391070623,
+   1.4613566866437874e-14,
+   0.4748960061013088,
+   0.525078138161617,
+   0.056767452028630226,
+   0.01129140458172076,
+   5.998058366619484e-06,
+   0.4751345711266532,
+   0.5248421634946536,
+   0.0569660243483938,
+   5.203503002234206e-10,
+   3.736298063553187e-06,
+   0.19140209401252647,
+   0.1678785572794909,
+   0.04709666217701683,
+   0.04455084422742266
+  ],
+  "rule": [
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "std_zero_to_one",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z"
+  ],
+  "fit_rows_per_feature": [
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15203,
+   15306,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15306,
+   15303,
+   15283,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15051,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308,
+   15308
+  ],
+  "nan_share_train": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.006859158609877181,
+   0.00013065064018813466,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.00013065064018813466,
+   0.00032662660047033665,
+   0.0016331330023516832,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.016788607264175637,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "nan_policy": "nanmean/nanstd over TRAIN; empty TRAIN, all-NaN feature or non-finite constant refused; NaN windows excluded",
+  "transform": "(x - mean) / std per feature; std = 1 where rule == std_zero_to_one",
+  "stationarity": {
+   "policy": "diff",
+   "rule": "ADF p > 0.05 and KPSS p < 0.05 on TRAIN -> NON_STATIONARY",
+   "features": {
+    "OPEN@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "HIGH@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "LOW@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "CLOSE@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_BAR_LOG_RETURN": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_LOG_RANGE@log": {
+     "adf_p": 3.283328099618704e-11,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_CLOSE_LOG_RETURN": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RAW_ELAPSED_HOURS": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ATR": {
+     "adf_p": 7.678281795373346e-16,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "BB_Width": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ATR_ratio": {
+     "adf_p": 1.2304424695860357e-15,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rolling_std_24": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "RSI": {
+     "adf_p": 0.0,
+     "kpss_p": 0.0825560433126287,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "Stochastic_K": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "Stochastic_D": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "CCI": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "WilliamsR": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ROC": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "BB_position": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "price_minus_ema": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hod_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hod_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dow_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dow_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_hod_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_hod_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_dow_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_dow_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_session_asia": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_session_europe": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.utc_session_us": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.london_hod_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cal.london_hod_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_6": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_12": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_24": {
+     "adf_p": 5.141530950571714e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.logret_48": {
+     "adf_p": 6.0477113380921456e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_1@log": {
+     "adf_p": 3.283328099618704e-11,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_2@log": {
+     "adf_p": 1.1254797454918996e-13,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_4@log": {
+     "adf_p": 6.528877571231671e-18,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_6@log": {
+     "adf_p": 1.4934183154142229e-19,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_12": {
+     "adf_p": 1.3264376871260617e-25,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_24": {
+     "adf_p": 6.748849610396699e-22,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.range_48": {
+     "adf_p": 3.6176260339567377e-23,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01595078755737172,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_6": {
+     "adf_p": 0.0,
+     "kpss_p": 0.05038301305305913,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_12": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_24": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.close_loc_48": {
+     "adf_p": 0.0,
+     "kpss_p": 0.09681873068221829,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_1": {
+     "adf_p": null,
+     "kpss_p": null,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_6": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_12": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_24": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.er_48": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.hours_since_session_open": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.body_pips": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.upper_wick_pips@asinh": {
+     "adf_p": 1.2460794173713607e-27,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.lower_wick_pips@asinh": {
+     "adf_p": 3.274390370532765e-28,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.range_pips@asinh": {
+     "adf_p": 4.952275629553428e-13,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.close_minus_low_pips@asinh": {
+     "adf_p": 2.156897971054883e-27,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cdl.high_minus_close_pips@asinh": {
+     "adf_p": 4.6141946625162775e-27,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dly.us10y.level@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dly.us10y.chg_1d": {
+     "adf_p": 2.1299313236173956e-30,
+     "kpss_p": 0.06737836160792943,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "dly.us10y.chg_5d": {
+     "adf_p": 1.0698800902910065e-18,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_long": {
+     "adf_p": 6.840662026141545e-10,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_change": {
+     "adf_p": 1.373684833532585e-23,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_share": {
+     "adf_p": 3.146881884106157e-08,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "cot.eur.net_z156": {
+     "adf_p": 3.635567526395266e-10,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.ret_1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.ret_4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.ret_24": {
+     "adf_p": 5.551782229629575e-30,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "fac.fx_f1.kalman_slope": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.tokyo_fix.hours_since": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.tokyo_fix.hours_to": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.london_fix.hours_since": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.london_fix.hours_to": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.ny_cut.hours_since": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ev.ny_cut.hours_to": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "act.p_hit": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ssa.trend_minus_close_pips": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ssa.c2_pips": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "ssa.c3_pips": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.A4@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D3": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.D1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D4@log": {
+     "adf_p": 0.00024131310406009935,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D3@log": {
+     "adf_p": 0.014778989109551314,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D2@log": {
+     "adf_p": 0.0400932458684181,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.lc.energy_D1@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.A4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D3": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D2": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.D1": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D4@log": {
+     "adf_p": 1.5621047387131733e-05,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D3@log": {
+     "adf_p": 0.029692380572348832,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D2@log": {
+     "adf_p": 0.0326939518874015,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.r1.energy_D1@diff": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.r1.phase_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.r1.phase_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.r1.inst_freq": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.lc_detr.inst_freq": {
+     "adf_p": 0.0,
+     "kpss_p": 0.028633603978389963,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "wv.usd.A4": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.eur.phase_cos": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.eur.phase_sin": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "hb.eur.inst_freq": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "kf.lc.level_minus_close": {
+     "adf_p": 0.0,
+     "kpss_p": 0.1,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "px.rv_24": {
+     "adf_p": 2.227955931634395e-15,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.p0": {
+     "adf_p": 4.646681307657953e-14,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.p1": {
+     "adf_p": 7.451781984624563e-24,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.p2": {
+     "adf_p": 8.763009219321626e-23,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    },
+    "rg.gmm.entropy": {
+     "adf_p": 0.0,
+     "kpss_p": 0.01,
+     "decision": "NONE",
+     "reason": "stationary or undecidable"
+    }
+   },
+   "differenced": []
+  },
+  "derived": "constants re-fitted on the wf2023 fit block with the loader's rules; stationarity decisions inherited from the base recipe"
+ },
+ "split": {
+  "arm": "wf2023",
+  "train": [
+   "2020-01-01",
+   "2023-01-01"
+  ],
+  "validation": [
+   "2023-01-01",
+   "2024-01-01"
+  ],
+  "selection_period": "INNER_A",
+  "read_once": "OBS_2024",
+  "test_closed_from": "2025-01-01",
+  "periods": {
+   "TRAIN": [
+    "2020-01-01",
+    "2022-07-01"
+   ],
+   "INNER_A": [
+    "2022-07-01",
+    "2023-01-01"
+   ],
+   "INNER_B": [
+    "2023-01-01",
+    "2024-01-01"
+   ],
+   "OBS_2024": [
+    "2024-01-01",
+    "2025-01-01"
+   ]
+  },
+  "status": {
+   "TRAIN": "WALK_FORWARD_FIT_BLOCK",
+   "INNER_A": "INNER_SELECTION_BLOCK_LAST_6_MONTHS_OF_FIT",
+   "INNER_B": "WALK_FORWARD_VALIDATION_YEAR_SCORED_AFTER_FREEZE",
+   "OBS_2024": "PREVIOUSLY_OBSERVED_DEVELOPMENT_READ_ONCE_AFTER_FREEZE"
+  },
+  "support_hash": null
+ },
+ "identity": "recipe_b9bdcbdefb61cbe3",
+ "identity_covers": [
+  "store",
+  "list",
+  "tensor",
+  "scaler",
+  "representation",
+  "regularization",
+  "split",
+  "business",
+  "labels"
+ ],
+ "derived_from": {
+  "identity": "recipe_5a8f2155318ba7c7",
+  "sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+  "deviation": [
+   "scaler.constants_refitted_on_fold_fit_block",
+   "split.walk_forward_fold"
+  ],
+  "fold": "wf2023"
+ },
+ "provenance": {
+  "base_provenance": {
+   "science_commit": "dc8d4aac63ba973f67124c1e0968a123fb39bfa1",
+   "c_receipt_sha256": "9133b8d18c4cee42ae02dde3bebdea9aae0579cd56f5827ca61498c2443b9f11",
+   "c_producer_config_identity": "cad1c29de05277a37135b9916fea437b86b51f6186c99d1c7adbce4fe78f14aa",
+   "combination_decision_sha256": "c336893dac48c61d43da486874bfb547589e45dd7710581541952432fc3f325a",
+   "combination_replay_sha256": "d9980c8b0a338649af8e1a56bdbe6b7e4586d4ce093b77222144212ebf339040",
+   "t3_manifest": "t3v2_7db1953f99ad",
+   "t3_manifest_sha256": "35636427e5f9fbfaf11010f8dd8bdfb8aee6e2866e49ad680b82f2cbc3a7716f",
+   "t3_decision_sha256": "7291c1aa1505472d043295495d0c622cebb04a747eb2c6e65c15004720425b8a",
+   "c_result_sha256": "6eefadd72b3fcc0d2776fc80c4a67f1f4aa7f7487cdc47da321dd8df432036ae",
+   "producer": {
+    "authenticated": true,
+    "emits_labels": true,
+    "science_commit": "dc8d4aac63ba973f67124c1e0968a123fb39bfa1"
+   }
+  },
+  "derived_by": "tools/expert_guided_wf_recipe.py"
+ },
+ "custody": "reports and physical copies verified by hash; OLAP ingestion / read-back NOT certified by this recipe"
+}

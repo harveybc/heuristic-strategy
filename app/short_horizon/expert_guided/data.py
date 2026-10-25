@@ -96,6 +96,27 @@ SPLIT_CONTRACTS = {
                      "scaler_fit": ("2020-01-01", "2023-07-01"), "report": ("TRAIN", "INNER_A"), "selection": "INNER_A",
                      "read_once": "OBS_2024", "train": ("2020-01-01", "2024-01-01"), "validation": ("2024-01-01", "2025-01-01")},
 }
+# Walk-forward folds INSIDE development (owner 2026-10-25: "arreglar primero el instrumento de medida"): the same shape
+# as ``consolidated`` (fit block + its last 6 months as the inner selection block) rolled back so that a WHOLE YEAR after
+# the fit is scored after freeze (INNER_B, never used for any choice). ``wf2022``: fit 2020-01..2022-01 (inner 2021H2),
+# validation 2022; ``wf2023``: fit 2020-01..2023-01 (inner 2022H2), validation 2023. The scaler constants come from the
+# fit block only. OBS_2024 keeps its single read so every arm of every fold is reported the same way. TEST stays closed.
+# Diagnostic contracts: they never release anything; the principal contract of the clean round remains ``consolidated``.
+WALK_FORWARD_FOLDS = ("wf2022", "wf2023")
+
+
+def _wf_contract(fit_end: str, inner_start: str, val_end: str) -> dict:
+    return {"periods": {"TRAIN": ("2020-01-01", inner_start), "INNER_A": (inner_start, fit_end), "INNER_B": (fit_end, val_end),
+                        "OBS_2024": ("2024-01-01", "2025-01-01")},
+            "status": {"TRAIN": "WALK_FORWARD_FIT_BLOCK", "INNER_A": "INNER_SELECTION_BLOCK_LAST_6_MONTHS_OF_FIT",
+                       "INNER_B": "WALK_FORWARD_VALIDATION_YEAR_SCORED_AFTER_FREEZE",
+                       "OBS_2024": "PREVIOUSLY_OBSERVED_DEVELOPMENT_READ_ONCE_AFTER_FREEZE"},
+            "scaler_fit": ("2020-01-01", inner_start), "report": ("TRAIN", "INNER_A", "INNER_B"), "selection": "INNER_A",
+            "read_once": "OBS_2024", "train": ("2020-01-01", fit_end), "validation": (fit_end, val_end)}
+
+
+SPLIT_CONTRACTS["wf2022"] = _wf_contract("2022-01-01", "2021-07-01", "2023-01-01")
+SPLIT_CONTRACTS["wf2023"] = _wf_contract("2023-01-01", "2022-07-01", "2024-01-01")
 
 
 def check_scaling(scaling) -> str:

@@ -727,7 +727,7 @@ def run(a):
             if (a.units, a.depth, a.head, a.core) != (m["units"], m["depth"], m["head"], m["core"]):
                 raise SystemExit("E3M_RECIPE_CONFLICT: --units/--depth/--head/--core differ from the recipe model")
         ARCH.update(groups=idx, group_units=gu, group_names=names, group_kinds=gk)
-    AUX = (MR.MultiResAux(cx) if a.aux_targets == "multires" else AuxTargets(cx)) if a.aux_targets else None
+    AUX = (MR.MultiResAux(cx, MR.LADDER, DG.EXPERT) if a.aux_targets == "multires" else AuxTargets(cx)) if a.aux_targets else None   # the optimum member of the ladder needs the registered params
     LMODE = a.labels
     SW = check_sample_weights(a)
     if a.labels == "multires":

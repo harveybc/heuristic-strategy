@@ -90,3 +90,29 @@ lanzar nada nuevo fuera de la palabra ya dada: (1) cinco semillas para los dos b
 auxiliar de regresión sobre las etiquetas heredadas, en vez de como etiqueta de clase (que dejó al estudiante sin
 ejemplos: NOP 86 %); (3) cadena en el host: 4 unidades de semillas → `decide` 5 semillas (`DECISION_A_5SEED.json`) →
 `emit --stage B --winner-from` → cola B (3 brazos × 3 semillas), todo a 10G, una unidad a la vez.
+
+## 7. Walk-forward dentro del desarrollo y ensamble de semillas (spec v5, pre-registrado 2026-10-25 antes de leer)
+
+Orden del propietario (2026-10-25): "arreglar primero el instrumento de medida"; ejecutar y orquestar todo, automatizado y
+secuencial, sin vigilancia. Qué corre, en una sola cadena en el host del 4090 (`tools/clean_round_chain/run_chain_wf.sh`):
+
+1. Repetición de `B_winner_multires_aux` (falló por `MULTIRES_SPEC_NEEDS_PARAMS`: el miembro óptimo de la escalera sin los
+   parámetros registrados; corregido en la llamada de E3-M). `B_winner_minimal_state` **no es ejecutable bajo la receta**
+   (E3-M rechaza `agent_state != none` con `--recipe`): queda registrado, no se corre.
+2. **Ensamble de semillas** (`tools/expert_guided_seed_ensemble.py`) para cada brazo terminado de A / A' / B: media de las
+   probabilidades de las N semillas por módulo, un solo replay; árbitro = el más frecuente entre las semillas (empate →
+   `prob`), tasa mediana, τ re-derivado en INNER_A. Cada semilla se vuelve a replicar (debe reproducir su E3M.json).
+3. **Errores estándar** (`app/short_horizon/expert_guided/stats.py`): SE de Lo (2002) del Sharpe anualizado y bootstrap
+   estacionario (bloque 5 días, 2 000 remuestreos, semilla fija) → informe `RESULTS_B_AND_ENSEMBLE_2026_10_25.md`.
+4. **Walk-forward**: pliegues `wf2022` (ajuste 2020-01→2022-01, interno 2021 S2, validación **2022**) y `wf2023` (ajuste
+   2020-01→2023-01, interno 2022 S2, validación **2023**), brazos `zz_hold`, `both_hold`, `both_hold_shorter`, 5 semillas,
+   10G. Receta **derivada por pliegue** (`tools/expert_guided_wf_recipe.py`): sólo cambian las constantes del escalador
+   (re-ajustadas en el bloque de ajuste del pliegue) y la partición; identidad propia, `derived_from` declarado; el
+   lanzador rechaza cualquier otra divergencia (`WF_FOLD_*`). Testigo del cargador en `recipes_wf/WF_RECIPE_<fold>_WITNESS.json`.
+5. Ensambles sobre los pliegues (INNER_B = año de validación, puntuado tras congelar; 2024 una lectura) → informe
+   `RESULTS_WALK_FORWARD_2026_10_25.md`.
+
+**Reglas pre-registradas (verbatim, `stats.HOLDS_RULE` / `SEPARABLE_RULE`):** un brazo SOSTIENE sólo si su Sharpe de
+ensamble en el año de validación menos un SE de Lo es > 0 en AMBOS pliegues; dos brazos son SEPARABLES en una ventana sólo
+si |Δ Sharpe| > SE agrupado √(SE_a² + SE_b²), si no NOT_SEPARABLE. Nada se elige en INNER_B ni en 2024; el walk-forward es
+diagnóstico y no libera nada. Recogida en el coordinador: `tools/clean_round_chain/collect.sh` (sin commit automático).
