@@ -98,12 +98,43 @@ def _sanity_gate(rec: dict, results: Path, units: list) -> None:
         rec["fitness_choice"] = dict(rec["fitness_choice"], verdict=ST.SANITY_REFUSAL, refused=ref)
 
 
-def _md_sanity(doc: dict) -> list:
-    L = ["## Sanity gate (FAILED_SANITY units are excluded from every verdict; never shown as results)", "", "| unit | sanity | causes |", "| --- | --- | --- |"]
+def _md_sanity(doc: dict, results: Path | None = None) -> list:
+    L = ["## Sanity gate (FAILED_SANITY units are excluded from every verdict; never shown as results)", "",
+         "| unit | sanity | causes | ensemble (informational, NOT a result) |", "| --- | --- | --- | --- |"]
     for rec in doc["arms"].values():
         for u, v in (rec.get("sanity") or {}).items():
-            L.append(f"| {u} | **{v['sanity']}** | {v.get('sanity_causes') or '—'} |")
+            info = SG.ensemble_brief(results, u) if (results is not None and v["sanity"] == "FAILED_SANITY") else "—"
+            L.append(f"| {u} | **{v['sanity']}** | {v.get('sanity_causes') or '—'} | {info} |")
+    L += _md_diversity(doc)
     return L + [""]
+
+
+def _md_diversity(doc: dict) -> list:
+    rows = [r for rec in doc["arms"].values() for r in rec.get("fitness_diversity") or []]
+    if not rows:
+        return []
+    L = ["", "## Fitness-variant diversity (selectable front, distinct points chosen across the 7 variants)", "",
+         "| unit | seed / ensemble | selectable front | distinct chosen | status | budget escalated |", "| --- | --- | ---: | ---: | --- | --- |"]
+    for r in rows:
+        L.append(f"| {r['unit']} | {r['who']} | {r['front'] if r['front'] is not None else '—'} | {r['distinct'] if r['distinct'] is not None else '—'} | {r['flag']} | {'yes' if r['escalated'] else 'no'} |")
+    return L
+
+
+def _diversity(results: Path, unit: str) -> list:
+    """Per seed and ensemble: the v1.3 strategy doc's ``fitness_diversity`` (NOT_RECORDED for older contracts)."""
+    rows = []
+    for src, path in (("seeds", results / unit / "E3M.json"), ("ensemble", results / unit / "ENSEMBLE.json")):
+        if not path.exists():
+            continue
+        d = json.loads(path.read_text())
+        docs = ([(s_, (t.get("action_contract") or {}).get("strategy") or {}) for s_, t in d["trials"]["FULL"].items()] if src == "seeds"
+                else [("ensemble", d.get("ensemble_strategy") or d.get("arbiter") or {})])
+        for s_, sd in docs:
+            dv = sd.get("fitness_diversity") if isinstance(sd, dict) else None
+            rows.append({"unit": unit, "who": s_, "front": None if not dv else dv["selectable_front_points"],
+                         "distinct": None if not dv else dv["distinct_points_chosen_across_variants"],
+                         "flag": "NOT_RECORDED" if not dv else (dv["flag"] or "OK"), "escalated": bool(dv and dv.get("budget_escalation"))})
+    return rows
 
 
 def _audit(audit_dir: Path, unit: str, legacy: bool):
@@ -157,9 +188,9 @@ def fitness_choice(by_fold: dict) -> dict:
     return {"chosen": f, "wf2022": w, "wf2023": c, "verdict": "CONFIRMED" if conf else "REFUTED"}
 
 
-def build_report(spec: dict, results: Path, audit_dir: Path) -> dict:
-    w = spec["walk_forward_c2"]
-    doc = {"identity": spec["identity"], "stage": "WF_C2", "contract": w["action_contract"], "rule": w["rule"], "early_close_rule": w["early_close_rule"],
+def build_report(spec: dict, results: Path, audit_dir: Path, key: str = "walk_forward_c2", P: str = "WF_C2") -> dict:
+    w = spec[key]
+    doc = {"identity": spec["identity"], "stage": P, "contract": w["action_contract"], "rule": w["rule"], "early_close_rule": w["early_close_rule"],
            "fitness_rule": w["fitness_rule"], "arms": {}}
     for arm in w["arms"]:
         nm = arm["name"]
@@ -168,7 +199,7 @@ def build_report(spec: dict, results: Path, audit_dir: Path) -> dict:
         stats_c2, stats_b, stats_v1 = {}, {}, {}
         ec_c2, ec_b = {}, {}
         for f in w["folds"]:
-            u = f"WF_C2_{f}_{nm}"
+            u = f"{P}_{f}_{nm}"
             ub, uv = bl["wf"].replace("<fold>", f), bl["wf_v1"].replace("<fold>", f)
             en, eb, ev = _ens(results, u), _ens(results, ub), _ens(results, uv)
             c, b, v = _ws(results, u, en), _ws(results, ub, eb), _ws(results, uv, ev)
@@ -202,6 +233,7 @@ def build_report(spec: dict, results: Path, audit_dir: Path) -> dict:
         rec["fitness_choice"] = fitness_choice(rec["fitness"])
         _sanity_gate(rec, results, [rec["folds"][f]["unit"] for f in w["folds"]] + [bl["wf"].replace("<fold>", f) for f in w["folds"]]
                      + [bl["wf_v1"].replace("<fold>", f) for f in w["folds"]])
+        rec["fitness_diversity"] = [r for f in w["folds"] for r in _diversity(results, rec["folds"][f]["unit"])]
         doc["arms"][nm] = rec
     return doc
 
@@ -222,12 +254,12 @@ def contrast_early_close(g_by_fold: dict, c2_by_fold: dict) -> dict:
     return per
 
 
-def build_report_c2g(spec: dict, results: Path, audit_dir: Path) -> dict:
+def build_report_c2g(spec: dict, results: Path, audit_dir: Path, key: str = "walk_forward_c2g", P: str = "WF_C2G") -> dict:
     """RESULTS_WF_C2G: the C2G arm vs the C2 arm of the same fold (direct contrast) and the WF baseline, by the seed
     ENSEMBLES on INNER_B; HOLDS / SEPARABLE, activity, the early-close rule (vs the WF baseline) and the C2G-vs-C2
     early-close contrast; every fitness variant; OBS_2024 one read."""
-    w = spec["walk_forward_c2g"]
-    doc = {"identity": spec["identity"], "stage": "WF_C2G", "contract": w["action_contract"], "rule": w["rule"], "early_close_rule": w["early_close_rule"],
+    w = spec[key]
+    doc = {"identity": spec["identity"], "stage": P, "contract": w["action_contract"], "rule": w["rule"], "early_close_rule": w["early_close_rule"],
            "fitness_rule": w["fitness_rule"], "arms": {}}
     for arm in w["arms"]:
         nm = arm["name"]
@@ -236,7 +268,7 @@ def build_report_c2g(spec: dict, results: Path, audit_dir: Path) -> dict:
         st_g, st_c, st_b = {}, {}, {}
         ec_g, ec_c, ec_b = {}, {}, {}
         for f in w["folds"]:
-            u = f"WF_C2G_{f}_{nm}"
+            u = f"{P}_{f}_{nm}"
             uc, ub = bl["c2"].replace("<fold>", f), bl["wf"].replace("<fold>", f)
             en, ec, eb = _ens(results, u), _ens(results, uc), _ens(results, ub)
             g, c, b = _ws(results, u, en), _ws(results, uc, ec), _ws(results, ub, eb)
@@ -262,12 +294,13 @@ def build_report_c2g(spec: dict, results: Path, audit_dir: Path) -> dict:
         rec["fitness_choice"] = fitness_choice(rec["fitness"])
         _sanity_gate(rec, results, [rec["folds"][f]["unit"] for f in w["folds"]] + [bl["wf"].replace("<fold>", f) for f in w["folds"]]
                      + [bl["c2"].replace("<fold>", f) for f in w["folds"]])
+        rec["fitness_diversity"] = [r for f in w["folds"] for r in _diversity(results, rec["folds"][f]["unit"])]
         doc["arms"][nm] = rec
     return doc
 
 
-def report_markdown_c2g(doc: dict) -> str:
-    L = [f"# Stage WF_C2G — closers that see their own order (spec `{doc['identity']}`, 2026-10-25)", "",
+def report_markdown_c2g(doc: dict, results: Path | None = None) -> str:
+    L = [f"# Stage {doc['stage']} — closers that see their own order (spec `{doc['identity']}`, 2026-10-25)", "",
          "C2 plus one change, the owner's extra arm: the closers alone also read the geometry of their own open order (signed "
          "distance to SL and TP in the order's sigma, hours held, side). Seed ensemble on the validation year (INNER_B, scored "
          "once after every choice was frozen on INNER_A) against the C2 arm and the WF baseline of the same fold. OBS_2024 one "
@@ -289,15 +322,15 @@ def report_markdown_c2g(doc: dict) -> str:
                      f"AUC {x['auc_c2g']:.2f} vs {x['auc_c2']:.2f}, cut-winner {x['cut_winner_share_c2g']:.2f} vs {x['cut_winner_share_c2']:.2f} → {x['verdict']}"))
         fc = rec["fitness_choice"]
         L += [f"- Fitness variant: chosen on wf2022 = `{fc.get('chosen')}`, wf2023 → **{fc['verdict']}**", ""]
-    return "\n".join(L + _md_sanity(doc)) + "\n"
+    return "\n".join(L + _md_sanity(doc, results)) + "\n"
 
 
 def _f(x, nd=2):
     return "—" if x is None or (isinstance(x, float) and not math.isfinite(x)) else f"{x:.{nd}f}"
 
 
-def report_markdown(doc: dict) -> str:
-    L = [f"# Stage WF_C2 — learning the consequences of our actions (spec `{doc['identity']}`, 2026-10-25)", "",
+def report_markdown(doc: dict, results: Path | None = None) -> str:
+    L = [f"# Stage {doc['stage']} — learning the consequences of our actions (spec `{doc['identity']}`, 2026-10-25)", "",
          "Seed ensemble on the validation year of each walk-forward fold (INNER_B, scored once after every choice was frozen on "
          "INNER_A), against the two baselines on the same fold. OBS_2024 is one read and never decides. TEST closed. These are "
          "replays of a learned policy under the replay contract, not a profitability claim.", "",
@@ -325,15 +358,20 @@ def report_markdown(doc: dict) -> str:
             L.append(f"| {fn} | {_f(a_ and a_['sharpe'])} ± {_f(a_ and a_['se_lo'])} | {_f(a_ and a_['opw'])} | {a_ and a_['valid']} | "
                      f"{_f(b_ and b_['sharpe'])} ± {_f(b_ and b_['se_lo'])} | {_f(b_ and b_['opw'])} | {b_ and b_['valid']} |")
         L.append("")
-    return "\n".join(L + _md_sanity(doc)) + "\n"
+    return "\n".join(L + _md_sanity(doc, results)) + "\n"
+
+
+REPORT_STAGES = {"WF_C2": ("walk_forward_c2", False), "WF_C2G": ("walk_forward_c2g", True),
+                 "WF_C2_13": ("walk_forward_c2_13", False), "WF_C2G_13": ("walk_forward_c2g_13", True)}
 
 
 def cmd_report(a):
     spec = json.loads(Path(a.spec).read_text())
-    g = getattr(a, "stage", "WF_C2") == "WF_C2G"
-    doc = (build_report_c2g if g else build_report)(spec, Path(a.results), Path(a.audit_dir))
+    P = getattr(a, "stage", "WF_C2")
+    key, g = REPORT_STAGES[P]
+    doc = (build_report_c2g if g else build_report)(spec, Path(a.results), Path(a.audit_dir), key, P)
     Path(a.out_json).write_text(json.dumps(doc, indent=1, default=float))
-    Path(a.out_md).write_text((report_markdown_c2g if g else report_markdown)(doc))
+    Path(a.out_md).write_text((report_markdown_c2g if g else report_markdown)(doc, Path(a.results)))
     print(json.dumps({nm: {"holds": r["holds"]["verdict"], "early_close": r["early_close"]["verdict"], "fitness": r["fitness_choice"]["verdict"]}
                       for nm, r in doc["arms"].items()}))
 
@@ -352,7 +390,7 @@ def main():
     r = sub.add_parser("report")
     for k in ("--spec", "--results", "--audit-dir", "--out-json", "--out-md"):
         r.add_argument(k, required=True)
-    r.add_argument("--stage", choices=("WF_C2", "WF_C2G"), default="WF_C2")
+    r.add_argument("--stage", choices=tuple(REPORT_STAGES), default="WF_C2")
     a = ap.parse_args()
     {"contract": cmd_contract, "outcomes": cmd_outcomes, "report": cmd_report}[a.cmd](a)
 

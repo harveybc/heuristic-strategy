@@ -60,6 +60,10 @@ GENES = ("open_margin", "close_margin", "close_p", "allow_reverse", "nop_veto")
 GENES_Q = ("open_rate", "close_rem_rate", "close_p_rate", "allow_reverse", "nop_veto_rate")
 Q_BOUNDS = {"open_rate": [0.002, 0.30], "close_rem_rate": [0.0, 0.60], "close_p_rate": [0.0, 0.60], "allow_reverse": [0.0, 1.0],
             "nop_veto_rate": [0.0, 0.50]}
+# v1.3 (2026-10-25): per-side open rates (each side's predicted-net reference), side cap, activity CI (see action_contract)
+GENES_Q13 = ("open_rate_l", "open_rate_s", "close_rem_rate", "close_p_rate", "allow_reverse", "nop_veto_rate")
+Q_BOUNDS_13 = {"open_rate_l": [0.002, 0.30], "open_rate_s": [0.002, 0.30], "close_rem_rate": [0.0, 0.60], "close_p_rate": [0.0, 0.60],
+               "allow_reverse": [0.0, 1.0], "nop_veto_rate": [0.0, 0.50]}
 NET_BOUND = (-4.0, 4.0)
 REM_BOUND = (-4.0, 4.0)
 CLASSES = {"open_l": ["NOT_TP_FIRST", "TP_FIRST"], "open_s": ["NOT_TP_FIRST", "TP_FIRST"], "nop": ["TRADE", "NOP"],
@@ -194,8 +198,9 @@ def validate(doc: dict) -> list:
     s = doc.get("strategy") or {}
     genes = s.get("genes") or {}
     if s.get("gene_space") == ACT.GENE_SPACE_Q:
-        if tuple(genes) != GENES_Q or genes != Q_BOUNDS:
+        if not ((tuple(genes) == GENES_Q and genes == Q_BOUNDS) or (tuple(genes) == GENES_Q13 and genes == Q_BOUNDS_13)):
             errs.append(f"C2_CONTRACT_GENES:{list(genes)}")
+        errs += [f"C2_CONTRACT_{e}" for e in ACT.v13_rule_errors(s, tuple(genes) == GENES_Q13)]
     elif s.get("gene_space") is not None or tuple(genes) != GENES:
         errs.append(f"C2_CONTRACT_GENES:{list(genes)}")
     for g, b in genes.items():
@@ -249,6 +254,26 @@ def default_contract_geometry() -> dict:
         "owner_words": "Sí, como brazo extra (2026-10-25)"}
     doc["constraints"]["closer_inputs"] = "recipe_window+order_geometry"
     return ACT.seal(doc)
+
+
+def contract_v13(base: dict) -> dict:
+    """C2 / C2G v1.3 from the committed C2 / C2G contract: per-side open rates, the side cap, the activity CI rule and
+    the front-size diagnostic (``ACT.v13_strategy_block``); every other field kept; sealed with a new identity."""
+    d = json.loads(json.dumps(base))
+    d["identity"] = None
+    d["strategy"] = ACT.v13_strategy_block(d["strategy"], Q_BOUNDS_13, {
+        "open_margin_l": "quantile(best predicted LONG net over the cells, calibration flat rows, 1 - open_rate_l)",
+        "open_margin_s": "quantile(best predicted SHORT net over the cells, calibration flat rows, 1 - open_rate_s)"})
+    d["strategy"]["gene_map"].pop("open_margin", None)
+    d["strategy"]["rule"] = ("flat: per side the cell with the highest predicted net; open the better side among sides whose predicted net > "
+                             "open_margin_side (per-side margins) and (veto kept) pNOP <= nop_veto; positioned: CLOSE when predicted remaining "
+                             "< -close_margin OR calibrated P(SL first) > close_p (optimal stopping), then reverse when allow_reverse and the "
+                             "open rule picks the other side")
+    d["strategy"]["value_targets"] = {"open_margin_l": "open_l.value:net_", "open_margin_s": "open_s.value:net_",
+                                      "close_margin": "close_l.value:remaining_sigma|close_s.value:remaining_sigma"}
+    d["derived_from"] = {"identity": base.get("identity"), "why": ("v12 chain: C2/C2G ensembles at exactly 2.0 trades/week on calibration, 1.48-1.94 out of "
+                                                                   "sample; one-sided seeds")}
+    return ACT.seal(d)
 
 
 def state_slot_errors(doc: dict) -> list:
@@ -553,6 +578,30 @@ class StrategyC2:
         return dataclasses.asdict(self)
 
 
+@dataclass(frozen=True)
+class StrategyC2PS:
+    """C2 / C2G v1.3: the open margin is PER SIDE (each from its own side's predicted-net calibration distribution)."""
+    open_margin_l: float
+    open_margin_s: float
+    close_margin: float
+    close_p: float
+    allow_reverse: bool
+    nop_veto: float | None
+
+    @classmethod
+    def from_genes(cls, g: dict, veto: bool):
+        return cls(float(g["open_margin_l"]), float(g["open_margin_s"]), float(g["close_margin"]), float(g["close_p"]),
+                   bool(float(g["allow_reverse"]) >= 0.5), float(g["nop_veto"]) if veto else None)
+
+    def to_dict(self):
+        return dataclasses.asdict(self)
+
+
+def strategy_from_dict(d: dict):
+    """Rebuild a frozen C2 strategy from its recorded dict (``StrategyC2`` or, v1.3, ``StrategyC2PS``)."""
+    return StrategyC2PS(**d) if "open_margin_l" in d else StrategyC2(**d)
+
+
 NO_TRADE = StrategyC2(1e9, 0.0, 1.0, False, None)
 
 
@@ -578,7 +627,8 @@ class PolicyC2:
         for si, d in ((0, E.LONG), (1, E.SHORT)):
             net = np.asarray(self._v("net", r, si), float)
             ci = int(np.argmax(net))
-            if net[ci] > s.open_margin and (best is None or net[ci] > best[0]):
+            mar = (s.open_margin_l if si == 0 else s.open_margin_s) if isinstance(s, StrategyC2PS) else s.open_margin
+            if net[ci] > mar and (best is None or net[ci] > best[0]):
                 best = (float(net[ci]), d, self.cells[ci][0], self.cells[ci][1])
         return None if best is None else best[1:]
 
@@ -606,7 +656,7 @@ class PolicyC2:
 
 def strategy_of(doc: dict):
     s = doc.get("strategy")
-    return None if s is None else StrategyC2(**s)
+    return None if s is None else strategy_from_dict(s)
 
 
 def closer_reference(table: dict, src: dict) -> dict:
@@ -638,13 +688,29 @@ def gene_map(view: dict, rows, closer_ref: dict) -> ACT.GeneMap:
     return ACT.GeneMap(refs, rules, "C2: open on calibration flat rows; closers on the round-0 INNER_A positioned visits")
 
 
+def gene_map_v13(view: dict, rows, closer_ref: dict) -> ACT.GeneMap:
+    """C2 v1.3: per-side open references (each side's best predicted net over the cells), the closer references as C2."""
+    r = np.asarray(rows, np.int64)
+    refs = {"rem_ref": closer_ref["rem"], "psl_ref": closer_ref["psl"], "nop_score": view["pn"][r]}
+    for si, k in ((0, "open_score_l"), (1, "open_score_s")):
+        x = view["net"][r, si] if len(r) else np.zeros((0, 1))
+        b = np.nanmax(np.where(np.isfinite(x), x, -np.inf).reshape(len(r), -1), axis=1) if len(r) else np.zeros(0)
+        refs[k] = np.where(np.isfinite(b), b, np.nan)
+    rules = {"open_margin_l": ("open_rate_l", "open_score_l", "upper_rate"), "open_margin_s": ("open_rate_s", "open_score_s", "upper_rate"),
+             "close_margin": ("close_rem_rate", "rem_ref", "neg_lower_rate"), "close_p": ("close_p_rate", "psl_ref", "upper_rate"),
+             "allow_reverse": ("allow_reverse", None, "copy"), "nop_veto": ("nop_veto_rate", "nop_score", "upper_rate")}
+    return ACT.GeneMap(refs, rules, "C2 v1.3: per-side open references on calibration flat rows; closers on the round-0 INNER_A positioned visits")
+
+
 def freeze(table, cal_rows, score_table, contract, seed, budget, primary, closer_src=None):
     gm = None
-    if (contract.get("strategy") or {}).get("gene_space") == ACT.GENE_SPACE_Q:
+    st = contract.get("strategy") or {}
+    v13 = ACT.is_v13(st)
+    if st.get("gene_space") == ACT.GENE_SPACE_Q:
         ref = closer_reference(table, closer_src or {})
-        gm = lambda view: gene_map(view, cal_rows, ref)  # noqa: E731
+        gm = (lambda view: gene_map_v13(view, cal_rows, ref)) if v13 else (lambda view: gene_map(view, cal_rows, ref))  # noqa: E731
     return ACT.freeze_strategy(table, cal_rows, score_table, contract, seed, budget, primary,
-                               gene_names=GENES, make_strategy=StrategyC2.from_genes, restrict_fn=restrict, gene_map_fn=gm)
+                               gene_names=GENES, make_strategy=(StrategyC2PS if v13 else StrategyC2).from_genes, restrict_fn=restrict, gene_map_fn=gm)
 
 
 # ----------------------------------------------------------------------------- label sets and metrics
@@ -804,7 +870,7 @@ def run_seed(cx, seed, d):
 
     def score_table(view, strat):
         m, trades = ACT.rollout_with_trades(cx, "INNER_A", PolicyC2(view, strat)(cx), SCFG)
-        return ACT.window_components(m, trades, d["sig"], SCFG.capital, min_opw)
+        return ACT.window_components(m, trades, d["sig"], SCFG.capital, min_opw, **ACT.score_kwargs(AC))
 
     pols, infos, rounds, comp = {}, {}, [], None
     for rnd in range(d["rounds"] + 1):
@@ -917,15 +983,18 @@ def run_e3m(ctx: dict) -> dict:
             rec["musashi_contract"][p] = summary(cx.rollout(p, c(cx), MCFG)[0])
         for f, bf in extra["strategy"]["by_fitness"].items():
             if bf["strategy"] is not None:
-                cf = PolicyC2(table, StrategyC2(**bf["strategy"]))
+                cf = PolicyC2(table, strategy_from_dict(bf["strategy"]))
                 bf["trading"] = {p: summary(cx.rollout(p, cf(cx), SCFG)[0]) for p in DEV}
             bu = bf["archive_view"]["best_unconstrained_by_fitness"]
             if bu is not None:
-                cu = PolicyC2(table, StrategyC2(**bu["strategy"]))
+                cu = PolicyC2(table, strategy_from_dict(bu["strategy"]))
                 bu["trading_not_selectable"] = {p: summary(cx.rollout(p, cu(cx), SCFG)[0]) for p in DEV}
         rec["action_contract"]["out_of_sample_activity"] = {
             "INNER_B_trades_per_week": rec["trading"].get("INNER_B", {}).get("orders_per_week"),
             "owner_rule": "below 2 trades/week on INNER_B = INVALID", "valid_INNER_B": rec["trading"].get("INNER_B", {}).get("valid")}
+        ci_p = {p: ACT.period_activity(cx, p, c(cx), SCFG) for p in DEV} if ACT.is_v13(AC["strategy"]) else {}
+        if ci_p:
+            rec["action_contract"]["activity_ci90"] = ci_p
         for m, pol in pols.items():
             torch.save(pol.m.state_dict(), out / f"FULL_{m}_{seed}.pt")
             res["probe"][f"FULL_{m}_{seed}"] = ctx["probe"](pol)
@@ -935,7 +1004,7 @@ def run_e3m(ctx: dict) -> dict:
         print(json.dumps({"variant": "FULL", "seed": seed, "arbiter": "action_contract_c2", "strategy": best["strategy"],
                           "sharpe": {p: round(rec["trading"][p]["sharpe_daily_sqrt365"], 2) for p in rec["trading"]},
                           "opw": {p: round(rec["trading"][p]["orders_per_week"], 2) for p in rec["trading"]},
-                          "seed_sanity": {p: ACT.seed_sanity(rec["trading"][p]) for p in rec["trading"]}}), flush=True)
+                          "seed_sanity": {p: ACT.seed_sanity(rec["trading"][p], ci_p.get(p)) for p in rec["trading"]}}), flush=True)
     DEC = AC["blocks"]["decision"]
     sh = [res["trials"]["FULL"][str(s)]["trading"][DEC]["sharpe_daily_sqrt365"] for s in SEEDS]
     res["decision"] = {"means": {"FULL": {"decision_block": DEC, "seed_mean_sharpe": float(np.mean(sh)),

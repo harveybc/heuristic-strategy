@@ -424,7 +424,7 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
                 if bf["strategy"] is None:
                     doc["ensemble"][fname] = {"note": "NO_VALID_STRATEGY on the calibration block: nothing to replay"}
                     continue
-                stf = C2.StrategyC2(**bf["strategy"])
+                stf = C2.strategy_from_dict(bf["strategy"])
                 pf, ep = C2.PolicyC2(ens_t, stf)(cx), C2.exit_prob(cx, ens_t)
                 doc["ensemble"][fname] = {"strategy": bf["strategy"], "primary": fname == primary}
                 for p in periods:
@@ -443,7 +443,7 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
                 if bf["strategy"] is None:
                     doc["ensemble"][fname] = {"note": "NO_VALID_STRATEGY on the calibration block: nothing to replay"}
                     continue
-                stf = ACT.Strategy(**bf["strategy"])
+                stf = ACT.strategy_from_dict(bf["strategy"])
                 pf, ep = ACT.ContractPolicy(ens_t, stf)(cx), v1_exit_prob(cx, ens_t)
                 doc["ensemble"][fname] = {"strategy": bf["strategy"], "primary": fname == primary}
                 for p in periods:

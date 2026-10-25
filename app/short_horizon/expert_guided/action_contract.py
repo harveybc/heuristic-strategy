@@ -42,6 +42,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from . import env as E
 from . import multires as MR
@@ -59,6 +60,24 @@ GENE_SPACE_Q = "calibration_quantile"
 STRATEGY_GENES_Q = ("open_rate", "gain_quantile", "close_rate", "allow_reverse", "nop_veto_rate")
 Q_BOUNDS_V1 = {"open_rate": [0.002, 0.30], "gain_quantile": [0.0, 0.95], "close_rate": [0.0, 0.60], "allow_reverse": [0.0, 1.0],
                "nop_veto_rate": [0.0, 0.50]}
+# v1.3 (2026-10-25, after v12: seeds that open one side only, and activity sitting exactly on the 2.0 boundary): PER-SIDE
+# open genes (each side's rate / gain quantile maps through its own opener's calibration-block distribution), a side-
+# balance constraint (<= 90 % of entries on one side) and the activity rule held with confidence (lower bound of the
+# 90 % weekly-block bootstrap interval of trades/week >= 2.0 on the calibration block; owner: "Con confianza estadística")
+STRATEGY_GENES_Q13 = ("open_rate_l", "open_rate_s", "gain_quantile_l", "gain_quantile_s", "close_rate", "allow_reverse", "nop_veto_rate")
+Q_BOUNDS_V13 = {"open_rate_l": [0.002, 0.30], "open_rate_s": [0.002, 0.30], "gain_quantile_l": [0.0, 0.95], "gain_quantile_s": [0.0, 0.95],
+                "close_rate": [0.0, 0.60], "allow_reverse": [0.0, 1.0], "nop_veto_rate": [0.0, 0.50]}
+ACTIVITY_RULE_CI = "ci90_lower_bound_weekly_block_bootstrap"
+ACTIVITY_CI_DRAWS, ACTIVITY_CI_SEED, ACTIVITY_CI_LEVEL = 2000, 20261025, 0.90
+SIDE_CAP = 0.90                  # max share of entries on one side (calibration block); the sanity gate's own cap
+FRONT_MIN = 5                    # fewer selectable front points -> FRONT_TOO_SMALL, the search budget is escalated once
+ACTIVITY_RULE_TEXT = ("on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of "
+                      "trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed "
+                      "20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of "
+                      "sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'")
+SIDE_RULE_TEXT = ("side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the "
+                  "constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation "
+                  "(sum); such points are archived and never selectable")
 NOP_POSITIVE = ("nop_hard", "nop_graded", "negative", "conflict")
 
 
@@ -111,10 +130,11 @@ def validate(doc: dict) -> list:
     s = doc.get("strategy") or {}
     genes = s.get("genes") or {}
     if s.get("gene_space") == GENE_SPACE_Q:
-        if tuple(genes) != STRATEGY_GENES_Q or genes != Q_BOUNDS_V1:
+        if not ((tuple(genes) == STRATEGY_GENES_Q and genes == Q_BOUNDS_V1) or (tuple(genes) == STRATEGY_GENES_Q13 and genes == Q_BOUNDS_V13)):
             errs.append(f"ACTION_CONTRACT_GENES:{list(genes)}")
         if s.get("require_early_close") is not True:
             errs.append("ACTION_CONTRACT_EARLY_CLOSE_RULE")
+        errs += [f"ACTION_CONTRACT_{e}" for e in v13_rule_errors(s, tuple(genes) == STRATEGY_GENES_Q13)]
     elif s.get("gene_space") is not None:
         errs.append(f"ACTION_CONTRACT_GENE_SPACE:{s.get('gene_space')}")
     elif tuple(genes) != STRATEGY_GENES:
@@ -148,6 +168,39 @@ def validate(doc: dict) -> list:
     if c.get("agent_state") != "none" or c.get("variants") != ["FULL"]:
         errs.append("ACTION_CONTRACT_CONSTRAINTS")
     return errs
+
+
+def is_v13(strategy: dict) -> bool:
+    """A v1.3-style strategy block (per-side genes, activity CI, side balance): v1.3, C2 v1.3, C2G v1.3."""
+    return (strategy or {}).get("activity_constraint") == ACTIVITY_RULE_CI
+
+
+def v13_rule_errors(s: dict, per_side_genes: bool) -> list:
+    """The v1.3 rules travel together: per-side genes <=> the activity CI rule, the side cap, the front minimum and an
+    escalated optimiser budget."""
+    errs = []
+    if per_side_genes != is_v13(s):
+        errs.append("V13_RULES_WITHOUT_PER_SIDE_GENES" if is_v13(s) else "V13_PER_SIDE_GENES_WITHOUT_RULES")
+    if is_v13(s):
+        if float(s.get("side_cap", -1)) != SIDE_CAP:
+            errs.append("V13_SIDE_CAP")
+        if int(s.get("front_min", -1)) != FRONT_MIN:
+            errs.append("V13_FRONT_MIN")
+        ac = s.get("activity_ci") or {}
+        if (int(ac.get("draws", 0)), int(ac.get("seed", -1)), float(ac.get("level", 0))) != (ACTIVITY_CI_DRAWS, ACTIVITY_CI_SEED, ACTIVITY_CI_LEVEL):
+            errs.append("V13_ACTIVITY_CI")
+        o, e = (s.get("optimizer") or {}).get("final") or {}, (s.get("optimizer") or {}).get("final_escalated") or {}
+        if int(e.get("population", 0)) <= int(o.get("population", 0)) or int(e.get("generations", 0)) <= int(o.get("generations", 0)) \
+                or int(e.get("population", 0)) % 4:
+            errs.append("V13_ESCALATED_BUDGET")
+    return errs
+
+
+def score_kwargs(contract: dict) -> dict:
+    """The extra ``window_components`` arguments a contract's strategy rules require ({} for v1 / v1.1 / v1.2 / C2 / C2G:
+    their scoring stays byte-identical)."""
+    s = (contract or {}).get("strategy") or {}
+    return {"activity_ci": True, "side_cap": float(s["side_cap"])} if is_v13(s) else {}
 
 
 CATEGORICAL_ENCODING, CONTINUOUS_ENCODING = "softmax_ce", "bounded_sigmoid"
@@ -416,6 +469,37 @@ class Strategy:
         return dataclasses.asdict(self)
 
 
+@dataclass(frozen=True)
+class StrategyPS:
+    """v1.3: the open threshold and the gain margin are PER SIDE (each from its own opener's calibration distribution)."""
+    open_threshold_l: float
+    open_threshold_s: float
+    gain_margin_l: float
+    gain_margin_s: float
+    close_threshold: float
+    allow_reverse: bool
+    nop_veto: float | None
+
+    @classmethod
+    def from_genes(cls, g: dict, veto: bool):
+        return cls(float(g["open_threshold_l"]), float(g["open_threshold_s"]), float(g["gain_margin_l"]), float(g["gain_margin_s"]),
+                   float(g["close_threshold"]), bool(float(g["allow_reverse"]) >= 0.5), float(g["nop_veto"]) if veto else None)
+
+    def to_dict(self):
+        return dataclasses.asdict(self)
+
+
+def strategy_from_dict(d: dict):
+    """Rebuild a frozen strategy from its recorded dict (v1 / v1.2: ``Strategy``; v1.3: ``StrategyPS``)."""
+    return StrategyPS(**d) if "open_threshold_l" in d else Strategy(**d)
+
+
+def _side_thresholds(s, d):
+    if isinstance(s, StrategyPS):
+        return (s.open_threshold_l, s.gain_margin_l) if d == E.LONG else (s.open_threshold_s, s.gain_margin_s)
+    return s.open_threshold, s.gain_margin
+
+
 def expected_gain(p, tp, sl, cost):
     """p * TP - (1 - p) * SL - cost: every term in causal sigma multiples."""
     return p * tp - (1.0 - p) * sl - cost
@@ -443,7 +527,8 @@ class ContractPolicy:
         for d, pf, tpf, slf in ((E.LONG, "pL", "tpL", "slL"), (E.SHORT, "pS", "tpS", "slS")):
             p, tp, sl = g(pf, r), g(tpf, r), g(slf, r)
             gain = expected_gain(p, tp, sl, g("cost", r))
-            if p > s.open_threshold and gain > s.gain_margin and (best is None or gain > best[0]):
+            thr, mar = _side_thresholds(s, d)
+            if p > thr and gain > mar and (best is None or gain > best[0]):
                 best = (gain, d, tp, sl)
         return None if best is None else best[1:]
 
@@ -498,7 +583,38 @@ MIN_TRADES_PER_WEEK = 2.0        # the owner's activity rule (period average), a
 BIG = 1e6                        # constraint-domination encoding offset (search only; never a recorded fitness)
 
 
-def window_components(m: dict, trades, sigma_price, capital: float, min_opw: float = MIN_TRADES_PER_WEEK) -> dict:
+def weekly_entries(m: dict, trades) -> np.ndarray:
+    """Entries per decision week, the engine's week definition: ISO weeks of the decision bars (``weeks_with_decisions``),
+    entries assigned by the ISO week of their fill bar (``entry_time`` = the engine's ``v[entry_bar]``); weeks with
+    decisions and no entry are zeros. An entry whose trade is not in the closed-trade list (should not happen: the env
+    flattens at the block end) is counted in one extra bucket so the total equals ``n_entries``."""
+    W = int(m.get("weeks_with_decisions", 0))
+    per = {}
+    for t in trades:
+        w = tuple(pd.Timestamp(t["entry_time"]).isocalendar()[:2])
+        per[w] = per.get(w, 0) + 1
+    counts = list(per.values())
+    rest = int(m.get("n_entries", sum(counts))) - sum(counts)
+    if rest > 0:
+        counts.append(rest)
+    counts += [0] * max(0, W - len(counts))
+    return np.asarray(counts, float)
+
+
+def activity_interval(weekly, draws: int = ACTIVITY_CI_DRAWS, seed: int = ACTIVITY_CI_SEED, level: float = ACTIVITY_CI_LEVEL) -> dict:
+    """Weekly-block bootstrap of the period-average trades/week: resample the decision weeks with replacement (``draws``
+    resamples, fixed ``seed``: the same point always gets the same interval); the two-sided ``level`` interval."""
+    x = np.asarray(weekly, float)
+    if not len(x):
+        return {"mean": float("nan"), "lb": float("nan"), "ub": float("nan"), "weeks": 0}
+    rng = np.random.default_rng(int(seed))
+    means = x[rng.integers(0, len(x), size=(int(draws), len(x)))].mean(axis=1)
+    a = (1.0 - float(level)) / 2.0
+    return {"mean": float(x.mean()), "lb": float(np.quantile(means, a)), "ub": float(np.quantile(means, 1.0 - a)), "weeks": int(len(x))}
+
+
+def window_components(m: dict, trades, sigma_price, capital: float, min_opw: float = MIN_TRADES_PER_WEEK,
+                      activity_ci: bool = False, side_cap: float | None = None) -> dict:
     """Every component of one replay, in declared units, its feasibility and its constraint violation. Nothing is
     discarded or set to -inf: a zero-trade point records trades = 0 and Sharpe = NaN with its reason.
       sharpe   annualized daily Sharpe (the engine's sqrt(365) figure; NaN with zero trades)   se_lo  its Lo (2002) SE
@@ -533,8 +649,23 @@ def window_components(m: dict, trades, sigma_price, capital: float, min_opw: flo
     if not env_ok:
         reasons.append("env_rule_broken")
     violation = max(0.0, float(min_opw) - opw) + (0.0 if env_ok else 1.0) + (1.0 if (n and reasons and reasons[0] == "sharpe_undefined") else 0.0)
+    extra = {}
+    if activity_ci:                 # v1.3: the activity rule held with confidence (owner 2026-10-25)
+        ci = activity_interval(weekly_entries(m, trades))
+        extra.update({"opw_ci_mean": ci["mean"], "opw_ci_lb": ci["lb"], "opw_ci_ub": ci["ub"], "opw_ci_weeks": ci["weeks"]})
+        lb = ci["lb"] if math.isfinite(ci["lb"]) else 0.0
+        if lb < float(min_opw):
+            reasons.append(f"activity_ci90_lower_bound_below_{min_opw:g}")
+        violation += max(0.0, float(min_opw) - lb) - max(0.0, float(min_opw) - opw)      # the bound replaces the mean in the violation
+    if side_cap is not None:        # v1.3: side balance
+        nl, ns = int(m.get("n_entries_long", 0)), int(m.get("n_entries_short", 0))
+        share = max(nl, ns) / (nl + ns) if (nl + ns) else float("nan")
+        extra.update({"long": nl, "short": ns, "side_max_share": share})
+        if math.isfinite(share) and share > float(side_cap):
+            reasons.append(f"one_side_over_{int(round(100 * float(side_cap)))}pct")
+            violation += share - float(side_cap)
     feasible = not reasons
-    return {"sharpe": sh, "se_lo": se, "lcb": (sh - se) if math.isfinite(sh) and math.isfinite(se) else float("nan"), "dd": dd,
+    return {**extra, "sharpe": sh, "se_lo": se, "lcb": (sh - se) if math.isfinite(sh) and math.isfinite(se) else float("nan"), "dd": dd,
             "opw": opw, "opd": opw / TRADING_DAYS_PER_WEEK, "r_ann": r_ann, "trade_t": trade_t, "trade_mean_sigma": float(tr.mean()) if len(tr) else float("nan"),
             "trade_tstat_reused": tstat_reused, "calmar": calmar, "return_minus_dd": return_minus_dd(r_ann, dd), "trades": int(n), "days": int(days),
             "weeks_below_2": int(m.get("weeks_below_min_orders", 0)), "weeks_below_2_share": float(m.get("weeks_below_min_share", 0.0)),
@@ -542,10 +673,22 @@ def window_components(m: dict, trades, sigma_price, capital: float, min_opw: flo
             "valid": bool(feasible), "violation": float(violation), "reasons": reasons}
 
 
-def seed_sanity(m: dict) -> dict:
-    """The per-seed progress line's sanity fields (trades, sides, agent closes, orders/week) of one trading summary."""
-    return {"trades": int(m.get("trades", 0)), "long": int(m.get("n_entries_long", -1)), "short": int(m.get("n_entries_short", -1)),
-            "agent_closes": int(m.get("n_close_AGENT_CLOSE", 0)) + int(m.get("n_close_REVERSAL", 0)), "opw": round(float(m.get("orders_per_week", 0.0)), 3)}
+def seed_sanity(m: dict, ci: dict | None = None) -> dict:
+    """The per-seed progress line's sanity fields (trades, sides, agent closes, orders/week, exits by reason; v1.3 also the
+    CI90 lower bound of trades/week) of one trading summary. The first-seed stop rule of the chains reads this line."""
+    out = {"trades": int(m.get("trades", 0)), "long": int(m.get("n_entries_long", -1)), "short": int(m.get("n_entries_short", -1)),
+           "agent_closes": int(m.get("n_close_AGENT_CLOSE", 0)) + int(m.get("n_close_REVERSAL", 0)), "opw": round(float(m.get("orders_per_week", 0.0)), 3),
+           "exits": {k: int(m.get(f"n_close_{k}", 0)) for k in ("TP", "SL", "FORCED_FLAT", "AGENT_CLOSE", "REVERSAL")}}
+    if ci is not None:
+        out["opw_ci_lb"] = None if not math.isfinite(ci["lb"]) else round(float(ci["lb"]), 3)
+    return out
+
+
+def period_activity(cx, period, act, cfg) -> dict:
+    """v1.3: the CI90 interval of trades/week of a frozen policy on ``period`` (an extra replay with the trade list; the
+    reported summary is untouched)."""
+    m, trades = rollout_with_trades(cx, period, act, cfg)
+    return activity_interval(weekly_entries(m, trades)) | {"orders_per_week": float(m["orders_per_week"])}
 
 
 def search_objectives(c: dict) -> tuple:
@@ -801,6 +944,23 @@ def v1_gene_map(view: dict, rows) -> GeneMap:
     return GeneMap(refs, rules, "v1.2: references on the calibration rows of the restricted table")
 
 
+def v13_gene_map(view: dict, rows) -> GeneMap:
+    """v1.3 references on the calibration rows: PER SIDE (pL for the long open threshold, pS for the short one; each
+    side's own expected gain for its margin), so a side whose calibrated scores run lower still opens at its own rate;
+    the closers' and pNOP references as v1.2."""
+    r = np.asarray(rows, np.int64)
+    pL, pS = view["pL"][r], view["pS"][r]
+    refs = {"open_score_l": pL, "open_score_s": pS,
+            "gain_l": expected_gain(pL, view["tpL"][r], view["slL"][r], view["cost"][r]),
+            "gain_s": expected_gain(pS, view["tpS"][r], view["slS"][r], view["cost"][r]),
+            "close_score": np.r_[view["pCL"][r], view["pCS"][r]], "nop_score": view["pN"][r]}
+    rules = {"open_threshold_l": ("open_rate_l", "open_score_l", "upper_rate"), "open_threshold_s": ("open_rate_s", "open_score_s", "upper_rate"),
+             "gain_margin_l": ("gain_quantile_l", "gain_l", "quantile"), "gain_margin_s": ("gain_quantile_s", "gain_s", "quantile"),
+             "close_threshold": ("close_rate", "close_score", "upper_rate"), "allow_reverse": ("allow_reverse", None, "copy"),
+             "nop_veto": ("nop_veto_rate", "nop_score", "upper_rate")}
+    return GeneMap(refs, rules, "v1.3: per-side references on the calibration rows of the restricted table")
+
+
 def probe_points(genes: dict) -> list:
     """The feasibility probe (2026-10-25): every corner of the continuous non-veto genes (allow_reverse 0, no veto) plus
     the q-max point (the most permissive open gene, every other continuous gene at its midpoint)."""
@@ -810,18 +970,29 @@ def probe_points(genes: dict) -> list:
         pts.append({g: float(genes[g][(mask >> i) & 1]) for i, g in enumerate(cont)} | {"allow_reverse": 0.0})
     open_g = cont[0]
     pts.append({g: (float(genes[g][1]) if g == open_g else 0.5 * (float(genes[g][0]) + float(genes[g][1]))) for g in cont} | {"allow_reverse": 0.0})
+    per_side = [g for g in cont if g.startswith("open_rate_")]
+    if len(per_side) == 2:          # v1.3 side-balance corner: BOTH sides at their most permissive rate, the rest at midpoint
+        pts.append({g: (float(genes[g][1]) if g in per_side else 0.5 * (float(genes[g][0]) + float(genes[g][1]))) for g in cont} | {"allow_reverse": 0.0})
     return pts
 
 
-def feasibility_probe(score, genes: dict, make_strategy) -> dict:
-    """Score the probe points; feasible when some point reaches >= 2.0 trades/week AND at least one agent close."""
+def feasibility_probe(score, genes: dict, make_strategy, strict: bool = False) -> dict:
+    """Score the probe points; feasible when some point reaches >= 2.0 trades/week AND at least one agent close. With
+    ``strict`` (v1.3) the point must be fully VALID under the contract's rules (the activity lower bound >= 2.0, no side
+    above 90 %, a defined Sharpe) AND close at least once."""
     rows = []
     for g in probe_points(genes):
         c = score(make_strategy(g, False))
-        rows.append({"genes": g, "opw": c["opw"], "trades": c["trades"], "agent_closes": c["agent_closes"], "sharpe": c["sharpe"], "valid": c["valid"]})
-    ok = [r for r in rows if r["opw"] >= MIN_TRADES_PER_WEEK and r["agent_closes"] >= 1 and r["trades"] > 0]
-    return {"points": rows, "feasible_points": len(ok), "verdict": "FEASIBLE" if ok else "STRATEGY_SPACE_INFEASIBLE",
-            "rule": f"some probe point reaches >= {MIN_TRADES_PER_WEEK:g} trades/week AND >= 1 agent close on the calibration block"}
+        rows.append({"genes": g, "opw": c["opw"], "trades": c["trades"], "agent_closes": c["agent_closes"], "sharpe": c["sharpe"], "valid": c["valid"],
+                     **{k: c[k] for k in ("opw_ci_lb", "side_max_share", "reasons") if k in c}})
+    if strict:
+        ok = [r for r in rows if r["valid"] and r["agent_closes"] >= 1 and r["trades"] > 0]
+        rule = ("some probe point is VALID on the calibration block (activity CI90 lower bound >= 2.0 trades/week, no side above 90 %, "
+                "a defined Sharpe) AND closes at least once")
+    else:
+        ok = [r for r in rows if r["opw"] >= MIN_TRADES_PER_WEEK and r["agent_closes"] >= 1 and r["trades"] > 0]
+        rule = f"some probe point reaches >= {MIN_TRADES_PER_WEEK:g} trades/week AND >= 1 agent close on the calibration block"
+    return {"points": rows, "feasible_points": len(ok), "verdict": "FEASIBLE" if ok else "STRATEGY_SPACE_INFEASIBLE", "rule": rule}
 
 
 EARLY_CLOSE_RULE = ("owner 2026-10-25 (pre-registered before any audit number was read): early close is indispensable; with "
@@ -847,13 +1018,15 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
     s = contract["strategy"]
     o = s["optimizer"][budget]
     gmap, probe = None, None
+    v13 = is_v13(s)
     if s.get("gene_space") == GENE_SPACE_Q:
         # v1.2 / C2 / C2G: thresholds as quantiles of calibration-block references, frozen here; then the probe
-        gmap = (gene_map_fn or (lambda v: v1_gene_map(v, cal_rows)))(view)
-        base = make_strategy or Strategy.from_genes
+        # (v1.3: per-side references, and the probe asks for a fully valid point under the activity CI and side rules)
+        gmap = (gene_map_fn or (lambda v: (v13_gene_map if v13 else v1_gene_map)(v, cal_rows)))(view)
+        base = make_strategy or (StrategyPS.from_genes if v13 else Strategy.from_genes)
         make_strategy = lambda g, veto, _b=base, _m=gmap: _b(_m.to_absolute(g), veto)  # noqa: E731
         gene_names = tuple(s["genes"])
-        probe = feasibility_probe(lambda st: score_table(view, st), s["genes"], make_strategy)
+        probe = feasibility_probe(lambda st: score_table(view, st), s["genes"], make_strategy, strict=v13)
         if probe["verdict"] != "FEASIBLE":
             if budget == "final":
                 raise SystemExit(f"STRATEGY_SPACE_INFEASIBLE:{json.dumps({k: v for k, v in probe.items() if k != 'points'})}:"
@@ -863,16 +1036,29 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
             return {"budget": budget, "runs": {"without_veto": {"points": [], "front": []}, "with_veto": {"points": [], "front": []}},
                     "primary_fitness": primary, "by_fitness": {f: dict(nf) for f in FITNESS}, "term_scales": {}, "chosen": None, "strategy": None,
                     "nop_veto_kept": False, "valid": False, "note": "STRATEGY_SPACE_INFEASIBLE", "gene_map": gmap.describe(), "feasibility_probe": probe}
-    runs = {}
-    for veto in (False, True):
-        runs["with_veto" if veto else "without_veto"] = optimize(lambda st: score_table(view, st), s["genes"], seed, int(o["population"]), int(o["generations"]), veto,
-                                                                  gene_names, make_strategy)
     require_ec = bool(s.get("require_early_close", False))
-    if require_ec:
-        for r in runs.values():
-            r["front_early_close"] = early_close_front(r["points"])
-            r["degenerate_no_early_close_points"] = sum(1 for p in r["points"] if p["valid"] and int(p.get("agent_closes", 0)) == 0)
     sel = "front_early_close" if require_ec else "front"
+
+    def search(o_):
+        rs = {}
+        for veto in (False, True):
+            rs["with_veto" if veto else "without_veto"] = optimize(lambda st: score_table(view, st), s["genes"], seed, int(o_["population"]), int(o_["generations"]),
+                                                                    veto, gene_names, make_strategy)
+        if require_ec:
+            for r in rs.values():
+                r["front_early_close"] = early_close_front(r["points"])
+                r["degenerate_no_early_close_points"] = sum(1 for p in r["points"] if p["valid"] and int(p.get("agent_closes", 0)) == 0)
+        return rs
+
+    runs = search(o)
+    escalation = None
+    if v13 and budget == "final":
+        n0 = len(runs["without_veto"][sel]) + len(runs["with_veto"][sel])
+        if n0 < FRONT_MIN:          # FRONT_TOO_SMALL: escalate the declared budget once (pre-registered in the contract)
+            oe = s["optimizer"]["final_escalated"]
+            runs = search(oe)
+            escalation = {"reason": f"FRONT_TOO_SMALL: {n0} selectable front points < {FRONT_MIN}", "from": dict(o), "to": dict(oe),
+                          "front_after": len(runs["without_veto"][sel]) + len(runs["with_veto"][sel])}
     reference = runs["without_veto"][sel] + runs["with_veto"][sel]
     scales = term_scales(reference)
     allp = []
@@ -896,6 +1082,10 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
         by[f] = {"chosen": {k: v for k, v in pick.items()}, "strategy": _strategy_dict(dict(pick, veto=keep), make_strategy), "nop_veto_kept": keep, "valid": True,
                  "archive_view": view_f}
     p = by[primary]
+    keys = {tuple(sorted(by[f]["chosen"]["genes"].items())) + (bool(by[f]["nop_veto_kept"]),) for f in FITNESS if by[f].get("chosen")}
+    diversity = {"selectable_front_points": len(reference), "distinct_points_chosen_across_variants": len(keys), "variants": len(FITNESS),
+                 "flag": "FRONT_TOO_SMALL" if len(reference) < FRONT_MIN else None, "budget_escalation": escalation,
+                 "rule": f"FRONT_TOO_SMALL when fewer than {FRONT_MIN} selectable front points (both searches); the budget is escalated once"}
     doc = {"budget": budget, "runs": runs, "primary_fitness": primary, "by_fitness": by, "term_scales": scales,
            "scale_rule": "s_k = median |term_k| over the valid points of the calibration-block front (both searches); fallback below 1e-6 (declared); c_k = 1/s_k",
            "nop_rule": "per fitness variant: the NOP veto stays only if it strictly improves the chosen point's calibration-block lower confidence bound (pre-registered)",
@@ -903,6 +1093,8 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
            "chosen": p["chosen"], "strategy": p["strategy"], "nop_veto_kept": p["nop_veto_kept"], "valid": p["valid"]}
     if require_ec:
         doc["early_close_rule"] = EARLY_CLOSE_RULE
+    if v13:
+        doc["activity_rule"], doc["side_rule"], doc["fitness_diversity"] = ACTIVITY_RULE_TEXT, SIDE_RULE_TEXT, diversity
     if gmap is not None:
         doc["gene_space"], doc["gene_map"], doc["feasibility_probe"] = GENE_SPACE_Q, gmap.describe(), probe
     if not p["valid"]:
@@ -912,9 +1104,56 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
     return doc
 
 
+V13_ESCALATED = {"population": 48, "generations": 40}
+
+
+def v13_strategy_block(st: dict, genes: dict, per_side_text: dict) -> dict:
+    """The v1.3 strategy block derived from a v1.2-style one: per-side genes, the activity CI constraint, the side cap,
+    the front minimum and the escalated budget; every other field kept."""
+    out = json.loads(json.dumps(st))
+    out["genes"] = dict(genes)
+    out["activity_constraint"] = ACTIVITY_RULE_CI
+    out["activity_rule"] = ACTIVITY_RULE_TEXT
+    out["activity_ci"] = {"draws": ACTIVITY_CI_DRAWS, "seed": ACTIVITY_CI_SEED, "level": ACTIVITY_CI_LEVEL, "unit": "entries per decision week (ISO weeks with decisions)"}
+    out["side_cap"], out["side_rule"] = SIDE_CAP, SIDE_RULE_TEXT
+    out["front_min"] = FRONT_MIN
+    out["optimizer"]["final_escalated"] = dict(V13_ESCALATED)
+    out["optimizer"]["constraint"] = ("Deb constraint domination: feasible = the CI90 lower bound of trades/week >= 2.0 (weekly-block bootstrap) AND no side "
+                                      "above 90 % of entries AND the env rules; violation = (2.0 - lower bound)+ + (side share - 0.90)+ + env")
+    out["fitness_diversity"] = (f"reported per (arm, fold): selectable front size and distinct points chosen across the variants; fewer than {FRONT_MIN} "
+                                "selectable front points = FRONT_TOO_SMALL, and the final search is rerun once with the escalated budget (declared)")
+    out.setdefault("gene_map", {}).update(per_side_text)
+    out["gene_map"]["feasibility_probe"] = ("corners of the continuous genes + the q-max point + the side-balance corner (both open rates at their maximum); "
+                                            "no point VALID under the activity CI and side rules with >= 1 agent close -> STRATEGY_SPACE_INFEASIBLE")
+    return out
+
+
+def contract_v13(v12: dict) -> dict:
+    """ACTION_CONTRACT_v1_3 from v1.2: per-side open genes, side-balance constraint, activity CI rule (owner 2026-10-25),
+    front-size diagnostic with a declared budget escalation; sealed with a new identity."""
+    d = json.loads(json.dumps(v12))
+    d["identity"] = None
+    d["strategy"] = v13_strategy_block(d["strategy"], Q_BOUNDS_V13, {
+        "open_threshold_l": "quantile(calibrated pL over the calibration rows, 1 - open_rate_l)",
+        "open_threshold_s": "quantile(calibrated pS over the calibration rows, 1 - open_rate_s)",
+        "gain_margin_l": "quantile(long expected gain pL*TP - (1-pL)*SL - cost, calibration rows, gain_quantile_l)",
+        "gain_margin_s": "quantile(short expected gain pS*TP - (1-pS)*SL - cost, calibration rows, gain_quantile_s)"})
+    for k in ("open_threshold", "gain_margin"):
+        d["strategy"]["gene_map"].pop(k, None)
+    d["strategy"]["name"] = "parametric_v1_3_per_side"
+    d["strategy"]["rule"] = ("flat: veto when the NOP veto is kept and pNOP > nop_veto; else open the side with the larger expected gain among "
+                             "sides with p_side > open_threshold_side and gain_side > gain_margin_side (per-side thresholds); positioned: exit "
+                             "when p_close > close_threshold, then close-and-reverse when allow_reverse and the open rule names the other side, else CLOSE")
+    d["strategy"]["threshold_targets"] = {"open_threshold_l": "open_l.open_long", "open_threshold_s": "open_s.open_short",
+                                          "close_threshold": "close_l.exit|close_s.exit", "nop_veto": "nop.nop"}
+    d["derived_from"] = {"identity": v12.get("identity"), "why": ("v12 chain: seeds opening one side only (one shared open quantile over both sides) and "
+                                                                  "C2/C2G activity sitting exactly on 2.0 trades/week on calibration, dropping below out of sample")}
+    return seal(d)
+
+
 def strategy_of(doc: dict) -> Strategy | None:
     s = doc.get("strategy")
-    return None if s is None else Strategy(**s)
+    return None if s is None else strategy_from_dict(s)
 
 
 # ----------------------------------------------------------------------------- NOP labels (consistency with the openers)

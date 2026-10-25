@@ -1,0 +1,383 @@
+{
+ "schema": "expert_guided_action_contract.v1",
+ "scientific_release": false,
+ "purpose": "owner 2026-10-25: the outputs get the rigour of the inputs; categorical decisions are categorical heads, continuous risk parameters are bounded continuous heads, the strategy is an explicit optimisable layer, and no choice is made on the block that decides; v1.1 (2026-10-25): early close is indispensable (owner): a strategy that never closes voluntarily on the calibration block is DEGENERATE_NO_EARLY_CLOSE and not selectable",
+ "action_space": {
+  "actions": {
+   "HOLD": "flat: no entry (NOP); positioned: keep the position",
+   "OPEN_LONG": "flat: buy at the next open with the opener's TP/SL",
+   "OPEN_SHORT": "flat: sell at the next open with the opener's TP/SL",
+   "CLOSE": "positioned: close at the next open"
+  },
+  "produced_by": {
+   "HOLD": [
+    [
+     "nop",
+     "nop"
+    ],
+    [
+     "open_l",
+     "no_open_long"
+    ],
+    [
+     "open_s",
+     "no_open_short"
+    ],
+    [
+     "close_l",
+     "hold"
+    ],
+    [
+     "close_s",
+     "hold"
+    ]
+   ],
+   "OPEN_LONG": [
+    [
+     "open_l",
+     "open_long"
+    ]
+   ],
+   "OPEN_SHORT": [
+    [
+     "open_s",
+     "open_short"
+    ]
+   ],
+   "CLOSE": [
+    [
+     "close_l",
+     "exit"
+    ],
+    [
+     "close_s",
+     "exit"
+    ]
+   ]
+  },
+  "reverse": "an open of the opposite side while positioned = close-and-reverse (env CLOSE_AND_OPEN), only when strategy.allow_reverse",
+  "every_order": "broker-side SL and TP on every order (env), 1 entry/day and 1:50 (replay contract)",
+  "encoding_rule": "every action is a class of a softmax_ce head; continuous heads (TP/SL) only parameterise an order and enter the decision through the expected gain"
+ },
+ "specialists": {
+  "open_l": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "n_classes": 2,
+    "classes": [
+     "no_open_long",
+     "open_long"
+    ],
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised to mean 1 over the training rows (as E1-T)"
+   },
+   "continuous": {
+    "tp_sigma": {
+     "encoding": "bounded_sigmoid",
+     "lo": 0.25,
+     "hi": 3.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "mask": "rows whose label is an OPEN of this side",
+     "network": "lo + (hi - lo) * sigmoid(z) inside the network",
+     "target": "the demonstrator's TP: remaining gain to its next pivot (sigma), clipped to the bounds"
+    },
+    "sl_sigma": {
+     "encoding": "bounded_sigmoid",
+     "lo": 0.5,
+     "hi": 3.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "mask": "rows whose label is an OPEN of this side",
+     "network": "lo + (hi - lo) * sigmoid(z) inside the network",
+     "target": "the demonstrator's SL: 2 sigma for the ZigZag demonstrators, the oracle's SL on DAgger rows"
+    }
+   },
+   "labels": "the arm's own opener labels (--labels / --closer-rule / --extra-experts), unchanged"
+  },
+  "open_s": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "n_classes": 2,
+    "classes": [
+     "no_open_short",
+     "open_short"
+    ],
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised to mean 1 over the training rows (as E1-T)"
+   },
+   "continuous": {
+    "tp_sigma": {
+     "encoding": "bounded_sigmoid",
+     "lo": 0.25,
+     "hi": 3.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "mask": "rows whose label is an OPEN of this side",
+     "network": "lo + (hi - lo) * sigmoid(z) inside the network",
+     "target": "the demonstrator's TP: remaining gain to its next pivot (sigma), clipped to the bounds"
+    },
+    "sl_sigma": {
+     "encoding": "bounded_sigmoid",
+     "lo": 0.5,
+     "hi": 3.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "mask": "rows whose label is an OPEN of this side",
+     "network": "lo + (hi - lo) * sigmoid(z) inside the network",
+     "target": "the demonstrator's SL: 2 sigma for the ZigZag demonstrators, the oracle's SL on DAgger rows"
+    }
+   },
+   "labels": "the arm's own opener labels (--labels / --closer-rule / --extra-experts), unchanged"
+  },
+  "nop": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "n_classes": 2,
+    "classes": [
+     "trade_exists",
+     "nop"
+    ],
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised to mean 1 over the training rows (as E1-T)",
+    "sample_weights": "NopLabels weight (1; the multires weight for graded / negative / conflict)"
+   },
+   "labels": {
+    "source": "multires ladder scored against the optimum (multires.MultiResLabels, default Thresholds)",
+    "ladder": [
+     "3",
+     "rev20",
+     "rev15",
+     "rev10",
+     "rev8",
+     "rev5"
+    ],
+    "positive": [
+     "nop_hard",
+     "nop_graded",
+     "negative",
+     "conflict"
+    ],
+    "consistency": "arm opens on the row -> NOP = 0 (so NOP = 1 implies open_l = open_s = 0); arm does not open and some resolution trades well -> NOP = 0; arm does not open and the ladder says no / graded / negative / conflict -> NOP = 1 with its weight",
+    "rows": "flat rows of round-0 demonstrations and of every DAgger round's visits",
+    "censored": "dropped (multires availability), never filled"
+   }
+  },
+  "close_l": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "n_classes": 2,
+    "classes": [
+     "hold",
+     "exit"
+    ],
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised to mean 1 over the training rows (as E1-T)"
+   },
+   "labels": "the arm's exit rule (SL before TP or negative at the forced flat; signal modes add their closer rule)"
+  },
+  "close_s": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "n_classes": 2,
+    "classes": [
+     "hold",
+     "exit"
+    ],
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised to mean 1 over the training rows (as E1-T)"
+   },
+   "labels": "the arm's exit rule (SL before TP or negative at the forced flat; signal modes add their closer rule)"
+  }
+ },
+ "calibration": {
+  "method": "platt_binary",
+  "map": "p = sigmoid(a * z + b), z = logit margin (l1 - l0)",
+  "fit_block": "INNER_A",
+  "ece_bins": 15,
+  "bins": "equal mass",
+  "why": "the 1/sqrt(freq) class weights shift the logit prior; a temperature alone (a = 1/T, b = 0) cannot remove that shift, the bias b does",
+  "metrics": [
+   "auc",
+   "brier",
+   "ece",
+   "reliability table"
+  ],
+  "reported": {
+   "INNER_A": "before and after calibration (the block it is fitted on)",
+   "INNER_B": "after the freeze, REPORTED ONLY"
+  },
+  "ensemble": "mean of the seeds' calibrated probabilities, then ONE Platt map refitted on the ensemble on INNER_A (round-0 label rows)"
+ },
+ "strategy": {
+  "name": "parametric_v1_3_per_side",
+  "rule": "flat: veto when the NOP veto is kept and pNOP > nop_veto; else open the side with the larger expected gain among sides with p_side > open_threshold_side and gain_side > gain_margin_side (per-side thresholds); positioned: exit when p_close > close_threshold, then close-and-reverse when allow_reverse and the open rule names the other side, else CLOSE",
+  "gain": "p * TP - (1 - p) * SL - cost; cost = COST_SIGMA (0.1, declared allowance for what the simulator does not price) + the replay contract's round-trip cost (RealisticProfile.round_trip_price: mean spread + 2 market slippages + 2 commissions, price units) / causal sigma at the fill bar; all terms sigma multiples",
+  "cost_sigma": 0.1,
+  "genes": {
+   "open_rate_l": [
+    0.002,
+    0.3
+   ],
+   "open_rate_s": [
+    0.002,
+    0.3
+   ],
+   "gain_quantile_l": [
+    0.0,
+    0.95
+   ],
+   "gain_quantile_s": [
+    0.0,
+    0.95
+   ],
+   "close_rate": [
+    0.0,
+    0.6
+   ],
+   "allow_reverse": [
+    0.0,
+    1.0
+   ],
+   "nop_veto_rate": [
+    0.0,
+    0.5
+   ]
+  },
+  "allow_reverse": "boolean: gene >= 0.5",
+  "nop_veto_test": "two optimisations, without and with the veto; the veto stays only if it strictly improves the chosen calibration-block lower confidence bound (pre-registered); otherwise nop is reported and disabled",
+  "optimizer": {
+   "method": "NSGA-II (DEAP): SBX eta 15 p 0.9, polynomial mutation eta 20 indpb 0.2, tournament DCD",
+   "objectives": [
+    "sharpe_daily_sqrt365 max",
+    "max_drawdown_pct min"
+   ],
+   "seed": "the run seed (ensemble: the smallest member seed)",
+   "final": {
+    "population": 24,
+    "generations": 20
+   },
+   "visitation": {
+    "population": 16,
+    "generations": 10
+   },
+   "constraint": "Deb constraint domination: feasible = the CI90 lower bound of trades/week >= 2.0 (weekly-block bootstrap) AND no side above 90 % of entries AND the env rules; violation = (2.0 - lower bound)+ + (side share - 0.90)+ + env",
+   "archive": "every evaluated point of every generation of every search (final and visitation, per seed and on the ensemble) with genes, every component, every fitness, Sharpe, SE, return, DD, trades, orders/week, weeks below 2, feasibility, violation and reasons",
+   "final_escalated": {
+    "population": 48,
+    "generations": 40
+   }
+  },
+  "calibration_min_trades_per_week": 2.0,
+  "weekly_upper_cap": null,
+  "choice": "the arm's fitness variant picks the frozen point among the valid non-dominated (Sharpe, DD) points; ties -> lower max DD",
+  "fit_block": "INNER_A",
+  "out_of_sample_activity": "trades/week on INNER_B reported; below 2 there = INVALID by the owner's rule",
+  "fitness": {
+   "default": "sharpe_lcb",
+   "arm_key": "strategy_fitness",
+   "variants": {
+    "sharpe_lcb": "F0: annualized daily Sharpe - 1 Lo (2002) SE",
+    "sharpe_plus_return": "F1 (owner): c_s * Sharpe + c_r * R, R = net profit / initial balance annualized to the block length (x 365 / calendar days); scaled",
+    "sharpe_plus_return_plus_activity": "F2 (owner): c_s * Sharpe + c_r * R + c_o * orders/day (orders/week / 5, in [0, 1] under the 1 entry/day cap; no weekly upper cap); scaled",
+    "trade_tstat": "F3, REUSED: heuristic-strategy app/walk_forward_optimizer.py::_sharpe_fitness (per-trade mean / std ddof 0 x sqrt(N), rejected below 15 trades) on per-trade returns in sigma net of every cost",
+    "calmar": "F4: annualized return (%) / max drawdown (%)",
+    "return_minus_dd": "F5, REUSED (reimplemented with citation): agent-multi agent_plugins/sac_agent.py::fitness = total_return - lambda * maxDD/100, lambda = ga_fitness_dd_lambda = 1.0; return annualized to the block length",
+    "balanced": "F6: c_s * Sharpe + c_r * R + c_o * orders/day - c_d * DD%; scaled"
+   },
+   "invalid": "a zero-trade point records trades = 0 and Sharpe = NaN with its reason and is kept; undefined components are NaN (never 0, never -inf); only valid points with a finite value are selectable",
+   "nop_veto_per_variant": "the veto stays for a variant only if it strictly improves that variant's chosen point's calibration-block lower confidence bound",
+   "recorded": "every front point carries its components (sharpe, se_lo, lcb, r_ann, opd, trade_t, calmar, dd, opw, trades) and every variant's fitness",
+   "scaling": {
+    "rule": "pre-registered: c_k = 1 / s_k, s_k = median |term_k| over the VALID points of the calibration-block front of this fold and arm (the union of the two NSGA-II searches, without and with the NOP veto); never computed on the decision block",
+    "floor": 1e-06,
+    "fallback_scales": {
+     "sharpe": 1.0,
+     "r_ann": 0.2,
+     "opd": 0.6,
+     "dd": 5.0,
+     "calmar": 5.0,
+     "return_minus_dd": 0.1
+    },
+    "fallback_note": "owner-declared: Sharpe 1.0, annualized return 0.2, orders/day 0.6, Calmar 5.0, return - DD 0.1; DD% 5.0 is Satoshi's (no owner value), declared for audit",
+    "applies_to": [
+     "balanced",
+     "sharpe_plus_return",
+     "sharpe_plus_return_plus_activity"
+    ],
+    "recorded": "s_k, c_k, median, fallback flag per term in E3M.json and in the report"
+   },
+   "report": "per (arm, fold, fitness): the chosen valid point and the archive view (best unconstrained Sharpe, best unconstrained by the fitness with its INNER_B metrics marked NOT SELECTABLE, best valid point, share of valid points)"
+  },
+  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+  "threshold_targets": {
+   "open_threshold_l": "open_l.open_long",
+   "open_threshold_s": "open_s.open_short",
+   "close_threshold": "close_l.exit|close_s.exit",
+   "nop_veto": "nop.nop"
+  },
+  "continuous_use": "TP/SL enter only the expected gain p * TP - (1 - p) * SL - cost (a decision-theoretic value of the categorical probability); no class is read off an interval of a continuous output",
+  "require_early_close": true,
+  "early_close_rule": "owner 2026-10-25 (pre-registered before any audit number was read): early close is indispensable; with strategy.require_early_close a point that never closes voluntarily on the calibration block (agent closes = 0) is DEGENERATE_NO_EARLY_CLOSE and not selectable; it stays in the archive",
+  "gene_space": "calibration_quantile",
+  "gene_map": {
+   "close_threshold": "quantile(calibrated exit probability, both closers pooled, calibration rows, 1 - close_rate)",
+   "allow_reverse": "gene >= 0.5",
+   "nop_veto": "quantile(calibrated pNOP, calibration rows, 1 - nop_veto_rate)",
+   "frozen": "on the calibration block (restricted view) before the search; recorded in the strategy doc (gene_map)",
+   "feasibility_probe": "corners of the continuous genes + the q-max point + the side-balance corner (both open rates at their maximum); no point VALID under the activity CI and side rules with >= 1 agent close -> STRATEGY_SPACE_INFEASIBLE",
+   "why": "WF_V1 (contract v1, absolute bounds) had zero trades in all seeds: tiny calibrated probabilities made the absolute space unreachable",
+   "open_threshold_l": "quantile(calibrated pL over the calibration rows, 1 - open_rate_l)",
+   "open_threshold_s": "quantile(calibrated pS over the calibration rows, 1 - open_rate_s)",
+   "gain_margin_l": "quantile(long expected gain pL*TP - (1-pL)*SL - cost, calibration rows, gain_quantile_l)",
+   "gain_margin_s": "quantile(short expected gain pS*TP - (1-pS)*SL - cost, calibration rows, gain_quantile_s)"
+  },
+  "activity_constraint": "ci90_lower_bound_weekly_block_bootstrap",
+  "activity_ci": {
+   "draws": 2000,
+   "seed": 20261025,
+   "level": 0.9,
+   "unit": "entries per decision week (ISO weeks with decisions)"
+  },
+  "side_cap": 0.9,
+  "side_rule": "side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable",
+  "front_min": 5,
+  "fitness_diversity": "reported per (arm, fold): selectable front size and distinct points chosen across the variants; fewer than 5 selectable front points = FRONT_TOO_SMALL, and the final search is rerun once with the escalated budget (declared)"
+ },
+ "dagger_visitation": "round 0 = the demonstrator's own trajectory + exploration positions (unchanged); rounds 1..3 visit TRAIN and INNER_A with the strategy frozen on INNER_A after the previous round (visitation budget)",
+ "blocks": {
+  "calibration": "INNER_A",
+  "calibration_block_uses": [
+   "early_stopping",
+   "calibration",
+   "strategy_optimisation",
+   "dagger_visitation_strategy"
+  ],
+  "decision": "INNER_B",
+  "decision_block_uses": [
+   "scored once after the freeze; decides between arms through the seed ensemble"
+  ],
+  "read_once": "OBS_2024",
+  "requires_post_freeze_decision_block": true,
+  "refusal": "ACTION_CONTRACT_NO_POST_FREEZE_DECISION_BLOCK"
+ },
+ "constraints": {
+  "agent_state": "none",
+  "variants": [
+   "FULL"
+  ],
+  "aux_targets": "not supported in v1",
+  "sample_weights_flag": "not supported in v1 (the nop specialist carries its own weights)"
+ },
+ "derived_from": {
+  "identity": "action_4b15ba2f36ee195f",
+  "why": "v12 chain: seeds opening one side only (one shared open quantile over both sides) and C2/C2G activity sitting exactly on 2.0 trades/week on calibration, dropping below out of sample"
+ },
+ "identity": "action_564e6b858bb08951",
+ "design": "; v1.2 (2026-10-25): scale-adaptive genes (calibration-block quantiles), feasibility probe, early close required"
+}

@@ -47,14 +47,56 @@ def _sv(u: dict, w: dict) -> dict:
     return {"sharpe": w["sharpe"], "se_lo": w["se_lo"], "unit": u.get("unit"), "sanity": u.get("sanity"), "sanity_causes": u.get("sanity_causes")}
 
 
-def md_sanity(units: list) -> list:
-    """The sanity table of a report: FAILED_SANITY units with their causes, never shown as results."""
-    seen, L = set(), ["## Sanity gate (FAILED_SANITY units are excluded from every verdict)", "", "| unit | sanity | causes |", "| --- | --- | --- |"]
+def md_sanity(units: list, results: Path | None = None) -> list:
+    """The sanity table of a report: FAILED_SANITY units with their causes, never shown as results; with ``results`` the
+    ensemble-level metrics of each FAILED_SANITY unit are shown beside it, labelled informational (not a result)."""
+    from tools.expert_guided_sanity_gate import ensemble_brief
+    seen, L = set(), ["## Sanity gate (FAILED_SANITY units are excluded from every verdict)", "",
+                      "| unit | sanity | causes | ensemble (informational, NOT a result) |", "| --- | --- | --- | --- |"]
     for u in units:
         if u["unit"] in seen:
             continue
         seen.add(u["unit"])
-        L.append(f"| {u['unit']} | **{u.get('sanity', 'NOT_GATED')}** | {u.get('sanity_causes') or '—'} |")
+        info = ensemble_brief(results, u["unit"]) if (results is not None and u.get("sanity") == "FAILED_SANITY") else "—"
+        L.append(f"| {u['unit']} | **{u.get('sanity', 'NOT_GATED')}** | {u.get('sanity_causes') or '—'} | {info} |")
+    return L + [""]
+
+
+def sep_line(k: str, v: dict) -> str:
+    """One separability line; a sanity refusal (no delta) is rendered as REFUSED_FAILED_SANITY with its causes."""
+    if "delta" not in v:
+        return f"- {k}: {v.get('verdict', ST.SANITY_REFUSAL)} ({'; '.join(str(c) for c in v.get('causes') or []) or 'no cause recorded'})"
+    return f"- {k}: Δ {v['delta']:+.2f} vs SE agrupado {fmt(v['pooled_se'])} → {v['verdict']}"
+
+
+def diversity_rows(out: Path, w: dict, P: str) -> list:
+    """Per (arm, fold) and seed / ensemble: selectable front size, distinct points chosen across the fitness variants and
+    FRONT_TOO_SMALL (v1.3 strategy docs carry ``fitness_diversity``; older ones are reported as NOT_RECORDED)."""
+    rows = []
+    for fold in w["folds"]:
+        for arm in w["arms"]:
+            u = f"{P}_{fold}_{arm['name']}"
+            for src, path in (("seeds", out / u / "E3M.json"), ("ensemble", out / u / "ENSEMBLE.json")):
+                if not path.exists():
+                    continue
+                d = json.loads(path.read_text())
+                docs = ([(s_, (t.get("action_contract") or {}).get("strategy") or {}) for s_, t in d["trials"]["FULL"].items()] if src == "seeds"
+                        else [("ensemble", (d.get("ensemble_strategy") or d.get("arbiter") or {}))])
+                for s_, sd in docs:
+                    dv = sd.get("fitness_diversity") if isinstance(sd, dict) else None
+                    rows.append({"unit": u, "fold": fold, "arm": arm["name"], "who": s_,
+                                 "front": None if not dv else dv["selectable_front_points"], "distinct": None if not dv else dv["distinct_points_chosen_across_variants"],
+                                 "flag": "NOT_RECORDED" if not dv else (dv["flag"] or "OK"), "escalated": bool(dv and dv.get("budget_escalation"))})
+    return rows
+
+
+def diversity_md(rows: list) -> list:
+    if not rows:
+        return []
+    L = ["## Diversidad de las variantes de fitness (frente seleccionable y puntos distintos elegidos)", "",
+         "| unidad | semilla / ensamble | frente seleccionable | puntos distintos elegidos (de 7) | estado | presupuesto escalado |", "| --- | --- | ---: | ---: | --- | --- |"]
+    for r in rows:
+        L.append(f"| {r['unit']} | {r['who']} | {r['front'] if r['front'] is not None else '—'} | {r['distinct'] if r['distinct'] is not None else '—'} | {r['flag']} | {'sí' if r['escalated'] else 'no'} |")
     return L + [""]
 
 
@@ -200,7 +242,7 @@ def cmd_b_ensemble(a):
         md += ["**Etapa B frente a su padre (ensamble, INNER_A):** " + "; ".join(f"{k}: Δ {v['delta']:+.2f} vs SE agrupado {v['pooled_se']:.2f} → {v['verdict']}" for k, v in doc["stage_b_vs_parent"].items()), ""]
     md += ["## Tabla de cierre (regla del propietario)", ""] + closure_md(doc["closure"]["INNER_A"]) + closure_md(doc["closure"]["OBS_2024"])
     md += ["## Reglas pre-registradas", "", f"- {ST.HOLDS_RULE}", f"- {ST.SEPARABLE_RULE}", ""]
-    Path(a.out_md).write_text("\n".join(md + md_sanity([x for x in units if isinstance(x, dict) and "unit" in x])))
+    Path(a.out_md).write_text("\n".join(md + md_sanity([x for x in units if isinstance(x, dict) and "unit" in x], out)))
     print(json.dumps({"units": [(u["unit"], u["status"]) for u in units], "stage_b_chosen": doc["stage_b_chosen"], "out": a.out_md}))
 
 
@@ -250,7 +292,7 @@ def cmd_walk_forward(a):
     md += ["## Tabla de cierre (regla del propietario)", ""]
     for fold in wf["folds"]:
         md += closure_md(closure[fold])
-    Path(a.out_md).write_text("\n".join(md + md_sanity([x for x in units if isinstance(x, dict) and "unit" in x])))
+    Path(a.out_md).write_text("\n".join(md + md_sanity([x for x in units if isinstance(x, dict) and "unit" in x], out)))
     print(json.dumps({"units": [(u["unit"], u["status"]) for u in units], "verdicts": {k: v["verdict"] for k, v in verdicts.items()}, "out": a.out_md}))
 
 
@@ -411,9 +453,9 @@ def fill_closure(template: str, evidence: dict) -> str:
 def cmd_wf_v1(a):
     out = Path(a.results)
     spec = json.loads(Path(a.spec).read_text())
-    key = getattr(a, "stage_key", None) or "walk_forward_v1"          # WF_V12 (v1.2 contract) reuses this report
+    key = getattr(a, "stage_key", None) or "walk_forward_v1"          # WF_V12 / WF_V13 reuse this report
     w = spec[key]
-    P = "WF_V12" if key == "walk_forward_v12" else "WF_V1"
+    P = {"walk_forward_v12": "WF_V12", "walk_forward_v13": "WF_V13"}.get(key, "WF_V1")
     units, verdicts, sep, validity = [], {}, {}, {}
     for fold in w["folds"]:
         for arm in w["arms"]:
@@ -452,7 +494,7 @@ def cmd_wf_v1(a):
     Path(a.out_json).write_text(json.dumps(doc, indent=1, default=float))
     md = [f"# Contrato de salidas v1 en el walk-forward: resultados con errores estándar (spec `{spec['identity']}`, {a.date})", "",
           f"Contrato `{w['action_contract']['identity']}` (sha `{w['action_contract']['sha256'][:12]}…`): cinco especialistas calibrados (Platt en INNER_A), una estrategia "
-          "paramétrica congelada en INNER_A por la mayor cota inferior (Sharpe − 1 EE) con ≥ 2.5 trades/semana; decisión en INNER_B por el ENSAMBLE de semillas. "
+          "paramétrica congelada en INNER_A por la mayor cota inferior (Sharpe − 1 EE) bajo la regla de actividad del contrato (v1.3: cota inferior del IC90 de trades/semana ≥ 2.0 y ningún lado > 90 %); decisión en INNER_B por el ENSAMBLE de semillas. "
           "Línea base = el mismo brazo del walk-forward sin contrato. Replays de estudiantes; **no es una estrategia operable**; 2024 una lectura; TEST cerrado.", "",
           f"Regla pre-registrada (antes de leer): {w['rule']}", ""]
     for fold in w["folds"]:
@@ -460,7 +502,7 @@ def cmd_wf_v1(a):
     md += ["## Veredictos", ""] + [f"- **{k}**: {v['verdict']} — " + ", ".join(f"{f}: {fmt(x['sharpe'])} − SE {fmt(x['se_lo'])}" for f, x in v["inputs"].items()) for k, v in verdicts.items()] + [""]
     md += ["## Actividad fuera de muestra (INNER_B, ensamble)", ""] + [f"- {k}: {fmt(v['INNER_B_trades_per_week'])} trades/semana → {v['verdict']}" for k, v in validity.items()] + [""]
     if sep:
-        md += ["## v1 frente a su línea base (ensamble, INNER_B)", ""] + [f"- {k}: Δ {v['delta']:+.2f} vs SE agrupado {fmt(v['pooled_se'])} → {v['verdict']}" for k, v in sep.items()] + [""]
+        md += ["## v1 frente a su línea base (ensamble, INNER_B)", ""] + [sep_line(k, v) for k, v in sep.items()] + [""]
     md += ["## Variantes de fitness de la estrategia (mismos especialistas y ensambles; sólo cambia el punto congelado)", "",
            f"Regla pre-registrada: {w.get('fitness_rule')}", "",
            "| brazo | fitness | pliegue | elegido: Sharpe INNER_B ± SE | Sharpe − SE | trades/semana | DD % | veredicto | archivo: % válidos | mejor Sharpe sin restricción (calibración, tr/sem) | mejor por fitness sin restricción → INNER_B (**no seleccionable**) | mejor válido por fitness (calibración) |",
@@ -501,7 +543,10 @@ def cmd_wf_v1(a):
         filled = fill_closure(tpl, ev)
         Path(a.closure_out).write_text(filled)
         md += ["## Tabla de cierre D1–D5 y codificación", ""] + [ln for ln in filled.splitlines() if ln.startswith("|")] + [""]
-    Path(a.out_md).write_text("\n".join(md + md_sanity([x for x in units if isinstance(x, dict) and "unit" in x])))
+    drows = diversity_rows(out, w, P)
+    doc["fitness_diversity"] = drows
+    Path(a.out_json).write_text(json.dumps(doc, indent=1, default=float))
+    Path(a.out_md).write_text("\n".join(md + diversity_md(drows) + md_sanity([x for x in units if isinstance(x, dict) and "unit" in x], out)))
     print(json.dumps({"units": [(u["unit"], u["status"]) for u in units], "verdicts": {k: v["verdict"] for k, v in verdicts.items()}, "out": a.out_md}))
 
 
@@ -518,7 +563,7 @@ def main():
         if name == "b-ensemble":
             p.add_argument("--decision-5seed", default=None)
         if name == "wf-v1":
-            p.add_argument("--stage-key", default="walk_forward_v1", choices=("walk_forward_v1", "walk_forward_v12"))
+            p.add_argument("--stage-key", default="walk_forward_v1", choices=("walk_forward_v1", "walk_forward_v12", "walk_forward_v13"))
             p.add_argument("--closure-template", default=None, help="OUTPUT_CONTRACT_V1_CLOSURE.md with the evidence markers")
             p.add_argument("--closure-out", default=None)
         p.set_defaults(fn=fn)

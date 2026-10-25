@@ -197,6 +197,25 @@ def status_of(results: Path, unit: str) -> dict:
     return {"sanity": d["status"], "sanity_causes": d.get("cause_counts") or [c["cause"] for c in d.get("causes", [])]}
 
 
+def ensemble_brief(results: Path, unit: str) -> str:
+    """Informational only (2026-10-25): the ensemble's trades, trades/week, Sharpe, agent closes and long/short on the
+    calibration and decision blocks of a unit, from its SANITY.json; shown beside a FAILED_SANITY status, never a result."""
+    p = Path(results) / unit / "SANITY.json"
+    if not p.exists():
+        return "—"
+    ens = (json.loads(p.read_text()).get("ensemble") or {})
+    out = []
+    for b in ("INNER_A", "INNER_B"):
+        m = ens.get(b)
+        if not isinstance(m, dict):
+            continue
+        sd = m.get("side") or {}
+        sh = m.get("sharpe")
+        out.append(f"{b}: {m.get('trades')} tr, {float(m.get('orders_per_week') or 0):.2f}/wk, Sharpe {'—' if sh is None else f'{float(sh):.2f}'}, "
+                   f"agent closes {m.get('agent_closes')}, L/S {sd.get('long', '?')}/{sd.get('short', '?')}")
+    return ("; ".join(out) + " (informational, NOT a result)") if out else "—"
+
+
 def sanity_table_md(docs: list, title: str = "Sanity gate") -> list:
     L = [f"## {title}", "", "| unit | status | causes (count) | unmeasured |", "| --- | --- | --- | --- |"]
     for d in docs:

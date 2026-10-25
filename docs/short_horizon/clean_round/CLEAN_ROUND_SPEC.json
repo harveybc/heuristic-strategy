@@ -1,5 +1,5 @@
 {
- "identity": "clean-expert-guided-a1-20261024-v9",
+ "identity": "clean-expert-guided-a1-20261024-v10",
  "status": "FROZEN on the accepted shared recipe (Musashi re-review 2026-10-24, ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT); launch gate = the owner's word for the expert-guided lane",
  "recipe": {
   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/CONSUMER_RECIPE.json",
@@ -250,6 +250,17 @@
    "date": "2026-10-25",
    "by": "lane L11",
    "change": "WF_V1 SUPERSEDED_INFEASIBLE_STRATEGY_SPACE (zero trades, archived); stage WF_V12 pre-registered with contract v1.2 (action_4b15ba2f36ee195f: scale-adaptive genes, feasibility probe, early close required); WF_C2 contract replaced (action_3ca9b7062b103f94: the same scale-adaptive genes; WF_C2 never ran); stage WF_C2G pre-registered (action_af7d8c66612d1d29: C2 + closer-only order geometry, owner 'Sí, como brazo extra'); sanity gate rules; one chain run_chain_v12_c2_c2g.sh replaces the stopped v6 / early-close / c2 drivers"
+  },
+  {
+   "identity": "clean-expert-guided-a1-20261024-v10",
+   "date": "2026-10-25",
+   "by": "lane L12",
+   "change": "v12 units SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY (all 8 FAILED_SANITY: one-sided seeds; C2/C2G ensembles < 2 trades/week out of sample); contracts v1.3 (action_564e6b858bb08951), C2 v1.3 (action_5540240a4750af96), C2G v1.3 (action_0f4105d47565d45e): per-side open genes, side-balance constraint (<= 90 %), activity rule held with confidence (CI90 lower bound >= 2.0 on the calibration block; owner 'Con confianza estadística'), front-size diagnostic with a declared budget escalation; stages WF_V13, WF_C2_13, WF_C2G_13 pre-registered BEFORE any run with the same HOLDS / SEPARABLE rules decided by ensembles on INNER_B and the unchanged strict sanity gate; chain run_chain_v13.sh with a first-seed / first-ensemble stop rule",
+   "rules_verbatim": {
+    "activity": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+    "side": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
+    "diversity": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
+   }
   }
  ],
  "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule. A 9G request was QUEUED on HOST_HEADROOM (host_free_for_new 8.57 GB with the 3 GiB desktop reserve and the owner's VM resident), so the cap is the host's maximum admissible, 7G, one unit at a time; if the extra-expert arms stop again at 7G they are declared NOT_RUNNABLE_ON_THIS_HOST, never re-tried under a smaller cap | v4 (2026-10-25): after the owner restarted the host (~21 GiB available) the three extra-expert arms ran at 10G and finished; 10G is the cap of every unit from here on (seed extension, stage B); never lowered after a refusal",
@@ -446,7 +457,8 @@
    "balanced"
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
-  "gene_space": "calibration_quantile"
+  "gene_space": "calibration_quantile",
+  "status": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY"
  },
  "walk_forward_c2g": {
   "stage": "WF_C2G",
@@ -497,7 +509,8 @@
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
   "owner_words": "Sí, como brazo extra (2026-10-25)",
-  "gene_space": "calibration_quantile"
+  "gene_space": "calibration_quantile",
+  "status": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY"
  },
  "sanity_gate": {
   "rule": "PRE-REGISTERED 2026-10-25 before any WF_V12 / WF_C2 / WF_C2G result exists (tools/expert_guided_sanity_gate.py, run after EVERY unit and EVERY ensemble on the calibration block INNER_A and the decision block INNER_B): a unit is FAILED_SANITY, with its causes, when any seed or its ensemble shows zero trades, < 2.0 trades/week, one side > 90 % of entries, zero agent closes, all exits by a single reason, an undefined Sharpe, a strategy search with share_valid == 0, or a replay that differs from the run (or the unit produced no results: the cause is its typed refusal, e.g. STRATEGY_SPACE_INFEASIBLE); FAILED_SANITY units are excluded from every comparison and decision, shown in a separate table with their causes and never as results; the report tools refuse any verdict that involves one (REFUSED_FAILED_SANITY)",
@@ -557,19 +570,172 @@
    "balanced"
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_V12 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
-  "gene_space": "calibration_quantile"
+  "gene_space": "calibration_quantile",
+  "status": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY"
  },
  "chain": {
-  "script": "tools/clean_round_chain/run_chain_v12_c2_c2g.sh",
-  "end_marker": "[chain-v12] chain end",
-  "order": [
-   "install (verified; README_LAUNCH.txt / LAUNCH_STATUS.md out of PINS)",
-   "gate += WF_V12, WF_C2, WF_C2G",
-   "WF_V12 units -> sanity -> ensembles -> sanity -> early-close audit",
-   "C2 outcome tables -> WF_C2 units -> sanity -> ensembles -> sanity -> audit",
-   "WF_C2G units -> sanity -> ensembles -> sanity -> audit",
-   "reports (WF_V12, C2, C2G, closure D1-D6/E) with sanity tables"
+  "script": "tools/clean_round_chain/run_chain_v13.sh",
+  "end_marker": "[chain-v13] chain end",
+  "first_seed_stop_rule": "after the first seed of the FIRST unit of each stage, and after the first ensemble of each stage, the sanity gate runs on that seed / ensemble for INNER_A and INNER_B; zero trades, < 2 trades/week, a side > 90 %, no agent closes or a single exit reason stops the chain with the cause logged"
+ },
+ "walk_forward_v13": {
+  "stage": "WF_V13",
+  "why": "v12 chain: every unit FAILED_SANITY - seeds opening one side only (one shared open quantile over both sides: the opener with systematically higher calibrated scores took everything, e.g. WF_V12_wf2023_zz_hold_v12 seed 20261021: 80 shorts / 0 longs on INNER_A) and seeds below 2 trades/week out of sample; contract v1.3 = v1.2 + per-side genes + side-balance constraint + activity CI rule + front-size diagnostic",
+  "action_contract": {
+   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_v1_3.json",
+   "sha256": "b29bbcf22f57752e0b6fabd6828710a303181ad49f54a7342b5141f02573da2b",
+   "identity": "action_564e6b858bb08951"
+  },
+  "arms": [
+   {
+    "name": "zz_hold_v13",
+    "base": "zz_hold",
+    "strategy_fitness": "sharpe_lcb"
+   },
+   {
+    "name": "both_hold_v13",
+    "base": "both_hold",
+    "strategy_fitness": "sharpe_lcb"
+   }
   ],
-  "state_marks": "new marks prefixed v12_ (the old WF_V1 marks are not reused)"
+  "folds": [
+   "wf2022",
+   "wf2023"
+  ],
+  "seeds": "20261019,20261020,20261021,20261022,20261023",
+  "memory": "10G",
+  "baseline": {
+   "zz_hold_v13": "WF_<fold>_zz_hold",
+   "both_hold_v13": "WF_<fold>_both_hold"
+  },
+  "rule": "PRE-REGISTERED 2026-10-25 before any WF_V12 result exists: an arm HOLDS only if its seed-ensemble validation Sharpe minus one Lo standard error is > 0 in BOTH walk-forward folds (wf2022 and wf2023); otherwise DOES_NOT_HOLD; two arms are SEPARABLE on a window only when |Sharpe_a - Sharpe_b| > the pooled Lo standard error sqrt(SE_a^2 + SE_b^2); otherwise NOT_SEPARABLE; v1.2 vs its baseline = the WF arm; an ensemble with fewer than 2 trades/week on INNER_B is INVALID; every verdict also obeys the sanity gate (sanity_gate.rule)",
+  "evaluation": "tools/expert_guided_seed_ensemble.py (v1 path: mean calibrated probabilities and TP/SL, one Platt refit and the strategy re-optimised on INNER_A) -> tools/expert_guided_wf_report.py wf-v1",
+  "fitness_variants": [
+   "sharpe_lcb",
+   "sharpe_plus_return",
+   "sharpe_plus_return_plus_activity",
+   "trade_tstat",
+   "calmar",
+   "return_minus_dd",
+   "balanced"
+  ],
+  "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_V12 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
+  "gene_space": "calibration_quantile",
+  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+  "side_rule": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
+  "diversity_rule": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
+ },
+ "walk_forward_c2_13": {
+  "stage": "WF_C2_13",
+  "why": "v12 chain: the C2 ensembles sat exactly on 2.0 trades/week on calibration (54 trades / 27 weeks) and fell to 1.48-1.94 out of sample; one-sided seeds; C2 v1.3 = C2 + per-side open margins + side-balance constraint + activity CI rule + front-size diagnostic",
+  "action_contract": {
+   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_C2_v1_3.json",
+   "sha256": "3accb40c65a3f27f50bbe75841f93fa81e09f824272011249c1c9a1466e47d5b",
+   "identity": "action_5540240a4750af96"
+  },
+  "arms": [
+   {
+    "name": "zz_feat_c2_13",
+    "base": "zz_hold",
+    "strategy_fitness": "sharpe_lcb",
+    "inputs": "the fold recipe's features (same tensor as every WF arm); no ZigZag teacher: the base arm only supplies the command template"
+   }
+  ],
+  "folds": [
+   "wf2022",
+   "wf2023"
+  ],
+  "seeds": "20261019,20261020,20261021,20261022,20261023",
+  "memory": "10G",
+  "outcomes": {
+   "dir": "outcomes",
+   "file_pattern": "OUTCOMES_ENTRY_<fold>.npz",
+   "build": "tools/expert_guided_c2.py outcomes (engine replay of every entry, CPU, capped; stamped, checked by E3-M on load)",
+   "reuse": "the v12 chain's stamped tables OUTCOMES_ENTRY_<fold>.npz (digests in outcomes/OUTCOMES.sha256, re-checked by the driver before the stage; E3-M checks each stamp)"
+  },
+  "baseline": {
+   "zz_feat_c2_13": {
+    "wf": "WF_<fold>_zz_hold",
+    "wf_v1": "WF_V13_<fold>_zz_hold_v13"
+   }
+  },
+  "rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists: HOLDS / SEPARABLE as already pre-registered (an arm HOLDS only if its seed-ensemble validation Sharpe minus one Lo standard error is > 0 in BOTH walk-forward folds (wf2022 and wf2023), otherwise DOES_NOT_HOLD; two arms are SEPARABLE on a window only when |Sharpe_a - Sharpe_b| > the pooled Lo standard error sqrt(SE_a^2 + SE_b^2), otherwise NOT_SEPARABLE); C2 is compared with BOTH baselines of the same fold (WF_<fold>_zz_hold and WF_V13_<fold>_zz_hold_v13) by the seed ENSEMBLES on INNER_B (never seed means); an ensemble with fewer than 2 trades/week on INNER_B is INVALID (owner's rule) whatever its Sharpe; 2024 one read, never decides; every verdict also obeys the sanity gate (sanity_gate.rule)",
+  "early_close_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists: C2 counts as fixing the early close only if its ensemble early-close value (engine counterfactual hold of every agent close, INNER_B, the arm's primary fitness) is > 0 in BOTH folds AND its closer recall of SL-first is >= 2x the baseline's (the WF_<fold>_zz_hold ensemble, same fold, same audit tool); a C2 strategy with no agent close on the calibration block is DEGENERATE_NO_EARLY_CLOSE and not selectable (require_early_close in the contract)",
+  "evaluation": "tools/expert_guided_seed_ensemble.py (C2 path: mean calibrated probabilities and predicted values, one Platt refit per binary head on the saved round-0 INNER_A rows, strategy re-optimised on INNER_A for every fitness variant) -> tools/expert_guided_early_close_audit.py run (C2-aware) -> tools/expert_guided_c2.py report",
+  "fitness_variants": [
+   "sharpe_lcb",
+   "sharpe_plus_return",
+   "sharpe_plus_return_plus_activity",
+   "trade_tstat",
+   "calmar",
+   "return_minus_dd",
+   "balanced"
+  ],
+  "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
+  "gene_space": "calibration_quantile",
+  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+  "side_rule": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
+  "diversity_rule": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
+ },
+ "walk_forward_c2g_13": {
+  "stage": "WF_C2G_13",
+  "why": "the C2G arm (owner 'Sí, como brazo extra') under the v1.3 strategy rules, against the C2 v1.3 arm of the same fold",
+  "action_contract": {
+   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_C2G_v1_3.json",
+   "sha256": "bf62e8240dcc18b023270fc4bbbf4a2ae30b9d7bd57bca678137f735cb168a35",
+   "identity": "action_0f4105d47565d45e"
+  },
+  "arms": [
+   {
+    "name": "zz_feat_c2g_13",
+    "base": "zz_hold",
+    "strategy_fitness": "sharpe_lcb",
+    "inputs": "the fold recipe's features (same tensor as every WF arm) for every specialist; the closers alone add the four order-geometry values; no ZigZag teacher"
+   }
+  ],
+  "folds": [
+   "wf2022",
+   "wf2023"
+  ],
+  "seeds": "20261019,20261020,20261021,20261022,20261023",
+  "memory": "10G",
+  "outcomes": {
+   "dir": "outcomes",
+   "file_pattern": "OUTCOMES_ENTRY_<fold>.npz",
+   "build": "tools/expert_guided_c2.py outcomes (engine replay of every entry, CPU, capped; stamped, checked by E3-M on load)",
+   "reuse": "the WF_C2 stage's stamped tables (OUTCOMES_ENTRY_<fold>.npz, digests recorded by the driver before the first unit and re-checked before every unit; E3-M also checks the stamp)"
+  },
+  "baseline": {
+   "zz_feat_c2g_13": {
+    "c2": "WF_C2_13_<fold>_zz_feat_c2_13",
+    "wf": "WF_<fold>_zz_hold",
+    "wf_v1": "WF_V13_<fold>_zz_hold_v13"
+   }
+  },
+  "rule": "PRE-REGISTERED 2026-10-25 before any WF_C2G or WF_C2 result exists: HOLDS / SEPARABLE as already pre-registered (an arm HOLDS only if its seed-ensemble validation Sharpe minus one Lo standard error is > 0 in BOTH walk-forward folds (wf2022 and wf2023), otherwise DOES_NOT_HOLD; two arms are SEPARABLE on a window only when |Sharpe_a - Sharpe_b| > the pooled Lo standard error sqrt(SE_a^2 + SE_b^2), otherwise NOT_SEPARABLE); C2G is compared by the seed ENSEMBLES on INNER_B (never seed means) with the C2 arm of the same fold (WF_C2_13_<fold>_zz_feat_c2_13: the direct contrast, the only difference is the closers' order geometry) and with the WF baseline (WF_<fold>_zz_hold); an ensemble with fewer than 2 trades/week on INNER_B is INVALID (owner's rule) whatever its Sharpe; 2024 one read, never decides; every verdict also obeys the sanity gate (sanity_gate.rule)",
+  "early_close_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2G or WF_C2 result exists: C2G counts as fixing the early close only if its ensemble early-close value (engine counterfactual hold of every agent close, INNER_B, the arm's primary fitness) is > 0 in BOTH folds AND its closer recall of SL-first is >= 2x the baseline's (the WF_<fold>_zz_hold ensemble, same fold, same audit tool); the direct C2G vs C2 contrast (early-close value, recall, AUC, cut-winner share, and the same quantities by bucket of the order's distance to its SL) is reported per fold; a C2G strategy with no agent close on the calibration block is DEGENERATE_NO_EARLY_CLOSE and not selectable (require_early_close in the contract)",
+  "evaluation": "tools/expert_guided_seed_ensemble.py (C2G path: closers evaluated on demand per open order, seed means of calibrated probabilities and values, one Platt refit per binary head on the saved round-0 INNER_A rows with their geometry, strategy re-optimised on INNER_A for every fitness variant) -> tools/expert_guided_early_close_audit.py run (C2G-aware; closer quality by bucket of distance to SL) -> tools/expert_guided_c2.py report --stage WF_C2G",
+  "fitness_variants": [
+   "sharpe_lcb",
+   "sharpe_plus_return",
+   "sharpe_plus_return_plus_activity",
+   "trade_tstat",
+   "calmar",
+   "return_minus_dd",
+   "balanced"
+  ],
+  "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
+  "owner_words": "Sí, como brazo extra (2026-10-25)",
+  "gene_space": "calibration_quantile",
+  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+  "side_rule": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
+  "diversity_rule": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
+ },
+ "superseded": {
+  "WF_V1_": "SUPERSEDED_INFEASIBLE_STRATEGY_SPACE",
+  "WF_V12_": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY",
+  "WF_C2_wf": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY",
+  "WF_C2G_wf": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY",
+  "note": "archived, never results; the sanity gate is unchanged (strict: any seed or the ensemble failing marks the unit)"
  }
 }

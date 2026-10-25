@@ -159,7 +159,7 @@ def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
 
     def score_table(view, strat):
         m, trades = ACT.rollout_with_trades(cx, cb, ACT.ContractPolicy(view, strat)(cx), SCFG)
-        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw)
+        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw, **ACT.score_kwargs(AC))
 
     primary = ac.get("primary_fitness") or ACT.DEFAULT_FITNESS
     fr = ACT.freeze_strategy(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary)
@@ -169,7 +169,7 @@ def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
     doc["ensemble_strategy"] = fr
     doc["by_fitness"] = {}
     for f, bf in fr["by_fitness"].items():                 # every fitness variant on the same ensemble (no refit)
-        st_f = ACT.Strategy(**bf["strategy"]) if bf["strategy"] is not None else M.NO_TRADE
+        st_f = ACT.strategy_from_dict(bf["strategy"]) if bf["strategy"] is not None else M.NO_TRADE
         w = {}
         for p in periods:
             if p == "OBS_2024" and f != primary:
@@ -180,7 +180,7 @@ def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
         av = bf["archive_view"]
         bu = av["best_unconstrained_by_fitness"]
         if bu is not None:                                  # the fitness without the activity rule: NOT SELECTABLE, reported
-            cu = ACT.ContractPolicy(ens_t, ACT.Strategy(**bu["strategy"]))
+            cu = ACT.ContractPolicy(ens_t, ACT.strategy_from_dict(bu["strategy"]))
             bu["windows_not_selectable"] = {p: window_stats(cx.rollout(p, cu(cx), cfg)[0], cfg) for p in periods if p != "OBS_2024"}
         doc["by_fitness"][f] = {"strategy": bf["strategy"], "valid_on_calibration": bf["valid"], "nop_veto_kept": bf["nop_veto_kept"],
                                 "chosen_components": bf["chosen"], "windows": w, "archive_view": av,
@@ -236,7 +236,7 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
 
     def score_table(view, strat):
         m, trades = ACT.rollout_with_trades(cx, cb, C2.PolicyC2(view, strat)(cx), SCFG)
-        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw)
+        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw, **ACT.score_kwargs(AC))
 
     primary = ac.get("primary_fitness") or ACT.DEFAULT_FITNESS
     closer_src = {m: {"rows": saved[cb][m]["rows"], "G": saved[cb][m].get("G")} for m in C2.CLOSERS if m in saved[cb]}
@@ -247,7 +247,7 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
     doc["ensemble_strategy"] = fr
     doc["by_fitness"] = {}
     for f, bf in fr["by_fitness"].items():
-        st_f = C2.StrategyC2(**bf["strategy"]) if bf["strategy"] is not None else C2.NO_TRADE
+        st_f = C2.strategy_from_dict(bf["strategy"]) if bf["strategy"] is not None else C2.NO_TRADE
         w = {}
         for p in periods:
             if p == "OBS_2024" and f != primary:
@@ -257,7 +257,7 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
         av = bf["archive_view"]
         bu = av["best_unconstrained_by_fitness"]
         if bu is not None:
-            cu = C2.PolicyC2(ens_t, C2.StrategyC2(**bu["strategy"]))
+            cu = C2.PolicyC2(ens_t, C2.strategy_from_dict(bu["strategy"]))
             bu["windows_not_selectable"] = {p: window_stats(cx.rollout(p, cu(cx), cfg)[0], cfg) for p in periods if p != "OBS_2024"}
         doc["by_fitness"][f] = {"strategy": bf["strategy"], "valid_on_calibration": bf["valid"], "nop_veto_kept": bf["nop_veto_kept"],
                                 "chosen_components": bf["chosen"], "windows": w, "archive_view": av, "note": bf.get("note"),

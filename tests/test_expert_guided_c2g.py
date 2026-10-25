@@ -405,7 +405,7 @@ def test_committed_spec_v9_preregisters_wf_c2g():
     from tools import expert_guided_clean_round as C
     s = json.loads((ROOT / "docs/short_horizon/clean_round/CLEAN_ROUND_SPEC.json").read_text())
     w = s["walk_forward_c2g"]
-    assert s["identity"].endswith("-v9") and w["stage"] == "WF_C2G" and w["owner_words"] == "Sí, como brazo extra (2026-10-25)"
+    assert any(r["identity"].endswith("-v9") for r in s["revisions"]) and w["stage"] == "WF_C2G" and w["owner_words"] == "Sí, como brazo extra (2026-10-25)"
     assert w["arms"][0]["name"] == "zz_feat_c2g" and w["baseline"]["zz_feat_c2g"]["c2"] == "WF_C2_<fold>_zz_feat_c2"
     assert w["action_contract"]["identity"] == json.loads((CONTRACTS / "ACTION_CONTRACT_C2G.json").read_text())["identity"]
     assert w["action_contract"]["sha256"] == ACT.sha256_file(CONTRACTS / "ACTION_CONTRACT_C2G.json")

@@ -211,26 +211,35 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
     errs += walk_forward_v12_errors(spec)
     errs += walk_forward_c2_errors(spec)
     errs += walk_forward_c2g_errors(spec)
+    errs += walk_forward_v12_errors(spec, "walk_forward_v13", WF_V13_STAGE)
+    errs += walk_forward_c2_errors(spec, "walk_forward_c2_13", WF_C2_13_STAGE)
+    errs += walk_forward_c2g_errors(spec, "walk_forward_c2g_13", WF_C2G_13_STAGE, "walk_forward_c2_13", WF_C2_13_STAGE)
     return errs
 
 
 WF_V1_STAGE = "WF_V1"
 WF_V12_STAGE = "WF_V12"
+WF_V13_STAGE = "WF_V13"            # v1.3 (2026-10-25): per-side genes, side cap, activity CI rule
+WF_C2_13_STAGE = "WF_C2_13"
+WF_C2G_13_STAGE = "WF_C2G_13"
 
 
-def walk_forward_v12_errors(spec: dict) -> list:
+def walk_forward_v12_errors(spec: dict, key: str = "walk_forward_v12", stage: str = WF_V12_STAGE) -> list:
     """Stage WF_V12 (2026-10-25, after WF_V1's zero trades): the WF_V1 checks on ``walk_forward_v12`` plus a contract in the
-    scale-adaptive gene space with the early close required."""
-    w = spec.get("walk_forward_v12")
+    scale-adaptive gene space with the early close required. With ``key="walk_forward_v13"`` / ``stage="WF_V13"`` the
+    same checks plus a v1.3 contract (per-side genes, side cap, activity CI rule)."""
+    w = spec.get(key)
     if not w:
         return []
     from app.short_horizon.expert_guided import action_contract as ACT
-    errs = walk_forward_v1_errors(spec, "walk_forward_v12", WF_V12_STAGE)
+    errs = walk_forward_v1_errors(spec, key, stage)
     cp = Path(w.get("action_contract", {}).get("path", ""))
     if cp.exists():
         st = json.loads(cp.read_text()).get("strategy") or {}
         if st.get("gene_space") != ACT.GENE_SPACE_Q or st.get("require_early_close") is not True:
-            errs.append("WF_V12_CONTRACT_NOT_SCALE_ADAPTIVE")
+            errs.append(f"{stage}_CONTRACT_NOT_SCALE_ADAPTIVE")
+        if stage == WF_V13_STAGE and not ACT.is_v13(st):
+            errs.append(f"{stage}_CONTRACT_NOT_V13")
     return errs
 
 
@@ -352,26 +361,34 @@ def walk_forward_c2_errors(spec: dict, key: str = "walk_forward_c2", stage: str 
     return errs
 
 
-def walk_forward_c2g_errors(spec: dict) -> list:
+def walk_forward_c2g_errors(spec: dict, key: str = "walk_forward_c2g", stage: str = WF_C2G_STAGE,
+                            c2_key: str = "walk_forward_c2", c2_stage: str = WF_C2_STAGE) -> list:
     """Stage WF_C2G (owner 2026-10-25, "Sí, como brazo extra"): the C2 checks plus a C2G contract, the C2 arm of the same
-    fold declared as each arm's baseline (the direct contrast), and every fold also in the WF_C2 stage."""
-    w = spec.get("walk_forward_c2g")
+    fold declared as each arm's baseline (the direct contrast), and every fold also in the WF_C2 stage. The v1.3 pair
+    (``walk_forward_c2g_13`` against ``walk_forward_c2_13``) also needs v1.3 contracts on both."""
+    w = spec.get(key)
     if not w:
         return []
+    from app.short_horizon.expert_guided import action_contract as ACT
     from app.short_horizon.expert_guided import c2 as C2
-    errs = walk_forward_c2_errors(spec, "walk_forward_c2g", WF_C2G_STAGE)
+    errs = walk_forward_c2_errors(spec, key, stage)
     cp = Path(w.get("action_contract", {}).get("path", ""))
     if cp.exists() and not C2.is_c2g(json.loads(cp.read_text())):
-        errs.append("WF_C2G_CONTRACT_NOT_C2G")
-    c2 = spec.get("walk_forward_c2") or {}
+        errs.append(f"{stage}_CONTRACT_NOT_C2G")
+    c2 = spec.get(c2_key) or {}
     names = {a["name"] for a in c2.get("arms", [])}
     for arm in w.get("arms", []):
         bc = ((w.get("baseline") or {}).get(arm.get("name")) or {}).get("c2", "")
-        if not bc or not any(bc == f"WF_C2_<fold>_{n}" for n in names):
-            errs.append(f"WF_C2G_NO_C2_BASELINE:{arm.get('name')}")
+        if not bc or not any(bc == f"{c2_stage}_<fold>_{n}" for n in names):
+            errs.append(f"{stage}_NO_C2_BASELINE:{arm.get('name')}")
     for fold in w.get("folds", []):
         if fold not in (c2.get("folds") or []):
-            errs.append(f"WF_C2G_FOLD_NOT_IN_WF_C2:{fold}")
+            errs.append(f"{stage}_FOLD_NOT_IN_{c2_stage}:{fold}")
+    if stage == WF_C2G_13_STAGE:
+        for k in (key, c2_key):
+            cp_ = Path(((spec.get(k) or {}).get("action_contract") or {}).get("path", ""))
+            if cp_.exists() and not ACT.is_v13(json.loads(cp_.read_text()).get("strategy") or {}):
+                errs.append(f"{stage}_CONTRACT_NOT_V13:{k}")
     return errs
 
 
@@ -519,6 +536,12 @@ def cmd_emit(a):
         return emit_walk_forward_c2(spec, a)
     if a.stage == WF_C2G_STAGE:
         return emit_walk_forward_c2(spec, a, "walk_forward_c2g", WF_C2G_STAGE)
+    if a.stage == WF_V13_STAGE:
+        return emit_walk_forward_v1(spec, a, "walk_forward_v13", WF_V13_STAGE)
+    if a.stage == WF_C2_13_STAGE:
+        return emit_walk_forward_c2(spec, a, "walk_forward_c2_13", WF_C2_13_STAGE)
+    if a.stage == WF_C2G_13_STAGE:
+        return emit_walk_forward_c2(spec, a, "walk_forward_c2g_13", WF_C2G_13_STAGE)
     arms = spec["stages"][a.stage]
     if a.stage == "B":                                            # A and A_prime carry their own labels; B inherits the winner
         dec = json.loads(Path(a.winner_from).read_text())
@@ -721,11 +744,11 @@ def localize(spec: dict, root: str, thresholds_dir="recipe") -> dict:
                 arm["multires_thresholds"] = f"{root}/{thresholds_dir}/{Path(arm['multires_thresholds']).name}"
     for fd in (s.get("walk_forward") or {}).get("folds", {}).values():
         fd["recipe"]["path"] = f"{root}/recipe/{Path(fd['recipe']['path']).name}"
-    for k in ("walk_forward_v1", "walk_forward_v12"):
+    for k in ("walk_forward_v1", "walk_forward_v12", "walk_forward_v13"):
         if s.get(k):
             c = s[k]["action_contract"]
             c["path"] = f"{root}/contracts/{Path(c['path']).name}"
-    for k in ("walk_forward_c2", "walk_forward_c2g"):
+    for k in ("walk_forward_c2", "walk_forward_c2g", "walk_forward_c2_13", "walk_forward_c2g_13"):
         if s.get(k):
             c = s[k]["action_contract"]
             c["path"] = f"{root}/contracts/{Path(c['path']).name}"

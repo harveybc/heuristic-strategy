@@ -748,7 +748,7 @@ def v1_seed(cx, seed, d):
 
     def score_table(view, strat):
         m, trades = ACT.rollout_with_trades(cx, "INNER_A", ACT.ContractPolicy(view, strat)(cx), SCFG)
-        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw)
+        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw, **ACT.score_kwargs(AC))
 
     pols, infos, comp, rounds = {}, {}, None, []
     for rnd in range(ROUNDS + 1):
@@ -1124,15 +1124,18 @@ def run(a):
                     rec["musashi_contract"][p] = summary(cx.rollout(p, c(cx), MUSASHI_CFG)[0])
                 for f, bf in extra["strategy"]["by_fitness"].items():        # every fitness variant, same trained seed (no refit)
                     if bf["strategy"] is not None:
-                        cf = ACT.ContractPolicy(table, ACT.Strategy(**bf["strategy"]))
+                        cf = ACT.ContractPolicy(table, ACT.strategy_from_dict(bf["strategy"]))
                         bf["trading"] = {p: summary(cx.rollout(p, cf(cx), SCFG)[0]) for p in DEV}
                     bu = bf["archive_view"]["best_unconstrained_by_fitness"]
                     if bu is not None:                                       # what the fitness would do without the rule: NOT SELECTABLE
-                        cu = ACT.ContractPolicy(table, ACT.Strategy(**bu["strategy"]))
+                        cu = ACT.ContractPolicy(table, ACT.strategy_from_dict(bu["strategy"]))
                         bu["trading_not_selectable"] = {p: summary(cx.rollout(p, cu(cx), SCFG)[0]) for p in DEV}
                 rec["action_contract"]["out_of_sample_activity"] = {
                     "INNER_B_trades_per_week": rec["trading"].get("INNER_B", {}).get("orders_per_week"),
                     "owner_rule": "below 2 trades/week on INNER_B = INVALID", "valid_INNER_B": rec["trading"].get("INNER_B", {}).get("valid")}
+                ci_p = {p: ACT.period_activity(cx, p, c(cx), SCFG) for p in DEV} if ACT.is_v13(AC["strategy"]) else {}
+                if ci_p:
+                    rec["action_contract"]["activity_ci90"] = ci_p
                 for m, pol in pols.items():
                     torch.save(pol.m.state_dict(), out / f"{v}_{m}_{seed}.pt")
                     res["probe"][f"{v}_{m}_{seed}"] = probe(pol)
@@ -1142,7 +1145,7 @@ def run(a):
                 print(json.dumps({"variant": v, "seed": seed, "arbiter": "action_contract_v1", "strategy": best["strategy"],
                                   "sharpe": {p: round(rec["trading"][p]["sharpe_daily_sqrt365"], 2) for p in rec["trading"]},
                                   "opw": {p: round(rec["trading"][p]["orders_per_week"], 2) for p in rec["trading"]}, "s": round(time.time() - t0, 1),
-                                  "seed_sanity": {p: ACT.seed_sanity(rec["trading"][p]) for p in rec["trading"]}}), flush=True)
+                                  "seed_sanity": {p: ACT.seed_sanity(rec["trading"][p], ci_p.get(p)) for p in rec["trading"]}}), flush=True)
                 continue
             D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW),
                               *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW) for t in tracks[1:]])
