@@ -314,3 +314,6 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
 | S7 | variantes de fitness F0–F6 con coeficientes normalizados | — | tablas por variante con archivo completo; elección en wf2022, confirmación en wf2023 | L8 |
 | S8 | etapa WF_V1 (control y `both_hold` con v1, 5 semillas, 2 años) + informe con tabla de cierre D1–D5/E | todos | `RESULTS_WF_V1_2026_10_25.md`, `OUTPUT_CONTRACT_V1_CLOSURE.md` | encadenada tras S0 |
 | S9 | proponer `ACTION_CONTRACT_v1` como contrato compartido con la línea SAC de Musashi; par puente sobre su receta v3 | — | documento para Musashi | después de S8 |
+| S10 | auditoría de cierre temprano (contrafactual exacto por trade; regla: sin cierres propios = degenerada; valor negativo = dañina) | D6 | `evidence/early_close/` (línea base: recall 6–11 %, valor ≤ 0 en 5/6) | hecho; la de v1 espera |
+| S11 | **C2**: tablas de resultados exactas del motor + regresión de consecuencias + cierre por parada óptima | D6, imitation gap | `RESULTS_WF_C2_2026_10_25.md` | encadenada tras S10 |
+| S12 | **C2G** (palabra del propietario: "Sí, como brazo extra"): cerradores ven la geometría de su orden (distancia a SL/TP en σ, horas, lado) | D6 | contraste C2G vs C2 | encadenada tras S11 |
