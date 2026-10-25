@@ -116,3 +116,28 @@ secuencial, sin vigilancia. Qué corre, en una sola cadena en el host del 4090 (
 ensamble en el año de validación menos un SE de Lo es > 0 en AMBOS pliegues; dos brazos son SEPARABLES en una ventana sólo
 si |Δ Sharpe| > SE agrupado √(SE_a² + SE_b²), si no NOT_SEPARABLE. Nada se elige en INNER_B ni en 2024; el walk-forward es
 diagnóstico y no libera nada. Recogida en el coordinador: `tools/clean_round_chain/collect.sh` (sin commit automático).
+
+## 8. Etapa WF_C2: aprender las consecuencias de nuestras acciones (spec v8, pre-registrada 2026-10-25 antes de leer)
+
+Diseño: `CAUSAL_LADDER_DESIGN_2026_10_25.md` §3 C2. Contrato `contracts/ACTION_CONTRACT_C2.json` (`action_ad45e26e2b62a160`).
+
+- **Sin maestro.** Los objetivos salen de tablas de resultados que el propio motor calcula (`app/short_horizon/expert_guided/outcomes.py`, sobre `env.BarEnv.step`), con llenados, costos, niveles, protecciones y cierre forzoso:
+  - para cada fila plana elegible, cada lado y cada celda (TP, SL) de la rejilla {0.5, 1, 1.5, 2} × {0.75, 1.5, 2.5} σ: el neto en σ, qué toca primero (TP, SL o tiempo), MAE, MFE y duración;
+  - para cada fila posicionada visitada: el valor de mantener frente a cerrar ahora, y si el SL llega primero.
+  
+  Una etiqueta sólo se usa cuando su barra de resolución + 1 h cae dentro del periodo; las filas censuradas se descartan.
+- **Cabezas.**
+  - Abridores: regresión multi-salida del neto por celda (conserva el orden) y binaria "TP antes que SL".
+  - Cerradores: regresión del valor restante y binaria "SL primero".
+  - NOP: se conserva.
+  - Las binarias se calibran con Platt en INNER_A.
+  - La auditoría de codificación rechaza cualquier clase leída de intervalos de una salida continua. Una cabeza continua sólo produce una acción mediante la regla "actuar si E[valor | x, do(acción)] > margen".
+- **Estrategia.**
+  - Abrir el lado y la celda con mayor neto previsto cuando supera `open_margin`, siempre que no lo vete el NOP.
+  - Cerrar por **parada óptima**: cuando el valor restante previsto < −`close_margin` o cuando P(SL primero) calibrada > `close_p`.
+  - Se optimiza sólo en INNER_A, con la maquinaria v1: NSGA-II, dominancia por restricciones a 2.0 trades/semana, archivo completo, F0–F6 y `require_early_close`.
+- **Reglas pre-registradas** (literales en `CLEAN_ROUND_SPEC.json` → `walk_forward_c2`):
+  - HOLDS / SEPARABLE como antes, comparando contra el WF y el WF_V1 del mismo fold mediante los ensambles en INNER_B.
+  - C2 sólo arregla el cierre temprano si su valor de cierre temprano es > 0 en **ambos** folds **y** su recall de SL-primero es ≥ 2× el de la línea base.
+  - Se reportan todas las variantes de fitness.
+- **Cadena**: `tools/clean_round_chain/run_chain_c2.sh`, que espera al fin de la auditoría de cierre temprano v1.

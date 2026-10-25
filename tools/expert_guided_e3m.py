@@ -44,6 +44,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app.short_horizon.expert_guided import action_contract as ACT  # noqa: E402
+from app.short_horizon.expert_guided import c2 as C2  # noqa: E402
 from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
 from app.short_horizon.expert_guided import multires as MR  # noqa: E402
@@ -869,12 +870,16 @@ def run(a):
     DG.check_scaling(a.scaling)                   # typed refusal before any read
     sc = DG.split_contract(a.split_contract)
     AC = None
+    C2MODE = False
+    if getattr(a, "outcomes", None) and not a.action_contract:
+        raise SystemExit("OUTCOMES_REQUIRE_C2_ACTION_CONTRACT")
     if getattr(a, "strategy_fitness", "") and not a.action_contract:
         raise SystemExit("STRATEGY_FITNESS_REQUIRES_ACTION_CONTRACT")
     if a.action_contract:
         # output contract v1 (owner 2026-10-25): five calibrated specialists + one frozen parametric strategy; every
         # choice on INNER_A, decision on the post-freeze INNER_B; typed refusals before any data is read
-        AC = ACT.load(a.action_contract)
+        C2MODE = C2.is_c2(json.loads(Path(a.action_contract).read_text()))     # stage C2 (2026-10-25): action consequences, no teacher
+        AC = C2.load(a.action_contract) if C2MODE else ACT.load(a.action_contract)
         ACT.require_decision_block(AC, sc, a.split_contract)
         if a.variants != "FULL":
             raise SystemExit("ACTION_CONTRACT_ONLY_FOR_FULL")
@@ -973,7 +978,10 @@ def run(a):
     tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
                                   for d in []] + [parse_track(cx, d) for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
-    if AC:
+    if AC and C2MODE:
+        MODS["FULL"] = C2.modules()
+        BOUNDS.update({m: C2.reg_bounds(m) for m in C2.SPECIALISTS})
+    elif AC:
         MODS["FULL"] = dict(MODS["FULL"], nop=(2, 0))
         BOUNDS["nop"] = ((0.25, 3.0), (0.5, 3.0))
     params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, reg_bounds=BOUNDS[m], **ARCH).parameters()))
@@ -1013,7 +1021,7 @@ def run(a):
            "probe": {}}
     if AC:
         res["action_contract"] = {"identity": AC["identity"], "sha256": ACT.sha256_file(a.action_contract), "contract": AC,
-                                  "encoding_audit": ACT.encoding_audit(AC), "head_shapes": HEADS,
+                                  "encoding_audit": (C2.encoding_audit(AC) if C2MODE else ACT.encoding_audit(AC)), "head_shapes": HEADS,
                                   "calibration_block": "INNER_A", "decision_block": "INNER_B", "read_once": "OBS_2024",
                                   "label_args": {"labels": a.labels, "closer_rule": a.closer_rule, "theta_open": a.theta_open, "theta_close": a.theta_close,
                                                  "extra_experts": a.extra_experts,
@@ -1060,6 +1068,14 @@ def run(a):
         res["comparators"][p] |= {"expert_demonstrations": summary(cx.rollout(p, cx.expert, ECFG)[0]),
                                  "expert_confirmed": summary(cx.rollout(p, cx.confirmed, SCFG)[0]),
                                  "no_trade": summary(cx.rollout(p, lambda *x: (E.HOLD, 1.5, 2.0), SCFG)[0])}
+    if C2MODE:
+        res = C2.run_e3m({"cx": cx, "ds": ds, "a": a, "AC": AC, "res": res, "out": out, "SCFG": SCFG, "ECFG": ECFG, "MUSASHI_CFG": MUSASHI_CFG,
+                          "NS": NS, "led": led, "ledger": ledger, "summary": summary, "DEV": DEV, "SEEDS": SEEDS, "prior": prior,
+                          "fit_module": fit_module, "probe": probe, "ROUNDS": ROUNDS, "EXPERT": DG.EXPERT})
+        res["wall_seconds"] = time.time() - t0
+        (out / "E3M.json").write_text(json.dumps(jsonable(res), indent=1))
+        print(json.dumps({"decision": res["decision"], "wall": round(res["wall_seconds"], 1)}))
+        return
     frozen = {}
     V1 = None
     if AC:
@@ -1270,6 +1286,7 @@ def build_parser():
     ap.add_argument("--feature-list", default="", help="JSON with {'features': [...]} selected from the store")
     ap.add_argument("--action-contract", default="", help="output contract v1 JSON (ACTION_CONTRACT_v1.json): five calibrated specialists "
                     "(open_l, open_s, nop, close_l, close_s) and one parametric strategy frozen on INNER_A, decided on the post-freeze INNER_B; default off")
+    ap.add_argument("--outcomes", default="", help="C2 only: the stamped entry outcome table (npz); built and saved there when missing")
     ap.add_argument("--strategy-fitness", choices=[""] + list(ACT.FITNESS), default="",
                     help="action contract v1 only: the fitness variant that picks the frozen strategy point (default: the contract's, sharpe_lcb); "
                          "every variant is still optimised and recorded")

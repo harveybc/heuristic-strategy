@@ -1,5 +1,5 @@
 {
- "identity": "clean-expert-guided-a1-20261024-v7",
+ "identity": "clean-expert-guided-a1-20261024-v8",
  "status": "FROZEN on the accepted shared recipe (Musashi re-review 2026-10-24, ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT); launch gate = the owner's word for the expert-guided lane",
  "recipe": {
   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/CONSUMER_RECIPE.json",
@@ -238,6 +238,12 @@
    "identity": "clean-expert-guided-a1-20261024-v7",
    "from": "clean-expert-guided-a1-20261024-v6",
    "adds": "early_close_rule (pre-registered): DEGENERATE_NO_EARLY_CLOSE not selectable, early-close value required, HARMFUL_EARLY_CLOSE flag; ACTION_CONTRACT_v1_1 (require_early_close) staged for the next stage only; WF_V1 untouched"
+  },
+  {
+   "identity": "clean-expert-guided-a1-20261024-v8",
+   "from": "clean-expert-guided-a1-20261024-v7",
+   "adds": "walk_forward_c2 block (stage WF_C2: 2 folds x zz_feat_c2 x 5 seeds under ACTION_CONTRACT_C2 action_ad45e26e2b62a160): consequence learning from engine outcome tables, optimal-stopping exits, NOP kept, pre-registered HOLDS/SEPARABLE vs the WF and WF_V1 baselines, early-close rule (value > 0 in both folds and recall >= 2x baseline), every fitness variant reported; WF and WF_V1 untouched",
+   "date": "2026-10-25"
   }
  ],
  "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule. A 9G request was QUEUED on HOST_HEADROOM (host_free_for_new 8.57 GB with the 3 GiB desktop reserve and the owner's VM resident), so the cap is the host's maximum admissible, 7G, one unit at a time; if the extra-expert arms stop again at 7G they are declared NOT_RUNNABLE_ON_THIS_HOST, never re-tried under a smaller cap | v4 (2026-10-25): after the owner restarted the host (~21 GiB available) the three extra-expert arms ran at 10G and finished; 10G is the cap of every unit from here on (seed extension, stage B); never lowered after a refusal",
@@ -385,5 +391,52 @@
    "sha256": "ffc94094495909e712c909c5efa2fa8d3441db0db3412dc193fbcd8bb21475c1",
    "applies_to": "the NEXT stage only; the running stage WF_V1 keeps ACTION_CONTRACT_v1 (action_490039ad1bf73dbd) and its installed code unchanged"
   }
+ },
+ "walk_forward_c2": {
+  "stage": "WF_C2",
+  "why": "causal-ladder stage C2 (CAUSAL_LADDER_DESIGN_2026_10_25.md): with no market impact the consequence of OUR action is identified exactly by the engine replay; the specialists learn those consequences (expected net per (TP, SL) cell, remaining value of HOLD, P(SL first)) instead of imitating a clairvoyant expert; early close becomes optimal stopping (owner's hard rule)",
+  "action_contract": {
+   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_C2.json",
+   "sha256": "0b02e7771ae787694c281639692e01e6c1d262ff1fb7e4cce57b336577745470",
+   "identity": "action_ad45e26e2b62a160"
+  },
+  "arms": [
+   {
+    "name": "zz_feat_c2",
+    "base": "zz_hold",
+    "strategy_fitness": "sharpe_lcb",
+    "inputs": "the fold recipe's features (same tensor as every WF arm); no ZigZag teacher: the base arm only supplies the command template"
+   }
+  ],
+  "folds": [
+   "wf2022",
+   "wf2023"
+  ],
+  "seeds": "20261019,20261020,20261021,20261022,20261023",
+  "memory": "10G",
+  "outcomes": {
+   "dir": "outcomes",
+   "file_pattern": "OUTCOMES_ENTRY_<fold>.npz",
+   "build": "tools/expert_guided_c2.py outcomes (engine replay of every entry, CPU, capped; stamped, checked by E3-M on load)"
+  },
+  "baseline": {
+   "zz_feat_c2": {
+    "wf": "WF_<fold>_zz_hold",
+    "wf_v1": "WF_V1_<fold>_zz_hold_v1"
+   }
+  },
+  "rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists: HOLDS / SEPARABLE as already pre-registered (an arm HOLDS only if its seed-ensemble validation Sharpe minus one Lo standard error is > 0 in BOTH walk-forward folds (wf2022 and wf2023), otherwise DOES_NOT_HOLD; two arms are SEPARABLE on a window only when |Sharpe_a - Sharpe_b| > the pooled Lo standard error sqrt(SE_a^2 + SE_b^2), otherwise NOT_SEPARABLE); C2 is compared with BOTH baselines of the same fold (WF_<fold>_zz_hold and WF_V1_<fold>_zz_hold_v1) by the seed ENSEMBLES on INNER_B (never seed means); an ensemble with fewer than 2 trades/week on INNER_B is INVALID (owner's rule) whatever its Sharpe; 2024 one read, never decides",
+  "early_close_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists: C2 counts as fixing the early close only if its ensemble early-close value (engine counterfactual hold of every agent close, INNER_B, the arm's primary fitness) is > 0 in BOTH folds AND its closer recall of SL-first is >= 2x the baseline's (the WF_<fold>_zz_hold ensemble, same fold, same audit tool); a C2 strategy with no agent close on the calibration block is DEGENERATE_NO_EARLY_CLOSE and not selectable (require_early_close in the contract)",
+  "evaluation": "tools/expert_guided_seed_ensemble.py (C2 path: mean calibrated probabilities and predicted values, one Platt refit per binary head on the saved round-0 INNER_A rows, strategy re-optimised on INNER_A for every fitness variant) -> tools/expert_guided_early_close_audit.py run (C2-aware) -> tools/expert_guided_c2.py report",
+  "fitness_variants": [
+   "sharpe_lcb",
+   "sharpe_plus_return",
+   "sharpe_plus_return_plus_activity",
+   "trade_tstat",
+   "calmar",
+   "return_minus_dd",
+   "balanced"
+  ],
+  "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)"
  }
 }

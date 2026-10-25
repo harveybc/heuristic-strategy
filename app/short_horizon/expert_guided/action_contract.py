@@ -652,7 +652,7 @@ def choose(front: list, name: str):
     return max(cands, key=lambda r: (r["fitness"][name], -r["dd"], tuple(-x for x in r["genes"].values())))
 
 
-def optimize(score, genes: dict, seed: int, population: int, generations: int, veto: bool) -> dict:
+def optimize(score, genes: dict, seed: int, population: int, generations: int, veto: bool, gene_names=None, make_strategy=None) -> dict:
     """NSGA-II (DEAP) over the bounded genes (``nop_veto`` only when ``veto``); search objectives (Sharpe up, DD down)
     under Deb's constraint domination (``search_objectives``: feasible beats infeasible, smaller violation beats larger),
     so the search stays informed near the activity boundary. EVERY evaluated point of every generation is archived
@@ -660,7 +660,8 @@ def optimize(score, genes: dict, seed: int, population: int, generations: int, v
     archive points form the front on which each variant picks (``freeze_strategy``). Deterministic for a seed; the
     global ``random`` state is restored."""
     from deap import base, creator, tools
-    names = [g for g in STRATEGY_GENES if veto or g != "nop_veto"]
+    names = [g for g in (gene_names or STRATEGY_GENES) if veto or g != "nop_veto"]       # C2 passes its own genes / strategy class
+    make_strategy = make_strategy or Strategy.from_genes
     lo = [float(genes[g][0]) for g in names]
     hi = [float(genes[g][1]) for g in names]
     if not hasattr(creator, "ACFitnessV1"):
@@ -676,7 +677,7 @@ def optimize(score, genes: dict, seed: int, population: int, generations: int, v
             g = dict(zip(names, key))
             if not veto:
                 g["nop_veto"] = 1.0
-            sc = score(Strategy.from_genes(g, veto))
+            sc = score(make_strategy(g, veto))
             cache[key] = {"genes": dict(zip(names, key)), "first_generation": gen[0], "veto": veto, **sc}
         archive.append({"generation": gen[0], "key": list(key)})                 # every evaluation, all generations
         return search_objectives(cache[key])
@@ -707,13 +708,13 @@ def optimize(score, genes: dict, seed: int, population: int, generations: int, v
             "objectives": ["sharpe max", "max_drawdown_pct min"], "constraint": f"Deb constraint domination: >= {MIN_TRADES_PER_WEEK:g} trades/week (period average) and the env rules"}
 
 
-def _strategy_dict(point: dict) -> dict:
+def _strategy_dict(point: dict, make_strategy=None) -> dict:
     g = dict(point["genes"])
     g.setdefault("nop_veto", 1.0)
-    return Strategy.from_genes(g, bool(point.get("veto"))).to_dict()
+    return (make_strategy or Strategy.from_genes)(g, bool(point.get("veto"))).to_dict()
 
 
-def archive_view(points: list, name: str) -> dict:
+def archive_view(points: list, name: str, make_strategy=None) -> dict:
     """What a fitness variant would do without the activity rule, on the full archive of both searches: the best
     unconstrained point by Sharpe, the best unconstrained point by the variant (NOT SELECTABLE), the best valid point by
     the variant (anywhere in the archive, front or not) and the share of valid points."""
@@ -723,7 +724,7 @@ def archive_view(points: list, name: str) -> dict:
     best_un = max(fin, key=lambda p: p["fitness"][name]) if fin else None
     vfin = [p for p in fin if p["valid"]]
     best_v = max(vfin, key=lambda p: p["fitness"][name]) if vfin else None
-    pick = lambda p: None if p is None else {**{k: v for k, v in p.items() if k != "fitness"}, "fitness": p["fitness"][name], "strategy": _strategy_dict(p)}  # noqa: E731
+    pick = lambda p: None if p is None else {**{k: v for k, v in p.items() if k != "fitness"}, "fitness": p["fitness"][name], "strategy": _strategy_dict(p, make_strategy)}  # noqa: E731
     return {"points": len(points), "share_valid": (sum(p["valid"] for p in points) / len(points)) if points else 0.0,
             "best_sharpe_unconstrained": pick(best_sh), "best_unconstrained_by_fitness": pick(best_un), "best_valid_by_fitness": pick(best_v),
             "note": "best_unconstrained_* are NOT SELECTABLE (the activity rule selects); shown so the owner sees what each fitness would do without it"}
@@ -739,7 +740,8 @@ def early_close_front(points: list) -> list:
     return sorted(_nondominated([p for p in points if p["valid"] and int(p.get("agent_closes", 0)) > 0]), key=lambda r: -r["sharpe"])
 
 
-def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: int, budget: str = "final", primary: str = DEFAULT_FITNESS) -> dict:
+def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: int, budget: str = "final", primary: str = DEFAULT_FITNESS,
+                    gene_names=None, make_strategy=None, restrict_fn=None) -> dict:
     """The upper layer, frozen on the calibration block only: the table is restricted to ``cal_rows`` BEFORE the
     optimiser sees it. Two searches (pre-registered): without the NOP veto and with it. The composite scales come from
     the valid front points of both searches (``term_scales``); every archived point gets every variant's value; each
@@ -747,12 +749,13 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
     chosen calibration-block lower confidence bound. ``primary`` names the variant the arm runs with."""
     if primary not in FITNESS:
         raise ValueError(f"STRATEGY_FITNESS_UNKNOWN:{primary}")
-    view = restrict(table, cal_rows)
+    view = (restrict_fn or restrict)(table, cal_rows)
     s = contract["strategy"]
     o = s["optimizer"][budget]
     runs = {}
     for veto in (False, True):
-        runs["with_veto" if veto else "without_veto"] = optimize(lambda st: score_table(view, st), s["genes"], seed, int(o["population"]), int(o["generations"]), veto)
+        runs["with_veto" if veto else "without_veto"] = optimize(lambda st: score_table(view, st), s["genes"], seed, int(o["population"]), int(o["generations"]), veto,
+                                                                  gene_names, make_strategy)
     require_ec = bool(s.get("require_early_close", False))
     if require_ec:
         for r in runs.values():
@@ -772,14 +775,14 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
         a, b = runs["without_veto"]["chosen"][f], runs["with_veto"]["chosen"][f]
         keep = bool(b is not None and (a is None or (math.isfinite(b["lcb"]) and (not math.isfinite(a["lcb"]) or b["lcb"] > a["lcb"]))))
         pick = b if keep else a
-        view_f = archive_view(allp, f)
+        view_f = archive_view(allp, f, make_strategy)
         if pick is None:
             note = f"NO_VALID_FRONT_POINT_ON_THE_CALIBRATION_BLOCK (>= {MIN_TRADES_PER_WEEK:g} trades/week); INVALID"
             if require_ec and (runs["without_veto"]["front"] or runs["with_veto"]["front"]):
                 note = "DEGENERATE_NO_EARLY_CLOSE: every valid front point closes no position voluntarily on the calibration block; INVALID"
             by[f] = {"chosen": None, "strategy": None, "nop_veto_kept": False, "valid": False, "archive_view": view_f, "note": note}
             continue
-        by[f] = {"chosen": {k: v for k, v in pick.items()}, "strategy": _strategy_dict(dict(pick, veto=keep)), "nop_veto_kept": keep, "valid": True,
+        by[f] = {"chosen": {k: v for k, v in pick.items()}, "strategy": _strategy_dict(dict(pick, veto=keep), make_strategy), "nop_veto_kept": keep, "valid": True,
                  "archive_view": view_f}
     p = by[primary]
     doc = {"budget": budget, "runs": runs, "primary_fitness": primary, "by_fitness": by, "term_scales": scales,

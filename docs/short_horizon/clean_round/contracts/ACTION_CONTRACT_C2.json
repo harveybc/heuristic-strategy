@@ -1,0 +1,589 @@
+{
+ "schema": "expert_guided_action_contract.c2",
+ "scientific_release": false,
+ "identity": "action_ad45e26e2b62a160",
+ "design": "docs/short_horizon/clean_round/CAUSAL_LADDER_DESIGN_2026_10_25.md (C2: action consequences, no teacher)",
+ "action_space": {
+  "actions": {
+   "HOLD": "no order (NOP when flat)",
+   "OPEN_LONG": "market long, TP/SL = the chosen cell",
+   "OPEN_SHORT": "market short, TP/SL = the chosen cell",
+   "CLOSE": "market close at the next open"
+  },
+  "produced_by": {
+   "HOLD": [
+    [
+     "nop",
+     "NOP"
+    ]
+   ],
+   "OPEN_LONG": [
+    [
+     "open_l",
+     "value:net_"
+    ]
+   ],
+   "OPEN_SHORT": [
+    [
+     "open_s",
+     "value:net_"
+    ]
+   ],
+   "CLOSE": [
+    [
+     "close_l",
+     "SL_FIRST"
+    ],
+    [
+     "close_s",
+     "SL_FIRST"
+    ],
+    [
+     "close_l",
+     "value:remaining_sigma"
+    ],
+    [
+     "close_s",
+     "value:remaining_sigma"
+    ]
+   ]
+  },
+  "reverse": "an open of the opposite side while positioned = close-and-reverse, only when allow_reverse"
+ },
+ "outcomes": {
+  "grid_tp": [
+   0.5,
+   1.0,
+   1.5,
+   2.0
+  ],
+  "grid_sl": [
+   0.75,
+   1.5,
+   2.5
+  ],
+  "cells": [
+   [
+    0.5,
+    0.75
+   ],
+   [
+    0.5,
+    1.5
+   ],
+   [
+    0.5,
+    2.5
+   ],
+   [
+    1.0,
+    0.75
+   ],
+   [
+    1.0,
+    1.5
+   ],
+   [
+    1.0,
+    2.5
+   ],
+   [
+    1.5,
+    0.75
+   ],
+   [
+    1.5,
+    1.5
+   ],
+   [
+    1.5,
+    2.5
+   ],
+   [
+    2.0,
+    0.75
+   ],
+   [
+    2.0,
+    1.5
+   ],
+   [
+    2.0,
+    2.5
+   ]
+  ],
+  "ref_cell": [
+   1.5,
+   1.5
+  ],
+  "engine": "app/short_horizon/expert_guided/env.py BarEnv.step (fills, costs, levels, protections, forced flat)",
+  "availability": "resolution bar + 1 h <= the period end; rows cut by the simulated window are censored and dropped",
+  "window_end": "2025-01-01",
+  "units": "causal sigma multiples (per unit)",
+  "target_clip": [
+   [
+    -4.0,
+    4.0
+   ],
+   [
+    -4.0,
+    4.0
+   ]
+  ]
+ },
+ "specialists": {
+  "open_l": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "classes": [
+     "NOT_TP_FIRST",
+     "TP_FIRST"
+    ],
+    "n_classes": 2,
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised (as v1)",
+    "target": "TP before SL at the reference cell [1.5, 1.5] (engine replay; TIME counts as NOT_TP_FIRST)"
+   },
+   "continuous": {
+    "net_tp0.5_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp0.5_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp0.5_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1.5_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1.5_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1.5_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp2_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp2_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp2_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    }
+   }
+  },
+  "open_s": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "classes": [
+     "NOT_TP_FIRST",
+     "TP_FIRST"
+    ],
+    "n_classes": 2,
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised (as v1)",
+    "target": "TP before SL at the reference cell [1.5, 1.5] (engine replay; TIME counts as NOT_TP_FIRST)"
+   },
+   "continuous": {
+    "net_tp0.5_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp0.5_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp0.5_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1.5_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1.5_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp1.5_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp2_sl0.75": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp2_sl1.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    },
+    "net_tp2_sl2.5": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "engine net result per unit / causal sigma of the fill bar, this (TP, SL) cell",
+     "mask": "every eligible flat row whose outcome is available (all cells)"
+    }
+   }
+  },
+  "nop": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "classes": [
+     "TRADE",
+     "NOP"
+    ],
+    "n_classes": 2,
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised (as v1)",
+    "target": "multires ladder NOP (nop_hard / nop_graded / negative / conflict = NOP; any other available row = TRADE)"
+   },
+   "labels": {
+    "ladder": [
+     "3",
+     "rev20",
+     "rev15",
+     "rev10",
+     "rev8",
+     "rev5"
+    ],
+    "positive": [
+     "nop_hard",
+     "nop_graded",
+     "negative",
+     "conflict"
+    ]
+   }
+  },
+  "close_l": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "classes": [
+     "NOT_SL_FIRST",
+     "SL_FIRST"
+    ],
+    "n_classes": 2,
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised (as v1)",
+    "target": "SL before TP when held from here (or negative at the forced flat), engine replay"
+   },
+   "continuous": {
+    "remaining_sigma": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "net(hold to TP / SL / forced flat) - net(close now), per unit / position sigma",
+     "mask": "every available positioned visit of this side"
+    }
+   }
+  },
+  "close_s": {
+   "decision": {
+    "encoding": "softmax_ce",
+    "classes": [
+     "NOT_SL_FIRST",
+     "SL_FIRST"
+    ],
+    "n_classes": 2,
+    "output_dim": 2,
+    "loss": "cross_entropy",
+    "class_weights": "1/sqrt(train frequency), normalised (as v1)",
+    "target": "SL before TP when held from here (or negative at the forced flat), engine replay"
+   },
+   "continuous": {
+    "remaining_sigma": {
+     "encoding": "bounded_sigmoid",
+     "lo": -4.0,
+     "hi": 4.0,
+     "output_dim": 1,
+     "loss": "huber",
+     "role": "expected_value_sigma",
+     "target": "net(hold to TP / SL / forced flat) - net(close now), per unit / position sigma",
+     "mask": "every available positioned visit of this side"
+    }
+   }
+  }
+ },
+ "calibration": {
+  "method": "platt_binary",
+  "fit_block": "INNER_A",
+  "ece_bins": 15,
+  "heads": [
+   "open_l.decision",
+   "open_s.decision",
+   "nop.decision",
+   "close_l.decision",
+   "close_s.decision"
+  ]
+ },
+ "strategy": {
+  "genes": {
+   "open_margin": [
+    -0.5,
+    1.5
+   ],
+   "close_margin": [
+    -0.5,
+    1.5
+   ],
+   "close_p": [
+    0.3,
+    1.0
+   ],
+   "allow_reverse": [
+    0.0,
+    1.0
+   ],
+   "nop_veto": [
+    0.3,
+    1.0
+   ]
+  },
+  "rule": "flat: per side the cell with the highest predicted net; open the better side when its predicted net > open_margin and (veto kept) pNOP <= nop_veto; positioned: CLOSE when predicted remaining < -close_margin OR calibrated P(SL first) > close_p (optimal stopping), then reverse when allow_reverse and the open rule picks the other side",
+  "threshold_targets": {
+   "close_p": "close_l.SL_FIRST|close_s.SL_FIRST",
+   "nop_veto": "nop.NOP"
+  },
+  "value_targets": {
+   "open_margin": "open_l.value:net_|open_s.value:net_",
+   "close_margin": "close_l.value:remaining_sigma|close_s.value:remaining_sigma"
+  },
+  "value_rule": "expected_value_vs_margin",
+  "optimizer": {
+   "final": {
+    "population": 24,
+    "generations": 12
+   },
+   "visitation": {
+    "population": 12,
+    "generations": 4
+   },
+   "constraint": "Deb constraint domination: >= 2 trades/week (period average) and the env rules"
+  },
+  "calibration_min_trades_per_week": 2.0,
+  "choice": "the arm's fitness variant picks the frozen point among the valid non-dominated (Sharpe, DD) points; ties -> lower max DD",
+  "fitness": {
+   "default": "sharpe_lcb",
+   "variants": {
+    "sharpe_lcb": "sharpe_lcb",
+    "sharpe_plus_return": "sharpe_plus_return",
+    "sharpe_plus_return_plus_activity": "sharpe_plus_return_plus_activity",
+    "trade_tstat": "trade_tstat",
+    "calmar": "calmar",
+    "return_minus_dd": "return_minus_dd",
+    "balanced": "balanced"
+   }
+  },
+  "require_early_close": true,
+  "early_close_rule": "owner 2026-10-25 (pre-registered before any audit number was read): early close is indispensable; with strategy.require_early_close a point that never closes voluntarily on the calibration block (agent closes = 0) is DEGENERATE_NO_EARLY_CLOSE and not selectable; it stays in the archive",
+  "fit_block": "INNER_A",
+  "costs": "inside the targets: every predicted net is the engine's net result (spread, slippage, commission, financing)"
+ },
+ "blocks": {
+  "calibration": "INNER_A",
+  "decision": "INNER_B",
+  "read_once": "OBS_2024",
+  "requires_post_freeze_decision_block": true,
+  "calibration_block_uses": [
+   "early_stopping",
+   "calibration",
+   "strategy_optimisation",
+   "dagger_visitation_strategy"
+  ]
+ },
+ "visitation": {
+  "round0": "expert trajectory + exploration positions (visited STATES only, never labels)",
+  "rounds": "1..3: the C2 policy at the visitation strategy frozen on INNER_A (closer rows appended, closers refitted)",
+  "openers_and_nop": "fitted once in round 0 (their rows are every eligible flat row; visitation does not change them)"
+ },
+ "constraints": {
+  "agent_state": "none",
+  "variants": [
+   "FULL"
+  ],
+  "teacher": "none"
+ }
+}

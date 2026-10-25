@@ -331,8 +331,10 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
     n_feat, win, NS = ds.windows.shape[2], ds.windows.shape[1], len(E.STATE_NAMES)
     SCFG, _ = effective_contracts(e0.get("exec_contract", "sac"), e0.get("min_orders_per_week"))
     capital = float(SCFG.capital)
-    v1 = bool(e0.get("action_contract"))
-    doc = {"dirs": [str(d) for d in dirs], "v1": v1, "split_contract": ds.meta["split_contract"], "periods": periods,
+    from app.short_horizon.expert_guided import c2 as C2
+    c2 = (e0.get("action_contract") or {}).get("contract", {}).get("schema") == C2.SCHEMA     # stage C2 (consequence learning)
+    v1 = bool(e0.get("action_contract")) and not c2
+    doc = {"dirs": [str(d) for d in dirs], "v1": v1, "c2": c2, "split_contract": ds.meta["split_contract"], "periods": periods,
            "recipe": e0.get("recipe"), "rule": RULE, "per_seed": {}, "ensemble": {}, "verification": {}}
 
     def run(policy_fn, exit_prob, p, ref, what):
@@ -354,7 +356,17 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
         for s, tr in e3m["trials"]["FULL"].items():
             seeds.append(s)
             doc["per_seed"][s] = {}
-            if v1:
+            if c2:
+                pols = {m: SE.load_module(d, e3m, m, s, n_feat, win) for m in C2.SPECIALISTS}
+                t = C2.seed_table(pols, cx, NS, tr["action_contract"]["calibration"])
+                tables.append(t)
+                st_s = C2.strategy_of(tr["action_contract"]["strategy"])
+                if st_s is None:
+                    doc["per_seed"][s] = {"note": "NO_FROZEN_STRATEGY (the run froze no valid strategy): nothing to replay"}
+                    continue
+                pf, ep = C2.PolicyC2(t, st_s)(cx), C2.exit_prob(cx, t)
+                doc["per_seed"][s]["strategy"] = st_s.to_dict()
+            elif v1:
                 pols = {m: SE.load_module(d, e3m, m, s, n_feat, win) for m in ACT.SPECIALISTS}
                 t = ACT.calibrate_table(ACT.raw_table(pols, cx.Xw, rows_all, NS, cost), tr["action_contract"]["calibration"])
                 tables.append(t)
@@ -380,6 +392,21 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
         en = json.loads(ensemble_path.read_text())
         if [str(x) for x in en["seeds"]] != seeds:
             doc["ensemble_note"] = f"ENSEMBLE_SEEDS_DIFFER:{en['seeds']} vs {seeds}: ensemble not audited"
+        elif c2:
+            ens_t = C2.calibrate_table(C2.to_raw(C2.mean_tables(tables)), en["ensemble_calibration"])
+            primary = en["arbiter"]["primary_fitness"]
+            for fname, bf in en["by_fitness"].items():
+                if bf["strategy"] is None:
+                    doc["ensemble"][fname] = {"note": "NO_VALID_STRATEGY on the calibration block: nothing to replay"}
+                    continue
+                stf = C2.StrategyC2(**bf["strategy"])
+                pf, ep = C2.PolicyC2(ens_t, stf)(cx), C2.exit_prob(cx, ens_t)
+                doc["ensemble"][fname] = {"strategy": bf["strategy"], "primary": fname == primary}
+                for p in periods:
+                    w = bf["windows"].get(p)
+                    if w is None:
+                        continue
+                    doc["ensemble"][fname][p] = run(pf, ep, p, w["metrics"], f"ensemble/{fname}/{p}")
         elif v1:
             ens = ACT.mean_tables(tables)
             ens_raw = {f: v.copy() for f, v in ens.items()}
