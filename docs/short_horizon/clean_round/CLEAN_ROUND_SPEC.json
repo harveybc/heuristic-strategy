@@ -63,7 +63,7 @@
   "design": "docs/short_horizon/clean_round/EXPERT_SIGNAL_PER_AGENT.md rev 2.1",
   "note": "ZigZag demonstrations and opportunity/both labels are TRAINING-ONLY treatments: never an observation, never real-time eligibility, never human feedback"
  },
- "memory": "9G",
+ "memory": "7G",
  "remote_root": "/var/tmp/expert-guided-clean-a1-20261024",
  "gates": [
   {
@@ -211,9 +211,9 @@
   },
   {
    "identity": "clean-expert-guided-a1-20261024-v3",
-   "adds": "stage A_prime (multi-resolution labels scored against the optimum, design section 4; owner 2026-10-24 'orquesta y ejecuta'); memory 9G sized from the stage A incident records; recipe, model, regularization, split, store unchanged"
+   "adds": "stage A_prime (multi-resolution labels scored against the optimum, design section 4; owner 2026-10-24 'orquesta y ejecuta'); memory 7G = the host's maximum admissible cap (a 9G request was queued on headroom); recipe, model, regularization, split, store unchanged"
   }
  ],
- "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule; 9G is sized from that evidence against ~10 GiB available on the host (one unit at a time); a refused cap is never lowered",
+ "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule. A 9G request was QUEUED on HOST_HEADROOM (host_free_for_new 8.57 GB with the 3 GiB desktop reserve and the owner's VM resident), so the cap is the host's maximum admissible, 7G, one unit at a time; if the extra-expert arms stop again at 7G they are declared NOT_RUNNABLE_ON_THIS_HOST, never re-tried under a smaller cap",
  "decision_a_prime": "same frozen rule as stage A on the A_prime arms plus the stage A arms (same recipe v2, same support): highest seed-mean INNER_A Sharpe among arms with all three seeds valid; ties -> fewer parameters, then the control zz_hold; 2024 never consulted; the v3 recipe (px.er_1 retired) is a later bridge pair, never compared directly"
 }
