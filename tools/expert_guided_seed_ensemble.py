@@ -63,13 +63,12 @@ def load_module(out_dir: Path, e3m: dict, module: str, seed: str, n_feat: int, w
     import torch
     from app.short_horizon.expert_guided import temporal as T
     arch = e3m["arch"]
-    nc = 3 if module.startswith("open") else 2
-    aux = bool(e3m.get("aux_targets"))
-    nr = (3 if aux else 2) if module.startswith("open") else (1 if aux else 0)
     kw = dict(units=arch["units"], branch=arch.get("branch"), core=arch.get("core"), depth=arch["depth"], head=arch["head"])
     if arch.get("groups") is not None:
         kw.update(groups=arch["groups"], group_units=arch["group_units"], group_names=arch["group_names"], group_kinds=arch["group_kinds"])
     sd = torch.load(out_dir / f"FULL_{module}_{seed}.pt", map_location="cpu", weights_only=True)
+    nc = int(sd["cls.weight"].shape[0])                # classes and regression heads come from the checkpoint itself
+    nr = 0
     if "lo" in sd and "hi" in sd:                      # the regression bounds travel in the checkpoint (persistent buffers)
         kw["reg_bounds"] = tuple(zip(sd["lo"].tolist(), sd["hi"].tolist()))
         nr = len(sd["lo"])
