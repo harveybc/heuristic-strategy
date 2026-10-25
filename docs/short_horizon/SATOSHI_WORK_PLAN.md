@@ -271,3 +271,8 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   etiqueta de clase son negativos en INNER_A** (el estudiante se queda sin ejemplos: NOP 86 %). Decisión: multires pasa
   a ser **métrica auxiliar** (aptitud como regresión sobre las etiquetas `both`), no clase. L6: 2 semillas extra para los
   dos `both` → decisión a 5 semillas → etapa B (`winner_aux`, `winner_minimal_state`, `winner_multires_aux`) encadenada.
+- 2026-10-25 07:00Z: el propietario aprobó la recomendación: arreglar el instrumento antes que el modelo. L7 construye y
+  encadena tras la cadena seeds→B: walk-forward en desarrollo (wf2022, wf2023; constantes por fold, receta diagnóstica
+  derivada), ensamble de semillas como una política, errores estándar de Sharpe (Lo 2002 + bootstrap por bloques) con
+  regla pre-registrada ("sostiene" si Sharpe − 1 EE > 0 en ambos folds; "separable" si |Δ| > EE agrupado). Nada de DEAP
+  sobre etiquetas, ni modelos mayores, ni TEST. `both_hold` a 5 semillas ≈ 0.88.
