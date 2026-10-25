@@ -160,10 +160,17 @@ def main():
     if a.extra_arm_dir:
         # pooled seeds: merge the extension dirs' checkpoints and trials into a scratch view of the arm (hard links, read-only)
         import tempfile
-        view = Path(tempfile.mkdtemp(prefix="ens_pool_"))
+        # the scratch view lives next to the arm (same filesystem) so hard links work; symlink when they cannot
+        view = Path(tempfile.mkdtemp(prefix="ens_pool_", dir=out_dir.parent))
+
+        def link(f):
+            try:
+                (view / f.name).hardlink_to(f)
+            except OSError:
+                (view / f.name).symlink_to(f.resolve())
         e = json.loads((out_dir / "E3M.json").read_text())
         for f in out_dir.glob("FULL_*.pt"):
-            (view / f.name).hardlink_to(f) if hasattr(Path, "hardlink_to") else (view / f.name).symlink_to(f)
+            link(f)
         for d in a.extra_arm_dir:
             d = Path(d)
             ep = json.loads((d / "E3M.json").read_text())
@@ -171,10 +178,15 @@ def main():
                 raise SystemExit(f"POOL_MISMATCH:{d}")
             e["trials"]["FULL"].update(ep["trials"]["FULL"])
             for f in d.glob("FULL_*.pt"):
-                (view / f.name).hardlink_to(f) if hasattr(Path, "hardlink_to") else (view / f.name).symlink_to(f)
+                link(f)
         (view / "E3M.json").write_text(json.dumps(e))
         out_dir = view
-    doc = evaluate(out_dir, ds, [p.strip() for p in a.periods.split(",") if p.strip()])
+    try:
+        doc = evaluate(out_dir, ds, [p.strip() for p in a.periods.split(",") if p.strip()])
+    finally:
+        if a.extra_arm_dir:
+            import shutil
+            shutil.rmtree(out_dir, ignore_errors=True)     # the scratch view only; the arm dirs are untouched
     doc["arm_dir"] = a.arm_dir
     doc["pooled_dirs"] = a.extra_arm_dir
     out = Path(a.out) if a.out else Path(a.arm_dir) / "ENSEMBLE.json"
