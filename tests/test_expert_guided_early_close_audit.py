@@ -170,3 +170,18 @@ def test_next_stage_contract_v1_1_carries_the_rule_and_the_installed_v1_is_uncha
     assert v1["identity"] == "action_490039ad1bf73dbd" and "require_early_close" not in v1["strategy"]
     assert v11["strategy"]["require_early_close"] is True and v11["derived_from"]["identity"] == v1["identity"]
     assert ACT.sha256_file(d / "ACTION_CONTRACT_v1.json") == v11["derived_from"]["sha256"]
+
+
+def test_report_tables_every_policy_and_period(tmp_path):
+    import json
+    mk, b = setup("down")
+    au = A.audit_replay(mk, None, scripted(b), exit_prob(b))
+    ne = A.audit_replay(mk, None, A.no_early_close(scripted(b)), None)["metrics"]
+    s = A.summarize(au, 10_000.0, ne)
+    doc = {"periods": ["INNER_B"], "per_seed": {"1": {"INNER_B": s}}, "ensemble": {"legacy": {"primary": True, "INNER_B": s}},
+           "verification": {"all_replays_reproduce_run": True}}
+    p = tmp_path / "EARLY_CLOSE_U.json"
+    p.write_text(json.dumps(doc, default=float))
+    A.write_report([p], tmp_path / "R.json", tmp_path / "R.md", "t")
+    md = (tmp_path / "R.md").read_text()
+    assert "| U | ensemble | INNER_B | 1 | 100 % | 100 / 0 / 0 |" in md and "| U | seed 1 | INNER_B |" in md and '{"U": true}' in md

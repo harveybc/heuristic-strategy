@@ -416,18 +416,70 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
     return doc
 
 
+def _row(unit, who, period, x):
+    c, b = x["closer"], x["direction_balance"]
+    ne = x.get("no_early_close_policy") or {}
+    ci = x["early_close_value_usd_ci95"]
+    f = lambda v, n=2: "—" if v is None or (isinstance(v, float) and not math.isfinite(v)) else f"{v:.{n}f}"  # noqa: E731
+    cs = x["class_shares"]
+    return (f"| {unit} | {who} | {period} | {x['trades']} | {f(100 * x['early_close_share'], 0)} % | "
+            f"{f(100 * cs['SAVED'], 0)} / {f(100 * cs['CUT_WINNER'], 0)} / {f(100 * cs['NEUTRAL'], 0)} | "
+            f"{f(x['early_close_value_usd'], 0)} [{f(ci[0], 0)}, {f(ci[1], 0)}] | {f(x['early_close_value_sigma'], 1)} | "
+            f"{f(x['actual']['sharpe'])} / {f(ne.get('sharpe'))} | {f(c['auc_sl_first'])} / {f(c['auc_close_better'])} | "
+            f"{f(c['precision_sl_first'])} / {f(c['recall_sl_first'])} | {b['long']['entries']} / {b['short']['entries']} | "
+            f"{f(b['long']['net_usd'], 0)} / {f(b['short']['net_usd'], 0)} | {', '.join(x['flags']) or '—'} |")
+
+
+def write_report(paths, out_json, out_md, title):
+    """One table over audited units: every seed and every ensemble policy, per period."""
+    docs = {Path(p).stem.replace("EARLY_CLOSE_", ""): json.loads(Path(p).read_text()) for p in paths}
+    md = [f"# {title}", "", RULE, "",
+          "Columns: trades; early-close share (agent closes + reversals / exits); SAVED / CUT_WINNER / NEUTRAL shares of the agent "
+          "closes; early-close value = sum(actual net - engine counterfactual hold net) USD [bootstrap 95 % CI over trades]; the same "
+          "in sigma; Sharpe actual / no-early-close policy (same frozen policy, voluntary exits -> HOLD, engine replay); closer exit-"
+          "probability AUC vs SL_FIRST / vs CLOSE_BETTER on every positioned observable bar; precision / recall of the fired closes "
+          "vs SL_FIRST; long / short entries; long / short net USD; flags. Every replay reproduces its run exactly (asserted).", "",
+          "| unit | policy | period | trades | early close | SAVED / CUT / NEUTRAL % | value USD [95 % CI] | value σ | Sharpe actual / no early close | AUC SL-first / close-better | precision / recall | long / short entries | long / short net | flags |",
+          "| --- | --- | --- | ---: | ---: | --- | --- | ---: | --- | --- | --- | --- | --- | --- |"]
+    for u, d in docs.items():
+        for name, ens in d.get("ensemble", {}).items():
+            for p in d["periods"]:
+                if isinstance(ens, dict) and p in ens:
+                    md.append(_row(u, f"ensemble{'' if name == 'legacy' else ' ' + name}{' (primary)' if ens.get('primary') and name != 'legacy' else ''}", p, ens[p]))
+        for s, ps in d.get("per_seed", {}).items():
+            for p in d["periods"]:
+                if p in ps:
+                    md.append(_row(u, f"seed {s}", p, ps[p]))
+        if d.get("ensemble_note"):
+            md.append(f"| {u} | ensemble | — | {d['ensemble_note']} |")
+    allv = {u: d["verification"]["all_replays_reproduce_run"] for u, d in docs.items()}
+    md += ["", f"Reproduction of every run: {json.dumps(allv)}"]
+    Path(out_json).write_text(json.dumps({"rule": RULE, "units": docs}, indent=1, default=float))
+    Path(out_md).write_text("\n".join(md) + "\n")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--arm-dir", required=True)
-    ap.add_argument("--extra-arm-dir", action="append", default=[])
-    ap.add_argument("--admitted", required=True)
-    ap.add_argument("--store", required=True)
-    ap.add_argument("--recipe", required=True)
-    ap.add_argument("--split-contract", required=True)
-    ap.add_argument("--periods", required=True)
-    ap.add_argument("--ensemble", default=None, help="ENSEMBLE.json (default: <arm-dir>/ENSEMBLE.json when present)")
-    ap.add_argument("--out", required=True)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    r = sub.add_parser("run")
+    r.add_argument("--arm-dir", required=True)
+    r.add_argument("--extra-arm-dir", action="append", default=[])
+    r.add_argument("--admitted", required=True)
+    r.add_argument("--store", required=True)
+    r.add_argument("--recipe", required=True)
+    r.add_argument("--split-contract", required=True)
+    r.add_argument("--periods", required=True)
+    r.add_argument("--ensemble", default=None, help="ENSEMBLE.json (default: <arm-dir>/ENSEMBLE.json when present)")
+    r.add_argument("--out", required=True)
+    q = sub.add_parser("report")
+    q.add_argument("--units", nargs="+", required=True)
+    q.add_argument("--out-json", required=True)
+    q.add_argument("--out-md", required=True)
+    q.add_argument("--title", required=True)
     a = ap.parse_args()
+    if a.cmd == "report":
+        write_report(a.units, a.out_json, a.out_md, a.title)
+        return
     from app.short_horizon.expert_guided import data as DG
     periods = [p.strip() for p in a.periods.split(",") if p.strip()]
     if any(p.upper().startswith("TEST") for p in periods):
