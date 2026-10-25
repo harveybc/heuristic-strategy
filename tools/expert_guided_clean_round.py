@@ -187,6 +187,8 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
             for k in ("list", "groups", "window", "extractor"):
                 if a.get(k) is not None:
                     errs.append(f"ARM_OVERRIDES_RECIPE:{tag}:{k}")
+            if a.get("aux_targets") not in (None, False, True) and a.get("aux_targets") not in AUX_MODES:
+                errs.append(f"AUX_TARGETS_UNKNOWN:{tag}:{a.get('aux_targets')}")
             errs += multires_arm_errors(a, tag)
             if a.get("extra_experts"):
                 miss = [d for d in a["extra_experts"] if not adm.get(str(d))]
@@ -201,6 +203,9 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
             if "--recipe" not in cmd or any(f in cmd for f in FORBIDDEN_FLAGS) or "rolling" in cmd:
                 errs.append(f"COMMAND_NOT_RECIPE_BOUND:{stage}/{a['name']}")
     return errs
+
+
+AUX_MODES = ("opportunity", "multires")       # --aux-targets values (True = the inherited opportunity / hold-gain heads)
 
 
 def gates_open(spec) -> list:
@@ -230,7 +235,7 @@ def e3m_cmd(spec, arm, out, remote, recipe_root=None):
     if arm.get("labels", "zigzag") != "multires":                 # the multires closer is its own rule (remaining / f_close)
         cmd += ["--closer-rule", arm.get("closer_rule", "hold_through")]
     if arm.get("aux_targets"):
-        cmd += ["--aux-targets"]
+        cmd += ["--aux-targets"] + ([str(arm["aux_targets"])] if isinstance(arm["aux_targets"], str) else [])
     if arm.get("multires_thresholds"):
         cmd += ["--multires-thresholds", f"{rr}/recipe/{Path(arm['multires_thresholds']).name}"]
     if arm.get("sample_weights"):
@@ -282,6 +287,16 @@ def cmd_emit(a):
         dec = json.loads(Path(a.winner_from).read_text())
         win = next(x for x in spec["stages"]["A"] if x["name"] == dec["chosen"])
         arms = [dict(win, **{k: v for k, v in x.items() if v is not None and k != "name"}, name=x["name"]) for x in arms]
+    only = [x.strip() for x in (getattr(a, "arms", None) or "").split(",") if x.strip()]
+    if only:                                                      # seed extension / rerun of named arms only
+        unknown = [n for n in only if n not in {x["name"] for x in arms}]
+        if unknown:
+            raise SystemExit(f"ARM_UNKNOWN:{unknown}")
+        arms = [x for x in arms if x["name"] in only]
+    seeds = getattr(a, "seeds", None) or ""
+    suffix = getattr(a, "out_suffix", None) or ""
+    if seeds and not suffix:
+        raise SystemExit("SEEDS_REQUIRE_OUT_SUFFIX: new seeds never overwrite an arm's finished output")
     R = spec["remote_root"]
     gate = Path(spec["gates"][0]["path"]).name
     rec_name = Path(spec["recipe"]["path"]).name
@@ -293,12 +308,13 @@ def cmd_emit(a):
          f'echo "{spec["recipe"]["sha256"]}  $Q/recipe/{rec_name}" | sha256sum -c --quiet || {{ log "recipe digest differs: refusing"; exit 4; }}',
          "cd $Q/code || exit 1"]
     for arm in arms:
-        out = f"$Q/out/{a.stage}_{arm['name']}"
-        cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data", recipe_root="$Q"))
-        L += [f'if [ ! -f $Q/STATE/{a.stage}_{arm["name"]} ]; then',
-              f'  echo "{spec["recipe"]["sha256"]}  $Q/recipe/{rec_name}" | sha256sum -c --quiet || {{ log "recipe digest differs before {arm["name"]}: refusing"; exit 4; }}',
-              f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {spec["memory"]} -t 43200s -n clean-{a.stage}-{arm["name"]} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{a.stage}_{arm["name"]}; log "{arm["name"]} DONE"; break; }}',
-              f'    grep -q "REFUSED\\|QUEUED HOST_HEADROOM" {out}.log && {{ log "{arm["name"]} not admitted (try $try)"; sleep 600; }} || {{ log "{arm["name"]} FAILED"; break; }}',
+        unit = f"{a.stage}_{arm['name']}{suffix}"
+        out = f"$Q/out/{unit}"
+        cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data", recipe_root="$Q") + (["--seeds", seeds] if seeds else []))
+        L += [f'if [ ! -f $Q/STATE/{unit} ]; then',
+              f'  echo "{spec["recipe"]["sha256"]}  $Q/recipe/{rec_name}" | sha256sum -c --quiet || {{ log "recipe digest differs before {unit}: refusing"; exit 4; }}',
+              f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {spec["memory"]} -t 43200s -n clean-{unit} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{unit}; log "{unit} DONE"; break; }}',
+              f'    grep -q "REFUSED\\|QUEUED HOST_HEADROOM" {out}.log && {{ log "{unit} not admitted (try $try)"; sleep 600; }} || {{ log "{unit} FAILED"; break; }}',
               "  done", "fi"]
     L.append(f'log "STAGE_{a.stage}_DONE"')
     Path(a.out).write_text("\n".join(L) + "\n")
@@ -306,26 +322,71 @@ def cmd_emit(a):
 
 
 def cmd_decide(a):
-    """Frozen rule: highest seed-mean INNER_A Sharpe (consolidated inner block) among arms whose three seeds are all
-    valid; ties -> fewer parameters. Reads only INNER_A fields; 2024 is never consulted for a choice."""
+    """Frozen rule: highest seed-mean INNER_A Sharpe (consolidated inner block) among arms whose seeds are all valid
+    (the three of the run, plus any --pool-suffix seed extension of the same recipe and support); ties -> fewer
+    parameters, then the declared control. Reads only INNER_A fields; 2024 is never consulted for a choice."""
     spec = json.loads(Path(a.spec).read_text())
+    only = [x.strip() for x in (getattr(a, "arms", None) or "").split(",") if x.strip()]
+    pool = [x.strip() for x in (getattr(a, "pool_suffix", None) or "").split(",") if x.strip()]
+    control = getattr(a, "tie_control", None) or spec.get("decision_control")
     res = []
     for arm in spec["stages"][a.stage]:
+        if only and arm["name"] not in only:
+            continue
         f = Path(a.results) / f"{a.stage}_{arm['name']}" / "E3M.json"
         if not f.exists():
             raise SystemExit(f"ARM_NOT_FINISHED:{arm['name']}")
         e = json.loads(f.read_text())
-        mean = e["decision"]["means"]["FULL"]
-        tr = e["trials"]["FULL"]
+        tr = dict(e["trials"]["FULL"])
+        for suf in pool:                                          # seed extension: pooled with the arm's finished seeds
+            fp = Path(a.results) / f"{a.stage}_{arm['name']}{suf}" / "E3M.json"
+            if not fp.exists():
+                raise SystemExit(f"ARM_NOT_FINISHED:{arm['name']}{suf}")
+            ep = json.loads(fp.read_text())
+            if ep.get("recipe") != e.get("recipe") or ep["meta"]["support_hash"] != e["meta"]["support_hash"]:
+                raise SystemExit(f"POOL_MISMATCH:{arm['name']}{suf}")
+            dup = set(ep["trials"]["FULL"]) & set(tr)
+            if dup:
+                raise SystemExit(f"POOL_DUPLICATE_SEEDS:{arm['name']}{suf}:{sorted(dup)}")
+            tr.update(ep["trials"]["FULL"])
+        sh = [tr[s]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in tr]
         gap = [tr[s]["trading"]["TRAIN"]["sharpe_daily_sqrt365"] - tr[s]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in tr]
-        res.append({"arm": arm["name"], "inner_a_sharpe_mean": mean["inner_a_sharpe_mean"], "all_valid": mean["all_valid"],
+        res.append({"arm": arm["name"], "inner_a_sharpe_mean": float(sum(sh) / len(sh)),
+                    "all_valid": all(bool(tr[s]["trading"]["INNER_A"]["valid"]) for s in tr), "n_seeds": len(tr), "seeds": sorted(tr),
                     "params": sum(e["params"]["FULL"].values()), "train_minus_inner_sharpe_mean": float(sum(gap) / len(gap)),
-                "is_control": arm["name"] == spec.get("decision_control")})
+                    "is_control": arm["name"] == control})
+    if only and len(res) != len(only):
+        raise SystemExit(f"ARM_UNKNOWN:{sorted(set(only) - {r['arm'] for r in res})}")
     ok = [r for r in res if r["all_valid"]] or res
     chosen = max(ok, key=lambda r: (r["inner_a_sharpe_mean"], -r["params"], r["is_control"]))
-    doc = {"stage": a.stage, "rule": cmd_decide.__doc__.strip(), "arms": res, "chosen": chosen["arm"]}
+    doc = {"stage": a.stage, "rule": cmd_decide.__doc__.strip(), "arms": res, "chosen": chosen["arm"],
+           "pooled_suffixes": pool, "restricted_to": only or None, "tie_control": control}
     Path(a.out).write_text(json.dumps(doc, indent=1))
     print(json.dumps(doc, indent=1))
+
+
+def localize(spec: dict, root: str, thresholds_dir="recipe") -> dict:
+    """The spec with every file path rewritten to the staged package at ``root`` (recipe/, data/store/, in/, the gate),
+    so ``validate`` / ``emit`` / ``decide`` run on the host that holds the package; digests are untouched, so a package
+    whose files differ from the pinned ones is still refused."""
+    s = json.loads(json.dumps(spec))
+    s["recipe"]["path"] = f"{root}/recipe/{Path(spec['recipe']['path']).name}"
+    s["store"]["path"] = f"{root}/data/store/{Path(spec['store']['path']).name}"
+    s["demonstrators"]["file"] = f"{root}/in/{Path(spec['demonstrators']['file']).name}"
+    s["remote_root"] = root
+    for g in s.get("gates", []):
+        g["path"] = f"{root}/{Path(g['path']).name}"
+    for arms in s["stages"].values():
+        for arm in arms:
+            if arm.get("multires_thresholds"):
+                arm["multires_thresholds"] = f"{root}/{thresholds_dir}/{Path(arm['multires_thresholds']).name}"
+    return s
+
+
+def cmd_localize(a):
+    spec = json.loads(Path(a.spec).read_text())
+    Path(a.out).write_text(json.dumps(localize(spec, a.root), indent=1))
+    print(f"written {a.out}")
 
 
 REG_RULE = ("Regularization from the T2 gap diagnostic on the corrected store with the v4 lists (peer worker; consolidated "
@@ -625,8 +686,16 @@ def main():
     c.add_argument("--admitted", default=None, help="admitted directory for the probe proof")
     e = sub.add_parser("emit"); e.add_argument("--spec", required=True); e.add_argument("--stage", default="A")
     e.add_argument("--winner-from", default=None); e.add_argument("--out", required=True)
+    e.add_argument("--arms", default=None, help="comma list: emit only these arms of the stage (seed extension / rerun)")
+    e.add_argument("--seeds", default=None, help="comma list of seeds passed to E3-M (--seeds); requires --out-suffix")
+    e.add_argument("--out-suffix", default=None, help="suffix of the unit's out dir and STATE mark (e.g. _seeds2)")
     d = sub.add_parser("decide"); d.add_argument("--spec", required=True); d.add_argument("--stage", required=True)
     d.add_argument("--results", required=True); d.add_argument("--out", required=True)
+    d.add_argument("--arms", default=None, help="comma list: decide among these arms only (pre-registered restriction)")
+    d.add_argument("--pool-suffix", default=None, help="comma list of out-dir suffixes whose seeds are pooled with each arm's run")
+    d.add_argument("--tie-control", default=None, help="arm preferred on a full tie (default: the spec's decision_control)")
+    lz = sub.add_parser("localize", help="rewrite the spec's file paths to a staged package root"); lz.add_argument("--spec", required=True)
+    lz.add_argument("--root", required=True); lz.add_argument("--out", required=True)
     r = sub.add_parser("regularize", help="apply REG_RULE to the T2 arms"); r.add_argument("--spec", required=True)
     r.add_argument("--results", required=True); r.add_argument("--out", required=True)
     r.add_argument("--lists", default="core15,shortlist_strict"); r.add_argument("--apply", action="store_true")
@@ -640,7 +709,7 @@ def main():
     v.add_argument("--science-blobs", default=None, help="science_blobs/<commit>/tools/expert_guided_e3m.py exported from git (hosts without the repository)")
     a = ap.parse_args()
     sys.exit({"check": cmd_check, "emit": cmd_emit, "decide": cmd_decide, "regularize": cmd_regularize,
-              "verify-t2": cmd_verify_t2}[a.cmd](a) or 0)
+              "verify-t2": cmd_verify_t2, "localize": cmd_localize}[a.cmd](a) or 0)
 
 
 if __name__ == "__main__":

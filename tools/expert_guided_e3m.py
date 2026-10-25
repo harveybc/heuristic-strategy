@@ -53,6 +53,19 @@ from tools.expert_guided_e0 import RATE_GRID, jsonable, ledger  # noqa: E402
 from tools.expert_guided_e1t import EXPERT_CFG, MUSASHI_CFG, STUDENT_CFG, Ctx, cat, pack, summary  # noqa: E402
 
 SEEDS = (20261019, 20261020, 20261021)
+SEEDS_DEFAULT = SEEDS
+
+
+def parse_seeds(text) -> tuple:
+    """``--seeds``: comma list of distinct positive integers (default = the inherited three; a seed extension of an arm
+    runs the new seeds only, into its own --out, and is pooled by the launcher's decide)."""
+    try:
+        seeds = tuple(int(x) for x in str(text).split(",") if x.strip())
+    except ValueError as ex:
+        raise SystemExit(f"E3M_SEEDS_MALFORMED:{text}") from ex
+    if not seeds or len(set(seeds)) != len(seeds) or min(seeds) <= 0:
+        raise SystemExit(f"E3M_SEEDS_MALFORMED:{text}")
+    return seeds
 ROUNDS = 3
 VARIANTS = ("JOINT", "TASK", "DIR", "FULL")
 ARBITERS = ("prob", "expected_gain", "gain_over_risk")
@@ -627,6 +640,8 @@ def run(a):
     from app.short_horizon.expert_guided import learn as L
     from app.short_horizon.expert_guided import temporal as T
     out = Path(a.out)
+    global SEEDS
+    SEEDS = parse_seeds(getattr(a, "seeds", None) or ",".join(map(str, SEEDS_DEFAULT)))
     out.mkdir(parents=True, exist_ok=True)
     led = out / "TRIAL_LEDGER.jsonl"
     device = "cuda" if torch.cuda.is_available() and not a.cpu else "cpu"
@@ -689,8 +704,9 @@ def run(a):
     BOUNDS = {m: ((0.25, 3.0), (0.5, 3.0)) for v_ in MODULES for m in MODULES[v_]}
     if a.aux_targets:
         MODS["FULL"] = {"open_l": (2, 3), "open_s": (2, 3), "close_l": (2, 1), "close_s": (2, 1)}
-        BOUNDS.update({"open_l": ((0.25, 3.0), (0.5, 3.0), AuxTargets.BOUND), "open_s": ((0.25, 3.0), (0.5, 3.0), AuxTargets.BOUND),
-                       "close_l": (AuxTargets.BOUND,), "close_s": (AuxTargets.BOUND,)})
+        ob, cb = (MR.MultiResAux.BOUND, MR.MultiResAux.CLOSE_BOUND) if a.aux_targets == "multires" else (AuxTargets.BOUND, AuxTargets.BOUND)
+        BOUNDS.update({"open_l": ((0.25, 3.0), (0.5, 3.0), ob), "open_s": ((0.25, 3.0), (0.5, 3.0), ob),
+                       "close_l": (cb,), "close_s": (cb,)})
     if a.groups or RECIPE:
         # extractor groups: {"groups": {name: [columns]}, "units": {name: u}} matched to the tensor order by base name
         gspec = RECIPE["representation"]["groups"] if RECIPE else json.loads(Path(a.groups).read_text())
@@ -711,7 +727,7 @@ def run(a):
             if (a.units, a.depth, a.head, a.core) != (m["units"], m["depth"], m["head"], m["core"]):
                 raise SystemExit("E3M_RECIPE_CONFLICT: --units/--depth/--head/--core differ from the recipe model")
         ARCH.update(groups=idx, group_units=gu, group_names=names, group_kinds=gk)
-    AUX = AuxTargets(cx) if a.aux_targets else None
+    AUX = (MR.MultiResAux(cx) if a.aux_targets == "multires" else AuxTargets(cx)) if a.aux_targets else None
     LMODE = a.labels
     SW = check_sample_weights(a)
     if a.labels == "multires":
@@ -737,14 +753,16 @@ def run(a):
            dropout=a.dropout, wd=a.wd, cost_sigma=COST_SIGMA, rounds=ROUNDS, seeds=SEEDS, params=params, device=device,
            scaling=a.scaling, split_contract=ds.meta["split_contract"], agent_state=agent_state, verify=verify,
            experts=[t.name for t in tracks], window=[WIN_E, int(ds.meta["input_contract"]["stride_rows"])],
-           exec_contract=a.exec_contract, aux_targets=bool(a.aux_targets), min_orders_per_week=SCFG.min_orders_per_week,
+           exec_contract=a.exec_contract, aux_targets=bool(a.aux_targets), aux_mode=(a.aux_targets or None), min_orders_per_week=SCFG.min_orders_per_week,
            extractor_groups=ARCH.get("group_names"), labels=a.labels, closer_rule=a.closer_rule if LABELS else None,
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
     scaler_path = DG.write_scaler(out, ds, rung="E3M", agent_state=a.agent_state, split_contract=a.split_contract)
-    res = {"exec_contract": a.exec_contract, "min_orders_per_week": SCFG.min_orders_per_week, "aux_targets": ({"opportunity_at_open": "best excursion before the optimal pivot (sigma, net of cost)",
-                                                              "hold_gain_at_close": "best further gain vs closing now (sigma)",
-                                                              "bound": AuxTargets.BOUND, "horizon": "next optimal pivot, <= 72 bars, <= forced flat"}
-                                                             if a.aux_targets else None),
+    res = {"exec_contract": a.exec_contract, "min_orders_per_week": SCFG.min_orders_per_week, "seeds": list(SEEDS),
+           "aux_targets": (AUX.describe() if a.aux_targets == "multires" else
+                           {"opportunity_at_open": "best excursion before the optimal pivot (sigma, net of cost)",
+                            "hold_gain_at_close": "best further gain vs closing now (sigma)",
+                            "bound": AuxTargets.BOUND, "horizon": "next optimal pivot, <= 72 bars, <= forced flat"}
+                           if a.aux_targets else None),
            "labels": (LABELS.describe(ds) | {"weights_in_loss": SW}) if LMODE == "multires" else (LABELS.describe(ds) if LABELS else {"mode": "zigzag"}),
            "recipe": ({"identity": RECIPE["identity"], "sha256": DG.sha256(a.recipe)} if RECIPE else None),
            "meta": ds.meta, "arch": ARCH, "params": params, "window": {"observations": WIN_E, "stride_rows": int(ds.meta["input_contract"]["stride_rows"])},
@@ -752,6 +770,8 @@ def run(a):
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
            "split_contract": ds.meta["split_contract"], "agent_state": agent_state, "scaler_file": scaler_path.name,
            "probe": {}}
+    if LMODE == "multires" and SW:
+        res["labels"]["sample_weights"] = "consumed: every flat training row's CE term is scaled by its label fitness (--sample-weights)"
     probe_rows = cx.ds.rows("INNER_A")
     probe_rows = probe_rows[np.linspace(0, len(probe_rows) - 1, min(8, len(probe_rows))).astype(int)] if len(probe_rows) else probe_rows
 
@@ -906,7 +926,11 @@ def build_parser():
                     help="native: max 4 entries/day, leverage 1:100 (inherited); sac: max 1 entry/day, leverage 1:50 (the replay contract) "
                          "for demonstrations, DAgger rollouts, arbiter choice and every reported period")
     ap.add_argument("--min-orders-per-week", type=float, default=None, help="activity rule for valid (default: the env's inherited 3.0; owner 2026-10-22: 2.0)")
-    ap.add_argument("--aux-targets", action="store_true", help="FULL only: hindsight opportunity (openers) and hold-gain (closers) heads")
+    ap.add_argument("--aux-targets", nargs="?", const="opportunity", choices=("opportunity", "multires"), default=None,
+                    help="FULL only: regression heads trained on hindsight targets (training-only). Bare flag / 'opportunity': "
+                         "opportunity (openers) and hold-gain (closers) in sigma; 'multires': f_open / f_close relative to the "
+                         "optimum leg (multires.MultiResAux), the class labels stay those of --labels")
+    ap.add_argument("--seeds", default=",".join(map(str, SEEDS_DEFAULT)), help="comma list of seeds (default the inherited three)")
     ap.add_argument("--labels", choices=list(SignalLabels.MODES) + [MR.MultiResLabels.MODE], default="zigzag",
                     help="training labels: zigzag (the expert's pivots, unchanged default), opportunity (per-agent hindsight "
                          "signal rev 2: openers by opportunity/adverse, closers by --closer-rule on the order's own SL), both (OR, fixed truth table), "

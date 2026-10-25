@@ -46,6 +46,7 @@ from . import oracle as OR
 H_NS = 3_600_000_000_000
 LADDER = ("3", "rev20", "rev15", "rev10", "rev8", "rev5")
 F_CLOSE_BOUND = (-1.0, 1.5)            # aux regression target bound (f_close may exceed 1 at the intrabar extreme only)
+F_OPEN_BOUND = (-1.0, 1.0)             # aux regression target bound of the open fitness (1 = the optimal open, < 0 against the optimum)
 TP_BOUNDS, SL_DEMO = (0.25, 3.0), 2.0  # as the current demonstrators: TP = remaining gain in sigma, SL = 2 sigma
 NOP, OPEN_L, OPEN_S = 0, 1, 2
 KINDS = ("nop_hard", "negative", "conflict", "nop_graded", "open")
@@ -365,6 +366,39 @@ class MultiResLabels:
                 "sample_weights": "computed and profiled; the class-weighted loss does not consume them yet (declared)",
                 "counts": self.n, "kinds_used": self.kinds,
                 "profile": {p: self.profile(ds, p) for p in ds.meta["periods"] if p in set(ds.period) and p != "OBS_2024"}}
+
+
+class MultiResAux:
+    """``--aux-targets multires``: the ``AuxTargets`` interface (opportunity / hold_gain -> (value, ok)) fed by the
+    optimum-relative fitness instead of sigma excursions, so an arm KEEPS its inherited class labels (ZigZag / both) and
+    only its regression heads learn the fitness: openers f_open of their side (negative when the side opens against
+    the optimum leg), closers f_close of their side. Training-only; availability = the same confirmation rule as the
+    labels; an unavailable or undefined target is masked (ok = 0), never filled."""
+    MODE = "multires"
+    BOUND = F_OPEN_BOUND
+    CLOSE_BOUND = F_CLOSE_BOUND
+
+    def __init__(self, cx, ladder=LADDER, params=None):
+        self.tb = Tables.from_ctx(cx, ladder, params)
+
+    def _bounded(self, x, lo_hi):
+        return (0.0, 0.0) if not np.isfinite(x) else (float(np.clip(x, *lo_hi)), 1.0)
+
+    def opportunity(self, bar, r, side):
+        if not self.tb.open_available(bar, r):
+            return 0.0, 0.0
+        return self._bounded(self.tb.legs["f_open"][side][bar], self.BOUND)
+
+    def hold_gain(self, bar, r, side):
+        if not self.tb.close_available(bar, r, side):
+            return 0.0, 0.0
+        return self._bounded(self.tb.legs["f_close"][side][bar], self.CLOSE_BOUND)
+
+    def describe(self):
+        return {"mode": self.MODE, "opener_head": "f_open of the module's side relative to the optimum leg, bounded " + str(self.BOUND),
+                "closer_head": "f_close of the module's side relative to the optimum leg, bounded " + str(self.CLOSE_BOUND),
+                "availability": "confirmation of the optimum leg end AND every ladder label support + 1 h <= period end (openers); "
+                                "confirmation of the side's leg end (closers); masked otherwise", "ladder": list(self.tb.ladder)}
 
 
 def _utc_ns(x) -> int:

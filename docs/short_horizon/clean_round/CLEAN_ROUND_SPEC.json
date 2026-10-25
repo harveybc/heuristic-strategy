@@ -1,5 +1,5 @@
 {
- "identity": "clean-expert-guided-a1-20261024-v3",
+ "identity": "clean-expert-guided-a1-20261024-v4",
  "status": "FROZEN on the accepted shared recipe (Musashi re-review 2026-10-24, ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT); launch gate = the owner's word for the expert-guided lane",
  "recipe": {
   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/CONSUMER_RECIPE.json",
@@ -63,7 +63,7 @@
   "design": "docs/short_horizon/clean_round/EXPERT_SIGNAL_PER_AGENT.md rev 2.1",
   "note": "ZigZag demonstrations and opportunity/both labels are TRAINING-ONLY treatments: never an observation, never real-time eligibility, never human feedback"
  },
- "memory": "7G",
+ "memory": "10G",
  "remote_root": "/var/tmp/expert-guided-clean-a1-20261024",
  "gates": [
   {
@@ -146,6 +146,12 @@
     "name": "winner_minimal_state",
     "agent_state": "minimal",
     "note": "declared control: position + can_enter only; the simulator keeps its full state"
+   },
+   {
+    "name": "winner_multires_aux",
+    "aux_targets": "multires",
+    "agent_state": "none",
+    "note": "inherited class labels + regression heads on the optimum-relative fitness (f_open on openers, negative against the optimum; f_close on closers); training-only (design section 4; lane L6)"
    }
   ],
   "A_prime": [
@@ -212,9 +218,13 @@
   {
    "identity": "clean-expert-guided-a1-20261024-v3",
    "adds": "stage A_prime (multi-resolution labels scored against the optimum, design section 4; owner 2026-10-24 'orquesta y ejecuta'); memory 7G = the host's maximum admissible cap (a 9G request was queued on headroom); recipe, model, regularization, split, store unchanged"
+  },
+  {
+   "identity": "clean-expert-guided-a1-20261024-v4",
+   "adds": "stage B arm winner_multires_aux (--aux-targets multires), seed extension of the two both arms (seeds 20261022/20261023, pooled 5-seed decision), memory 10G, localized host spec (CLEAN_ROUND_SPEC_v4_host.json) so decide/emit run on the package host; recipe, model, regularization, split, store unchanged"
   }
  ],
- "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule. A 9G request was QUEUED on HOST_HEADROOM (host_free_for_new 8.57 GB with the 3 GiB desktop reserve and the owner's VM resident), so the cap is the host's maximum admissible, 7G, one unit at a time; if the extra-expert arms stop again at 7G they are declared NOT_RUNNABLE_ON_THIS_HOST, never re-tried under a smaller cap",
+ "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule. A 9G request was QUEUED on HOST_HEADROOM (host_free_for_new 8.57 GB with the 3 GiB desktop reserve and the owner's VM resident), so the cap is the host's maximum admissible, 7G, one unit at a time; if the extra-expert arms stop again at 7G they are declared NOT_RUNNABLE_ON_THIS_HOST, never re-tried under a smaller cap | v4 (2026-10-25): after the owner restarted the host (~21 GiB available) the three extra-expert arms ran at 10G and finished; 10G is the cap of every unit from here on (seed extension, stage B); never lowered after a refusal",
  "decision_a_prime": "same frozen rule as stage A on the A_prime arms plus the stage A arms (same recipe v2, same support): highest seed-mean INNER_A Sharpe among arms with all three seeds valid; ties -> fewer parameters, then the control zz_hold; 2024 never consulted; the v3 recipe (px.er_1 retired) is a later bridge pair, never compared directly",
  "stage_a_stopped_arms": {
   "arms": [
@@ -222,8 +232,23 @@
    "both_hold_shorter",
    "opp_hold_shorter"
   ],
-  "status": "NOT_RUNNABLE_ON_THIS_HOST",
+  "status": "FINISHED_AT_10G_AFTER_HOST_RESTART (2026-10-25 03:55Z-05:34Z)",
   "why": "stopped at the 6G cap (tree peak ~6.0 GB); a 9G rerun was QUEUED on HOST_HEADROOM (host_free_for_new 8.57 GB) and a 7G retry was REFUSED CAP_LOWERED_AFTER_REFUSAL by the admission store; they need a host admitting >= 9G",
-  "decision_impact": "the stage A decision over the 4 finished arms is INTERIM (DECISION_A_INTERIM.json in the package root); the extra-demonstrator treatment stays unmeasured until a host admits them"
- }
+  "decision_impact": "stage A decision over the 7 arms is final on 3 seeds (DECISION_A.json): both_hold_shorter 1.56 vs both_hold 1.48, not separable (pooled seed std ~1)"
+ },
+ "seed_extension": {
+  "arms": [
+   "both_hold_shorter",
+   "both_hold"
+  ],
+  "seeds": [
+   20261022,
+   20261023
+  ],
+  "out_suffix": "_seeds2",
+  "why": "stage A: both_hold_shorter 1.56 +- 1.31 vs both_hold 1.48 +- 1.16 on 3 seeds are not separable; 5 seeds each before stage B inherits",
+  "rule": "PRE-REGISTERED before any new seed is read: stage B inherits the arm with the higher 5-seed mean INNER_A Sharpe among the two (decide --arms both_hold_shorter,both_hold --pool-suffix _seeds2 --tie-control both_hold): all 5 seeds valid required, ties -> fewer parameters, then both_hold (fewer demonstrators); 2024 never consulted; the pooled decision is DECISION_A_5SEED.json",
+  "same_recipe_and_support": "recipe_5a8f2155318ba7c7, support hashes checked by decide (POOL_MISMATCH refusal)"
+ },
+ "decision_b": "stage B: same frozen rule over its arms (winner_aux, winner_minimal_state, winner_multires_aux) plus the inherited winner's own result as the reference; highest 3-seed mean INNER_A Sharpe among all-valid; ties -> fewer parameters, then the inherited winner unchanged; 2024 one read, never decides"
 }

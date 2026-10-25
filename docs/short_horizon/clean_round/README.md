@@ -240,3 +240,20 @@ python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out D
   heredar ganador (sólo B hereda; corregido un `TypeError` latente en esa herencia). Suite 150/150.
 - Decisión de A': misma regla sobre los brazos de A y A' juntos (misma receta, mismo soporte). La receta v3 de Musashi
   (sin `px.er_1`) será un par puente aparte.
+
+## 15. Spec v4: extensión de semillas, cabezas auxiliares multi-resolución y etapa B (lane L6, 2026-10-25)
+
+- **Extensión de semillas (pre-registrada antes de leer):** `both_hold_shorter` (1.56 ± 1.31) y `both_hold` (1.48 ± 1.16)
+  no se separan con 3 semillas; corren las semillas 20261022 y 20261023 de ambos (`emit --arms … --seeds … --out-suffix
+  _seeds2`, salidas `out/A_<brazo>_seeds2`, nunca sobre los resultados de 3 semillas). La etapa B hereda el brazo con mayor
+  media de Sharpe INNER_A en 5 semillas (`decide --arms both_hold_shorter,both_hold --pool-suffix _seeds2 --tie-control
+  both_hold`; `POOL_MISMATCH` si receta o soporte difieren; `POOL_DUPLICATE_SEEDS`); 2024 no decide.
+- **`--aux-targets multires`** (E3-M, aditivo): las etiquetas de clase siguen siendo las heredadas (ZigZag/`both`); las
+  cabezas de regresión aprenden la aptitud respecto al óptimo (`multires.MultiResAux`: f_open del lado del módulo,
+  negativa contra el óptimo, acotada [−1, 1]; f_close en los cerradores, acotada [−1, 1.5]); misma disponibilidad por
+  confirmación; objetivo no disponible = enmascarado, nunca rellenado. Sólo entrenamiento.
+- **Etapa B**: `winner_aux`, `winner_minimal_state` (control declarado) y `winner_multires_aux` (nuevo). Tope 10G.
+- **Spec localizado**: `localize --spec --root <paquete>` reescribe sólo rutas (receta, store, demostradores, puerta,
+  umbrales) para que `decide`/`emit` corran en el host del paquete; los digests no cambian (un paquete distinto se rechaza).
+- Texto corregido: con `--sample-weights` el bloque `labels.sample_weights` declara el consumo en la pérdida (la bandera
+  `weights_in_loss` ya era la autoritativa).

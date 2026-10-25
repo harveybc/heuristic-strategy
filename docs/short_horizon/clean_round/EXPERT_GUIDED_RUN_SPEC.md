@@ -80,3 +80,13 @@ v3 y el lanzador la valida como a la A (misma receta, modelo, regularización, p
 Decisión congelada: igual que en A (Sharpe medio INNER_A de tres semillas válidas; empates → menos parámetros, luego el
 puente). Comparaciones A↔A' sólo a través del puente; nunca brazo de A contra brazo de A' directamente. 2024 una lectura
 por brazo, nunca para decidir; TEST cerrado. La etapa B hereda al ganador de A o de A' según el puente lo justifique.
+
+## 6. Resultado de A y A' y cadena hacia B (2026-10-25)
+
+A y A' terminaron (`RESULTS_A_APRIME_2026_10_25.md`): `both_hold_shorter` 1.56 ± 1.31 ≥ `both_hold` 1.48 ± 1.16 > control
+1.13 ± 0.97; los tres brazos `multires` (etiquetas de clase) negativos en INNER_A. Decisiones del líder técnico, sin
+lanzar nada nuevo fuera de la palabra ya dada: (1) cinco semillas para los dos brazos `both` antes de que B herede
+(regla en el spec v4, `seed_extension`); (2) B añade `winner_multires_aux`: la aptitud multi-resolución como objetivo
+auxiliar de regresión sobre las etiquetas heredadas, en vez de como etiqueta de clase (que dejó al estudiante sin
+ejemplos: NOP 86 %); (3) cadena en el host: 4 unidades de semillas → `decide` 5 semillas (`DECISION_A_5SEED.json`) →
+`emit --stage B --winner-from` → cola B (3 brazos × 3 semillas), todo a 10G, una unidad a la vez.
