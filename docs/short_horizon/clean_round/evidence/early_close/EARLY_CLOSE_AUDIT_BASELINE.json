@@ -1,0 +1,5449 @@
+{
+ "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+ "units": {
+  "A_both_hold": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/A_both_hold",
+    "/var/tmp/expert-guided-clean-a1-20261024/out/A_both_hold_seeds2"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "consolidated",
+    "train": [
+     "2020-01-01",
+     "2024-01-01"
+    ],
+    "validation": [
+     "2024-01-01",
+     "2025-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_A"
+   ],
+   "recipe": {
+    "identity": "recipe_5a8f2155318ba7c7",
+    "sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_A": {
+      "trades": 79,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 59,
+       "SL": 3,
+       "REVERSAL": 8,
+       "TP": 9
+      },
+      "agent_closes": 67,
+      "early_close_share": 0.8481012658227848,
+      "classes": {
+       "SAVED": 36,
+       "CUT_WINNER": 31,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.5373134328358209,
+       "CUT_WINNER": 0.4626865671641791,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": -61.46652481001783,
+      "early_close_value_usd_ci95": [
+       -2785.902995352344,
+       2749.4749106444347
+      ],
+      "early_close_value_sigma": 1.4869479363272196,
+      "early_close_value_sigma_ci95": [
+       -10.81283842537517,
+       14.443889771138485
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 28,
+       "SL": 32,
+       "FORCED_FLAT": 7
+      },
+      "early_close_value_usd_long": 1533.0359547112214,
+      "early_close_value_usd_long_ci95": [
+       -395.539341277326,
+       3343.8714851804048
+      ],
+      "agent_closes_long": 34,
+      "early_close_value_usd_short": -1594.5024795212394,
+      "early_close_value_usd_short_ci95": [
+       -3548.1234334498076,
+       482.7220566026244
+      ],
+      "agent_closes_short": 33,
+      "closer": {
+       "positioned_observable_bars": 405,
+       "sl_first_rate": 0.40987654320987654,
+       "close_better_rate": 0.40987654320987654,
+       "fired_rate": 0.1654320987654321,
+       "precision_sl_first": 0.5373134328358209,
+       "recall_sl_first": 0.21686746987951808,
+       "auc_sl_first": 0.5943186973836769,
+       "auc_close_better": 0.5943186973836769
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 37,
+        "net_usd": 1685.4006977990387,
+        "sharpe_daily_sqrt365": 3.9443398989570113,
+        "positioned_bar_share": 0.036952998379254455
+       },
+       "short": {
+        "entries": 42,
+        "net_usd": 252.0259189231041,
+        "sharpe_daily_sqrt365": 0.46715870759565964,
+        "positioned_bar_share": 0.1059967585089141
+       }
+      },
+      "actual": {
+       "sharpe": 2.863526652517018,
+       "net_usd": 1937.426616722143,
+       "trades": 79,
+       "orders_per_week": 2.925925925925926,
+       "max_dd_pct": 3.407435408267985
+      },
+      "trade_level_hold_sum_usd": 1998.8931415321604,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 2.2392103406098784,
+       "net_usd": 2685.2050483084568,
+       "trades": 66,
+       "orders_per_week": 2.4444444444444446,
+       "max_dd_pct": 9.359682127461339,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_A": {
+      "trades": 54,
+      "exits_by_reason": {
+       "REVERSAL": 2,
+       "TP": 6,
+       "AGENT_CLOSE": 41,
+       "SL": 4,
+       "FORCED_FLAT": 1
+      },
+      "agent_closes": 43,
+      "early_close_share": 0.7962962962962963,
+      "classes": {
+       "SAVED": 28,
+       "CUT_WINNER": 15,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.6511627906976745,
+       "CUT_WINNER": 0.3488372093023256,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 1310.5225265810006,
+      "early_close_value_usd_ci95": [
+       -738.1255923265159,
+       3212.981972484502
+      ],
+      "early_close_value_sigma": 6.507906588345438,
+      "early_close_value_sigma_ci95": [
+       -3.1320217145041584,
+       15.62348820496828
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 12,
+       "SL": 25,
+       "FORCED_FLAT": 6
+      },
+      "early_close_value_usd_long": 1169.0970050363865,
+      "early_close_value_usd_long_ci95": [
+       -260.09602195108613,
+       2502.939316662922
+      ],
+      "agent_closes_long": 19,
+      "early_close_value_usd_short": 141.42552154461453,
+      "early_close_value_usd_short_ci95": [
+       -1181.0150946876026,
+       1492.1720360210659
+      ],
+      "agent_closes_short": 24,
+      "closer": {
+       "positioned_observable_bars": 220,
+       "sl_first_rate": 0.5318181818181819,
+       "close_better_rate": 0.55,
+       "fired_rate": 0.19545454545454546,
+       "precision_sl_first": 0.6744186046511628,
+       "recall_sl_first": 0.24786324786324787,
+       "auc_sl_first": 0.6504854368932039,
+       "auc_close_better": 0.6259287085733367
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 21,
+        "net_usd": -184.37313605607696,
+        "sharpe_daily_sqrt365": -0.7777403784118125,
+        "positioned_bar_share": 0.015559157212317666
+       },
+       "short": {
+        "entries": 33,
+        "net_usd": 167.34351258158048,
+        "sharpe_daily_sqrt365": 0.36687804739594004,
+        "positioned_bar_share": 0.06191247974068071
+       }
+      },
+      "actual": {
+       "sharpe": 0.02331866614725232,
+       "net_usd": -17.029623474496475,
+       "trades": 54,
+       "orders_per_week": 2.0,
+       "max_dd_pct": 5.145493544316677
+      },
+      "trade_level_hold_sum_usd": -1327.5521500554971,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.4283389132791562,
+       "net_usd": -1332.6044953810706,
+       "trades": 50,
+       "orders_per_week": 1.8518518518518519,
+       "max_dd_pct": 17.96893977174333,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_A": {
+      "trades": 79,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 61,
+       "TP": 9,
+       "SL": 6,
+       "REVERSAL": 3
+      },
+      "agent_closes": 64,
+      "early_close_share": 0.810126582278481,
+      "classes": {
+       "SAVED": 43,
+       "CUT_WINNER": 20,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.671875,
+       "CUT_WINNER": 0.3125,
+       "NEUTRAL": 0.015625
+      },
+      "early_close_value_usd": 3471.6537270434364,
+      "early_close_value_usd_ci95": [
+       680.3973470000961,
+       6108.511395624956
+      ],
+      "early_close_value_sigma": 16.756113530350333,
+      "early_close_value_sigma_ci95": [
+       3.96588890028776,
+       28.96652863049308
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 17,
+       "SL": 40,
+       "FORCED_FLAT": 7
+      },
+      "early_close_value_usd_long": 3068.3930217619277,
+      "early_close_value_usd_long_ci95": [
+       903.8697159222364,
+       5157.962482475683
+      ],
+      "agent_closes_long": 44,
+      "early_close_value_usd_short": 403.2607052815082,
+      "early_close_value_usd_short_ci95": [
+       -1115.6629279668018,
+       1897.405843760776
+      ],
+      "agent_closes_short": 20,
+      "closer": {
+       "positioned_observable_bars": 262,
+       "sl_first_rate": 0.6183206106870229,
+       "close_better_rate": 0.6221374045801527,
+       "fired_rate": 0.24427480916030533,
+       "precision_sl_first": 0.6875,
+       "recall_sl_first": 0.2716049382716049,
+       "auc_sl_first": 0.5792592592592593,
+       "auc_close_better": 0.5662762595277933
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 49,
+        "net_usd": 255.56658110238598,
+        "sharpe_daily_sqrt365": 0.6084436123615212,
+        "positioned_bar_share": 0.041815235008103725
+       },
+       "short": {
+        "entries": 30,
+        "net_usd": 667.8483581479355,
+        "sharpe_daily_sqrt365": 1.4150547957034274,
+        "positioned_bar_share": 0.04829821717990276
+       }
+      },
+      "actual": {
+       "sharpe": 1.5514049953966895,
+       "net_usd": 923.4149392503223,
+       "trades": 79,
+       "orders_per_week": 2.925925925925926,
+       "max_dd_pct": 6.182568901446894
+      },
+      "trade_level_hold_sum_usd": -2548.238787793115,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.4634692571999797,
+       "net_usd": -1578.3502954944233,
+       "trades": 66,
+       "orders_per_week": 2.4444444444444446,
+       "max_dd_pct": 19.73879284391686,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261022": {
+     "INNER_A": {
+      "trades": 78,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 50,
+       "REVERSAL": 3,
+       "TP": 14,
+       "SL": 11
+      },
+      "agent_closes": 53,
+      "early_close_share": 0.6794871794871795,
+      "classes": {
+       "SAVED": 30,
+       "CUT_WINNER": 22,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.5660377358490566,
+       "CUT_WINNER": 0.41509433962264153,
+       "NEUTRAL": 0.018867924528301886
+      },
+      "early_close_value_usd": 710.9293146509796,
+      "early_close_value_usd_ci95": [
+       -1746.609544570092,
+       3228.841880858472
+      ],
+      "early_close_value_sigma": 3.8976162617813914,
+      "early_close_value_sigma_ci95": [
+       -7.52339917154274,
+       15.523594582033738
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 17,
+       "SL": 27,
+       "FORCED_FLAT": 9
+      },
+      "early_close_value_usd_long": 949.3223527672815,
+      "early_close_value_usd_long_ci95": [
+       -1233.7163138840533,
+       2915.161976195778
+      ],
+      "agent_closes_long": 33,
+      "early_close_value_usd_short": -238.39303811630205,
+      "early_close_value_usd_short_ci95": [
+       -1581.3336903051897,
+       1050.3402182488614
+      ],
+      "agent_closes_short": 20,
+      "closer": {
+       "positioned_observable_bars": 371,
+       "sl_first_rate": 0.3881401617250674,
+       "close_better_rate": 0.40161725067385445,
+       "fired_rate": 0.14285714285714285,
+       "precision_sl_first": 0.5849056603773585,
+       "recall_sl_first": 0.2152777777777778,
+       "auc_sl_first": 0.6896720509055311,
+       "auc_close_better": 0.6891589576153334
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 37,
+        "net_usd": 430.79461863303993,
+        "sharpe_daily_sqrt365": 1.2183792985423638,
+        "positioned_bar_share": 0.03630470016207456
+       },
+       "short": {
+        "entries": 41,
+        "net_usd": -3.2120044400226497,
+        "sharpe_daily_sqrt365": -0.004609899571735671,
+        "positioned_bar_share": 0.0920583468395462
+       }
+      },
+      "actual": {
+       "sharpe": 0.6425029678684887,
+       "net_usd": 427.58261419301743,
+       "trades": 78,
+       "orders_per_week": 2.888888888888889,
+       "max_dd_pct": 10.058850131687954
+      },
+      "trade_level_hold_sum_usd": -283.3467004579623,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.2377299887123315,
+       "net_usd": 137.69826520254173,
+       "trades": 65,
+       "orders_per_week": 2.4074074074074074,
+       "max_dd_pct": 14.555239813444537,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261023": {
+     "INNER_A": {
+      "trades": 59,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 43,
+       "TP": 7,
+       "SL": 8,
+       "REVERSAL": 1
+      },
+      "agent_closes": 44,
+      "early_close_share": 0.7457627118644068,
+      "classes": {
+       "SAVED": 29,
+       "CUT_WINNER": 15,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.6590909090909091,
+       "CUT_WINNER": 0.3409090909090909,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 1307.3998290159218,
+      "early_close_value_usd_ci95": [
+       -580.7880475598222,
+       3239.922606685855
+      ],
+      "early_close_value_sigma": 6.594644982626759,
+      "early_close_value_sigma_ci95": [
+       -2.968835727461931,
+       16.14608376645433
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 14,
+       "SL": 24,
+       "FORCED_FLAT": 6
+      },
+      "early_close_value_usd_long": 1491.7900826456012,
+      "early_close_value_usd_long_ci95": [
+       -234.0728891190815,
+       3079.1984185613023
+      ],
+      "agent_closes_long": 29,
+      "early_close_value_usd_short": -184.39025362967948,
+      "early_close_value_usd_short_ci95": [
+       -1139.94287622513,
+       791.5304208704491
+      ],
+      "agent_closes_short": 15,
+      "closer": {
+       "positioned_observable_bars": 249,
+       "sl_first_rate": 0.41767068273092367,
+       "close_better_rate": 0.40562248995983935,
+       "fired_rate": 0.17670682730923695,
+       "precision_sl_first": 0.6818181818181818,
+       "recall_sl_first": 0.28846153846153844,
+       "auc_sl_first": 0.7541114058355438,
+       "auc_close_better": 0.742975648916243
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 33,
+        "net_usd": -403.2483907257487,
+        "sharpe_daily_sqrt365": -1.1966945615110078,
+        "positioned_bar_share": 0.03241491085899514
+       },
+       "short": {
+        "entries": 26,
+        "net_usd": 23.00946454921237,
+        "sharpe_daily_sqrt365": 0.04964873519680534,
+        "positioned_bar_share": 0.05705024311183144
+       }
+      },
+      "actual": {
+       "sharpe": -0.6512033627521183,
+       "net_usd": -380.23892617653655,
+       "trades": 59,
+       "orders_per_week": 2.185185185185185,
+       "max_dd_pct": 9.1083635566831
+      },
+      "trade_level_hold_sum_usd": -1687.6387551924581,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.7943081823084532,
+       "net_usd": -1643.5094036926894,
+       "trades": 51,
+       "orders_per_week": 1.8888888888888888,
+       "max_dd_pct": 19.961749880819216,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.18,
+      "members": [
+       "prob",
+       "prob",
+       "prob",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.533558676070215
+     },
+     "primary": true,
+     "INNER_A": {
+      "trades": 73,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 48,
+       "TP": 12,
+       "SL": 9,
+       "REVERSAL": 4
+      },
+      "agent_closes": 52,
+      "early_close_share": 0.7123287671232876,
+      "classes": {
+       "SAVED": 37,
+       "CUT_WINNER": 15,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.7115384615384616,
+       "CUT_WINNER": 0.28846153846153844,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 2931.5653581479924,
+      "early_close_value_usd_ci95": [
+       649.0216739148311,
+       5176.058921210472
+      ],
+      "early_close_value_sigma": 14.330259229284426,
+      "early_close_value_sigma_ci95": [
+       3.8431611335935645,
+       24.95867189935
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 12,
+       "SL": 33,
+       "FORCED_FLAT": 7
+      },
+      "early_close_value_usd_long": 2349.263976242607,
+      "early_close_value_usd_long_ci95": [
+       363.97932165726996,
+       4318.907745602357
+      ],
+      "agent_closes_long": 35,
+      "early_close_value_usd_short": 582.3013819053856,
+      "early_close_value_usd_short_ci95": [
+       -597.832936744316,
+       1665.1114724142212
+      ],
+      "agent_closes_short": 17,
+      "closer": {
+       "positioned_observable_bars": 301,
+       "sl_first_rate": 0.5348837209302325,
+       "close_better_rate": 0.5382059800664452,
+       "fired_rate": 0.17275747508305647,
+       "precision_sl_first": 0.7307692307692307,
+       "recall_sl_first": 0.2360248447204969,
+       "auc_sl_first": 0.6915705412599823,
+       "auc_close_better": 0.6720845545785594
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 37,
+        "net_usd": 251.45035538872116,
+        "sharpe_daily_sqrt365": 0.9908068339074347,
+        "positioned_bar_share": 0.027552674230145867
+       },
+       "short": {
+        "entries": 36,
+        "net_usd": -169.09141376798178,
+        "sharpe_daily_sqrt365": -0.27091340013901216,
+        "positioned_bar_share": 0.07779578606158834
+       }
+      },
+      "actual": {
+       "sharpe": 0.1902020480234662,
+       "net_usd": 82.35894162073964,
+       "trades": 73,
+       "orders_per_week": 2.7037037037037037,
+       "max_dd_pct": 11.760730277625123
+      },
+      "trade_level_hold_sum_usd": -2849.206416527253,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -2.9951894509453494,
+       "net_usd": -2694.9279150527145,
+       "trades": 61,
+       "orders_per_week": 2.259259259259259,
+       "max_dd_pct": 29.76937763813404,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261022/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261023/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021",
+    "20261022",
+    "20261023"
+   ]
+  },
+  "A_zz_hold": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/A_zz_hold"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "consolidated",
+    "train": [
+     "2020-01-01",
+     "2024-01-01"
+    ],
+    "validation": [
+     "2024-01-01",
+     "2025-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_A"
+   ],
+   "recipe": {
+    "identity": "recipe_5a8f2155318ba7c7",
+    "sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_A": {
+      "trades": 92,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 74,
+       "TP": 13,
+       "REVERSAL": 3,
+       "FORCED_FLAT": 2
+      },
+      "agent_closes": 77,
+      "early_close_share": 0.8369565217391305,
+      "classes": {
+       "SAVED": 28,
+       "CUT_WINNER": 47,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.36363636363636365,
+       "CUT_WINNER": 0.6103896103896104,
+       "NEUTRAL": 0.025974025974025976
+      },
+      "early_close_value_usd": -2272.790394422334,
+      "early_close_value_usd_ci95": [
+       -6173.69228178896,
+       1456.6246446527314
+      ],
+      "early_close_value_sigma": -9.846109426828038,
+      "early_close_value_sigma_ci95": [
+       -29.20373598430488,
+       8.98939923015309
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 36,
+       "SL": 12,
+       "FORCED_FLAT": 29
+      },
+      "early_close_value_usd_long": -653.3327089725827,
+      "early_close_value_usd_long_ci95": [
+       -3554.9110132476303,
+       2113.22526623675
+      ],
+      "agent_closes_long": 45,
+      "early_close_value_usd_short": -1619.4576854497514,
+      "early_close_value_usd_short_ci95": [
+       -3835.3117142632345,
+       682.1621763533653
+      ],
+      "agent_closes_short": 32,
+      "closer": {
+       "positioned_observable_bars": 370,
+       "sl_first_rate": 0.1891891891891892,
+       "close_better_rate": 0.1945945945945946,
+       "fired_rate": 0.20810810810810812,
+       "precision_sl_first": 0.4025974025974026,
+       "recall_sl_first": 0.44285714285714284,
+       "auc_sl_first": 0.7400476190476191,
+       "auc_close_better": 0.7040920954511558
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 47,
+        "net_usd": -571.9191797043164,
+        "sharpe_daily_sqrt365": -1.9872014215657536,
+        "positioned_bar_share": 0.02787682333873582
+       },
+       "short": {
+        "entries": 45,
+        "net_usd": 791.7976596073739,
+        "sharpe_daily_sqrt365": 1.4562979827267457,
+        "positioned_bar_share": 0.09789303079416532
+       }
+      },
+      "actual": {
+       "sharpe": 0.41664901494095985,
+       "net_usd": 219.87847990305818,
+       "trades": 92,
+       "orders_per_week": 3.4074074074074074,
+       "max_dd_pct": 8.289433460882963
+      },
+      "trade_level_hold_sum_usd": 2492.6688743253912,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.6294493906906525,
+       "net_usd": 641.1533738568778,
+       "trades": 58,
+       "orders_per_week": 2.1481481481481484,
+       "max_dd_pct": 30.104382327913275,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_A": {
+      "trades": 69,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 54,
+       "TP": 11,
+       "REVERSAL": 3,
+       "FORCED_FLAT": 1
+      },
+      "agent_closes": 57,
+      "early_close_share": 0.8260869565217391,
+      "classes": {
+       "SAVED": 19,
+       "CUT_WINNER": 36,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.3333333333333333,
+       "CUT_WINNER": 0.631578947368421,
+       "NEUTRAL": 0.03508771929824561
+      },
+      "early_close_value_usd": -2484.718077056307,
+      "early_close_value_usd_ci95": [
+       -5932.411597030854,
+       1066.1504962457032
+      ],
+      "early_close_value_sigma": -10.416224945779156,
+      "early_close_value_sigma_ci95": [
+       -26.713833693307215,
+       6.228892655689166
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 31,
+       "SL": 7,
+       "FORCED_FLAT": 19
+      },
+      "early_close_value_usd_long": -74.82598257683685,
+      "early_close_value_usd_long_ci95": [
+       -2261.157803926548,
+       2163.9615776708433
+      ],
+      "agent_closes_long": 21,
+      "early_close_value_usd_short": -2409.89209447947,
+      "early_close_value_usd_short_ci95": [
+       -5021.967551725111,
+       439.3539344915598
+      ],
+      "agent_closes_short": 36,
+      "closer": {
+       "positioned_observable_bars": 333,
+       "sl_first_rate": 0.25825825825825827,
+       "close_better_rate": 0.24924924924924924,
+       "fired_rate": 0.17117117117117117,
+       "precision_sl_first": 0.3684210526315789,
+       "recall_sl_first": 0.2441860465116279,
+       "auc_sl_first": 0.5932586385462763,
+       "auc_close_better": 0.5689638554216867
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 25,
+        "net_usd": 814.4604388583509,
+        "sharpe_daily_sqrt365": 2.297829998492888,
+        "positioned_bar_share": 0.044408427876823336
+       },
+       "short": {
+        "entries": 44,
+        "net_usd": 766.652013263666,
+        "sharpe_daily_sqrt365": 1.5280582312400377,
+        "positioned_bar_share": 0.06871961102106969
+       }
+      },
+      "actual": {
+       "sharpe": 2.5084064855752444,
+       "net_usd": 1581.1124521220172,
+       "trades": 69,
+       "orders_per_week": 2.5555555555555554,
+       "max_dd_pct": 4.637036186388684
+      },
+      "trade_level_hold_sum_usd": 4065.8305291783236,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.572043399237577,
+       "net_usd": 492.2352494083352,
+       "trades": 45,
+       "orders_per_week": 1.6666666666666667,
+       "max_dd_pct": 16.001351522727898,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_A": {
+      "trades": 100,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 76,
+       "TP": 19,
+       "FORCED_FLAT": 2,
+       "REVERSAL": 3
+      },
+      "agent_closes": 79,
+      "early_close_share": 0.79,
+      "classes": {
+       "SAVED": 40,
+       "CUT_WINNER": 36,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.5063291139240507,
+       "CUT_WINNER": 0.45569620253164556,
+       "NEUTRAL": 0.0379746835443038
+      },
+      "early_close_value_usd": 2273.9684051516406,
+      "early_close_value_usd_ci95": [
+       -1819.0550709784911,
+       6276.827182898867
+      ],
+      "early_close_value_sigma": 11.590969679472222,
+      "early_close_value_sigma_ci95": [
+       -7.782445064163075,
+       30.54538929611481
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 26,
+       "SL": 18,
+       "FORCED_FLAT": 35
+      },
+      "early_close_value_usd_long": 2470.281970185701,
+      "early_close_value_usd_long_ci95": [
+       -231.0653294629548,
+       5115.5858336802185
+      ],
+      "agent_closes_long": 44,
+      "early_close_value_usd_short": -196.3135650340591,
+      "early_close_value_usd_short_ci95": [
+       -2798.148100512601,
+       2463.5128092574187
+      ],
+      "agent_closes_short": 35,
+      "closer": {
+       "positioned_observable_bars": 606,
+       "sl_first_rate": 0.367986798679868,
+       "close_better_rate": 0.38943894389438943,
+       "fired_rate": 0.13036303630363036,
+       "precision_sl_first": 0.5316455696202531,
+       "recall_sl_first": 0.18834080717488788,
+       "auc_sl_first": 0.5861209006076643,
+       "auc_close_better": 0.5638112688960146
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 54,
+        "net_usd": 636.1691935972248,
+        "sharpe_daily_sqrt365": 1.22951784524772,
+        "positioned_bar_share": 0.1059967585089141
+       },
+       "short": {
+        "entries": 46,
+        "net_usd": -328.15929058375434,
+        "sharpe_daily_sqrt365": -0.5316195112078883,
+        "positioned_bar_share": 0.10145867098865478
+       }
+      },
+      "actual": {
+       "sharpe": 0.47551401404939375,
+       "net_usd": 308.00990301347156,
+       "trades": 100,
+       "orders_per_week": 3.7037037037037037,
+       "max_dd_pct": 8.784322642155459
+      },
+      "trade_level_hold_sum_usd": -1965.9585021381702,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.5142965255676444,
+       "net_usd": -1902.2029827627484,
+       "trades": 59,
+       "orders_per_week": 2.185185185185185,
+       "max_dd_pct": 29.38570886882336,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.12,
+      "members": [
+       "prob",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.41375777627028126
+     },
+     "primary": true,
+     "INNER_A": {
+      "trades": 90,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 68,
+       "TP": 19,
+       "REVERSAL": 3
+      },
+      "agent_closes": 71,
+      "early_close_share": 0.7888888888888889,
+      "classes": {
+       "SAVED": 29,
+       "CUT_WINNER": 39,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.4084507042253521,
+       "CUT_WINNER": 0.5492957746478874,
+       "NEUTRAL": 0.04225352112676056
+      },
+      "early_close_value_usd": -370.42111134530177,
+      "early_close_value_usd_ci95": [
+       -4051.8380902471545,
+       3401.791234080957
+      ],
+      "early_close_value_sigma": -0.032693103872710516,
+      "early_close_value_sigma_ci95": [
+       -17.873901021949596,
+       17.834337171701687
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 29,
+       "SL": 16,
+       "FORCED_FLAT": 26
+      },
+      "early_close_value_usd_long": 199.8984826286344,
+      "early_close_value_usd_long_ci95": [
+       -2341.2765110245323,
+       2645.6810984634126
+      ],
+      "agent_closes_long": 36,
+      "early_close_value_usd_short": -570.319593973936,
+      "early_close_value_usd_short_ci95": [
+       -3337.3227047692726,
+       2266.487332837918
+      ],
+      "agent_closes_short": 35,
+      "closer": {
+       "positioned_observable_bars": 434,
+       "sl_first_rate": 0.1912442396313364,
+       "close_better_rate": 0.1935483870967742,
+       "fired_rate": 0.16359447004608296,
+       "precision_sl_first": 0.43661971830985913,
+       "recall_sl_first": 0.37349397590361444,
+       "auc_sl_first": 0.7043558850787767,
+       "auc_close_better": 0.7133673469387755
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 43,
+        "net_usd": 490.67273304088076,
+        "sharpe_daily_sqrt365": 1.1630681579223376,
+        "positioned_bar_share": 0.06871961102106969
+       },
+       "short": {
+        "entries": 47,
+        "net_usd": 157.36331324453732,
+        "sharpe_daily_sqrt365": 0.24320533252762366,
+        "positioned_bar_share": 0.0813614262560778
+       }
+      },
+      "actual": {
+       "sharpe": 0.9564428939863316,
+       "net_usd": 648.0360462854187,
+       "trades": 90,
+       "orders_per_week": 3.3333333333333335,
+       "max_dd_pct": 6.858573000599343
+      },
+      "trade_level_hold_sum_usd": 1018.4571576307198,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.1748609532572618,
+       "net_usd": -355.5835459537884,
+       "trades": 59,
+       "orders_per_week": 2.185185185185185,
+       "max_dd_pct": 25.50493204588703,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_A": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021"
+   ]
+  },
+  "WF_wf2022_both_hold": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/WF_wf2022_both_hold"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "wf2022",
+    "train": [
+     "2020-01-01",
+     "2022-01-01"
+    ],
+    "validation": [
+     "2022-01-01",
+     "2023-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_B"
+   ],
+   "recipe": {
+    "identity": "recipe_54b3f7a63771df9a",
+    "sha256": "2edf5c7306ba5a55a1cbce0413e0c1de2edf296cef51cee04d3758b65cd81df5"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_B": {
+      "trades": 173,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 107,
+       "SL": 23,
+       "TP": 22,
+       "REVERSAL": 12,
+       "FORCED_FLAT": 9
+      },
+      "agent_closes": 119,
+      "early_close_share": 0.6878612716763006,
+      "classes": {
+       "SAVED": 62,
+       "CUT_WINNER": 55,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.5210084033613446,
+       "CUT_WINNER": 0.46218487394957986,
+       "NEUTRAL": 0.01680672268907563
+      },
+      "early_close_value_usd": -3534.9266594702244,
+      "early_close_value_usd_ci95": [
+       -8653.76602737689,
+       1837.9952674974554
+      ],
+      "early_close_value_sigma": -8.977108333316657,
+      "early_close_value_sigma_ci95": [
+       -25.47857286639327,
+       7.823952271577085
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 43,
+       "SL": 56,
+       "FORCED_FLAT": 20
+      },
+      "early_close_value_usd_long": -963.1364673628476,
+      "early_close_value_usd_long_ci95": [
+       -5425.138661340044,
+       3762.9988489904717
+      ],
+      "agent_closes_long": 71,
+      "early_close_value_usd_short": -2571.790192107376,
+      "early_close_value_usd_short_ci95": [
+       -5734.689148434093,
+       879.1530194605929
+      ],
+      "agent_closes_short": 48,
+      "closer": {
+       "positioned_observable_bars": 805,
+       "sl_first_rate": 0.4484472049689441,
+       "close_better_rate": 0.4422360248447205,
+       "fired_rate": 0.14782608695652175,
+       "precision_sl_first": 0.5294117647058824,
+       "recall_sl_first": 0.1745152354570637,
+       "auc_sl_first": 0.6004030346135609,
+       "auc_close_better": 0.5883111033257425
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 98,
+        "net_usd": 2108.403006172465,
+        "sharpe_daily_sqrt365": 1.275540938988992,
+        "positioned_bar_share": 0.08154093097913323
+       },
+       "short": {
+        "entries": 75,
+        "net_usd": -238.88062759107424,
+        "sharpe_daily_sqrt365": -0.1677924603131948,
+        "positioned_bar_share": 0.05666131621187801
+       }
+      },
+      "actual": {
+       "sharpe": 0.9169564199515048,
+       "net_usd": 1869.5223785813905,
+       "trades": 173,
+       "orders_per_week": 3.2641509433962264,
+       "max_dd_pct": 23.761862924031544
+      },
+      "trade_level_hold_sum_usd": 5404.449038051615,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.8923888772610465,
+       "net_usd": 2590.0724201111516,
+       "trades": 137,
+       "orders_per_week": 2.5849056603773586,
+       "max_dd_pct": 22.52512209356805,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_B": {
+      "trades": 146,
+      "exits_by_reason": {
+       "SL": 26,
+       "AGENT_CLOSE": 82,
+       "TP": 16,
+       "REVERSAL": 8,
+       "FORCED_FLAT": 14
+      },
+      "agent_closes": 90,
+      "early_close_share": 0.6164383561643836,
+      "classes": {
+       "SAVED": 49,
+       "CUT_WINNER": 40,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.5444444444444444,
+       "CUT_WINNER": 0.4444444444444444,
+       "NEUTRAL": 0.011111111111111112
+      },
+      "early_close_value_usd": 69.60274460922064,
+      "early_close_value_usd_ci95": [
+       -4333.662262269994,
+       4628.9933452203895
+      ],
+      "early_close_value_sigma": -0.7197315656560551,
+      "early_close_value_sigma_ci95": [
+       -14.655685970603681,
+       13.62558743913922
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 32,
+       "SL": 46,
+       "FORCED_FLAT": 12
+      },
+      "early_close_value_usd_long": -1323.8397265757624,
+      "early_close_value_usd_long_ci95": [
+       -4728.787788273268,
+       2143.1241192566367
+      ],
+      "agent_closes_long": 49,
+      "early_close_value_usd_short": 1393.4424711849833,
+      "early_close_value_usd_short_ci95": [
+       -1651.9517996485217,
+       4540.952475793389
+      ],
+      "agent_closes_short": 41,
+      "closer": {
+       "positioned_observable_bars": 693,
+       "sl_first_rate": 0.39826839826839827,
+       "close_better_rate": 0.417027417027417,
+       "fired_rate": 0.12987012987012986,
+       "precision_sl_first": 0.5222222222222223,
+       "recall_sl_first": 0.17028985507246377,
+       "auc_sl_first": 0.5997376012233692,
+       "auc_close_better": 0.5868906094761726
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 79,
+        "net_usd": -1705.1601810728098,
+        "sharpe_daily_sqrt365": -1.2158039989375409,
+        "positioned_bar_share": 0.05425361155698234
+       },
+       "short": {
+        "entries": 67,
+        "net_usd": 1579.9835663704173,
+        "sharpe_daily_sqrt365": 1.038080244880502,
+        "positioned_bar_share": 0.0651685393258427
+       }
+      },
+      "actual": {
+       "sharpe": 0.03999117637797658,
+       "net_usd": -125.17661470239364,
+       "trades": 146,
+       "orders_per_week": 2.7547169811320753,
+       "max_dd_pct": 20.63934800149523
+      },
+      "trade_level_hold_sum_usd": -194.77935931161323,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.07554152637419469,
+       "net_usd": -594.0263391329499,
+       "trades": 132,
+       "orders_per_week": 2.490566037735849,
+       "max_dd_pct": 29.345361107799384,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_B": {
+      "trades": 120,
+      "exits_by_reason": {
+       "SL": 46,
+       "FORCED_FLAT": 12,
+       "TP": 24,
+       "AGENT_CLOSE": 37,
+       "REVERSAL": 1
+      },
+      "agent_closes": 38,
+      "early_close_share": 0.31666666666666665,
+      "classes": {
+       "SAVED": 18,
+       "CUT_WINNER": 20,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.47368421052631576,
+       "CUT_WINNER": 0.5263157894736842,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": -783.591133791047,
+      "early_close_value_usd_ci95": [
+       -3321.8947485081994,
+       1837.2855251108563
+      ],
+      "early_close_value_sigma": -3.634005341840481,
+      "early_close_value_sigma_ci95": [
+       -13.039043684825698,
+       6.109066575951319
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 17,
+       "SL": 17,
+       "FORCED_FLAT": 4
+      },
+      "early_close_value_usd_long": 0.0,
+      "early_close_value_usd_long_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_long": 0,
+      "early_close_value_usd_short": -783.591133791047,
+      "early_close_value_usd_short_ci95": [
+       -3321.8947485081994,
+       1837.2855251108563
+      ],
+      "agent_closes_short": 38,
+      "closer": {
+       "positioned_observable_bars": 1405,
+       "sl_first_rate": 0.4740213523131673,
+       "close_better_rate": 0.5516014234875445,
+       "fired_rate": 0.02704626334519573,
+       "precision_sl_first": 0.47368421052631576,
+       "recall_sl_first": 0.02702702702702703,
+       "auc_sl_first": 0.4744775221771162,
+       "auc_close_better": 0.48543164362519203
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 59,
+        "net_usd": -1411.7748568416105,
+        "sharpe_daily_sqrt365": -0.712030959976036,
+        "positioned_bar_share": 0.19213483146067414
+       },
+       "short": {
+        "entries": 61,
+        "net_usd": 242.41979858540174,
+        "sharpe_daily_sqrt365": 0.2007911646072571,
+        "positioned_bar_share": 0.05377207062600321
+       }
+      },
+      "actual": {
+       "sharpe": -0.31405948629644365,
+       "net_usd": -1169.3550582562075,
+       "trades": 120,
+       "orders_per_week": 2.2641509433962264,
+       "max_dd_pct": 23.034152017966246
+      },
+      "trade_level_hold_sum_usd": -385.76392446516184,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.1736882133140622,
+       "net_usd": 60.88363712186947,
+       "trades": 116,
+       "orders_per_week": 2.188679245283019,
+       "max_dd_pct": 26.942733318139528,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261022": {
+     "INNER_B": {
+      "trades": 112,
+      "exits_by_reason": {
+       "SL": 59,
+       "TP": 38,
+       "FORCED_FLAT": 15
+      },
+      "agent_closes": 0,
+      "early_close_share": 0.0,
+      "classes": {
+       "SAVED": 0,
+       "CUT_WINNER": 0,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": NaN,
+       "CUT_WINNER": NaN,
+       "NEUTRAL": NaN
+      },
+      "early_close_value_usd": 0.0,
+      "early_close_value_usd_ci95": [
+       NaN,
+       NaN
+      ],
+      "early_close_value_sigma": 0.0,
+      "early_close_value_sigma_ci95": [
+       NaN,
+       NaN
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 0,
+       "SL": 0,
+       "FORCED_FLAT": 0
+      },
+      "early_close_value_usd_long": 0.0,
+      "early_close_value_usd_long_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_long": 0,
+      "early_close_value_usd_short": 0.0,
+      "early_close_value_usd_short_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_short": 0,
+      "closer": {
+       "positioned_observable_bars": 1884,
+       "sl_first_rate": 0.5313163481953291,
+       "close_better_rate": 0.5509554140127388,
+       "fired_rate": 0.0,
+       "precision_sl_first": NaN,
+       "recall_sl_first": 0.0,
+       "auc_sl_first": 0.5484905807669115,
+       "auc_close_better": 0.5378261978618638
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 60,
+        "net_usd": -801.3990524891406,
+        "sharpe_daily_sqrt365": -0.4586085751240733,
+        "positioned_bar_share": 0.16147672552166933
+       },
+       "short": {
+        "entries": 52,
+        "net_usd": -1190.4501036582374,
+        "sharpe_daily_sqrt365": -0.6517786494662672,
+        "positioned_bar_share": 0.1635634028892456
+       }
+      },
+      "actual": {
+       "sharpe": -0.6481108072189952,
+       "net_usd": -1991.8491561473784,
+       "trades": 112,
+       "orders_per_week": 2.1132075471698113,
+       "max_dd_pct": 37.006190831725064
+      },
+      "trade_level_hold_sum_usd": -1991.849156147378,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.6481108072189952,
+       "net_usd": -1991.8491561473784,
+       "trades": 112,
+       "orders_per_week": 2.1132075471698113,
+       "max_dd_pct": 37.006190831725064,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": [
+       "DEGENERATE_NO_EARLY_CLOSE"
+      ]
+     }
+    },
+    "20261023": {
+     "INNER_B": {
+      "trades": 153,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 85,
+       "SL": 26,
+       "TP": 25,
+       "REVERSAL": 8,
+       "FORCED_FLAT": 9
+      },
+      "agent_closes": 93,
+      "early_close_share": 0.6078431372549019,
+      "classes": {
+       "SAVED": 58,
+       "CUT_WINNER": 35,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.6236559139784946,
+       "CUT_WINNER": 0.3763440860215054,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 1275.2984534446778,
+      "early_close_value_usd_ci95": [
+       -2853.326564744929,
+       5287.326535899329
+      ],
+      "early_close_value_sigma": 7.013735067056999,
+      "early_close_value_sigma_ci95": [
+       -8.181933069272944,
+       21.92145192718626
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 23,
+       "SL": 54,
+       "FORCED_FLAT": 16
+      },
+      "early_close_value_usd_long": 2176.321234710425,
+      "early_close_value_usd_long_ci95": [
+       -796.3196693194432,
+       4790.117003641644
+      ],
+      "agent_closes_long": 43,
+      "early_close_value_usd_short": -901.0227812657473,
+      "early_close_value_usd_short_ci95": [
+       -3963.9047067344204,
+       2162.007393389917
+      ],
+      "agent_closes_short": 50,
+      "closer": {
+       "positioned_observable_bars": 1295,
+       "sl_first_rate": 0.5034749034749034,
+       "close_better_rate": 0.5613899613899614,
+       "fired_rate": 0.07181467181467181,
+       "precision_sl_first": 0.6129032258064516,
+       "recall_sl_first": 0.08742331288343558,
+       "auc_sl_first": 0.5826956654485779,
+       "auc_close_better": 0.5679282019489703
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 80,
+        "net_usd": -80.8887548343159,
+        "sharpe_daily_sqrt365": -0.04776284529954741,
+        "positioned_bar_share": 0.13065810593900481
+       },
+       "short": {
+        "entries": 73,
+        "net_usd": -1387.7922320707623,
+        "sharpe_daily_sqrt365": -1.1245503788471283,
+        "positioned_bar_share": 0.09293739967897272
+       }
+      },
+      "actual": {
+       "sharpe": -0.5521969075263901,
+       "net_usd": -1468.6809869050776,
+       "trades": 153,
+       "orders_per_week": 2.8867924528301887,
+       "max_dd_pct": 39.17225946232896
+      },
+      "trade_level_hold_sum_usd": -2743.979440349756,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.6330610353141641,
+       "net_usd": -2314.002276997573,
+       "trades": 139,
+       "orders_per_week": 2.6226415094339623,
+       "max_dd_pct": 33.288801647741785,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.12,
+      "members": [
+       "prob",
+       "prob",
+       "prob",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.5834110757936019
+     },
+     "primary": true,
+     "INNER_B": {
+      "trades": 124,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 62,
+       "SL": 23,
+       "TP": 28,
+       "FORCED_FLAT": 9,
+       "REVERSAL": 2
+      },
+      "agent_closes": 64,
+      "early_close_share": 0.5161290322580645,
+      "classes": {
+       "SAVED": 36,
+       "CUT_WINNER": 28,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.5625,
+       "CUT_WINNER": 0.4375,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": -904.5538062418048,
+      "early_close_value_usd_ci95": [
+       -5079.802520702967,
+       3343.8035313011483
+      ],
+      "early_close_value_sigma": -2.0523157940253,
+      "early_close_value_sigma_ci95": [
+       -14.917777199613589,
+       11.152992611772298
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 23,
+       "SL": 35,
+       "FORCED_FLAT": 6
+      },
+      "early_close_value_usd_long": -741.5386137886294,
+      "early_close_value_usd_long_ci95": [
+       -3559.421472111905,
+       1972.4162683437564
+      ],
+      "agent_closes_long": 35,
+      "early_close_value_usd_short": -163.01519245317542,
+      "early_close_value_usd_short_ci95": [
+       -3393.08988134949,
+       3072.430799653796
+      ],
+      "agent_closes_short": 29,
+      "closer": {
+       "positioned_observable_bars": 956,
+       "sl_first_rate": 0.36715481171548114,
+       "close_better_rate": 0.45397489539748953,
+       "fired_rate": 0.06694560669456066,
+       "precision_sl_first": 0.5625,
+       "recall_sl_first": 0.10256410256410256,
+       "auc_sl_first": 0.6424995879541334,
+       "auc_close_better": 0.6171672228401928
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 75,
+        "net_usd": -1123.307759192383,
+        "sharpe_daily_sqrt365": -0.5566129428131169,
+        "positioned_bar_share": 0.12006420545746388
+       },
+       "short": {
+        "entries": 49,
+        "net_usd": 2272.6083971131425,
+        "sharpe_daily_sqrt365": 1.7224514893922722,
+        "positioned_bar_share": 0.05040128410914928
+       }
+      },
+      "actual": {
+       "sharpe": 0.5977056708486199,
+       "net_usd": 1149.3006379207582,
+       "trades": 124,
+       "orders_per_week": 2.339622641509434,
+       "max_dd_pct": 29.122731888749865
+      },
+      "trade_level_hold_sum_usd": 2053.8544441625645,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.6821276362538754,
+       "net_usd": 1698.97607352253,
+       "trades": 112,
+       "orders_per_week": 2.1132075471698113,
+       "max_dd_pct": 31.931148971084504,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261022/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261023/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021",
+    "20261022",
+    "20261023"
+   ]
+  },
+  "WF_wf2022_both_hold_shorter": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/WF_wf2022_both_hold_shorter"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "wf2022",
+    "train": [
+     "2020-01-01",
+     "2022-01-01"
+    ],
+    "validation": [
+     "2022-01-01",
+     "2023-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_B"
+   ],
+   "recipe": {
+    "identity": "recipe_54b3f7a63771df9a",
+    "sha256": "2edf5c7306ba5a55a1cbce0413e0c1de2edf296cef51cee04d3758b65cd81df5"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_B": {
+      "trades": 189,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 119,
+       "FORCED_FLAT": 16,
+       "SL": 18,
+       "TP": 21,
+       "REVERSAL": 15
+      },
+      "agent_closes": 134,
+      "early_close_share": 0.708994708994709,
+      "classes": {
+       "SAVED": 76,
+       "CUT_WINNER": 53,
+       "NEUTRAL": 5
+      },
+      "class_shares": {
+       "SAVED": 0.5671641791044776,
+       "CUT_WINNER": 0.39552238805970147,
+       "NEUTRAL": 0.03731343283582089
+      },
+      "early_close_value_usd": -716.5871574439926,
+      "early_close_value_usd_ci95": [
+       -5415.84031365865,
+       3955.221845560047
+      ],
+      "early_close_value_sigma": -0.7766049523969167,
+      "early_close_value_sigma_ci95": [
+       -17.982610257011345,
+       16.726377553540246
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 41,
+       "SL": 70,
+       "FORCED_FLAT": 23
+      },
+      "early_close_value_usd_long": -1398.692898596375,
+      "early_close_value_usd_long_ci95": [
+       -5071.812777687046,
+       2054.0652217181732
+      ],
+      "agent_closes_long": 88,
+      "early_close_value_usd_short": 682.1057411523822,
+      "early_close_value_usd_short_ci95": [
+       -2344.700672441774,
+       3596.8926704992255
+      ],
+      "agent_closes_short": 46,
+      "closer": {
+       "positioned_observable_bars": 850,
+       "sl_first_rate": 0.5129411764705882,
+       "close_better_rate": 0.5011764705882353,
+       "fired_rate": 0.15764705882352942,
+       "precision_sl_first": 0.582089552238806,
+       "recall_sl_first": 0.17889908256880735,
+       "auc_sl_first": 0.5474006116207951,
+       "auc_close_better": 0.5306880591726459
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 117,
+        "net_usd": -750.2647713449514,
+        "sharpe_daily_sqrt365": -0.5799157655573387,
+        "positioned_bar_share": 0.085553772070626
+       },
+       "short": {
+        "entries": 72,
+        "net_usd": 651.2316685083367,
+        "sharpe_daily_sqrt365": 0.5095960525661224,
+        "positioned_bar_share": 0.06243980738362761
+       }
+      },
+      "actual": {
+       "sharpe": 0.05572494050362286,
+       "net_usd": -99.03310283661449,
+       "trades": 189,
+       "orders_per_week": 3.5660377358490565,
+       "max_dd_pct": 25.26811160108518
+      },
+      "trade_level_hold_sum_usd": 617.554054607378,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.42244824358402033,
+       "net_usd": -1702.0533987938925,
+       "trades": 156,
+       "orders_per_week": 2.943396226415094,
+       "max_dd_pct": 38.42775779494587,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_B": {
+      "trades": 176,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 117,
+       "TP": 25,
+       "SL": 17,
+       "FORCED_FLAT": 10,
+       "REVERSAL": 7
+      },
+      "agent_closes": 124,
+      "early_close_share": 0.7045454545454546,
+      "classes": {
+       "SAVED": 69,
+       "CUT_WINNER": 51,
+       "NEUTRAL": 4
+      },
+      "class_shares": {
+       "SAVED": 0.5564516129032258,
+       "CUT_WINNER": 0.4112903225806452,
+       "NEUTRAL": 0.03225806451612903
+      },
+      "early_close_value_usd": -634.6559464398621,
+      "early_close_value_usd_ci95": [
+       -5899.059573739448,
+       4810.060148944404
+      ],
+      "early_close_value_sigma": 1.9858902821750715,
+      "early_close_value_sigma_ci95": [
+       -12.507282353894722,
+       16.78337909579945
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 35,
+       "SL": 64,
+       "FORCED_FLAT": 25
+      },
+      "early_close_value_usd_long": -164.9618015027059,
+      "early_close_value_usd_long_ci95": [
+       -4484.861289280747,
+       3864.586119051487
+      ],
+      "agent_closes_long": 67,
+      "early_close_value_usd_short": -469.69414493715675,
+      "early_close_value_usd_short_ci95": [
+       -4307.970100317835,
+       3481.8393886203594
+      ],
+      "agent_closes_short": 57,
+      "closer": {
+       "positioned_observable_bars": 825,
+       "sl_first_rate": 0.44242424242424244,
+       "close_better_rate": 0.463030303030303,
+       "fired_rate": 0.1503030303030303,
+       "precision_sl_first": 0.5887096774193549,
+       "recall_sl_first": 0.2,
+       "auc_sl_first": 0.6478082191780822,
+       "auc_close_better": 0.6072766596149528
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 94,
+        "net_usd": -361.7797148395953,
+        "sharpe_daily_sqrt365": -0.21588576812738072,
+        "positioned_bar_share": 0.085553772070626
+       },
+       "short": {
+        "entries": 82,
+        "net_usd": 1260.1177976907911,
+        "sharpe_daily_sqrt365": 0.8025709308198143,
+        "positioned_bar_share": 0.0579454253611557
+       }
+      },
+      "actual": {
+       "sharpe": 0.525709249675911,
+       "net_usd": 898.3380828511981,
+       "trades": 176,
+       "orders_per_week": 3.3207547169811322,
+       "max_dd_pct": 18.320967138908113
+      },
+      "trade_level_hold_sum_usd": 1532.9940292910578,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.7204892205250557,
+       "net_usd": 1824.6175801188801,
+       "trades": 149,
+       "orders_per_week": 2.811320754716981,
+       "max_dd_pct": 25.172014936220737,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_B": {
+      "trades": 202,
+      "exits_by_reason": {
+       "TP": 37,
+       "AGENT_CLOSE": 108,
+       "SL": 32,
+       "REVERSAL": 11,
+       "FORCED_FLAT": 14
+      },
+      "agent_closes": 119,
+      "early_close_share": 0.5891089108910891,
+      "classes": {
+       "SAVED": 64,
+       "CUT_WINNER": 52,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.5378151260504201,
+       "CUT_WINNER": 0.4369747899159664,
+       "NEUTRAL": 0.025210084033613446
+      },
+      "early_close_value_usd": 572.5633407323627,
+      "early_close_value_usd_ci95": [
+       -4789.101653932182,
+       6123.7851238689045
+      ],
+      "early_close_value_sigma": 0.3970190877858407,
+      "early_close_value_sigma_ci95": [
+       -14.630949338991794,
+       15.498536902200708
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 37,
+       "SL": 51,
+       "FORCED_FLAT": 31
+      },
+      "early_close_value_usd_long": 763.8488697468396,
+      "early_close_value_usd_long_ci95": [
+       -4443.247156879756,
+       5744.9247072452945
+      ],
+      "agent_closes_long": 108,
+      "early_close_value_usd_short": -191.28552901447767,
+      "early_close_value_usd_short_ci95": [
+       -1820.320023367894,
+       1730.3409316713214
+      ],
+      "agent_closes_short": 11,
+      "closer": {
+       "positioned_observable_bars": 1226,
+       "sl_first_rate": 0.5220228384991843,
+       "close_better_rate": 0.5032626427406199,
+       "fired_rate": 0.09706362153344208,
+       "precision_sl_first": 0.5378151260504201,
+       "recall_sl_first": 0.1,
+       "auc_sl_first": 0.4932140571672355,
+       "auc_close_better": 0.4969567774575319
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 131,
+        "net_usd": 1940.0221689541615,
+        "sharpe_daily_sqrt365": 1.208794322290706,
+        "positioned_bar_share": 0.09341894060995184
+       },
+       "short": {
+        "entries": 71,
+        "net_usd": -129.66460851296907,
+        "sharpe_daily_sqrt365": -0.05684760764919491,
+        "positioned_bar_share": 0.1245585874799358
+       }
+      },
+      "actual": {
+       "sharpe": 0.804018888212736,
+       "net_usd": 1810.3575604411908,
+       "trades": 202,
+       "orders_per_week": 3.811320754716981,
+       "max_dd_pct": 24.46976413364123
+      },
+      "trade_level_hold_sum_usd": 1237.79421970883,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.33154173753468064,
+       "net_usd": 564.0352110277327,
+       "trades": 169,
+       "orders_per_week": 3.188679245283019,
+       "max_dd_pct": 20.496627852076646,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261022": {
+     "INNER_B": {
+      "trades": 190,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 103,
+       "SL": 39,
+       "TP": 24,
+       "REVERSAL": 12,
+       "FORCED_FLAT": 12
+      },
+      "agent_closes": 115,
+      "early_close_share": 0.6052631578947368,
+      "classes": {
+       "SAVED": 56,
+       "CUT_WINNER": 56,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.48695652173913045,
+       "CUT_WINNER": 0.48695652173913045,
+       "NEUTRAL": 0.02608695652173913
+      },
+      "early_close_value_usd": -3485.7587929119813,
+      "early_close_value_usd_ci95": [
+       -7705.312494432298,
+       684.7215462097387
+      ],
+      "early_close_value_sigma": -13.760860087928522,
+      "early_close_value_sigma_ci95": [
+       -30.023091443665415,
+       2.340413749149293
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 45,
+       "SL": 50,
+       "FORCED_FLAT": 20
+      },
+      "early_close_value_usd_long": -1667.4975472504498,
+      "early_close_value_usd_long_ci95": [
+       -4253.492468540553,
+       854.890481484331
+      ],
+      "agent_closes_long": 53,
+      "early_close_value_usd_short": -1818.2612456615311,
+      "early_close_value_usd_short_ci95": [
+       -5236.503246178152,
+       1497.3389723390133
+      ],
+      "agent_closes_short": 62,
+      "closer": {
+       "positioned_observable_bars": 1295,
+       "sl_first_rate": 0.5590733590733591,
+       "close_better_rate": 0.5613899613899614,
+       "fired_rate": 0.0888030888030888,
+       "precision_sl_first": 0.5391304347826087,
+       "recall_sl_first": 0.0856353591160221,
+       "auc_sl_first": 0.4558519027392091,
+       "auc_close_better": 0.44099569909138464
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 97,
+        "net_usd": -1322.3236356887394,
+        "sharpe_daily_sqrt365": -0.8931769543160495,
+        "positioned_bar_share": 0.13980738362760833
+       },
+       "short": {
+        "entries": 93,
+        "net_usd": -1966.3705100992847,
+        "sharpe_daily_sqrt365": -1.5988695638355697,
+        "positioned_bar_share": 0.08282504012841091
+       }
+      },
+      "actual": {
+       "sharpe": -1.4735220360082322,
+       "net_usd": -3288.6941457880257,
+       "trades": 190,
+       "orders_per_week": 3.5849056603773586,
+       "max_dd_pct": 43.13024495552711
+      },
+      "trade_level_hold_sum_usd": 197.06464712395746,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.12280146150240343,
+       "net_usd": -177.40830436974647,
+       "trades": 159,
+       "orders_per_week": 3.0,
+       "max_dd_pct": 27.227553014898497,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261023": {
+     "INNER_B": {
+      "trades": 158,
+      "exits_by_reason": {
+       "TP": 36,
+       "AGENT_CLOSE": 52,
+       "SL": 47,
+       "FORCED_FLAT": 23
+      },
+      "agent_closes": 52,
+      "early_close_share": 0.3291139240506329,
+      "classes": {
+       "SAVED": 25,
+       "CUT_WINNER": 27,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.4807692307692308,
+       "CUT_WINNER": 0.5192307692307693,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": -2020.6568384335794,
+      "early_close_value_usd_ci95": [
+       -5818.222022553289,
+       1965.8577697194962
+      ],
+      "early_close_value_sigma": -4.730441355610776,
+      "early_close_value_sigma_ci95": [
+       -15.70775855272828,
+       6.8086400545710575
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 22,
+       "SL": 22,
+       "FORCED_FLAT": 8
+      },
+      "early_close_value_usd_long": -2020.6568384335794,
+      "early_close_value_usd_long_ci95": [
+       -5818.222022553289,
+       1965.8577697194962
+      ],
+      "agent_closes_long": 52,
+      "early_close_value_usd_short": 0.0,
+      "early_close_value_usd_short_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_short": 0,
+      "closer": {
+       "positioned_observable_bars": 1437,
+       "sl_first_rate": 0.46903270702853167,
+       "close_better_rate": 0.5226165622825331,
+       "fired_rate": 0.03618649965205289,
+       "precision_sl_first": 0.46153846153846156,
+       "recall_sl_first": 0.03560830860534125,
+       "auc_sl_first": 0.4676264238851014,
+       "auc_close_better": 0.39701971715069895
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 85,
+        "net_usd": -1556.4450081375373,
+        "sharpe_daily_sqrt365": -0.9361013422209353,
+        "positioned_bar_share": 0.10128410914927768
+       },
+       "short": {
+        "entries": 73,
+        "net_usd": 796.3525828798355,
+        "sharpe_daily_sqrt365": 0.34030353414504433,
+        "positioned_bar_share": 0.1465489566613162
+       }
+      },
+      "actual": {
+       "sharpe": -0.19253186188985713,
+       "net_usd": -760.0924252577024,
+       "trades": 158,
+       "orders_per_week": 2.981132075471698,
+       "max_dd_pct": 34.82269082221718
+      },
+      "trade_level_hold_sum_usd": 1260.5644131758777,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.0647440522306149,
+       "net_usd": -222.7020698238848,
+       "trades": 148,
+       "orders_per_week": 2.792452830188679,
+       "max_dd_pct": 30.116538883533373,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.15,
+      "members": [
+       "prob",
+       "prob",
+       "expected_gain",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.5707184411840083
+     },
+     "primary": true,
+     "INNER_B": {
+      "trades": 147,
+      "exits_by_reason": {
+       "SL": 27,
+       "AGENT_CLOSE": 69,
+       "TP": 35,
+       "FORCED_FLAT": 13,
+       "REVERSAL": 3
+      },
+      "agent_closes": 72,
+      "early_close_share": 0.4897959183673469,
+      "classes": {
+       "SAVED": 36,
+       "CUT_WINNER": 34,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.5,
+       "CUT_WINNER": 0.4722222222222222,
+       "NEUTRAL": 0.027777777777777776
+      },
+      "early_close_value_usd": -2782.699941517275,
+      "early_close_value_usd_ci95": [
+       -7081.055183468,
+       1434.8669805281565
+      ],
+      "early_close_value_sigma": -7.045316351078331,
+      "early_close_value_sigma_ci95": [
+       -19.493303245720334,
+       5.375528253798986
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 25,
+       "SL": 33,
+       "FORCED_FLAT": 14
+      },
+      "early_close_value_usd_long": -901.5797068373547,
+      "early_close_value_usd_long_ci95": [
+       -3680.8194704443526,
+       1835.847059355616
+      ],
+      "agent_closes_long": 46,
+      "early_close_value_usd_short": -1881.12023467992,
+      "early_close_value_usd_short_ci95": [
+       -5047.580799025071,
+       1280.518821483363
+      ],
+      "agent_closes_short": 26,
+      "closer": {
+       "positioned_observable_bars": 1016,
+       "sl_first_rate": 0.4812992125984252,
+       "close_better_rate": 0.48326771653543305,
+       "fired_rate": 0.07086614173228346,
+       "precision_sl_first": 0.5416666666666666,
+       "recall_sl_first": 0.07975460122699386,
+       "auc_sl_first": 0.5099086933407838,
+       "auc_close_better": 0.4954669770148385
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 89,
+        "net_usd": 613.7327996507754,
+        "sharpe_daily_sqrt365": 0.32263254643331235,
+        "positioned_bar_share": 0.11396468699839486
+       },
+       "short": {
+        "entries": 58,
+        "net_usd": 442.45233437544186,
+        "sharpe_daily_sqrt365": 0.29555798948789685,
+        "positioned_bar_share": 0.060674157303370786
+       }
+      },
+      "actual": {
+       "sharpe": 0.5481560855321989,
+       "net_usd": 1056.1851340262165,
+       "trades": 147,
+       "orders_per_week": 2.7735849056603774,
+       "max_dd_pct": 13.523929357519531
+      },
+      "trade_level_hold_sum_usd": 3838.8850755434923,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.7980511251674157,
+       "net_usd": 2118.079767492478,
+       "trades": 133,
+       "orders_per_week": 2.509433962264151,
+       "max_dd_pct": 25.003845750243077,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261022/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261023/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021",
+    "20261022",
+    "20261023"
+   ]
+  },
+  "WF_wf2022_zz_hold": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/WF_wf2022_zz_hold"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "wf2022",
+    "train": [
+     "2020-01-01",
+     "2022-01-01"
+    ],
+    "validation": [
+     "2022-01-01",
+     "2023-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_B"
+   ],
+   "recipe": {
+    "identity": "recipe_54b3f7a63771df9a",
+    "sha256": "2edf5c7306ba5a55a1cbce0413e0c1de2edf296cef51cee04d3758b65cd81df5"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_B": {
+      "trades": 155,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 100,
+       "SL": 4,
+       "TP": 28,
+       "FORCED_FLAT": 16,
+       "REVERSAL": 7
+      },
+      "agent_closes": 107,
+      "early_close_share": 0.6903225806451613,
+      "classes": {
+       "SAVED": 42,
+       "CUT_WINNER": 63,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.3925233644859813,
+       "CUT_WINNER": 0.5887850467289719,
+       "NEUTRAL": 0.018691588785046728
+      },
+      "early_close_value_usd": 32.37594284969023,
+      "early_close_value_usd_ci95": [
+       -5881.959671244814,
+       6310.043455318343
+      ],
+      "early_close_value_sigma": -0.2448988363254428,
+      "early_close_value_sigma_ci95": [
+       -21.68660570229743,
+       23.18061146106111
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 43,
+       "SL": 25,
+       "FORCED_FLAT": 39
+      },
+      "early_close_value_usd_long": -41.07669204261552,
+      "early_close_value_usd_long_ci95": [
+       -4575.377987835709,
+       4643.27790002748
+      ],
+      "agent_closes_long": 66,
+      "early_close_value_usd_short": 73.45263489230575,
+      "early_close_value_usd_short_ci95": [
+       -3678.980932183785,
+       4016.110108129151
+      ],
+      "agent_closes_short": 41,
+      "closer": {
+       "positioned_observable_bars": 1519,
+       "sl_first_rate": 0.36932192231731403,
+       "close_better_rate": 0.37524687294272546,
+       "fired_rate": 0.07044107965766952,
+       "precision_sl_first": 0.4766355140186916,
+       "recall_sl_first": 0.09090909090909091,
+       "auc_sl_first": 0.5612386917188588,
+       "auc_close_better": 0.5370066367182446
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 89,
+        "net_usd": -1011.5918390442882,
+        "sharpe_daily_sqrt365": -0.5921350867707001,
+        "positioned_bar_share": 0.15746388443017656
+       },
+       "short": {
+        "entries": 66,
+        "net_usd": 357.9477421194613,
+        "sharpe_daily_sqrt365": 0.24075935876903326,
+        "positioned_bar_share": 0.10593900481540931
+       }
+      },
+      "actual": {
+       "sharpe": -0.1184205438396261,
+       "net_usd": -653.644096924827,
+       "trades": 155,
+       "orders_per_week": 2.9245283018867925,
+       "max_dd_pct": 35.65259247833686
+      },
+      "trade_level_hold_sum_usd": -686.020039774517,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.5107634259477973,
+       "net_usd": 1266.782675524495,
+       "trades": 110,
+       "orders_per_week": 2.0754716981132075,
+       "max_dd_pct": 35.35808084951627,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_B": {
+      "trades": 177,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 142,
+       "TP": 20,
+       "FORCED_FLAT": 10,
+       "REVERSAL": 3,
+       "SL": 2
+      },
+      "agent_closes": 145,
+      "early_close_share": 0.8192090395480226,
+      "classes": {
+       "SAVED": 56,
+       "CUT_WINNER": 86,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.38620689655172413,
+       "CUT_WINNER": 0.593103448275862,
+       "NEUTRAL": 0.020689655172413793
+      },
+      "early_close_value_usd": -992.4198068209055,
+      "early_close_value_usd_ci95": [
+       -8317.447339412562,
+       6354.409055693596
+      ],
+      "early_close_value_sigma": -6.174927578773545,
+      "early_close_value_sigma_ci95": [
+       -32.93072097956127,
+       20.95783101051163
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 62,
+       "SL": 30,
+       "FORCED_FLAT": 53
+      },
+      "early_close_value_usd_long": -998.0935488557162,
+      "early_close_value_usd_long_ci95": [
+       -6301.246718553171,
+       4531.086667212968
+      ],
+      "agent_closes_long": 78,
+      "early_close_value_usd_short": 5.673742034811156,
+      "early_close_value_usd_short_ci95": [
+       -4801.388861142058,
+       5114.110315402018
+      ],
+      "agent_closes_short": 67,
+      "closer": {
+       "positioned_observable_bars": 1289,
+       "sl_first_rate": 0.41582622187742435,
+       "close_better_rate": 0.4034134988363072,
+       "fired_rate": 0.11249030256012413,
+       "precision_sl_first": 0.4413793103448276,
+       "recall_sl_first": 0.11940298507462686,
+       "auc_sl_first": 0.5373332540484826,
+       "auc_close_better": 0.5053391017305191
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 103,
+        "net_usd": -2262.2100285034417,
+        "sharpe_daily_sqrt365": -1.3408115240298595,
+        "positioned_bar_share": 0.1869983948635634
+       },
+       "short": {
+        "entries": 74,
+        "net_usd": 178.18618722594283,
+        "sharpe_daily_sqrt365": 0.21728185014522855,
+        "positioned_bar_share": 0.03739967897271268
+       }
+      },
+      "actual": {
+       "sharpe": -0.9186580847291614,
+       "net_usd": -2084.023841277498,
+       "trades": 177,
+       "orders_per_week": 3.339622641509434,
+       "max_dd_pct": 42.46240792768159
+      },
+      "trade_level_hold_sum_usd": -1091.6040344565934,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.5827221428952364,
+       "net_usd": -2783.0962952136133,
+       "trades": 106,
+       "orders_per_week": 2.0,
+       "max_dd_pct": 51.363974303382854,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_B": {
+      "trades": 128,
+      "exits_by_reason": {
+       "TP": 31,
+       "AGENT_CLOSE": 85,
+       "SL": 3,
+       "REVERSAL": 4,
+       "FORCED_FLAT": 5
+      },
+      "agent_closes": 89,
+      "early_close_share": 0.6953125,
+      "classes": {
+       "SAVED": 38,
+       "CUT_WINNER": 50,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.42696629213483145,
+       "CUT_WINNER": 0.5617977528089888,
+       "NEUTRAL": 0.011235955056179775
+      },
+      "early_close_value_usd": 2072.8170518592865,
+      "early_close_value_usd_ci95": [
+       -5723.294386763033,
+       10532.748969312079
+      ],
+      "early_close_value_sigma": 4.4258921970101195,
+      "early_close_value_sigma_ci95": [
+       -14.783015336021807,
+       25.151865608271024
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 35,
+       "SL": 17,
+       "FORCED_FLAT": 37
+      },
+      "early_close_value_usd_long": -864.6869016320717,
+      "early_close_value_usd_long_ci95": [
+       -5572.926445559187,
+       4060.620758434278
+      ],
+      "agent_closes_long": 33,
+      "early_close_value_usd_short": 2937.5039534913585,
+      "early_close_value_usd_short_ci95": [
+       -3450.718027826654,
+       9617.662704677308
+      ],
+      "agent_closes_short": 56,
+      "closer": {
+       "positioned_observable_bars": 1366,
+       "sl_first_rate": 0.2767203513909224,
+       "close_better_rate": 0.30600292825768666,
+       "fired_rate": 0.06515373352855051,
+       "precision_sl_first": 0.4606741573033708,
+       "recall_sl_first": 0.10846560846560846,
+       "auc_sl_first": 0.5754637662532399,
+       "auc_close_better": 0.5001816970504512
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 43,
+        "net_usd": 520.839741256004,
+        "sharpe_daily_sqrt365": 0.3369303550560585,
+        "positioned_bar_share": 0.08475120385232744
+       },
+       "short": {
+        "entries": 85,
+        "net_usd": 2819.464496915495,
+        "sharpe_daily_sqrt365": 1.3031256278986374,
+        "positioned_bar_share": 0.1563402889245586
+       }
+      },
+      "actual": {
+       "sharpe": 1.3308507256777649,
+       "net_usd": 3340.3042381714986,
+       "trades": 128,
+       "orders_per_week": 2.4150943396226414,
+       "max_dd_pct": 14.535482732534504
+      },
+      "trade_level_hold_sum_usd": 1267.487186312213,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.6282614195716641,
+       "net_usd": -2621.3584979044663,
+       "trades": 92,
+       "orders_per_week": 1.7358490566037736,
+       "max_dd_pct": 37.07679241087284,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261022": {
+     "INNER_B": {
+      "trades": 112,
+      "exits_by_reason": {
+       "FORCED_FLAT": 23,
+       "SL": 15,
+       "AGENT_CLOSE": 37,
+       "TP": 35,
+       "REVERSAL": 2
+      },
+      "agent_closes": 39,
+      "early_close_share": 0.3482142857142857,
+      "classes": {
+       "SAVED": 19,
+       "CUT_WINNER": 19,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.48717948717948717,
+       "CUT_WINNER": 0.48717948717948717,
+       "NEUTRAL": 0.02564102564102564
+      },
+      "early_close_value_usd": 857.5675054040058,
+      "early_close_value_usd_ci95": [
+       -2693.062938267176,
+       4358.655867343832
+      ],
+      "early_close_value_sigma": 5.63396339290996,
+      "early_close_value_sigma_ci95": [
+       -7.9323942356944945,
+       19.74566066163822
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 13,
+       "SL": 11,
+       "FORCED_FLAT": 15
+      },
+      "early_close_value_usd_long": 857.5675054040058,
+      "early_close_value_usd_long_ci95": [
+       -2693.062938267176,
+       4358.655867343832
+      ],
+      "agent_closes_long": 39,
+      "early_close_value_usd_short": 0.0,
+      "early_close_value_usd_short_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_short": 0,
+      "closer": {
+       "positioned_observable_bars": 2404,
+       "sl_first_rate": 0.5037437603993344,
+       "close_better_rate": 0.42845257903494177,
+       "fired_rate": 0.01622296173044925,
+       "precision_sl_first": 0.5128205128205128,
+       "recall_sl_first": 0.016515276630883566,
+       "auc_sl_first": 0.5943184264388398,
+       "auc_close_better": 0.6051960119274742
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 49,
+        "net_usd": -419.4910995378617,
+        "sharpe_daily_sqrt365": -0.40533467676634793,
+        "positioned_bar_share": 0.08699839486356341
+       },
+       "short": {
+        "entries": 63,
+        "net_usd": -2430.3904859613726,
+        "sharpe_daily_sqrt365": -0.9226220900217786,
+        "positioned_bar_share": 0.3218298555377207
+       }
+      },
+      "actual": {
+       "sharpe": -0.8342589834963777,
+       "net_usd": -2849.8815854992354,
+       "trades": 112,
+       "orders_per_week": 2.1132075471698113,
+       "max_dd_pct": 32.07091691749918
+      },
+      "trade_level_hold_sum_usd": -3707.44909090324,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.3506516060299794,
+       "net_usd": -1835.1663952445397,
+       "trades": 92,
+       "orders_per_week": 1.7358490566037736,
+       "max_dd_pct": 48.059890790272796,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261023": {
+     "INNER_B": {
+      "trades": 159,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 108,
+       "SL": 5,
+       "TP": 33,
+       "FORCED_FLAT": 12,
+       "REVERSAL": 1
+      },
+      "agent_closes": 109,
+      "early_close_share": 0.6855345911949685,
+      "classes": {
+       "SAVED": 46,
+       "CUT_WINNER": 60,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.42201834862385323,
+       "CUT_WINNER": 0.5504587155963303,
+       "NEUTRAL": 0.027522935779816515
+      },
+      "early_close_value_usd": -125.55862467519263,
+      "early_close_value_usd_ci95": [
+       -7591.549770966537,
+       7310.345768056356
+      ],
+      "early_close_value_sigma": -5.480789256232834,
+      "early_close_value_sigma_ci95": [
+       -27.857559676962985,
+       16.564864061403696
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 43,
+       "SL": 15,
+       "FORCED_FLAT": 51
+      },
+      "early_close_value_usd_long": -166.62311940407028,
+      "early_close_value_usd_long_ci95": [
+       -4530.749287466357,
+       4249.656464966449
+      ],
+      "agent_closes_long": 44,
+      "early_close_value_usd_short": 41.06449472887812,
+      "early_close_value_usd_short_ci95": [
+       -5643.5054265515,
+       6349.204083814879
+      ],
+      "agent_closes_short": 65,
+      "closer": {
+       "positioned_observable_bars": 1609,
+       "sl_first_rate": 0.29770043505282784,
+       "close_better_rate": 0.32877563704164076,
+       "fired_rate": 0.06774394033561218,
+       "precision_sl_first": 0.48623853211009177,
+       "recall_sl_first": 0.11064718162839249,
+       "auc_sl_first": 0.6215825743159606,
+       "auc_close_better": 0.5586939018413498
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 55,
+        "net_usd": -34.717667455464024,
+        "sharpe_daily_sqrt365": -0.02992753455717756,
+        "positioned_bar_share": 0.09887640449438202
+       },
+       "short": {
+        "entries": 104,
+        "net_usd": 1400.6485481348527,
+        "sharpe_daily_sqrt365": 0.5982612907005518,
+        "positioned_bar_share": 0.1752808988764045
+       }
+      },
+      "actual": {
+       "sharpe": 0.6108037764172597,
+       "net_usd": 1365.9308806793888,
+       "trades": 159,
+       "orders_per_week": 3.0,
+       "max_dd_pct": 21.93259582699331
+      },
+      "trade_level_hold_sum_usd": 1491.4895053545813,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.7133537154147273,
+       "net_usd": 2156.145579149248,
+       "trades": 105,
+       "orders_per_week": 1.9811320754716981,
+       "max_dd_pct": 28.55016060168576,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.06,
+      "members": [
+       "prob",
+       "prob",
+       "prob",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.4618278329516118
+     },
+     "primary": true,
+     "INNER_B": {
+      "trades": 126,
+      "exits_by_reason": {
+       "TP": 32,
+       "AGENT_CLOSE": 72,
+       "SL": 6,
+       "FORCED_FLAT": 13,
+       "REVERSAL": 3
+      },
+      "agent_closes": 75,
+      "early_close_share": 0.5952380952380952,
+      "classes": {
+       "SAVED": 31,
+       "CUT_WINNER": 43,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.41333333333333333,
+       "CUT_WINNER": 0.5733333333333334,
+       "NEUTRAL": 0.013333333333333334
+      },
+      "early_close_value_usd": -837.6733914285397,
+      "early_close_value_usd_ci95": [
+       -6289.860990109285,
+       4792.401004010272
+      ],
+      "early_close_value_sigma": -5.288601893118454,
+      "early_close_value_sigma_ci95": [
+       -23.229759909571918,
+       13.038303075619993
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 30,
+       "SL": 12,
+       "FORCED_FLAT": 33
+      },
+      "early_close_value_usd_long": -926.6116419830194,
+      "early_close_value_usd_long_ci95": [
+       -4051.295493672551,
+       2159.215623750287
+      ],
+      "agent_closes_long": 30,
+      "early_close_value_usd_short": 88.93825055447962,
+      "early_close_value_usd_short_ci95": [
+       -4251.3278577479205,
+       4694.1967737679315
+      ],
+      "agent_closes_short": 45,
+      "closer": {
+       "positioned_observable_bars": 1654,
+       "sl_first_rate": 0.3573155985489722,
+       "close_better_rate": 0.33978234582829503,
+       "fired_rate": 0.04534461910519952,
+       "precision_sl_first": 0.4533333333333333,
+       "recall_sl_first": 0.05752961082910321,
+       "auc_sl_first": 0.614599997134821,
+       "auc_close_better": 0.5554518139037712
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 50,
+        "net_usd": 261.27144838561713,
+        "sharpe_daily_sqrt365": 0.1788875387322596,
+        "positioned_bar_share": 0.14606741573033707
+       },
+       "short": {
+        "entries": 76,
+        "net_usd": 661.6662666514737,
+        "sharpe_daily_sqrt365": 0.3427576713774853,
+        "positioned_bar_share": 0.14269662921348314
+       }
+      },
+      "actual": {
+       "sharpe": 0.45994320323111515,
+       "net_usd": 922.937715037091,
+       "trades": 126,
+       "orders_per_week": 2.3773584905660377,
+       "max_dd_pct": 31.232589693522293
+      },
+      "trade_level_hold_sum_usd": 1760.6111064656307,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.39699758417242437,
+       "net_usd": 800.5981109980385,
+       "trades": 91,
+       "orders_per_week": 1.7169811320754718,
+       "max_dd_pct": 21.832622809902357,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261022/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261023/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021",
+    "20261022",
+    "20261023"
+   ]
+  },
+  "WF_wf2023_both_hold": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/WF_wf2023_both_hold"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "wf2023",
+    "train": [
+     "2020-01-01",
+     "2023-01-01"
+    ],
+    "validation": [
+     "2023-01-01",
+     "2024-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_B"
+   ],
+   "recipe": {
+    "identity": "recipe_b9bdcbdefb61cbe3",
+    "sha256": "c931b83eb4a0b3833587b8d04a63f97efbd15ccaaec078fac26d6966bbdda1ef"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_B": {
+      "trades": 105,
+      "exits_by_reason": {
+       "SL": 10,
+       "AGENT_CLOSE": 77,
+       "TP": 12,
+       "FORCED_FLAT": 3,
+       "REVERSAL": 3
+      },
+      "agent_closes": 80,
+      "early_close_share": 0.7619047619047619,
+      "classes": {
+       "SAVED": 50,
+       "CUT_WINNER": 28,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.625,
+       "CUT_WINNER": 0.35,
+       "NEUTRAL": 0.025
+      },
+      "early_close_value_usd": 1000.0488869721044,
+      "early_close_value_usd_ci95": [
+       -2319.23378448281,
+       4317.227952050305
+      ],
+      "early_close_value_sigma": 5.514887073998586,
+      "early_close_value_sigma_ci95": [
+       -8.885886009483851,
+       19.932389812631772
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 26,
+       "SL": 43,
+       "FORCED_FLAT": 11
+      },
+      "early_close_value_usd_long": 738.0813460142143,
+      "early_close_value_usd_long_ci95": [
+       -1920.3216463137096,
+       3362.699416299236
+      ],
+      "agent_closes_long": 49,
+      "early_close_value_usd_short": 261.9675409578899,
+      "early_close_value_usd_short_ci95": [
+       -1629.212745516216,
+       2241.033676885805
+      ],
+      "agent_closes_short": 31,
+      "closer": {
+       "positioned_observable_bars": 468,
+       "sl_first_rate": 0.37393162393162394,
+       "close_better_rate": 0.42735042735042733,
+       "fired_rate": 0.17094017094017094,
+       "precision_sl_first": 0.5875,
+       "recall_sl_first": 0.26857142857142857,
+       "auc_sl_first": 0.6156411506582155,
+       "auc_close_better": 0.6266977611940299
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 68,
+        "net_usd": -403.19828292199855,
+        "sharpe_daily_sqrt365": -0.37491323590519343,
+        "positioned_bar_share": 0.051807617817947064
+       },
+       "short": {
+        "entries": 37,
+        "net_usd": 322.3042032049833,
+        "sharpe_daily_sqrt365": 0.5537533677261417,
+        "positioned_bar_share": 0.03179470626210459
+       }
+      },
+      "actual": {
+       "sharpe": -0.0045794748343525125,
+       "net_usd": -80.89407971701439,
+       "trades": 105,
+       "orders_per_week": 2.019230769230769,
+       "max_dd_pct": 7.687052052265367
+      },
+      "trade_level_hold_sum_usd": -1080.9429666891197,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.5201452243414539,
+       "net_usd": -1104.1499727727896,
+       "trades": 89,
+       "orders_per_week": 1.7115384615384615,
+       "max_dd_pct": 25.028176158489153,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_B": {
+      "trades": 156,
+      "exits_by_reason": {
+       "SL": 51,
+       "TP": 37,
+       "FORCED_FLAT": 10,
+       "AGENT_CLOSE": 54,
+       "REVERSAL": 4
+      },
+      "agent_closes": 58,
+      "early_close_share": 0.3717948717948718,
+      "classes": {
+       "SAVED": 31,
+       "CUT_WINNER": 27,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.5344827586206896,
+       "CUT_WINNER": 0.46551724137931033,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 835.4829738277514,
+      "early_close_value_usd_ci95": [
+       -1496.7612959785304,
+       3360.387033440606
+      ],
+      "early_close_value_sigma": 1.9024093823409078,
+      "early_close_value_sigma_ci95": [
+       -9.725606811381684,
+       13.808298161635841
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 21,
+       "SL": 23,
+       "FORCED_FLAT": 14
+      },
+      "early_close_value_usd_long": 0.0,
+      "early_close_value_usd_long_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_long": 0,
+      "early_close_value_usd_short": 835.4829738277514,
+      "early_close_value_usd_short_ci95": [
+       -1496.7612959785304,
+       3360.387033440606
+      ],
+      "agent_closes_short": 58,
+      "closer": {
+       "positioned_observable_bars": 1453,
+       "sl_first_rate": 0.559532002752925,
+       "close_better_rate": 0.5602202339986235,
+       "fired_rate": 0.03991741225051618,
+       "precision_sl_first": 0.5,
+       "recall_sl_first": 0.03567035670356704,
+       "auc_sl_first": 0.5738795356703567,
+       "auc_close_better": 0.5433474447558955
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 64,
+        "net_usd": -1518.311685786064,
+        "sharpe_daily_sqrt365": -0.9088867747724256,
+        "positioned_bar_share": 0.16026468689477083
+       },
+       "short": {
+        "entries": 92,
+        "net_usd": 336.3239780348042,
+        "sharpe_daily_sqrt365": 0.2824358386890455,
+        "positioned_bar_share": 0.09167204648160103
+       }
+      },
+      "actual": {
+       "sharpe": -0.4769459390080898,
+       "net_usd": -1181.9877077512574,
+       "trades": 156,
+       "orders_per_week": 3.0,
+       "max_dd_pct": 42.25062858512307
+      },
+      "trade_level_hold_sum_usd": -2017.470681579011,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.560477656213672,
+       "net_usd": -1539.8589209824058,
+       "trades": 143,
+       "orders_per_week": 2.75,
+       "max_dd_pct": 46.84099793767319,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_B": {
+      "trades": 90,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 73,
+       "SL": 11,
+       "TP": 6
+      },
+      "agent_closes": 73,
+      "early_close_share": 0.8111111111111111,
+      "classes": {
+       "SAVED": 51,
+       "CUT_WINNER": 19,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.6986301369863014,
+       "CUT_WINNER": 0.2602739726027397,
+       "NEUTRAL": 0.0410958904109589
+      },
+      "early_close_value_usd": 3735.2381333354833,
+      "early_close_value_usd_ci95": [
+       975.511826289845,
+       6268.380327087892
+      ],
+      "early_close_value_sigma": 19.195024700244396,
+      "early_close_value_sigma_ci95": [
+       6.241130166164894,
+       31.351840947383494
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 14,
+       "SL": 42,
+       "FORCED_FLAT": 17
+      },
+      "early_close_value_usd_long": 2341.4239359244925,
+      "early_close_value_usd_long_ci95": [
+       750.1124442300529,
+       3812.891740490427
+      ],
+      "agent_closes_long": 31,
+      "early_close_value_usd_short": 1393.8141974109906,
+      "early_close_value_usd_short_ci95": [
+       -893.9325481076362,
+       3548.5003285939656
+      ],
+      "agent_closes_short": 42,
+      "closer": {
+       "positioned_observable_bars": 479,
+       "sl_first_rate": 0.6137787056367432,
+       "close_better_rate": 0.6096033402922756,
+       "fired_rate": 0.1524008350730689,
+       "precision_sl_first": 0.684931506849315,
+       "recall_sl_first": 0.17006802721088435,
+       "auc_sl_first": 0.5486302629159772,
+       "auc_close_better": 0.5715515346861035
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 40,
+        "net_usd": -1103.4878274118778,
+        "sharpe_daily_sqrt365": -1.5622203495188522,
+        "positioned_bar_share": 0.034538411878631374
+       },
+       "short": {
+        "entries": 50,
+        "net_usd": -262.0999435867017,
+        "sharpe_daily_sqrt365": -0.3747675934067285,
+        "positioned_bar_share": 0.046158812136862494
+       }
+      },
+      "actual": {
+       "sharpe": -1.2933793298285154,
+       "net_usd": -1365.5877709985798,
+       "trades": 90,
+       "orders_per_week": 1.7307692307692308,
+       "max_dd_pct": 17.564088526190854
+      },
+      "trade_level_hold_sum_usd": -5100.825904334062,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -2.202550090437277,
+       "net_usd": -3177.085124331098,
+       "trades": 77,
+       "orders_per_week": 1.4807692307692308,
+       "max_dd_pct": 38.451508744326134,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261022": {
+     "INNER_B": {
+      "trades": 109,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 81,
+       "SL": 11,
+       "REVERSAL": 2,
+       "TP": 14,
+       "FORCED_FLAT": 1
+      },
+      "agent_closes": 83,
+      "early_close_share": 0.7614678899082569,
+      "classes": {
+       "SAVED": 57,
+       "CUT_WINNER": 24,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.6867469879518072,
+       "CUT_WINNER": 0.2891566265060241,
+       "NEUTRAL": 0.024096385542168676
+      },
+      "early_close_value_usd": 3142.1721627689526,
+      "early_close_value_usd_ci95": [
+       381.94927655831526,
+       6032.056937016995
+      ],
+      "early_close_value_sigma": 15.591702758826255,
+      "early_close_value_sigma_ci95": [
+       2.38269230840462,
+       28.747845059327563
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 18,
+       "SL": 51,
+       "FORCED_FLAT": 14
+      },
+      "early_close_value_usd_long": 2177.2168962933224,
+      "early_close_value_usd_long_ci95": [
+       -299.150193621721,
+       4562.630224632395
+      ],
+      "agent_closes_long": 65,
+      "early_close_value_usd_short": 964.9552664756303,
+      "early_close_value_usd_short_ci95": [
+       -366.00445656621486,
+       2221.1439394586646
+      ],
+      "agent_closes_short": 18,
+      "closer": {
+       "positioned_observable_bars": 490,
+       "sl_first_rate": 0.6183673469387755,
+       "close_better_rate": 0.636734693877551,
+       "fired_rate": 0.16938775510204082,
+       "precision_sl_first": 0.6746987951807228,
+       "recall_sl_first": 0.1848184818481848,
+       "auc_sl_first": 0.5715218580681598,
+       "auc_close_better": 0.5784536156727168
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 88,
+        "net_usd": -1339.0530799858582,
+        "sharpe_daily_sqrt365": -1.1063944114738984,
+        "positioned_bar_share": 0.06923821820529374
+       },
+       "short": {
+        "entries": 21,
+        "net_usd": 70.14524730607727,
+        "sharpe_daily_sqrt365": 0.13983314011997158,
+        "positioned_bar_share": 0.020335700451904453
+       }
+      },
+      "actual": {
+       "sharpe": -0.9445029329643445,
+       "net_usd": -1268.9078326797808,
+       "trades": 109,
+       "orders_per_week": 2.0961538461538463,
+       "max_dd_pct": 16.641980138560257
+      },
+      "trade_level_hold_sum_usd": -4411.079995448734,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.647813912824725,
+       "net_usd": -3043.293881393306,
+       "trades": 102,
+       "orders_per_week": 1.9615384615384615,
+       "max_dd_pct": 33.50172807115843,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261023": {
+     "INNER_B": {
+      "trades": 112,
+      "exits_by_reason": {
+       "SL": 22,
+       "TP": 16,
+       "FORCED_FLAT": 6,
+       "AGENT_CLOSE": 66,
+       "REVERSAL": 2
+      },
+      "agent_closes": 68,
+      "early_close_share": 0.6071428571428571,
+      "classes": {
+       "SAVED": 32,
+       "CUT_WINNER": 33,
+       "NEUTRAL": 3
+      },
+      "class_shares": {
+       "SAVED": 0.47058823529411764,
+       "CUT_WINNER": 0.4852941176470588,
+       "NEUTRAL": 0.04411764705882353
+      },
+      "early_close_value_usd": -1690.114337562653,
+      "early_close_value_usd_ci95": [
+       -4289.593882832634,
+       1132.234276306085
+      ],
+      "early_close_value_sigma": -7.886654818072943,
+      "early_close_value_sigma_ci95": [
+       -20.615720847106086,
+       5.722080994921975
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 22,
+       "SL": 28,
+       "FORCED_FLAT": 18
+      },
+      "early_close_value_usd_long": -1472.2167286610431,
+      "early_close_value_usd_long_ci95": [
+       -3221.469638065578,
+       280.63171365266163
+      ],
+      "agent_closes_long": 30,
+      "early_close_value_usd_short": -217.89760890160986,
+      "early_close_value_usd_short_ci95": [
+       -2056.4781299776055,
+       1638.7983101853697
+      ],
+      "agent_closes_short": 38,
+      "closer": {
+       "positioned_observable_bars": 748,
+       "sl_first_rate": 0.4692513368983957,
+       "close_better_rate": 0.5254010695187166,
+       "fired_rate": 0.09090909090909091,
+       "precision_sl_first": 0.4852941176470588,
+       "recall_sl_first": 0.09401709401709402,
+       "auc_sl_first": 0.5928509404579934,
+       "auc_close_better": 0.6018779342723005
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 62,
+        "net_usd": -1986.5173945762515,
+        "sharpe_daily_sqrt365": -1.5937610760204037,
+        "positioned_bar_share": 0.0829567462879277
+       },
+       "short": {
+        "entries": 50,
+        "net_usd": -352.7687916747454,
+        "sharpe_daily_sqrt365": -0.5470067745023621,
+        "positioned_bar_share": 0.045997417688831505
+       }
+      },
+      "actual": {
+       "sharpe": -1.6404707262624485,
+       "net_usd": -2339.2861862509944,
+       "trades": 112,
+       "orders_per_week": 2.1538461538461537,
+       "max_dd_pct": 33.025593170015235
+      },
+      "trade_level_hold_sum_usd": -649.1718486883437,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.5705508782829477,
+       "net_usd": -1265.9108989855722,
+       "trades": 97,
+       "orders_per_week": 1.8653846153846154,
+       "max_dd_pct": 30.976365577829394,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.12,
+      "members": [
+       "prob",
+       "prob",
+       "prob",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.5618386321269186
+     },
+     "primary": true,
+     "INNER_B": {
+      "trades": 107,
+      "exits_by_reason": {
+       "SL": 21,
+       "AGENT_CLOSE": 60,
+       "TP": 23,
+       "FORCED_FLAT": 3
+      },
+      "agent_closes": 60,
+      "early_close_share": 0.5607476635514018,
+      "classes": {
+       "SAVED": 38,
+       "CUT_WINNER": 22,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.6333333333333333,
+       "CUT_WINNER": 0.36666666666666664,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 104.70762915541503,
+      "early_close_value_usd_ci95": [
+       -2461.4015031985014,
+       2576.4216093563223
+      ],
+      "early_close_value_sigma": 1.3915226555692248,
+      "early_close_value_sigma_ci95": [
+       -10.190021195388814,
+       12.77018343218417
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 18,
+       "SL": 32,
+       "FORCED_FLAT": 10
+      },
+      "early_close_value_usd_long": -474.4866301498712,
+      "early_close_value_usd_long_ci95": [
+       -2816.805395772083,
+       1789.9956258763402
+      ],
+      "agent_closes_long": 40,
+      "early_close_value_usd_short": 579.1942593052862,
+      "early_close_value_usd_short_ci95": [
+       -923.4138329641102,
+       1930.0010419386654
+      ],
+      "agent_closes_short": 20,
+      "closer": {
+       "positioned_observable_bars": 773,
+       "sl_first_rate": 0.4217335058214748,
+       "close_better_rate": 0.46571798188874514,
+       "fired_rate": 0.07761966364812418,
+       "precision_sl_first": 0.6166666666666667,
+       "recall_sl_first": 0.11349693251533742,
+       "auc_sl_first": 0.6536761779278352,
+       "auc_close_better": 0.6488364272262578
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 73,
+        "net_usd": -1486.8150365759827,
+        "sharpe_daily_sqrt365": -1.1040470047126891,
+        "positioned_bar_share": 0.09845061329890252
+       },
+       "short": {
+        "entries": 34,
+        "net_usd": 308.774110221966,
+        "sharpe_daily_sqrt365": 0.358265743907243,
+        "positioned_bar_share": 0.035345384118786315
+       }
+      },
+      "actual": {
+       "sharpe": -0.7082475434265887,
+       "net_usd": -1178.0409263540168,
+       "trades": 107,
+       "orders_per_week": 2.0576923076923075,
+       "max_dd_pct": 23.23851399106676
+      },
+      "trade_level_hold_sum_usd": -1282.748555509432,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.12240570033112941,
+       "net_usd": -428.65093375446486,
+       "trades": 92,
+       "orders_per_week": 1.7692307692307692,
+       "max_dd_pct": 26.91364075974328,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261022/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261023/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021",
+    "20261022",
+    "20261023"
+   ]
+  },
+  "WF_wf2023_both_hold_shorter": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/WF_wf2023_both_hold_shorter"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "wf2023",
+    "train": [
+     "2020-01-01",
+     "2023-01-01"
+    ],
+    "validation": [
+     "2023-01-01",
+     "2024-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_B"
+   ],
+   "recipe": {
+    "identity": "recipe_b9bdcbdefb61cbe3",
+    "sha256": "c931b83eb4a0b3833587b8d04a63f97efbd15ccaaec078fac26d6966bbdda1ef"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_B": {
+      "trades": 197,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 136,
+       "TP": 28,
+       "SL": 16,
+       "FORCED_FLAT": 6,
+       "REVERSAL": 11
+      },
+      "agent_closes": 147,
+      "early_close_share": 0.7461928934010152,
+      "classes": {
+       "SAVED": 77,
+       "CUT_WINNER": 66,
+       "NEUTRAL": 4
+      },
+      "class_shares": {
+       "SAVED": 0.5238095238095238,
+       "CUT_WINNER": 0.4489795918367347,
+       "NEUTRAL": 0.027210884353741496
+      },
+      "early_close_value_usd": 176.98744725865367,
+      "early_close_value_usd_ci95": [
+       -4100.1946881971935,
+       4207.512393842365
+      ],
+      "early_close_value_sigma": 0.9696646474628736,
+      "early_close_value_sigma_ci95": [
+       -17.845581864143846,
+       18.44599289500473
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 54,
+       "SL": 71,
+       "FORCED_FLAT": 22
+      },
+      "early_close_value_usd_long": -123.18987776104123,
+      "early_close_value_usd_long_ci95": [
+       -2615.6397781042633,
+       2279.775706933645
+      ],
+      "agent_closes_long": 58,
+      "early_close_value_usd_short": 300.177325019695,
+      "early_close_value_usd_short_ci95": [
+       -2934.6058517783526,
+       3481.748604023841
+      ],
+      "agent_closes_short": 89,
+      "closer": {
+       "positioned_observable_bars": 1054,
+       "sl_first_rate": 0.43833017077798864,
+       "close_better_rate": 0.44022770398481975,
+       "fired_rate": 0.13946869070208728,
+       "precision_sl_first": 0.5578231292517006,
+       "recall_sl_first": 0.1774891774891775,
+       "auc_sl_first": 0.5428293553293553,
+       "auc_close_better": 0.5353667445938048
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 78,
+        "net_usd": -522.3362685294207,
+        "sharpe_daily_sqrt365": -0.49776494513101344,
+        "positioned_bar_share": 0.06084570690768237
+       },
+       "short": {
+        "entries": 119,
+        "net_usd": 1632.511422479639,
+        "sharpe_daily_sqrt365": 1.327425263673885,
+        "positioned_bar_share": 0.12378954163976759
+       }
+      },
+      "actual": {
+       "sharpe": 0.7394096517416343,
+       "net_usd": 1110.1751539502184,
+       "trades": 197,
+       "orders_per_week": 3.7884615384615383,
+       "max_dd_pct": 11.788760873891922
+      },
+      "trade_level_hold_sum_usd": 933.1877066915642,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.6106060944599414,
+       "net_usd": 1271.419164240855,
+       "trades": 164,
+       "orders_per_week": 3.1538461538461537,
+       "max_dd_pct": 27.441692724678806,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_B": {
+      "trades": 91,
+      "exits_by_reason": {
+       "REVERSAL": 2,
+       "TP": 24,
+       "SL": 28,
+       "AGENT_CLOSE": 34,
+       "FORCED_FLAT": 3
+      },
+      "agent_closes": 36,
+      "early_close_share": 0.3956043956043956,
+      "classes": {
+       "SAVED": 21,
+       "CUT_WINNER": 15,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.5833333333333334,
+       "CUT_WINNER": 0.4166666666666667,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 408.3310685039001,
+      "early_close_value_usd_ci95": [
+       -1659.6185610133718,
+       2381.4381593981416
+      ],
+      "early_close_value_sigma": 1.0981691178176896,
+      "early_close_value_sigma_ci95": [
+       -7.9536428323231085,
+       9.790431983070413
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 14,
+       "SL": 17,
+       "FORCED_FLAT": 5
+      },
+      "early_close_value_usd_long": 0.0,
+      "early_close_value_usd_long_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_long": 0,
+      "early_close_value_usd_short": 408.3310685039001,
+      "early_close_value_usd_short_ci95": [
+       -1659.6185610133718,
+       2381.4381593981416
+      ],
+      "agent_closes_short": 36,
+      "closer": {
+       "positioned_observable_bars": 838,
+       "sl_first_rate": 0.4403341288782816,
+       "close_better_rate": 0.4665871121718377,
+       "fired_rate": 0.04295942720763723,
+       "precision_sl_first": 0.5833333333333334,
+       "recall_sl_first": 0.056910569105691054,
+       "auc_sl_first": 0.5718619446322395,
+       "auc_close_better": 0.581489555261848
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 35,
+        "net_usd": -335.9515472528783,
+        "sharpe_daily_sqrt365": -0.2741688025906832,
+        "positioned_bar_share": 0.07859909619109103
+       },
+       "short": {
+        "entries": 56,
+        "net_usd": 115.60503409886006,
+        "sharpe_daily_sqrt365": 0.11162525129465065,
+        "positioned_bar_share": 0.061652679147837314
+       }
+      },
+      "actual": {
+       "sharpe": -0.05652911735888567,
+       "net_usd": -220.34651315401788,
+       "trades": 91,
+       "orders_per_week": 1.75,
+       "max_dd_pct": 20.54120277737278
+      },
+      "trade_level_hold_sum_usd": -628.6775816579183,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.23521542826775668,
+       "net_usd": -601.3859682973907,
+       "trades": 84,
+       "orders_per_week": 1.6153846153846154,
+       "max_dd_pct": 25.41310115472333,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_B": {
+      "trades": 125,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 96,
+       "TP": 10,
+       "FORCED_FLAT": 3,
+       "REVERSAL": 3,
+       "SL": 13
+      },
+      "agent_closes": 99,
+      "early_close_share": 0.792,
+      "classes": {
+       "SAVED": 60,
+       "CUT_WINNER": 35,
+       "NEUTRAL": 4
+      },
+      "class_shares": {
+       "SAVED": 0.6060606060606061,
+       "CUT_WINNER": 0.35353535353535354,
+       "NEUTRAL": 0.04040404040404041
+      },
+      "early_close_value_usd": 2113.541422757992,
+      "early_close_value_usd_ci95": [
+       -1065.8063551900868,
+       5338.046379362276
+      ],
+      "early_close_value_sigma": 10.40799451137042,
+      "early_close_value_sigma_ci95": [
+       -4.117337918812366,
+       25.001749973332597
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 31,
+       "SL": 46,
+       "FORCED_FLAT": 22
+      },
+      "early_close_value_usd_long": 424.50265256996806,
+      "early_close_value_usd_long_ci95": [
+       -2309.594258951901,
+       2815.4424688860913
+      ],
+      "agent_closes_long": 65,
+      "early_close_value_usd_short": 1689.0387701880245,
+      "early_close_value_usd_short_ci95": [
+       -390.1112272602232,
+       3737.975241291684
+      ],
+      "agent_closes_short": 34,
+      "closer": {
+       "positioned_observable_bars": 517,
+       "sl_first_rate": 0.6092843326885881,
+       "close_better_rate": 0.6054158607350096,
+       "fired_rate": 0.19148936170212766,
+       "precision_sl_first": 0.6161616161616161,
+       "recall_sl_first": 0.19365079365079366,
+       "auc_sl_first": 0.5005343391482006,
+       "auc_close_better": 0.5072824657019357
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 86,
+        "net_usd": -2121.0779229609534,
+        "sharpe_daily_sqrt365": -2.346646913177641,
+        "positioned_bar_share": 0.06391220142027114
+       },
+       "short": {
+        "entries": 39,
+        "net_usd": 1123.9664297276981,
+        "sharpe_daily_sqrt365": 1.8510082571954334,
+        "positioned_bar_share": 0.024693350548741125
+       }
+      },
+      "actual": {
+       "sharpe": -0.862804425420255,
+       "net_usd": -997.1114932332548,
+       "trades": 125,
+       "orders_per_week": 2.4038461538461537,
+       "max_dd_pct": 18.129227112310442
+      },
+      "trade_level_hold_sum_usd": -3110.6529159912475,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.425810796848405,
+       "net_usd": -2481.4798850500947,
+       "trades": 102,
+       "orders_per_week": 1.9615384615384615,
+       "max_dd_pct": 34.717048488773905,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261022": {
+     "INNER_B": {
+      "trades": 117,
+      "exits_by_reason": {
+       "SL": 45,
+       "AGENT_CLOSE": 30,
+       "TP": 34,
+       "FORCED_FLAT": 7,
+       "REVERSAL": 1
+      },
+      "agent_closes": 31,
+      "early_close_share": 0.26495726495726496,
+      "classes": {
+       "SAVED": 22,
+       "CUT_WINNER": 9,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.7096774193548387,
+       "CUT_WINNER": 0.2903225806451613,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 1135.036065996158,
+      "early_close_value_usd_ci95": [
+       -447.33736532461813,
+       2516.261715676024
+      ],
+      "early_close_value_sigma": 6.228544632376907,
+      "early_close_value_sigma_ci95": [
+       -0.6155824656560185,
+       12.586907880992557
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 7,
+       "SL": 17,
+       "FORCED_FLAT": 7
+      },
+      "early_close_value_usd_long": 0.0,
+      "early_close_value_usd_long_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_long": 0,
+      "early_close_value_usd_short": 1135.036065996158,
+      "early_close_value_usd_short_ci95": [
+       -447.33736532461813,
+       2516.261715676024
+      ],
+      "agent_closes_short": 31,
+      "closer": {
+       "positioned_observable_bars": 1272,
+       "sl_first_rate": 0.43160377358490565,
+       "close_better_rate": 0.48663522012578614,
+       "fired_rate": 0.02437106918238994,
+       "precision_sl_first": 0.7096774193548387,
+       "recall_sl_first": 0.04007285974499089,
+       "auc_sl_first": 0.549764818215944,
+       "auc_close_better": 0.5717664463999881
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 65,
+        "net_usd": -986.7178267238361,
+        "sharpe_daily_sqrt365": -0.6469026818124591,
+        "positioned_bar_share": 0.1565526145900581
+       },
+       "short": {
+        "entries": 52,
+        "net_usd": -535.7337928709146,
+        "sharpe_daily_sqrt365": -0.5648663327741668,
+        "positioned_bar_share": 0.05874757908327954
+       }
+      },
+      "actual": {
+       "sharpe": -0.7854023341546832,
+       "net_usd": -1522.4516195947508,
+       "trades": 117,
+       "orders_per_week": 2.25,
+       "max_dd_pct": 22.26714302511967
+      },
+      "trade_level_hold_sum_usd": -2657.4876855909088,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.0905918525321434,
+       "net_usd": -2142.531255894053,
+       "trades": 113,
+       "orders_per_week": 2.173076923076923,
+       "max_dd_pct": 29.288914726438215,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261023": {
+     "INNER_B": {
+      "trades": 115,
+      "exits_by_reason": {
+       "SL": 27,
+       "TP": 14,
+       "REVERSAL": 1,
+       "AGENT_CLOSE": 66,
+       "FORCED_FLAT": 7
+      },
+      "agent_closes": 67,
+      "early_close_share": 0.5826086956521739,
+      "classes": {
+       "SAVED": 40,
+       "CUT_WINNER": 27,
+       "NEUTRAL": 0
+      },
+      "class_shares": {
+       "SAVED": 0.5970149253731343,
+       "CUT_WINNER": 0.40298507462686567,
+       "NEUTRAL": 0.0
+      },
+      "early_close_value_usd": 282.3847042843214,
+      "early_close_value_usd_ci95": [
+       -2250.4884964398266,
+       2851.4719396848377
+      ],
+      "early_close_value_sigma": 0.8462437364015802,
+      "early_close_value_sigma_ci95": [
+       -11.537453649318246,
+       13.194888268608391
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 23,
+       "SL": 37,
+       "FORCED_FLAT": 7
+      },
+      "early_close_value_usd_long": 104.8375306891678,
+      "early_close_value_usd_long_ci95": [
+       -1265.0959655194868,
+       1472.8448969799267
+      ],
+      "agent_closes_long": 16,
+      "early_close_value_usd_short": 177.5471735951535,
+      "early_close_value_usd_short_ci95": [
+       -2000.4879997745254,
+       2227.722724161818
+      ],
+      "agent_closes_short": 51,
+      "closer": {
+       "positioned_observable_bars": 567,
+       "sl_first_rate": 0.5749559082892416,
+       "close_better_rate": 0.6067019400352733,
+       "fired_rate": 0.11816578483245149,
+       "precision_sl_first": 0.5671641791044776,
+       "recall_sl_first": 0.1165644171779141,
+       "auc_sl_first": 0.5865896189191253,
+       "auc_close_better": 0.572622275524038
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 33,
+        "net_usd": -1801.734317262683,
+        "sharpe_daily_sqrt365": -2.3179535351844036,
+        "positioned_bar_share": 0.03857327307940607
+       },
+       "short": {
+        "entries": 82,
+        "net_usd": -995.3391348419881,
+        "sharpe_daily_sqrt365": -0.9779069133307882,
+        "positioned_bar_share": 0.06342801807617818
+       }
+      },
+      "actual": {
+       "sharpe": -2.1146805986373765,
+       "net_usd": -2797.0734521046707,
+       "trades": 115,
+       "orders_per_week": 2.2115384615384617,
+       "max_dd_pct": 30.253054601802955
+      },
+      "trade_level_hold_sum_usd": -3079.458156388992,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.1199110815465094,
+       "net_usd": -2101.6369206597565,
+       "trades": 102,
+       "orders_per_week": 1.9615384615384615,
+       "max_dd_pct": 26.18053252319722,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.15,
+      "members": [
+       "expected_gain",
+       "prob",
+       "prob",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.5586101025864348
+     },
+     "primary": true,
+     "INNER_B": {
+      "trades": 132,
+      "exits_by_reason": {
+       "SL": 27,
+       "AGENT_CLOSE": 73,
+       "TP": 28,
+       "REVERSAL": 2,
+       "FORCED_FLAT": 2
+      },
+      "agent_closes": 75,
+      "early_close_share": 0.5681818181818182,
+      "classes": {
+       "SAVED": 35,
+       "CUT_WINNER": 38,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.4666666666666667,
+       "CUT_WINNER": 0.5066666666666667,
+       "NEUTRAL": 0.02666666666666667
+      },
+      "early_close_value_usd": -1637.6524356367618,
+      "early_close_value_usd_ci95": [
+       -4309.487423885717,
+       931.298906890625
+      ],
+      "early_close_value_sigma": -6.603001052983389,
+      "early_close_value_sigma_ci95": [
+       -19.458481334292205,
+       6.069139378198931
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 32,
+       "SL": 32,
+       "FORCED_FLAT": 11
+      },
+      "early_close_value_usd_long": -790.7493239177908,
+      "early_close_value_usd_long_ci95": [
+       -2524.86641917866,
+       844.6276752521534
+      ],
+      "agent_closes_long": 32,
+      "early_close_value_usd_short": -846.9031117189711,
+      "early_close_value_usd_short_ci95": [
+       -2883.493349959012,
+       1239.4367453904033
+      ],
+      "agent_closes_short": 43,
+      "closer": {
+       "positioned_observable_bars": 786,
+       "sl_first_rate": 0.4618320610687023,
+       "close_better_rate": 0.4669211195928753,
+       "fired_rate": 0.09541984732824428,
+       "precision_sl_first": 0.52,
+       "recall_sl_first": 0.10743801652892562,
+       "auc_sl_first": 0.5960768223824316,
+       "auc_close_better": 0.5844394009351447
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 58,
+        "net_usd": -864.4257604921165,
+        "sharpe_daily_sqrt365": -0.8650024975695384,
+        "positioned_bar_share": 0.0631052291801162
+       },
+       "short": {
+        "entries": 74,
+        "net_usd": 199.4695647545297,
+        "sharpe_daily_sqrt365": 0.18702089834069255,
+        "positioned_bar_share": 0.07182052937378954
+       }
+      },
+      "actual": {
+       "sharpe": -0.34541219427680414,
+       "net_usd": -664.9561957375863,
+       "trades": 132,
+       "orders_per_week": 2.5384615384615383,
+       "max_dd_pct": 25.432612395475974
+      },
+      "trade_level_hold_sum_usd": 972.6962398991749,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.649315550681234,
+       "net_usd": 1167.6770440805376,
+       "trades": 114,
+       "orders_per_week": 2.1923076923076925,
+       "max_dd_pct": 29.89848775648369,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261022/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261023/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021",
+    "20261022",
+    "20261023"
+   ]
+  },
+  "WF_wf2023_zz_hold": {
+   "dirs": [
+    "/var/tmp/expert-guided-clean-a1-20261024/out/WF_wf2023_zz_hold"
+   ],
+   "v1": false,
+   "split_contract": {
+    "arm": "wf2023",
+    "train": [
+     "2020-01-01",
+     "2023-01-01"
+    ],
+    "validation": [
+     "2023-01-01",
+     "2024-01-01"
+    ],
+    "selection_period": "INNER_A",
+    "read_once": "OBS_2024",
+    "test_closed_from": "2025-01-01"
+   },
+   "periods": [
+    "INNER_B"
+   ],
+   "recipe": {
+    "identity": "recipe_b9bdcbdefb61cbe3",
+    "sha256": "c931b83eb4a0b3833587b8d04a63f97efbd15ccaaec078fac26d6966bbdda1ef"
+   },
+   "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+   "per_seed": {
+    "20261019": {
+     "INNER_B": {
+      "trades": 143,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 116,
+       "FORCED_FLAT": 5,
+       "TP": 18,
+       "SL": 1,
+       "REVERSAL": 3
+      },
+      "agent_closes": 119,
+      "early_close_share": 0.8321678321678322,
+      "classes": {
+       "SAVED": 48,
+       "CUT_WINNER": 70,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.40336134453781514,
+       "CUT_WINNER": 0.5882352941176471,
+       "NEUTRAL": 0.008403361344537815
+      },
+      "early_close_value_usd": -3510.611522616372,
+      "early_close_value_usd_ci95": [
+       -7610.010487889051,
+       779.0524812594429
+      ],
+      "early_close_value_sigma": -14.998314806566654,
+      "early_close_value_sigma_ci95": [
+       -36.716255956925714,
+       8.113964400003468
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 40,
+       "SL": 20,
+       "FORCED_FLAT": 59
+      },
+      "early_close_value_usd_long": -1889.9902155389211,
+      "early_close_value_usd_long_ci95": [
+       -4869.108858333787,
+       1038.2976978902125
+      ],
+      "agent_closes_long": 65,
+      "early_close_value_usd_short": -1620.621307077452,
+      "early_close_value_usd_short_ci95": [
+       -4685.835099614631,
+       1340.6210838200163
+      ],
+      "agent_closes_short": 54,
+      "closer": {
+       "positioned_observable_bars": 842,
+       "sl_first_rate": 0.3990498812351544,
+       "close_better_rate": 0.43824228028503565,
+       "fired_rate": 0.14133016627078385,
+       "precision_sl_first": 0.4789915966386555,
+       "recall_sl_first": 0.16964285714285715,
+       "auc_sl_first": 0.6270351025785809,
+       "auc_close_better": 0.5644591118215622
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 79,
+        "net_usd": -2575.202159310872,
+        "sharpe_daily_sqrt365": -1.9924742014952073,
+        "positioned_bar_share": 0.05971594577146546
+       },
+       "short": {
+        "entries": 64,
+        "net_usd": -24.255340027158578,
+        "sharpe_daily_sqrt365": -0.029758978606536198,
+        "positioned_bar_share": 0.08150419625564881
+       }
+      },
+      "actual": {
+       "sharpe": -1.7262203054609253,
+       "net_usd": -2599.45749933803,
+       "trades": 143,
+       "orders_per_week": 2.75,
+       "max_dd_pct": 29.077760888797773
+      },
+      "trade_level_hold_sum_usd": 911.1540232783414,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.08208837777744014,
+       "net_usd": -537.7432897835115,
+       "trades": 87,
+       "orders_per_week": 1.6730769230769231,
+       "max_dd_pct": 28.00163285628246,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261020": {
+     "INNER_B": {
+      "trades": 158,
+      "exits_by_reason": {
+       "SL": 2,
+       "AGENT_CLOSE": 134,
+       "TP": 13,
+       "REVERSAL": 6,
+       "FORCED_FLAT": 3
+      },
+      "agent_closes": 140,
+      "early_close_share": 0.8860759493670886,
+      "classes": {
+       "SAVED": 65,
+       "CUT_WINNER": 71,
+       "NEUTRAL": 4
+      },
+      "class_shares": {
+       "SAVED": 0.4642857142857143,
+       "CUT_WINNER": 0.5071428571428571,
+       "NEUTRAL": 0.02857142857142857
+      },
+      "early_close_value_usd": 1906.635406513358,
+      "early_close_value_usd_ci95": [
+       -2608.075685607833,
+       6559.175126322894
+      ],
+      "early_close_value_sigma": 4.146557425604058,
+      "early_close_value_sigma_ci95": [
+       -21.01303129614309,
+       29.991985943606487
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 42,
+       "SL": 25,
+       "FORCED_FLAT": 73
+      },
+      "early_close_value_usd_long": 356.7722781059667,
+      "early_close_value_usd_long_ci95": [
+       -2024.5732841697002,
+       2814.792076556041
+      ],
+      "agent_closes_long": 41,
+      "early_close_value_usd_short": 1549.8631284073904,
+      "early_close_value_usd_short_ci95": [
+       -2227.897194642259,
+       5482.57297479786
+      ],
+      "agent_closes_short": 99,
+      "closer": {
+       "positioned_observable_bars": 962,
+       "sl_first_rate": 0.3981288981288981,
+       "close_better_rate": 0.446985446985447,
+       "fired_rate": 0.14553014553014554,
+       "precision_sl_first": 0.5,
+       "recall_sl_first": 0.18276762402088773,
+       "auc_sl_first": 0.570588527081445,
+       "auc_close_better": 0.5177609721979367
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 49,
+        "net_usd": -1858.7732816977837,
+        "sharpe_daily_sqrt365": -2.062790569528346,
+        "positioned_bar_share": 0.06084570690768237
+       },
+       "short": {
+        "entries": 109,
+        "net_usd": -1800.8972763121144,
+        "sharpe_daily_sqrt365": -1.9271611125037948,
+        "positioned_bar_share": 0.10151710781149129
+       }
+      },
+      "actual": {
+       "sharpe": -2.7258014327684403,
+       "net_usd": -3659.670558009897,
+       "trades": 158,
+       "orders_per_week": 3.0384615384615383,
+       "max_dd_pct": 37.96848055474704
+      },
+      "trade_level_hold_sum_usd": -5566.305964523256,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.9170543297426341,
+       "net_usd": -2339.770215665352,
+       "trades": 86,
+       "orders_per_week": 1.6538461538461537,
+       "max_dd_pct": 35.95571760511461,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261021": {
+     "INNER_B": {
+      "trades": 99,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 64,
+       "TP": 22,
+       "FORCED_FLAT": 8,
+       "SL": 5
+      },
+      "agent_closes": 64,
+      "early_close_share": 0.6464646464646465,
+      "classes": {
+       "SAVED": 29,
+       "CUT_WINNER": 31,
+       "NEUTRAL": 4
+      },
+      "class_shares": {
+       "SAVED": 0.453125,
+       "CUT_WINNER": 0.484375,
+       "NEUTRAL": 0.0625
+      },
+      "early_close_value_usd": 554.304741191849,
+      "early_close_value_usd_ci95": [
+       -2672.4801963517475,
+       3904.270020916435
+      ],
+      "early_close_value_sigma": 3.095935602126669,
+      "early_close_value_sigma_ci95": [
+       -12.866088260734495,
+       19.57128937924324
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 20,
+       "SL": 8,
+       "FORCED_FLAT": 36
+      },
+      "early_close_value_usd_long": 554.304741191849,
+      "early_close_value_usd_long_ci95": [
+       -2672.4801963517475,
+       3904.270020916435
+      ],
+      "agent_closes_long": 64,
+      "early_close_value_usd_short": 0.0,
+      "early_close_value_usd_short_ci95": [
+       NaN,
+       NaN
+      ],
+      "agent_closes_short": 0,
+      "closer": {
+       "positioned_observable_bars": 1173,
+       "sl_first_rate": 0.5115089514066496,
+       "close_better_rate": 0.47144075021312876,
+       "fired_rate": 0.05456095481670929,
+       "precision_sl_first": 0.5625,
+       "recall_sl_first": 0.06,
+       "auc_sl_first": 0.5681937172774869,
+       "auc_close_better": 0.5274047716269031
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 90,
+        "net_usd": -1840.94425848426,
+        "sharpe_daily_sqrt365": -1.144418806121354,
+        "positioned_bar_share": 0.15687540348612009
+       },
+       "short": {
+        "entries": 9,
+        "net_usd": -76.18180322796319,
+        "sharpe_daily_sqrt365": -0.11209875101905023,
+        "positioned_bar_share": 0.04373789541639768
+       }
+      },
+      "actual": {
+       "sharpe": -1.112726911400256,
+       "net_usd": -1917.1260617122225,
+       "trades": 99,
+       "orders_per_week": 1.9038461538461537,
+       "max_dd_pct": 29.025236390703313
+      },
+      "trade_level_hold_sum_usd": -2471.430802904072,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -1.4774633531325085,
+       "net_usd": -2928.245005702447,
+       "trades": 72,
+       "orders_per_week": 1.3846153846153846,
+       "max_dd_pct": 41.1449338801969,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    },
+    "20261022": {
+     "INNER_B": {
+      "trades": 95,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 62,
+       "TP": 26,
+       "SL": 4,
+       "REVERSAL": 1,
+       "FORCED_FLAT": 2
+      },
+      "agent_closes": 63,
+      "early_close_share": 0.6631578947368421,
+      "classes": {
+       "SAVED": 21,
+       "CUT_WINNER": 41,
+       "NEUTRAL": 1
+      },
+      "class_shares": {
+       "SAVED": 0.3333333333333333,
+       "CUT_WINNER": 0.6507936507936508,
+       "NEUTRAL": 0.015873015873015872
+      },
+      "early_close_value_usd": -3802.847953446627,
+      "early_close_value_usd_ci95": [
+       -6990.882323565651,
+       -353.702883056947
+      ],
+      "early_close_value_sigma": -20.025167618108675,
+      "early_close_value_sigma_ci95": [
+       -35.59905642663505,
+       -3.586399936430302
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 22,
+       "SL": 8,
+       "FORCED_FLAT": 33
+      },
+      "early_close_value_usd_long": 253.67742688169457,
+      "early_close_value_usd_long_ci95": [
+       -1473.476356660725,
+       1864.1298892332486
+      ],
+      "agent_closes_long": 14,
+      "early_close_value_usd_short": -4056.5253803283213,
+      "early_close_value_usd_short_ci95": [
+       -6917.466438375594,
+       -1112.6954946967815
+      ],
+      "agent_closes_short": 49,
+      "closer": {
+       "positioned_observable_bars": 1192,
+       "sl_first_rate": 0.2902684563758389,
+       "close_better_rate": 0.32466442953020136,
+       "fired_rate": 0.05285234899328859,
+       "precision_sl_first": 0.42857142857142855,
+       "recall_sl_first": 0.07803468208092486,
+       "auc_sl_first": 0.5254102953032974,
+       "auc_close_better": 0.4708267128894025
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 26,
+        "net_usd": -1108.7723980562223,
+        "sharpe_daily_sqrt365": -0.7585504949725791,
+        "positioned_bar_share": 0.057295029051000645
+       },
+       "short": {
+        "entries": 69,
+        "net_usd": 277.26186679963234,
+        "sharpe_daily_sqrt365": 0.19882911941946854,
+        "positioned_bar_share": 0.15316333118140735
+       }
+      },
+      "actual": {
+       "sharpe": -0.29120159912685906,
+       "net_usd": -831.5105312565902,
+       "trades": 95,
+       "orders_per_week": 1.8269230769230769,
+       "max_dd_pct": 25.420302740348966
+      },
+      "trade_level_hold_sum_usd": 2971.3374221900367,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": 0.698209051596983,
+       "net_usd": 1550.7012898062767,
+       "trades": 70,
+       "orders_per_week": 1.3461538461538463,
+       "max_dd_pct": 22.19747639973648,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": [
+       "HARMFUL_EARLY_CLOSE"
+      ]
+     }
+    },
+    "20261023": {
+     "INNER_B": {
+      "trades": 95,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 78,
+       "TP": 16,
+       "SL": 1
+      },
+      "agent_closes": 78,
+      "early_close_share": 0.8210526315789474,
+      "classes": {
+       "SAVED": 32,
+       "CUT_WINNER": 44,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.41025641025641024,
+       "CUT_WINNER": 0.5641025641025641,
+       "NEUTRAL": 0.02564102564102564
+      },
+      "early_close_value_usd": -2305.6392671908156,
+      "early_close_value_usd_ci95": [
+       -6001.098499540498,
+       1599.1006586206804
+      ],
+      "early_close_value_sigma": -11.706337200309683,
+      "early_close_value_sigma_ci95": [
+       -31.183682133876705,
+       9.00826067763584
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 31,
+       "SL": 16,
+       "FORCED_FLAT": 31
+      },
+      "early_close_value_usd_long": -452.3972139750266,
+      "early_close_value_usd_long_ci95": [
+       -2321.8146215667693,
+       1452.041261341195
+      ],
+      "agent_closes_long": 17,
+      "early_close_value_usd_short": -1853.2420532157896,
+      "early_close_value_usd_short_ci95": [
+       -5112.447404959098,
+       1235.7341681148746
+      ],
+      "agent_closes_short": 61,
+      "closer": {
+       "positioned_observable_bars": 599,
+       "sl_first_rate": 0.4257095158597663,
+       "close_better_rate": 0.39065108514190316,
+       "fired_rate": 0.1302170283806344,
+       "precision_sl_first": 0.5128205128205128,
+       "recall_sl_first": 0.1568627450980392,
+       "auc_sl_first": 0.6613771089831282,
+       "auc_close_better": 0.5950122936424306
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 23,
+        "net_usd": -654.3331973853418,
+        "sharpe_daily_sqrt365": -0.839446369331699,
+        "positioned_bar_share": 0.02775984506132989
+       },
+       "short": {
+        "entries": 72,
+        "net_usd": -1511.6228619384285,
+        "sharpe_daily_sqrt365": -1.5237296266555738,
+        "positioned_bar_share": 0.07408005164622337
+       }
+      },
+      "actual": {
+       "sharpe": -1.589612980552829,
+       "net_usd": -2165.9560593237684,
+       "trades": 95,
+       "orders_per_week": 1.8269230769230769,
+       "max_dd_pct": 22.858615187395152
+      },
+      "trade_level_hold_sum_usd": 139.68320786704544,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.1659265392853546,
+       "net_usd": -621.2728718751914,
+       "trades": 72,
+       "orders_per_week": 1.3846153846153846,
+       "max_dd_pct": 21.58560471471606,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "ensemble": {
+    "legacy": {
+     "arbiter": {
+      "arbiter": "prob",
+      "rate": 0.06,
+      "members": [
+       "prob",
+       "prob",
+       "prob",
+       "prob",
+       "prob"
+      ],
+      "rule": "most frequent frozen arbiter (ties -> prob); prob rate = median of the seeds' rates; tau re-derived on INNER_A",
+      "tau": 0.4441374856160815
+     },
+     "primary": true,
+     "INNER_B": {
+      "trades": 104,
+      "exits_by_reason": {
+       "AGENT_CLOSE": 79,
+       "FORCED_FLAT": 2,
+       "TP": 20,
+       "SL": 2,
+       "REVERSAL": 1
+      },
+      "agent_closes": 80,
+      "early_close_share": 0.7692307692307693,
+      "classes": {
+       "SAVED": 32,
+       "CUT_WINNER": 46,
+       "NEUTRAL": 2
+      },
+      "class_shares": {
+       "SAVED": 0.4,
+       "CUT_WINNER": 0.575,
+       "NEUTRAL": 0.025
+      },
+      "early_close_value_usd": -2817.2012060351512,
+      "early_close_value_usd_ci95": [
+       -6070.999650478409,
+       547.5379201825111
+      ],
+      "early_close_value_sigma": -13.470188259569348,
+      "early_close_value_sigma_ci95": [
+       -30.655032314325442,
+       4.248638008257587
+      ],
+      "cf_reason_of_agent_closes": {
+       "TP": 29,
+       "SL": 12,
+       "FORCED_FLAT": 39
+      },
+      "early_close_value_usd_long": -1161.2085120761233,
+      "early_close_value_usd_long_ci95": [
+       -3458.912965973726,
+       1159.5135813040743
+      ],
+      "agent_closes_long": 38,
+      "early_close_value_usd_short": -1655.9926939590282,
+      "early_close_value_usd_short_ci95": [
+       -3842.858731668256,
+       748.6111002284059
+      ],
+      "agent_closes_short": 42,
+      "closer": {
+       "positioned_observable_bars": 977,
+       "sl_first_rate": 0.4053224155578301,
+       "close_better_rate": 0.3991811668372569,
+       "fired_rate": 0.08188331627430911,
+       "precision_sl_first": 0.4875,
+       "recall_sl_first": 0.09848484848484848,
+       "auc_sl_first": 0.5648916010361793,
+       "auc_close_better": 0.5222251343205346
+      },
+      "direction_balance": {
+       "long": {
+        "entries": 50,
+        "net_usd": -2496.757230222917,
+        "sharpe_daily_sqrt365": -1.9770785864730624,
+        "positioned_bar_share": 0.07085216268560361
+       },
+       "short": {
+        "entries": 54,
+        "net_usd": -75.3803474450393,
+        "sharpe_daily_sqrt365": -0.09002933060991955,
+        "positioned_bar_share": 0.09635248547449968
+       }
+      },
+      "actual": {
+       "sharpe": -1.512130230742953,
+       "net_usd": -2572.137577667956,
+       "trades": 104,
+       "orders_per_week": 2.0,
+       "max_dd_pct": 31.088963317784035
+      },
+      "trade_level_hold_sum_usd": 245.06362836719472,
+      "trade_level_hold_note": "actual trades with every agent close replaced by its counterfactual hold; positions overlap: NOT executable",
+      "no_early_close_policy": {
+       "sharpe": -0.31586985163791115,
+       "net_usd": -993.0865160397079,
+       "trades": 74,
+       "orders_per_week": 1.4230769230769231,
+       "max_dd_pct": 28.448852903086973,
+       "agent_closes": 0,
+       "note": "the same frozen policy with every voluntary exit replaced by HOLD (executable, engine replay)"
+      },
+      "flags": []
+     }
+    }
+   },
+   "verification": {
+    "20261019/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261020/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261021/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261022/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "20261023/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "ensemble/INNER_B": {
+     "reproduces_run": true,
+     "checked": [
+      "sharpe_daily_sqrt365",
+      "net_profit_usd",
+      "max_drawdown_pct",
+      "trades",
+      "n_entries",
+      "n_close_TP",
+      "n_close_SL",
+      "n_close_FORCED_FLAT",
+      "n_close_AGENT_CLOSE",
+      "n_close_REVERSAL"
+     ]
+    },
+    "all_replays_reproduce_run": true
+   },
+   "seeds": [
+    "20261019",
+    "20261020",
+    "20261021",
+    "20261022",
+    "20261023"
+   ]
+  }
+ }
+}
