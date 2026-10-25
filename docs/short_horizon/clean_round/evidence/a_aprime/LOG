@@ -1,0 +1,18 @@
+2026-10-24T21:55:15Z [A] zz_hold DONE
+2026-10-24T22:03:58Z [A] zz_hold_shorter FAILED
+2026-10-24T22:30:17Z [A] opp_hold DONE
+2026-10-24T22:55:12Z [A] opp_optimum DONE
+2026-10-24T23:26:10Z [A] both_hold DONE
+2026-10-24T23:39:04Z [A] both_hold_shorter FAILED
+2026-10-24T23:50:48Z [A] opp_hold_shorter FAILED
+2026-10-24T23:50:48Z [A] STAGE_A_DONE
+2026-10-25T01:25:46Z [A] zz_hold_shorter not admitted (try 1)
+2026-10-25T01:28:03Z [A] rerun of the three stopped arms NOT_RUNNABLE_ON_THIS_HOST: 9G queued on HOST_HEADROOM (host_free_for_new 8.57 GB), 7G refused CAP_LOWERED_AFTER_REFUSAL by the admission store; rerun driver stopped by lane L4; stage A_prime launched alone
+2026-10-25T01:57:23Z [A_prime] multires_default DONE
+2026-10-25T02:23:34Z [A_prime] multires_deap DONE
+2026-10-25T02:59:47Z [A_prime] multires_deap_weighted DONE
+2026-10-25T02:59:47Z [A_prime] STAGE_A_prime_DONE
+2026-10-25T03:55:20Z [A-shorter-10G] zz_hold_shorter DONE
+2026-10-25T04:52:00Z [A-shorter-10G] both_hold_shorter DONE
+2026-10-25T05:34:35Z [A-shorter-10G] opp_hold_shorter DONE
+2026-10-25T05:34:35Z [A-shorter-10G] STAGE_A_DONE

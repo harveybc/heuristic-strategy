@@ -1,0 +1,1925 @@
+{
+ "stages": [
+  "A",
+  "A_prime"
+ ],
+ "recipe": {
+  "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/CONSUMER_RECIPE.json",
+  "identity": "recipe_5a8f2155318ba7c7",
+  "sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+  "accepted_by": "Musashi, MUSASHI_SHARED_RECIPE_REREVIEW_AND_NEXT_LANES_2026_10_24.md (predictor codex/data-coverage-repair-20261018 @1e507f14), document sha256 9d555c87e8649e0c...",
+  "exporter": "tools/expert_guided_consumer_recipe.py v2 incl. Musashi's replay-binding fix 338551a",
+  "probe_reference": "evidence/a1/PROBE_a1_reference.json"
+ },
+ "arms": [
+  {
+   "arm": "zz_hold",
+   "stage": "A",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 2.7144235696346635,
+      "max_dd_pct": 12.416933452355918,
+      "orders_per_week": 3.7650273224043715,
+      "win_rate": 0.4426705370101596,
+      "trades": 689,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 0.41664901494095985,
+      "max_dd_pct": 8.289433460882963,
+      "orders_per_week": 3.4074074074074074,
+      "win_rate": 0.33695652173913043,
+      "trades": 92,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": 0.0368620429661027,
+      "max_dd_pct": 8.552357049999864,
+      "orders_per_week": 3.7169811320754715,
+      "win_rate": 0.37055837563451777,
+      "trades": 197,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 2.839075798697294,
+      "max_dd_pct": 11.07084230466818,
+      "orders_per_week": 2.622950819672131,
+      "win_rate": 0.4875,
+      "trades": 480,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 2.5084064855752444,
+      "max_dd_pct": 4.637036186388684,
+      "orders_per_week": 2.5555555555555554,
+      "win_rate": 0.463768115942029,
+      "trades": 69,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": 0.1552066789078012,
+      "max_dd_pct": 9.935903664834536,
+      "orders_per_week": 2.7547169811320753,
+      "win_rate": 0.3835616438356164,
+      "trades": 146,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 1.8046085303839494,
+      "max_dd_pct": 11.77235300850102,
+      "orders_per_week": 4.027322404371585,
+      "win_rate": 0.4450474898236092,
+      "trades": 737,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 0.47551401404939375,
+      "max_dd_pct": 8.784322642155459,
+      "orders_per_week": 3.7037037037037037,
+      "win_rate": 0.39,
+      "trades": 100,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.8969097529579916,
+      "max_dd_pct": 16.883285875690834,
+      "orders_per_week": 3.9245283018867925,
+      "win_rate": 0.33653846153846156,
+      "trades": 208,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": 1.1335231715218659,
+   "inner_a_std": 0.9724862869562084,
+   "train_mean": 2.4527026329053023,
+   "gap_mean": 1.3191794613834364,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "6G",
+   "wall_seconds": 1870.6410529613495,
+   "labels_mode": "zigzag",
+   "labels_thresholds": null,
+   "weights_in_loss": false,
+   "labels_profile": null,
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "zz_hold_shorter",
+   "stage": "A",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 2.0112727558313264,
+      "max_dd_pct": 13.703333418156891,
+      "orders_per_week": 3.289617486338798,
+      "win_rate": 0.4368770764119601,
+      "trades": 602,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -1.880757095341954,
+      "max_dd_pct": 11.086379053680922,
+      "orders_per_week": 3.0,
+      "win_rate": 0.2716049382716049,
+      "trades": 81,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.9392164781695092,
+      "max_dd_pct": 11.484730228559007,
+      "orders_per_week": 2.7169811320754715,
+      "win_rate": 0.3472222222222222,
+      "trades": 144,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 1.7616676611637998,
+      "max_dd_pct": 12.421533633485227,
+      "orders_per_week": 4.273224043715847,
+      "win_rate": 0.42071611253196933,
+      "trades": 782,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 1.2701095699400116,
+      "max_dd_pct": 7.430028619716395,
+      "orders_per_week": 3.7037037037037037,
+      "win_rate": 0.38,
+      "trades": 100,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.7214325751359069,
+      "max_dd_pct": 17.09139719863259,
+      "orders_per_week": 3.9245283018867925,
+      "win_rate": 0.34134615384615385,
+      "trades": 208,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 1.5434093835324607,
+      "max_dd_pct": 8.445964608305507,
+      "orders_per_week": 2.5081967213114753,
+      "win_rate": 0.45098039215686275,
+      "trades": 459,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -1.094914701118808,
+      "max_dd_pct": 10.258281402449349,
+      "orders_per_week": 2.5925925925925926,
+      "win_rate": 0.38571428571428573,
+      "trades": 70,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.7476870906476192,
+      "max_dd_pct": 19.843199097125627,
+      "orders_per_week": 2.2264150943396226,
+      "win_rate": 0.423728813559322,
+      "trades": 118,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": -0.5685207421735835,
+   "inner_a_std": 1.339106203307961,
+   "train_mean": 1.7721166001758624,
+   "gap_mean": 2.3406373423494458,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "10G (after host restart; 6G run stopped)",
+   "wall_seconds": 3328.0730361938477,
+   "labels_mode": "zigzag",
+   "labels_thresholds": null,
+   "weights_in_loss": false,
+   "labels_profile": null,
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "opp_hold",
+   "stage": "A",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 3.815791924749584,
+      "max_dd_pct": 9.967560717251493,
+      "orders_per_week": 4.387978142076503,
+      "win_rate": 0.539227895392279,
+      "trades": 803,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 1.7095049447384087,
+      "max_dd_pct": 5.765574457673431,
+      "orders_per_week": 3.7777777777777777,
+      "win_rate": 0.5,
+      "trades": 102,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.9987041531164664,
+      "max_dd_pct": 23.050433476995895,
+      "orders_per_week": 4.2075471698113205,
+      "win_rate": 0.38565022421524664,
+      "trades": 223,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 3.7241851083493884,
+      "max_dd_pct": 8.737427915218968,
+      "orders_per_week": 2.5901639344262297,
+      "win_rate": 0.5527426160337553,
+      "trades": 474,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.14451664988384494,
+      "max_dd_pct": 8.912234545558688,
+      "orders_per_week": 2.1481481481481484,
+      "win_rate": 0.43103448275862066,
+      "trades": 58,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.0412691562877356,
+      "max_dd_pct": 19.161472189266775,
+      "orders_per_week": 2.849056603773585,
+      "win_rate": 0.3576158940397351,
+      "trades": 151,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 2.1677103842332266,
+      "max_dd_pct": 15.140042071050688,
+      "orders_per_week": 4.136612021857924,
+      "win_rate": 0.4663143989431968,
+      "trades": 757,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -1.1582748328201486,
+      "max_dd_pct": 13.092086452384821,
+      "orders_per_week": 3.5555555555555554,
+      "win_rate": 0.375,
+      "trades": 96,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -2.0556588996884853,
+      "max_dd_pct": 38.74738371065462,
+      "orders_per_week": 3.9622641509433962,
+      "win_rate": 0.3333333333333333,
+      "trades": 210,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": 0.1355711540114717,
+   "inner_a_std": 1.1873997070803155,
+   "train_mean": 3.2358958057773997,
+   "gap_mean": 3.100324651765928,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "6G",
+   "wall_seconds": 1544.0621161460876,
+   "labels_mode": "opportunity",
+   "labels_thresholds": null,
+   "weights_in_loss": false,
+   "labels_profile": null,
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "opp_optimum",
+   "stage": "A",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 1.679129457687165,
+      "max_dd_pct": 8.372581487446672,
+      "orders_per_week": 2.797814207650273,
+      "win_rate": 0.435546875,
+      "trades": 512,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.4336665249464729,
+      "max_dd_pct": 8.51890128494369,
+      "orders_per_week": 2.5925925925925926,
+      "win_rate": 0.34285714285714286,
+      "trades": 70,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": 0.6595927100542796,
+      "max_dd_pct": 6.243355353718976,
+      "orders_per_week": 2.339622641509434,
+      "win_rate": 0.4112903225806452,
+      "trades": 124,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 1.946133074074615,
+      "max_dd_pct": 9.983228093661795,
+      "orders_per_week": 2.939890710382514,
+      "win_rate": 0.44052044609665425,
+      "trades": 538,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 0.9557865297458992,
+      "max_dd_pct": 5.958995592318847,
+      "orders_per_week": 2.5555555555555554,
+      "win_rate": 0.391304347826087,
+      "trades": 69,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.0817433403345382,
+      "max_dd_pct": 14.133810419123622,
+      "orders_per_week": 2.981132075471698,
+      "win_rate": 0.36075949367088606,
+      "trades": 158,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 1.5445323376559428,
+      "max_dd_pct": 11.967313964475903,
+      "orders_per_week": 2.737704918032787,
+      "win_rate": 0.42714570858283435,
+      "trades": 501,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.2755015793694076,
+      "max_dd_pct": 6.116113408920991,
+      "orders_per_week": 2.037037037037037,
+      "win_rate": 0.36363636363636365,
+      "trades": 55,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.3650006165610833,
+      "max_dd_pct": 13.322512037096216,
+      "orders_per_week": 2.3773584905660377,
+      "win_rate": 0.38095238095238093,
+      "trades": 126,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": 0.08220614181000623,
+   "inner_a_std": 0.6210802729341932,
+   "train_mean": 1.7232649564725742,
+   "gap_mean": 1.641058814662568,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "6G",
+   "wall_seconds": 1491.8019335269928,
+   "labels_mode": "opportunity",
+   "labels_thresholds": null,
+   "weights_in_loss": false,
+   "labels_profile": null,
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "both_hold",
+   "stage": "A",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 2.7807261696004555,
+      "max_dd_pct": 13.58402768663233,
+      "orders_per_week": 3.5027322404371586,
+      "win_rate": 0.48829953198127923,
+      "trades": 641,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 2.863526652517018,
+      "max_dd_pct": 3.407435408267985,
+      "orders_per_week": 2.925925925925926,
+      "win_rate": 0.4936708860759494,
+      "trades": 79,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.439726279783647,
+      "max_dd_pct": 22.60768035066885,
+      "orders_per_week": 3.0754716981132075,
+      "win_rate": 0.3987730061349693,
+      "trades": 163,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 2.9484206619175493,
+      "max_dd_pct": 14.134854743516948,
+      "orders_per_week": 2.4863387978142075,
+      "win_rate": 0.5296703296703297,
+      "trades": 455,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 0.02331866614725232,
+      "max_dd_pct": 5.145493544316677,
+      "orders_per_week": 2.0,
+      "win_rate": 0.46296296296296297,
+      "trades": 54,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.0988545100829104,
+      "max_dd_pct": 17.901763814913306,
+      "orders_per_week": 2.5283018867924527,
+      "win_rate": 0.417910447761194,
+      "trades": 134,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 2.333370284767245,
+      "max_dd_pct": 14.990688463401183,
+      "orders_per_week": 3.633879781420765,
+      "win_rate": 0.4616541353383459,
+      "trades": 665,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 1.5514049953966895,
+      "max_dd_pct": 6.182568901446894,
+      "orders_per_week": 2.925925925925926,
+      "win_rate": 0.4430379746835443,
+      "trades": 79,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.9268522208770675,
+      "max_dd_pct": 21.335413665405127,
+      "orders_per_week": 3.5849056603773586,
+      "win_rate": 0.4,
+      "trades": 190,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": 1.4794167713536532,
+   "inner_a_std": 1.160626865034668,
+   "train_mean": 2.6875057054284164,
+   "gap_mean": 1.2080889340747631,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "6G",
+   "wall_seconds": 1853.7525718212128,
+   "labels_mode": "both",
+   "labels_thresholds": null,
+   "weights_in_loss": false,
+   "labels_profile": null,
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "both_hold_shorter",
+   "stage": "A",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 2.6168533872192974,
+      "max_dd_pct": 10.616092592351455,
+      "orders_per_week": 3.2841530054644807,
+      "win_rate": 0.49916805324459235,
+      "trades": 601,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 1.7022117574677544,
+      "max_dd_pct": 7.043545043065573,
+      "orders_per_week": 2.814814814814815,
+      "win_rate": 0.4605263157894737,
+      "trades": 76,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.007691812128589576,
+      "max_dd_pct": 14.729505310052563,
+      "orders_per_week": 3.1320754716981134,
+      "win_rate": 0.4036144578313253,
+      "trades": 166,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 2.889851139081478,
+      "max_dd_pct": 11.786602399711093,
+      "orders_per_week": 3.726775956284153,
+      "win_rate": 0.501466275659824,
+      "trades": 682,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 3.0916980653345925,
+      "max_dd_pct": 5.074668892972483,
+      "orders_per_week": 3.3703703703703702,
+      "win_rate": 0.5274725274725275,
+      "trades": 91,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.8994068236916379,
+      "max_dd_pct": 19.793699822170645,
+      "orders_per_week": 3.7169811320754715,
+      "win_rate": 0.4010152284263959,
+      "trades": 197,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 3.6061434225240654,
+      "max_dd_pct": 8.71734860249059,
+      "orders_per_week": 3.6721311475409837,
+      "win_rate": 0.5252976190476191,
+      "trades": 672,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.1183410995767066,
+      "max_dd_pct": 6.325087564038298,
+      "orders_per_week": 3.0,
+      "win_rate": 0.3950617283950617,
+      "trades": 81,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.3050917820046721,
+      "max_dd_pct": 19.548925488080798,
+      "orders_per_week": 3.339622641509434,
+      "win_rate": 0.3446327683615819,
+      "trades": 177,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": 1.55852290774188,
+   "inner_a_std": 1.3144257869801972,
+   "train_mean": 3.0376159829416136,
+   "gap_mean": 1.4790930751997335,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "10G (after host restart; 6G run stopped)",
+   "wall_seconds": 3395.5840137004852,
+   "labels_mode": "both",
+   "labels_thresholds": null,
+   "weights_in_loss": false,
+   "labels_profile": null,
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "opp_hold_shorter",
+   "stage": "A",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 3.492998917423786,
+      "max_dd_pct": 11.611445919295955,
+      "orders_per_week": 3.180327868852459,
+      "win_rate": 0.5549828178694158,
+      "trades": 582,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 1.0128471432754,
+      "max_dd_pct": 6.626241887024544,
+      "orders_per_week": 2.814814814814815,
+      "win_rate": 0.4473684210526316,
+      "trades": 76,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -2.9017156333564924,
+      "max_dd_pct": 35.245575167384125,
+      "orders_per_week": 3.0943396226415096,
+      "win_rate": 0.3231707317073171,
+      "trades": 164,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 3.1347666461906463,
+      "max_dd_pct": 12.480971220547286,
+      "orders_per_week": 3.628415300546448,
+      "win_rate": 0.516566265060241,
+      "trades": 664,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 0.7360768740191851,
+      "max_dd_pct": 12.051423380697562,
+      "orders_per_week": 3.2962962962962963,
+      "win_rate": 0.47191011235955055,
+      "trades": 89,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.6673373689429245,
+      "max_dd_pct": 27.531357919699445,
+      "orders_per_week": 3.2830188679245285,
+      "win_rate": 0.3735632183908046,
+      "trades": 174,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 3.114184035483537,
+      "max_dd_pct": 17.00322206934059,
+      "orders_per_week": 2.6721311475409837,
+      "win_rate": 0.5173824130879345,
+      "trades": 489,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": 1.2222054446651005,
+      "max_dd_pct": 7.6457216207092324,
+      "orders_per_week": 2.2962962962962963,
+      "win_rate": 0.41935483870967744,
+      "trades": 62,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.8288750750164313,
+      "max_dd_pct": 26.346757914768542,
+      "orders_per_week": 1.9622641509433962,
+      "win_rate": 0.33653846153846156,
+      "trades": 104,
+      "valid": false
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": 0.9903764873198952,
+   "inner_a_std": 0.19909619883172588,
+   "train_mean": 3.2473165330326563,
+   "gap_mean": 2.256940045712761,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "10G (after host restart; 6G run stopped)",
+   "wall_seconds": 2550.776654958725,
+   "labels_mode": "opportunity",
+   "labels_thresholds": null,
+   "weights_in_loss": false,
+   "labels_profile": null,
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "multires_default",
+   "stage": "A_prime",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 2.5079432194411866,
+      "max_dd_pct": 13.554800192470259,
+      "orders_per_week": 3.6885245901639343,
+      "win_rate": 0.4785185185185185,
+      "trades": 675,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -1.666405482339271,
+      "max_dd_pct": 9.000070727949712,
+      "orders_per_week": 3.037037037037037,
+      "win_rate": 0.25609756097560976,
+      "trades": 82,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": 0.17528399102731182,
+      "max_dd_pct": 11.137622946539045,
+      "orders_per_week": 3.792452830188679,
+      "win_rate": 0.3482587064676617,
+      "trades": 201,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 1.8595050368766117,
+      "max_dd_pct": 9.723070483115153,
+      "orders_per_week": 4.46448087431694,
+      "win_rate": 0.423500611995104,
+      "trades": 817,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.6002245894621432,
+      "max_dd_pct": 5.669889694014843,
+      "orders_per_week": 3.740740740740741,
+      "win_rate": 0.297029702970297,
+      "trades": 101,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.2805951748203936,
+      "max_dd_pct": 13.68088276305689,
+      "orders_per_week": 4.150943396226415,
+      "win_rate": 0.31363636363636366,
+      "trades": 220,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 0.9612602745559358,
+      "max_dd_pct": 17.540015103411395,
+      "orders_per_week": 2.5737704918032787,
+      "win_rate": 0.4267515923566879,
+      "trades": 471,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -1.4686692345878734,
+      "max_dd_pct": 10.049202589173085,
+      "orders_per_week": 2.1481481481481484,
+      "win_rate": 0.3620689655172414,
+      "trades": 58,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -0.7265648730770152,
+      "max_dd_pct": 10.166983231235516,
+      "orders_per_week": 2.207547169811321,
+      "win_rate": 0.358974358974359,
+      "trades": 117,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": -1.2450997687964291,
+   "inner_a_std": 0.46308595574311484,
+   "train_mean": 1.7762361769579114,
+   "gap_mean": 3.0213359457543403,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "7G",
+   "wall_seconds": 1754.8122639656067,
+   "labels_mode": "multires",
+   "labels_thresholds": {
+    "theta_f": 0.5,
+    "theta_mae": 0.5,
+    "theta_vol": 0.25,
+    "theta_close": 0.1,
+    "f_close_take": 0.9,
+    "min_votes": 1
+   },
+   "weights_in_loss": false,
+   "labels_profile": {
+    "TRAIN": {
+     "period": "TRAIN",
+     "rows": 15485,
+     "censored": 22,
+     "kinds": {
+      "nop_hard": 8114,
+      "negative": 1738,
+      "conflict": 85,
+      "nop_graded": 1794,
+      "open": 3732
+     },
+     "classes": {
+      "nop": 11731,
+      "open_long": 1854,
+      "open_short": 1878
+     },
+     "weight_mean": {
+      "nop_hard": 1.0,
+      "negative": 0.4807607487687199,
+      "conflict": 0.2730086629356017,
+      "nop_graded": 0.611496890891824,
+      "open": 0.7727286359536586
+     },
+     "fitness_p10_p50_p90": [
+      -0.5230254264563562,
+      0.5714285714287225,
+      0.917170900914992
+     ],
+     "closer": {
+      "long": {
+       "CLOSE": 6552,
+       "HOLD": 8933,
+       "censored": 0
+      },
+      "short": {
+       "CLOSE": 6771,
+       "HOLD": 8705,
+       "censored": 9
+      }
+     }
+    },
+    "INNER_A": {
+     "period": "INNER_A",
+     "rows": 2055,
+     "censored": 6,
+     "kinds": {
+      "nop_hard": 1128,
+      "negative": 207,
+      "conflict": 9,
+      "nop_graded": 222,
+      "open": 483
+     },
+     "classes": {
+      "nop": 1566,
+      "open_long": 228,
+      "open_short": 255
+     },
+     "weight_mean": {
+      "nop_hard": 1.0,
+      "negative": 0.5016519306724236,
+      "conflict": 0.38918643024272026,
+      "nop_graded": 0.5892814623271061,
+      "open": 0.783318647905981
+     },
+     "fitness_p10_p50_p90": [
+      -0.5612244897959128,
+      0.6157894736841503,
+      0.9239130434782458
+     ],
+     "closer": {
+      "long": {
+       "CLOSE": 932,
+       "HOLD": 1121,
+       "censored": 2
+      },
+      "short": {
+       "CLOSE": 876,
+       "HOLD": 1179,
+       "censored": 0
+      }
+     }
+    }
+   },
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "multires_deap",
+   "stage": "A_prime",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 3.2484777412332204,
+      "max_dd_pct": 7.336466931234027,
+      "orders_per_week": 4.60655737704918,
+      "win_rate": 0.5409252669039146,
+      "trades": 843,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.8399673561554843,
+      "max_dd_pct": 11.803925954913666,
+      "orders_per_week": 3.962962962962963,
+      "win_rate": 0.45794392523364486,
+      "trades": 107,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": 0.983523529215128,
+      "max_dd_pct": 7.046672473964942,
+      "orders_per_week": 4.566037735849057,
+      "win_rate": 0.45454545454545453,
+      "trades": 242,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 2.164367828682275,
+      "max_dd_pct": 20.581181206403095,
+      "orders_per_week": 4.584699453551913,
+      "win_rate": 0.5196662693682956,
+      "trades": 839,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.2759041372269323,
+      "max_dd_pct": 10.390153190189238,
+      "orders_per_week": 3.8518518518518516,
+      "win_rate": 0.4423076923076923,
+      "trades": 104,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.017788313201545,
+      "max_dd_pct": 11.867476525156153,
+      "orders_per_week": 4.433962264150943,
+      "win_rate": 0.4340425531914894,
+      "trades": 235,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 2.56501194567384,
+      "max_dd_pct": 11.321592471688737,
+      "orders_per_week": 3.546448087431694,
+      "win_rate": 0.5439137134052389,
+      "trades": 649,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.9127612047560342,
+      "max_dd_pct": 12.570447072250545,
+      "orders_per_week": 3.074074074074074,
+      "win_rate": 0.5060240963855421,
+      "trades": 83,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.9417327078528606,
+      "max_dd_pct": 18.734500601490772,
+      "orders_per_week": 3.2641509433962264,
+      "win_rate": 0.41040462427745666,
+      "trades": 173,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": -0.6762108993794836,
+   "inner_a_std": 0.2846153708279701,
+   "train_mean": 2.6592858385297786,
+   "gap_mean": 3.335496737909262,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "7G",
+   "wall_seconds": 1566.7680349349976,
+   "labels_mode": "multires",
+   "labels_thresholds": {
+    "theta_f": 0.5905,
+    "theta_mae": 0.2339,
+    "theta_vol": 0.556,
+    "theta_close": 0.0847,
+    "f_close_take": 0.6031,
+    "min_votes": 1
+   },
+   "weights_in_loss": false,
+   "labels_profile": {
+    "TRAIN": {
+     "period": "TRAIN",
+     "rows": 15485,
+     "censored": 22,
+     "kinds": {
+      "nop_hard": 8114,
+      "negative": 1738,
+      "conflict": 85,
+      "nop_graded": 3430,
+      "open": 2096
+     },
+     "classes": {
+      "nop": 13367,
+      "open_long": 1048,
+      "open_short": 1048
+     },
+     "weight_mean": {
+      "nop_hard": 1.0,
+      "negative": 0.4807607487687199,
+      "conflict": 0.2730086629356017,
+      "nop_graded": 0.4605058374647626,
+      "open": 0.8229651985177471
+     },
+     "fitness_p10_p50_p90": [
+      -0.5230254264563562,
+      0.5714285714287225,
+      0.917170900914992
+     ],
+     "closer": {
+      "long": {
+       "CLOSE": 9958,
+       "HOLD": 5527,
+       "censored": 0
+      },
+      "short": {
+       "CLOSE": 10059,
+       "HOLD": 5417,
+       "censored": 9
+      }
+     }
+    },
+    "INNER_A": {
+     "period": "INNER_A",
+     "rows": 2055,
+     "censored": 6,
+     "kinds": {
+      "nop_hard": 1128,
+      "negative": 207,
+      "conflict": 9,
+      "nop_graded": 453,
+      "open": 252
+     },
+     "classes": {
+      "nop": 1797,
+      "open_long": 118,
+      "open_short": 134
+     },
+     "weight_mean": {
+      "nop_hard": 1.0,
+      "negative": 0.5016519306724236,
+      "conflict": 0.38918643024272026,
+      "nop_graded": 0.4266912965628758,
+      "open": 0.8294095821369192
+     },
+     "fitness_p10_p50_p90": [
+      -0.5612244897959128,
+      0.6157894736841503,
+      0.9239130434782458
+     ],
+     "closer": {
+      "long": {
+       "CLOSE": 1361,
+       "HOLD": 692,
+       "censored": 2
+      },
+      "short": {
+       "CLOSE": 1278,
+       "HOLD": 777,
+       "censored": 0
+      }
+     }
+    }
+   },
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  },
+  {
+   "arm": "multires_deap_weighted",
+   "stage": "A_prime",
+   "seeds": {
+    "20261019": {
+     "TRAIN": {
+      "sharpe": 2.508578564199635,
+      "max_dd_pct": 14.801911481383968,
+      "orders_per_week": 4.26775956284153,
+      "win_rate": 0.5108834827144686,
+      "trades": 781,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -0.707688634755989,
+      "max_dd_pct": 7.1760498983111765,
+      "orders_per_week": 3.4074074074074074,
+      "win_rate": 0.42391304347826086,
+      "trades": 92,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.1647674315615741,
+      "max_dd_pct": 14.851117034928157,
+      "orders_per_week": 4.056603773584905,
+      "win_rate": 0.413953488372093,
+      "trades": 215,
+      "valid": true
+     }
+    },
+    "20261020": {
+     "TRAIN": {
+      "sharpe": 2.504834978640893,
+      "max_dd_pct": 7.194976727763402,
+      "orders_per_week": 4.612021857923497,
+      "win_rate": 0.5165876777251185,
+      "trades": 844,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -2.259365403999858,
+      "max_dd_pct": 14.189449732548612,
+      "orders_per_week": 4.222222222222222,
+      "win_rate": 0.3684210526315789,
+      "trades": 114,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.2566872262290796,
+      "max_dd_pct": 15.768903748716948,
+      "orders_per_week": 4.547169811320755,
+      "win_rate": 0.42738589211618255,
+      "trades": 241,
+      "valid": true
+     }
+    },
+    "20261021": {
+     "TRAIN": {
+      "sharpe": 2.324423441911687,
+      "max_dd_pct": 8.738904077577995,
+      "orders_per_week": 4.46448087431694,
+      "win_rate": 0.5177478580171359,
+      "trades": 817,
+      "valid": true
+     },
+     "INNER_A": {
+      "sharpe": -1.103394775581003,
+      "max_dd_pct": 7.254977302293004,
+      "orders_per_week": 3.814814814814815,
+      "win_rate": 0.47572815533980584,
+      "trades": 103,
+      "valid": true
+     },
+     "OBS_2024": {
+      "sharpe": -1.3470509032076117,
+      "max_dd_pct": 20.11497028430607,
+      "orders_per_week": 4.339622641509434,
+      "win_rate": 0.4,
+      "trades": 230,
+      "valid": true
+     }
+    }
+   },
+   "n_seeds": 3,
+   "inner_a_mean": -1.3568162714456167,
+   "inner_a_std": 0.658327193208902,
+   "train_mean": 2.4459456615840716,
+   "gap_mean": 3.8027619330296885,
+   "all_valid": true,
+   "params": 5460,
+   "memory_cap": "7G (rerun after host restart)",
+   "wall_seconds": 1560.5086271762848,
+   "labels_mode": "multires",
+   "labels_thresholds": {
+    "theta_f": 0.5905,
+    "theta_mae": 0.2339,
+    "theta_vol": 0.556,
+    "theta_close": 0.0847,
+    "f_close_take": 0.6031,
+    "min_votes": 1
+   },
+   "weights_in_loss": true,
+   "labels_profile": {
+    "TRAIN": {
+     "period": "TRAIN",
+     "rows": 15485,
+     "censored": 22,
+     "kinds": {
+      "nop_hard": 8114,
+      "negative": 1738,
+      "conflict": 85,
+      "nop_graded": 3430,
+      "open": 2096
+     },
+     "classes": {
+      "nop": 13367,
+      "open_long": 1048,
+      "open_short": 1048
+     },
+     "weight_mean": {
+      "nop_hard": 1.0,
+      "negative": 0.4807607487687199,
+      "conflict": 0.2730086629356017,
+      "nop_graded": 0.4605058374647626,
+      "open": 0.8229651985177471
+     },
+     "fitness_p10_p50_p90": [
+      -0.5230254264563562,
+      0.5714285714287225,
+      0.917170900914992
+     ],
+     "closer": {
+      "long": {
+       "CLOSE": 9958,
+       "HOLD": 5527,
+       "censored": 0
+      },
+      "short": {
+       "CLOSE": 10059,
+       "HOLD": 5417,
+       "censored": 9
+      }
+     }
+    },
+    "INNER_A": {
+     "period": "INNER_A",
+     "rows": 2055,
+     "censored": 6,
+     "kinds": {
+      "nop_hard": 1128,
+      "negative": 207,
+      "conflict": 9,
+      "nop_graded": 453,
+      "open": 252
+     },
+     "classes": {
+      "nop": 1797,
+      "open_long": 118,
+      "open_short": 134
+     },
+     "weight_mean": {
+      "nop_hard": 1.0,
+      "negative": 0.5016519306724236,
+      "conflict": 0.38918643024272026,
+      "nop_graded": 0.4266912965628758,
+      "open": 0.8294095821369192
+     },
+     "fitness_p10_p50_p90": [
+      -0.5612244897959128,
+      0.6157894736841503,
+      0.9239130434782458
+     ],
+     "closer": {
+      "long": {
+       "CLOSE": 1361,
+       "HOLD": 692,
+       "censored": 2
+      },
+      "short": {
+       "CLOSE": 1278,
+       "HOLD": 777,
+       "censored": 0
+      }
+     }
+    }
+   },
+   "verification": {
+    "recipe_identity": "recipe_5a8f2155318ba7c7",
+    "recipe_sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+    "agent_state_mode": "none",
+    "verify": true,
+    "support_hash": {
+     "TRAIN": "fa480f4e00514304",
+     "INNER_A": "f1c592d53da55019",
+     "OBS_2024": "3364cd2677e7771a"
+    },
+    "rows_eligible": {
+     "TRAIN": 15485,
+     "INNER_A": 2055,
+     "OBS_2024": 4379
+    },
+    "probe_rows_ts": [
+     1688374800000000000,
+     1690297200000000000,
+     1692198000000000000,
+     1694458800000000000,
+     1696446000000000000,
+     1698346800000000000,
+     1700510400000000000,
+     1703833200000000000
+    ]
+   }
+  }
+ ],
+ "rankings": {
+  "A": {
+   "rule": "3-seed mean INNER_A Sharpe among arms with all seeds valid; ties -> fewer params, then the control; OBS_2024 never consulted",
+   "control": "zz_hold",
+   "order": [
+    "both_hold_shorter",
+    "both_hold",
+    "zz_hold",
+    "opp_hold_shorter",
+    "opp_hold",
+    "opp_optimum",
+    "zz_hold_shorter"
+   ],
+   "chosen": "both_hold_shorter",
+   "margin_over_second": 0.07910613638822683,
+   "pooled_seed_std": 0.9706030458750384
+  },
+  "A_prime": {
+   "rule": "3-seed mean INNER_A Sharpe among arms with all seeds valid; ties -> fewer params, then the control; OBS_2024 never consulted",
+   "control": "zz_hold",
+   "order": [
+    "zz_hold",
+    "multires_deap",
+    "multires_default",
+    "multires_deap_weighted"
+   ],
+   "chosen": "zz_hold",
+   "margin_over_second": 1.8097340709013494,
+   "pooled_seed_std": 0.5946287016840488
+  },
+  "JOINT": {
+   "rule": "3-seed mean INNER_A Sharpe among arms with all seeds valid; ties -> fewer params, then the control; OBS_2024 never consulted",
+   "control": "zz_hold",
+   "order": [
+    "both_hold_shorter",
+    "both_hold",
+    "zz_hold",
+    "opp_hold_shorter",
+    "opp_hold",
+    "opp_optimum",
+    "zz_hold_shorter",
+    "multires_deap",
+    "multires_default",
+    "multires_deap_weighted"
+   ],
+   "chosen": "both_hold_shorter",
+   "margin_over_second": 0.07910613638822683,
+   "pooled_seed_std": 0.8200249840905256
+  }
+ },
+ "verification": {
+  "recipe_identity_ok": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "recipe_sha_ok": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "agent_state_ok": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "verify_ok": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "support_identical": true,
+  "probe_rows_identical": true,
+  "deviations": [],
+  "all_ok": true,
+  "support_hash": {
+   "TRAIN": "fa480f4e00514304",
+   "INNER_A": "f1c592d53da55019",
+   "OBS_2024": "3364cd2677e7771a"
+  }
+ },
+ "closure": [
+  {
+   "arm": "zz_hold_shorter",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 1.77 (3-seed mean; seeds 2.01, 1.76, 1.54) / DD 11.5 % / 3.4 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.68 (pooled seed std 1.16)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "zz_hold_shorter",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -0.57 (3-seed mean; seeds -1.88, 1.27, -1.09) / DD 9.6 % / 3.1 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe -1.70 (pooled seed std 1.16)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "zz_hold_shorter",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -0.80 (3-seed mean; seeds -0.94, -0.72, -0.75) / DD 16.1 % / 3.0 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.57 (pooled seed std 1.16)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "opp_hold",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 3.24 (3-seed mean; seeds 3.82, 3.72, 2.17) / DD 11.3 % / 3.7 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe +0.78 (pooled seed std 1.08)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "opp_hold",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 0.14 (3-seed mean; seeds 1.71, -0.14, -1.16) / DD 9.3 % / 3.2 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe -1.00 (pooled seed std 1.08)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "opp_hold",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -1.37 (3-seed mean; seeds -1.00, -1.04, -2.06) / DD 27.0 % / 3.7 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -1.13 (pooled seed std 1.08)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "opp_optimum",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 1.72 (3-seed mean; seeds 1.68, 1.95, 1.54) / DD 10.1 % / 2.8 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.73 (pooled seed std 0.80)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "opp_optimum",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 0.08 (3-seed mean; seeds -0.43, 0.96, -0.28) / DD 6.9 % / 2.4 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe -1.05 (pooled seed std 0.80)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "opp_optimum",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -0.60 (3-seed mean; seeds 0.66, -1.08, -1.37) / DD 11.2 % / 2.6 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.36 (pooled seed std 0.80)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "both_hold",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 2.69 (3-seed mean; seeds 2.78, 2.95, 2.33) / DD 14.2 % / 3.2 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe +0.23 (pooled seed std 1.07)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "both_hold",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 1.48 (3-seed mean; seeds 2.86, 0.02, 1.55) / DD 4.9 % / 2.6 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe +0.35 (pooled seed std 1.07)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "both_hold",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -1.16 (3-seed mean; seeds -1.44, -1.10, -0.93) / DD 20.6 % / 3.1 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.92 (pooled seed std 1.07)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "both_hold_shorter",
+   "chosen": true,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 3.04 (3-seed mean; seeds 2.62, 2.89, 3.61) / DD 10.4 % / 3.6 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe +0.58 (pooled seed std 1.14)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "both_hold_shorter",
+   "chosen": true,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 1.56 (3-seed mean; seeds 1.70, 3.09, -0.12) / DD 6.1 % / 3.1 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe +0.42 (pooled seed std 1.14)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "both_hold_shorter",
+   "chosen": true,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -0.74 (3-seed mean; seeds -0.01, -0.90, -1.31) / DD 18.0 % / 3.4 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.50 (pooled seed std 1.14)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "opp_hold_shorter",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 3.25 (3-seed mean; seeds 3.49, 3.13, 3.11) / DD 13.7 % / 3.2 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe +0.79 (pooled seed std 0.59)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "opp_hold_shorter",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 0.99 (3-seed mean; seeds 1.01, 0.74, 1.22) / DD 8.8 % / 2.8 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe -0.14 (pooled seed std 0.59)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "opp_hold_shorter",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -2.13 (3-seed mean; seeds -2.90, -1.67, -1.83) / DD 29.7 % / 2.8 orders/wk / valid False",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -1.90 (pooled seed std 0.59)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "multires_default",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 1.78 (3-seed mean; seeds 2.51, 1.86, 0.96) / DD 13.6 % / 3.6 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.68 (pooled seed std 0.72)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "multires_default",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -1.25 (3-seed mean; seeds -1.67, -0.60, -1.47) / DD 8.2 % / 3.0 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe -2.38 (pooled seed std 0.72)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "multires_default",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -0.61 (3-seed mean; seeds 0.18, -1.28, -0.73) / DD 11.7 % / 3.4 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.38 (pooled seed std 0.72)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "multires_deap",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 2.66 (3-seed mean; seeds 3.25, 2.16, 2.57) / DD 13.1 % / 4.2 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe +0.21 (pooled seed std 0.63)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "multires_deap",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -0.68 (3-seed mean; seeds -0.84, -0.28, -0.91) / DD 11.6 % / 3.6 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe -1.81 (pooled seed std 0.63)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "multires_deap",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -0.66 (3-seed mean; seeds 0.98, -1.02, -1.94) / DD 12.5 % / 4.1 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.42 (pooled seed std 0.63)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  },
+  {
+   "arm": "multires_deap_weighted",
+   "chosen": false,
+   "period": "TRAIN",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe 2.45 (3-seed mean; seeds 2.51, 2.50, 2.32) / DD 10.2 % / 4.4 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 2.45 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -0.01 (pooled seed std 0.82)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; TRAIN is in-sample"
+  },
+  {
+   "arm": "multires_deap_weighted",
+   "chosen": false,
+   "period": "INNER_A",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -1.36 (3-seed mean; seeds -0.71, -2.26, -1.10) / DD 9.5 % / 3.8 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe 1.13 / DD 7.2 % / 3.2 orders/wk",
+   "skill": "delta Sharpe -2.49 (pooled seed std 0.82)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; INNER_A decides"
+  },
+  {
+   "arm": "multires_deap_weighted",
+   "chosen": false,
+   "period": "OBS_2024",
+   "metric": "Sharpe daily sqrt365 of the student replay (dimensionless) / max DD %",
+   "model": "Sharpe -1.26 (3-seed mean; seeds -1.16, -1.26, -1.35) / DD 16.9 % / 4.3 orders/wk / valid True",
+   "naive_same_rows": "control zz_hold: Sharpe -0.23 / DD 11.8 % / 3.5 orders/wk",
+   "skill": "delta Sharpe -1.02 (pooled seed std 0.82)",
+   "literature": "NOT_COMPARABLE: behaviour-cloning student under a private replay contract on EURUSD H1; no published value with this contract",
+   "comparability": "same recipe, same support hash, same replay contract and costs; development data; ONE read, never decides"
+  }
+ ],
+ "caveat": "behaviour-cloning students replayed under the replay contract on development data (TRAIN in-sample, INNER_A decides, OBS_2024 one read); not a tradable strategy or a profitability claim"
+}

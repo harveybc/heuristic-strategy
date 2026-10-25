@@ -1,0 +1,63 @@
+{
+ "stage": "A",
+ "rule": "Frozen rule: highest seed-mean INNER_A Sharpe (consolidated inner block) among arms whose three seeds are all\n    valid; ties -> fewer parameters. Reads only INNER_A fields; 2024 is never consulted for a choice.",
+ "arms": [
+  {
+   "arm": "zz_hold",
+   "inner_a_sharpe_mean": 1.1335231715218659,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 1.3191794613834362,
+   "is_control": true
+  },
+  {
+   "arm": "zz_hold_shorter",
+   "inner_a_sharpe_mean": -0.5685207421735835,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 2.3406373423494458,
+   "is_control": false
+  },
+  {
+   "arm": "opp_hold",
+   "inner_a_sharpe_mean": 0.13557115401147177,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 3.1003246517659284,
+   "is_control": false
+  },
+  {
+   "arm": "opp_optimum",
+   "inner_a_sharpe_mean": 0.08220614181000624,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 1.641058814662568,
+   "is_control": false
+  },
+  {
+   "arm": "both_hold",
+   "inner_a_sharpe_mean": 1.4794167713536532,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 1.2080889340747634,
+   "is_control": false
+  },
+  {
+   "arm": "both_hold_shorter",
+   "inner_a_sharpe_mean": 1.5585229077418798,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 1.4790930751997333,
+   "is_control": false
+  },
+  {
+   "arm": "opp_hold_shorter",
+   "inner_a_sharpe_mean": 0.9903764873198951,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 2.2569400457127613,
+   "is_control": false
+  }
+ ],
+ "chosen": "both_hold_shorter"
+}

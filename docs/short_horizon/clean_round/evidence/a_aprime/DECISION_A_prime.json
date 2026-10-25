@@ -1,0 +1,31 @@
+{
+ "stage": "A_prime",
+ "rule": "Frozen rule: highest seed-mean INNER_A Sharpe (consolidated inner block) among arms whose three seeds are all\n    valid; ties -> fewer parameters. Reads only INNER_A fields; 2024 is never consulted for a choice.",
+ "arms": [
+  {
+   "arm": "multires_default",
+   "inner_a_sharpe_mean": -1.2450997687964291,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 3.0213359457543407,
+   "is_control": false
+  },
+  {
+   "arm": "multires_deap",
+   "inner_a_sharpe_mean": -0.6762108993794835,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 3.335496737909262,
+   "is_control": false
+  },
+  {
+   "arm": "multires_deap_weighted",
+   "inner_a_sharpe_mean": -1.3568162714456165,
+   "all_valid": true,
+   "params": 5460,
+   "train_minus_inner_sharpe_mean": 3.802761933029688,
+   "is_control": false
+  }
+ ],
+ "chosen": "multires_deap"
+}
