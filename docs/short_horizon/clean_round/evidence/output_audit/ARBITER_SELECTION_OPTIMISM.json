@@ -1,0 +1,490 @@
+{
+ "question": "how much does choosing the arbiter and threshold per seed on INNER_A inflate the INNER_A Sharpe used to decide arms",
+ "source": "TRIAL_LEDGER.jsonl ARBITER_TRIAL events of the 10 Stage A/A' arms (3 seeds each)",
+ "mean_optimism_sharpe": 1.0761096610397078,
+ "min": 0.10892297587941713,
+ "max": 2.5802815997757453,
+ "seeds_with_a_zero_order_candidate": 9,
+ "rows": [
+  {
+   "arm": "A_both_hold",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 2.863526652517018,
+   "median_valid_candidate_sharpe": 1.1796086245361834,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 2.925925925925926,
+   "orders_per_week_range_over_candidates": [
+    0.8148148148148148,
+    3.3703703703703702
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_both_hold",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": 0.02331866614725232,
+   "median_valid_candidate_sharpe": -1.4465510105555108,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.08,
+   "chosen_orders_per_week": 2.0,
+   "orders_per_week_range_over_candidates": [
+    0.7777777777777778,
+    3.4074074074074074
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_both_hold",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 1.5514049953966895,
+   "median_valid_candidate_sharpe": 0.9155746228183876,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.18,
+   "chosen_orders_per_week": 2.925925925925926,
+   "orders_per_week_range_over_candidates": [
+    0.9259259259259259,
+    3.4444444444444446
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_both_hold_shorter",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 1.7022117574677544,
+   "median_valid_candidate_sharpe": 1.302043494361452,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.18,
+   "chosen_orders_per_week": 2.814814814814815,
+   "orders_per_week_range_over_candidates": [
+    0.6296296296296297,
+    3.259259259259259
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_both_hold_shorter",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 9,
+   "chosen_sharpe_inner_a": 3.0916980653345925,
+   "median_valid_candidate_sharpe": 1.132141076888984,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 3.3703703703703702,
+   "orders_per_week_range_over_candidates": [
+    0.9629629629629629,
+    3.5925925925925926
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_both_hold_shorter",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": -0.1183410995767066,
+   "median_valid_candidate_sharpe": -0.22726407545612373,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 3.0,
+   "orders_per_week_range_over_candidates": [
+    0.7777777777777778,
+    3.185185185185185
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_hold",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 1.7095049447384087,
+   "median_valid_candidate_sharpe": 0.2829797842792153,
+   "chosen_arbiter": "expected_gain",
+   "chosen_rate": null,
+   "chosen_orders_per_week": 3.7777777777777777,
+   "orders_per_week_range_over_candidates": [
+    0.8148148148148148,
+    3.7777777777777777
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_hold",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": -0.14451664988384494,
+   "median_valid_candidate_sharpe": -1.4673058910841743,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.1,
+   "chosen_orders_per_week": 2.1481481481481484,
+   "orders_per_week_range_over_candidates": [
+    0.6296296296296297,
+    3.6666666666666665
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_hold",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -1.1582748328201486,
+   "median_valid_candidate_sharpe": -1.8512088788563323,
+   "chosen_arbiter": "expected_gain",
+   "chosen_rate": null,
+   "chosen_orders_per_week": 3.5555555555555554,
+   "orders_per_week_range_over_candidates": [
+    0.9259259259259259,
+    3.5555555555555554
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_hold_shorter",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 6,
+   "chosen_sharpe_inner_a": 1.0128471432754,
+   "median_valid_candidate_sharpe": -0.8437859949412919,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 2.814814814814815,
+   "orders_per_week_range_over_candidates": [
+    0.8518518518518519,
+    3.7037037037037037
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_hold_shorter",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 0.7360768740191851,
+   "median_valid_candidate_sharpe": -0.41373214398784036,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 3.2962962962962963,
+   "orders_per_week_range_over_candidates": [
+    0.6296296296296297,
+    4.037037037037037
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_hold_shorter",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 5,
+   "chosen_sharpe_inner_a": 1.2222054446651005,
+   "median_valid_candidate_sharpe": -0.17360930829587323,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.15,
+   "chosen_orders_per_week": 2.2962962962962963,
+   "orders_per_week_range_over_candidates": [
+    0.48148148148148145,
+    3.814814814814815
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_optimum",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -0.4336665249464729,
+   "median_valid_candidate_sharpe": -1.046093599203024,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.15,
+   "chosen_orders_per_week": 2.5925925925925926,
+   "orders_per_week_range_over_candidates": [
+    0.7037037037037037,
+    3.7037037037037037
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_optimum",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 0.9557865297458992,
+   "median_valid_candidate_sharpe": -0.6654826808128164,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.15,
+   "chosen_orders_per_week": 2.5555555555555554,
+   "orders_per_week_range_over_candidates": [
+    0.5925925925925926,
+    3.962962962962963
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_opp_optimum",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -0.2755015793694076,
+   "median_valid_candidate_sharpe": -1.3023798572650622,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.08,
+   "chosen_orders_per_week": 2.037037037037037,
+   "orders_per_week_range_over_candidates": [
+    0.8518518518518519,
+    3.5925925925925926
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_prime_multires_deap",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": -0.8399673561554843,
+   "median_valid_candidate_sharpe": -1.0478901742187567,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 3.962962962962963,
+   "orders_per_week_range_over_candidates": [
+    0.14814814814814814,
+    3.962962962962963
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_prime_multires_deap",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": -0.2759041372269323,
+   "median_valid_candidate_sharpe": -1.6435230159045575,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 3.8518518518518516,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    3.8518518518518516
+   ],
+   "candidates_with_zero_orders": 2
+  },
+  {
+   "arm": "A_prime_multires_deap",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -0.9127612047560342,
+   "median_valid_candidate_sharpe": -2.0689189316405017,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.08,
+   "chosen_orders_per_week": 3.074074074074074,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    4.111111111111111
+   ],
+   "candidates_with_zero_orders": 2
+  },
+  {
+   "arm": "A_prime_multires_deap_weighted",
+   "seed": 20261019,
+   "candidates": 24,
+   "valid_candidates": 14,
+   "chosen_sharpe_inner_a": -0.707688634755989,
+   "median_valid_candidate_sharpe": -1.172092571035989,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.15,
+   "chosen_orders_per_week": 3.4074074074074074,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    3.8518518518518516
+   ],
+   "candidates_with_zero_orders": 4
+  },
+  {
+   "arm": "A_prime_multires_deap_weighted",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -2.259365403999858,
+   "median_valid_candidate_sharpe": -3.753057086899526,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.22,
+   "chosen_orders_per_week": 4.222222222222222,
+   "orders_per_week_range_over_candidates": [
+    0.14814814814814814,
+    4.222222222222222
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_prime_multires_deap_weighted",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -1.103394775581003,
+   "median_valid_candidate_sharpe": -1.3145639810571987,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.18,
+   "chosen_orders_per_week": 3.814814814814815,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    3.8518518518518516
+   ],
+   "candidates_with_zero_orders": 2
+  },
+  {
+   "arm": "A_prime_multires_default",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -1.666405482339271,
+   "median_valid_candidate_sharpe": -2.942351527883757,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.08,
+   "chosen_orders_per_week": 3.037037037037037,
+   "orders_per_week_range_over_candidates": [
+    0.1111111111111111,
+    4.148148148148148
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_prime_multires_default",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -0.6002245894621432,
+   "median_valid_candidate_sharpe": -1.1810095049572942,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.15,
+   "chosen_orders_per_week": 3.740740740740741,
+   "orders_per_week_range_over_candidates": [
+    0.07407407407407407,
+    4.037037037037037
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_prime_multires_default",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": -1.4686692345878734,
+   "median_valid_candidate_sharpe": -3.2154883304106034,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.04,
+   "chosen_orders_per_week": 2.1481481481481484,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    4.111111111111111
+   ],
+   "candidates_with_zero_orders": 2
+  },
+  {
+   "arm": "A_zz_hold",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 0.41664901494095985,
+   "median_valid_candidate_sharpe": 0.10106918555703084,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.12,
+   "chosen_orders_per_week": 3.4074074074074074,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    4.0
+   ],
+   "candidates_with_zero_orders": 2
+  },
+  {
+   "arm": "A_zz_hold",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 2.5084064855752444,
+   "median_valid_candidate_sharpe": -0.07187511420050086,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.06,
+   "chosen_orders_per_week": 2.5555555555555554,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    4.0
+   ],
+   "candidates_with_zero_orders": 2
+  },
+  {
+   "arm": "A_zz_hold",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 8,
+   "chosen_sharpe_inner_a": 0.47551401404939375,
+   "median_valid_candidate_sharpe": -0.4034353811622515,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.15,
+   "chosen_orders_per_week": 3.7037037037037037,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    4.037037037037037
+   ],
+   "candidates_with_zero_orders": 2
+  },
+  {
+   "arm": "A_zz_hold_shorter",
+   "seed": 20261019,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": -1.880757095341954,
+   "median_valid_candidate_sharpe": -2.2368568260949004,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.08,
+   "chosen_orders_per_week": 3.0,
+   "orders_per_week_range_over_candidates": [
+    0.037037037037037035,
+    4.222222222222222
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_zz_hold_shorter",
+   "seed": 20261020,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": 1.2701095699400116,
+   "median_valid_candidate_sharpe": 0.2835575046913051,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.18,
+   "chosen_orders_per_week": 3.7037037037037037,
+   "orders_per_week_range_over_candidates": [
+    0.25925925925925924,
+    3.925925925925926
+   ],
+   "candidates_with_zero_orders": 0
+  },
+  {
+   "arm": "A_zz_hold_shorter",
+   "seed": 20261021,
+   "candidates": 12,
+   "valid_candidates": 7,
+   "chosen_sharpe_inner_a": -1.094914701118808,
+   "median_valid_candidate_sharpe": -2.392881382508931,
+   "chosen_arbiter": "prob",
+   "chosen_rate": 0.06,
+   "chosen_orders_per_week": 2.5925925925925926,
+   "orders_per_week_range_over_candidates": [
+    0.0,
+    4.037037037037037
+   ],
+   "candidates_with_zero_orders": 2
+  }
+ ]
+}
