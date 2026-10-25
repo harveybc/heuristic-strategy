@@ -230,11 +230,12 @@ python tools/expert_guided_demonstrators.py --admitted … --csv-dir … --out D
 - Resultado parcial: 4 brazos terminados; los 3 brazos con `--extra-experts 2,rev10` fueron **detenidos por el monitor de
   admisión** (`PRESSURE_STOP_SUSTAINED_ABOVE_RESPOND`, pico de árbol ≈ 6.0 GB = el tope de 6G). Decisión **INTERINA**
   (regla congelada, sólo INNER_A): `both_hold` 1.48 ± 1.16 > `zz_hold` 1.13 ± 0.97 > `opp_hold` 0.14 > `opp_optimum`
-  0.08; `DECISION_A_INTERIM.{json,md}` en la raíz del paquete. Las tres unidades detenidas se repiten con tope 9G
-  (dimensionado desde los incidentes, ~10 GiB disponibles, una unidad a la vez); ningún tope rechazado se baja.
+  0.08; `DECISION_A_INTERIM.{json,md}` en la raíz del paquete. Las tres unidades detenidas **no son ejecutables en ese host**: 9G quedó en cola por
+  headroom (8.57 GB libres para trabajo nuevo con la reserva de escritorio y la VM residente) y el reintento a 7G lo rechazó
+  el almacén de admisión (`CAP_LOWERED_AFTER_REFUSAL`); necesitan un host que admita ≥ 9G. Nada se renombró para esquivarlo.
 - **Spec v3** (`clean-expert-guided-a1-20261024-v3`, `revisions` dentro): añade la etapa **A'** sobre la misma receta v2
   — `multires_default`, `multires_deap` (umbrales DEAP fijados por sha `a84c5f57…`), `multires_deap_weighted`
-  (`--sample-weights`) — y `memory` 9G. El lanzador valida las claves nuevas (umbrales sólo con `multires`, archivo
+  (`--sample-weights`) — y `memory` 7G (máximo admisible del host). A' lanzada sola el 2026-10-25 01:26Z: `multires_default` admitida a 7G y entrenando. El lanzador valida las claves nuevas (umbrales sólo con `multires`, archivo
   existente y parseable, digest declarado, sin `closer_rule` en multires; A' sin estado del agente) y emite A' sin
   heredar ganador (sólo B hereda; corregido un `TypeError` latente en esa herencia). Suite 150/150.
 - Decisión de A': misma regla sobre los brazos de A y A' juntos (misma receta, mismo soporte). La receta v3 de Musashi
