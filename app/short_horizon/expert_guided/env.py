@@ -134,7 +134,7 @@ class BarEnv:
         self.balance = self.cfg.capital
         self.trades, self.log = [], []
         self.entries_day: dict = {}
-        self.counts = {k: 0 for k in ("entries", "closes", "close_TP", "close_SL", "close_FORCED_FLAT",
+        self.counts = {k: 0 for k in ("entries", "entries_long", "entries_short", "closes", "close_TP", "close_SL", "close_FORCED_FLAT",
                                       "close_AGENT_CLOSE", "close_REVERSAL", "refused_BEFORE_OPERATIONAL_START",
                                       "refused_ENTRY_CUTOFF", "refused_DAILY_CAP", "refused_UNITS",
                                       "refused_LEVELS", "refused_GAP_BEYOND_LEVEL", "refused_NO_SIGMA",
@@ -307,6 +307,7 @@ class BarEnv:
                 day = self.business_day(k)
                 self.entries_day[day] = self.entries_day.get(day, 0) + 1
                 self.counts["entries"] += 1
+                self.counts["entries_long" if want_entry > 0 else "entries_short"] += 1     # reported only (sanity gate)
                 info["entry"] = True
         # 3) protections on bar b + 1 (open gap first, stop before take-profit)
         if self.pos is not None:

@@ -208,123 +208,170 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
                 errs.append(f"COMMAND_NOT_RECIPE_BOUND:{stage}/{a['name']}")
     errs += walk_forward_errors(spec, rec)
     errs += walk_forward_v1_errors(spec)
+    errs += walk_forward_v12_errors(spec)
     errs += walk_forward_c2_errors(spec)
+    errs += walk_forward_c2g_errors(spec)
     return errs
 
 
 WF_V1_STAGE = "WF_V1"
+WF_V12_STAGE = "WF_V12"
 
 
-def walk_forward_v1_errors(spec: dict) -> list:
+def walk_forward_v12_errors(spec: dict) -> list:
+    """Stage WF_V12 (2026-10-25, after WF_V1's zero trades): the WF_V1 checks on ``walk_forward_v12`` plus a contract in the
+    scale-adaptive gene space with the early close required."""
+    w = spec.get("walk_forward_v12")
+    if not w:
+        return []
+    from app.short_horizon.expert_guided import action_contract as ACT
+    errs = walk_forward_v1_errors(spec, "walk_forward_v12", WF_V12_STAGE)
+    cp = Path(w.get("action_contract", {}).get("path", ""))
+    if cp.exists():
+        st = json.loads(cp.read_text()).get("strategy") or {}
+        if st.get("gene_space") != ACT.GENE_SPACE_Q or st.get("require_early_close") is not True:
+            errs.append("WF_V12_CONTRACT_NOT_SCALE_ADAPTIVE")
+    return errs
+
+
+def walk_forward_v1_errors(spec: dict, key: str = "walk_forward_v1", stage: str = WF_V1_STAGE) -> list:
     """Stage WF_V1 (output contract v1, 2026-10-25): every arm = a stage-A arm plus the pinned action contract, on the
     walk-forward folds of the WF stage (each with a post-freeze decision block, INNER_B), the pre-registered seeds and
     rules, and the WF arm of the same base as its baseline. The contract file must exist, match its digest and identity
     and validate; a fold whose split lacks a post-freeze decision block is refused."""
-    w = spec.get("walk_forward_v1")
+    w = spec.get(key)
     if not w:
         return []
     errs = []
+    P = stage
     from app.short_horizon.expert_guided import action_contract as ACT
     from app.short_horizon.expert_guided import data as DG
     cp = Path(w.get("action_contract", {}).get("path", ""))
     if not cp.exists():
-        errs.append("WF_V1_CONTRACT_MISSING")
+        errs.append(f"{P}_CONTRACT_MISSING")
     else:
         if sha(cp) != w["action_contract"].get("sha256"):
-            errs.append("WF_V1_CONTRACT_DIGEST_MISMATCH")
+            errs.append(f"{P}_CONTRACT_DIGEST_MISMATCH")
         doc = json.loads(cp.read_text())
         if doc.get("identity") != w["action_contract"].get("identity"):
-            errs.append("WF_V1_CONTRACT_IDENTITY_MISMATCH")
-        errs += [f"WF_V1_{e}" for e in ACT.validate(doc)]
+            errs.append(f"{P}_CONTRACT_IDENTITY_MISMATCH")
+        errs += [f"{P}_{e}" for e in ACT.validate(doc)]
         for fold in w.get("folds", []):
             try:
                 ACT.require_decision_block(doc, DG.split_contract(fold), fold)
             except (SystemExit, ValueError) as ex:
-                errs.append(f"WF_V1_FOLD_REFUSED:{fold}:{ex}")
+                errs.append(f"{P}_FOLD_REFUSED:{fold}:{ex}")
     base = {x["name"] for x in spec["stages"].get("A", [])}
     wf = spec.get("walk_forward") or {}
     for arm in w.get("arms", []):
         if arm.get("base") not in base:
-            errs.append(f"WF_V1_BASE_UNKNOWN:{arm.get('name')}")
+            errs.append(f"{P}_BASE_UNKNOWN:{arm.get('name')}")
         if arm.get("base") not in wf.get("arms", []):
-            errs.append(f"WF_V1_NO_BASELINE:{arm.get('name')}")
+            errs.append(f"{P}_NO_BASELINE:{arm.get('name')}")
         if arm.get("agent_state", "none") != "none":
-            errs.append(f"WF_V1_AGENT_STATE_FORBIDDEN:{arm.get('name')}")
+            errs.append(f"{P}_AGENT_STATE_FORBIDDEN:{arm.get('name')}")
         if arm.get("strategy_fitness") and arm["strategy_fitness"] not in ACT.FITNESS:
-            errs.append(f"WF_V1_FITNESS_UNKNOWN:{arm.get('name')}:{arm['strategy_fitness']}")
+            errs.append(f"{P}_FITNESS_UNKNOWN:{arm.get('name')}:{arm['strategy_fitness']}")
     if sorted(w.get("fitness_variants") or []) != sorted(ACT.FITNESS):
-        errs.append("WF_V1_FITNESS_VARIANTS_NOT_ALL_REPORTED")
+        errs.append(f"{P}_FITNESS_VARIANTS_NOT_ALL_REPORTED")
     if not w.get("fitness_rule"):
-        errs.append("WF_V1_FITNESS_RULE_NOT_PREREGISTERED")
+        errs.append(f"{P}_FITNESS_RULE_NOT_PREREGISTERED")
     for fold in w.get("folds", []):
         if fold not in (wf.get("folds") or {}):
-            errs.append(f"WF_V1_FOLD_NOT_IN_WF:{fold}")
+            errs.append(f"{P}_FOLD_NOT_IN_WF:{fold}")
     if not w.get("seeds"):
-        errs.append("WF_V1_SEEDS_MISSING")
+        errs.append(f"{P}_SEEDS_MISSING")
     if not w.get("rule"):
-        errs.append("WF_V1_RULE_NOT_PREREGISTERED")
+        errs.append(f"{P}_RULE_NOT_PREREGISTERED")
     return errs
 
 
 WF_C2_STAGE = "WF_C2"
+WF_C2G_STAGE = "WF_C2G"
 
 
-def walk_forward_c2_errors(spec: dict) -> list:
+def walk_forward_c2_errors(spec: dict, key: str = "walk_forward_c2", stage: str = WF_C2_STAGE) -> list:
     """Stage WF_C2 (causal-ladder C2, 2026-10-25): consequence learning under ACTION_CONTRACT_C2 on the walk-forward
     folds; the base arm only supplies the training command template and the recipe (no teacher: the C2 targets are the
-    engine's outcome tables); baselines = the WF and WF_V1 arms of the same fold; rules pre-registered."""
-    w = spec.get("walk_forward_c2")
+    engine's outcome tables); baselines = the WF and WF_V1 arms of the same fold; rules pre-registered. With
+    ``key="walk_forward_c2g"`` / ``stage="WF_C2G"`` the same checks for the C2G arm, plus: the contract must be a C2G
+    contract and the C2 arm of the same fold must be declared as its baseline (``walk_forward_c2g_errors``)."""
+    w = spec.get(key)
     if not w:
         return []
     errs = []
+    P = stage
     from app.short_horizon.expert_guided import action_contract as ACT
     from app.short_horizon.expert_guided import c2 as C2
     from app.short_horizon.expert_guided import data as DG
     cp = Path(w.get("action_contract", {}).get("path", ""))
     if not cp.exists():
-        errs.append("WF_C2_CONTRACT_MISSING")
+        errs.append(f"{P}_CONTRACT_MISSING")
     else:
         if sha(cp) != w["action_contract"].get("sha256"):
-            errs.append("WF_C2_CONTRACT_DIGEST_MISMATCH")
+            errs.append(f"{P}_CONTRACT_DIGEST_MISMATCH")
         doc = json.loads(cp.read_text())
         if doc.get("identity") != w["action_contract"].get("identity"):
-            errs.append("WF_C2_CONTRACT_IDENTITY_MISMATCH")
-        errs += [f"WF_C2_{e}" for e in C2.validate(doc)]
+            errs.append(f"{P}_CONTRACT_IDENTITY_MISMATCH")
+        errs += [f"{P}_{e}" for e in C2.validate(doc)]
         for fold in w.get("folds", []):
             try:
                 ACT.require_decision_block(doc, DG.split_contract(fold), fold)
             except (SystemExit, ValueError) as ex:
-                errs.append(f"WF_C2_FOLD_REFUSED:{fold}:{ex}")
+                errs.append(f"{P}_FOLD_REFUSED:{fold}:{ex}")
     base = {x["name"] for x in spec["stages"].get("A", [])}
     wf = spec.get("walk_forward") or {}
     v1 = spec.get("walk_forward_v1") or {}
     for arm in w.get("arms", []):
         if arm.get("base") not in base:
-            errs.append(f"WF_C2_BASE_UNKNOWN:{arm.get('name')}")
+            errs.append(f"{P}_BASE_UNKNOWN:{arm.get('name')}")
         if arm.get("agent_state", "none") != "none":
-            errs.append(f"WF_C2_AGENT_STATE_FORBIDDEN:{arm.get('name')}")
+            errs.append(f"{P}_AGENT_STATE_FORBIDDEN:{arm.get('name')}")
         if arm.get("strategy_fitness") and arm["strategy_fitness"] not in ACT.FITNESS:
-            errs.append(f"WF_C2_FITNESS_UNKNOWN:{arm.get('name')}:{arm['strategy_fitness']}")
+            errs.append(f"{P}_FITNESS_UNKNOWN:{arm.get('name')}:{arm['strategy_fitness']}")
         for k in ("labels", "closer_rule", "extra_experts", "aux_targets", "multires_thresholds", "sample_weights"):
             if arm.get(k) is not None:
-                errs.append(f"WF_C2_ARM_HAS_TEACHER_TREATMENT:{arm.get('name')}:{k}")
+                errs.append(f"{P}_ARM_HAS_TEACHER_TREATMENT:{arm.get('name')}:{k}")
         bl = (w.get("baseline") or {}).get(arm.get("name")) or {}
         if not bl.get("wf") or not bl.get("wf_v1"):
-            errs.append(f"WF_C2_NO_BASELINE:{arm.get('name')}")
+            errs.append(f"{P}_NO_BASELINE:{arm.get('name')}")
     if sorted(w.get("fitness_variants") or []) != sorted(ACT.FITNESS):
-        errs.append("WF_C2_FITNESS_VARIANTS_NOT_ALL_REPORTED")
+        errs.append(f"{P}_FITNESS_VARIANTS_NOT_ALL_REPORTED")
     for k in ("rule", "early_close_rule", "fitness_rule"):
         if not w.get(k):
-            errs.append(f"WF_C2_{k.upper()}_NOT_PREREGISTERED")
+            errs.append(f"{P}_{k.upper()}_NOT_PREREGISTERED")
     for fold in w.get("folds", []):
         if fold not in (wf.get("folds") or {}):
-            errs.append(f"WF_C2_FOLD_NOT_IN_WF:{fold}")
+            errs.append(f"{P}_FOLD_NOT_IN_WF:{fold}")
         if fold not in (v1.get("folds") or []):
-            errs.append(f"WF_C2_FOLD_NOT_IN_WF_V1:{fold}")
+            errs.append(f"{P}_FOLD_NOT_IN_WF_V1:{fold}")
     if not w.get("seeds"):
-        errs.append("WF_C2_SEEDS_MISSING")
+        errs.append(f"{P}_SEEDS_MISSING")
     if not (w.get("outcomes") or {}).get("file_pattern"):
-        errs.append("WF_C2_OUTCOMES_UNDECLARED")
+        errs.append(f"{P}_OUTCOMES_UNDECLARED")
+    return errs
+
+
+def walk_forward_c2g_errors(spec: dict) -> list:
+    """Stage WF_C2G (owner 2026-10-25, "Sí, como brazo extra"): the C2 checks plus a C2G contract, the C2 arm of the same
+    fold declared as each arm's baseline (the direct contrast), and every fold also in the WF_C2 stage."""
+    w = spec.get("walk_forward_c2g")
+    if not w:
+        return []
+    from app.short_horizon.expert_guided import c2 as C2
+    errs = walk_forward_c2_errors(spec, "walk_forward_c2g", WF_C2G_STAGE)
+    cp = Path(w.get("action_contract", {}).get("path", ""))
+    if cp.exists() and not C2.is_c2g(json.loads(cp.read_text())):
+        errs.append("WF_C2G_CONTRACT_NOT_C2G")
+    c2 = spec.get("walk_forward_c2") or {}
+    names = {a["name"] for a in c2.get("arms", [])}
+    for arm in w.get("arms", []):
+        bc = ((w.get("baseline") or {}).get(arm.get("name")) or {}).get("c2", "")
+        if not bc or not any(bc == f"WF_C2_<fold>_{n}" for n in names):
+            errs.append(f"WF_C2G_NO_C2_BASELINE:{arm.get('name')}")
+    for fold in w.get("folds", []):
+        if fold not in (c2.get("folds") or []):
+            errs.append(f"WF_C2G_FOLD_NOT_IN_WF_C2:{fold}")
     return errs
 
 
@@ -466,8 +513,12 @@ def cmd_emit(a):
         return emit_walk_forward(spec, a)
     if a.stage == WF_V1_STAGE:
         return emit_walk_forward_v1(spec, a)
+    if a.stage == WF_V12_STAGE:
+        return emit_walk_forward_v1(spec, a, "walk_forward_v12", WF_V12_STAGE)
     if a.stage == WF_C2_STAGE:
         return emit_walk_forward_c2(spec, a)
+    if a.stage == WF_C2G_STAGE:
+        return emit_walk_forward_c2(spec, a, "walk_forward_c2g", WF_C2G_STAGE)
     arms = spec["stages"][a.stage]
     if a.stage == "B":                                            # A and A_prime carry their own labels; B inherits the winner
         dec = json.loads(Path(a.winner_from).read_text())
@@ -537,19 +588,19 @@ def emit_walk_forward(spec, a):
     print(f"written {a.out} ({len(wf['folds']) * len(wf['arms'])} units)")
 
 
-def emit_walk_forward_v1(spec, a):
-    """Stage WF_V1: fold x arm units = the WF stage's base arm + the pinned action contract (its digest and the fold
-    recipe's digest re-checked before every unit); same gate, caps, STATE marks and retries as the other stages."""
-    w, wf = spec["walk_forward_v1"], spec["walk_forward"]
+def emit_walk_forward_v1(spec, a, key="walk_forward_v1", stage=WF_V1_STAGE):
+    """Stage WF_V1 (or WF_V12 with its key): fold x arm units = the WF stage's base arm + the pinned action contract (its
+    digest and the fold recipe's digest re-checked before every unit); same gate, caps, STATE marks and retries."""
+    w, wf = spec[key], spec["walk_forward"]
     R = spec["remote_root"]
     gate = Path(spec["gates"][0]["path"]).name
     byname = {x["name"]: x for x in spec["stages"]["A"]}
     cname = Path(w["action_contract"]["path"]).name
-    L = ["#!/bin/bash", f"# clean round {spec['identity']} stage WF_V1 (action contract {w['action_contract']['identity']}): sequential, resumable (STATE "
+    L = ["#!/bin/bash", f"# clean round {spec['identity']} stage {stage} (action contract {w['action_contract']['identity']}): sequential, resumable (STATE "
          "markers); generated by tools/expert_guided_clean_round.py emit; the contract digest, each fold recipe digest and the launch gate are "
          "re-checked before every unit",
          f"Q={R}; PY=~/anaconda3/envs/trading-stack/bin/python; CR=~/.local/bin/crispdm-run", "mkdir -p $Q/STATE $Q/out",
-         'log(){ echo "$(date -u +%FT%TZ) [WF_V1] $*" >> $Q/LOG; }',
+         'log(){ echo "$(date -u +%FT%TZ) [' + stage + '] $*" >> $Q/LOG; }',
          f'test -f $Q/{gate} || {{ log "launch gate {gate} missing: refusing"; exit 3; }}',
          "cd $Q/code || exit 1"]
     for fold in w["folds"]:
@@ -557,7 +608,7 @@ def emit_walk_forward_v1(spec, a):
         rname = Path(fd["recipe"]["path"]).name
         for arm_v in w["arms"]:
             arm = dict(byname[arm_v["base"]], name=arm_v["name"], strategy_fitness=arm_v.get("strategy_fitness"))
-            unit = f"WF_V1_{fold}_{arm_v['name']}"
+            unit = f"{stage}_{fold}_{arm_v['name']}"
             out = f"$Q/out/{unit}"
             cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data", recipe_root="$Q", recipe_file=rname, split_contract=fold, action_contract=cname)
                            + ["--seeds", str(w["seeds"])])
@@ -567,24 +618,25 @@ def emit_walk_forward_v1(spec, a):
                   f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {w.get("memory", spec["memory"])} -t 43200s -n clean-{unit} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{unit}; log "{unit} DONE"; break; }}',
                   f'    grep -q "REFUSED\\|QUEUED HOST_HEADROOM" {out}.log && {{ log "{unit} not admitted (try $try)"; sleep 600; }} || {{ log "{unit} FAILED"; break; }}',
                   "  done", "fi"]
-    L.append('log "STAGE_WF_V1_DONE"')
+    L.append(f'log "STAGE_{stage}_DONE"')
     Path(a.out).write_text("\n".join(L) + "\n")
     print(f"written {a.out} ({len(w['folds']) * len(w['arms'])} units)")
 
 
-def emit_walk_forward_c2(spec, a):
-    """Stage WF_C2: fold x arm units under ACTION_CONTRACT_C2 with the fold's stamped outcome table (``--outcomes``);
-    contract and fold recipe digests and the gate re-checked before every unit; sequential, resumable, capped."""
-    w, wf = spec["walk_forward_c2"], spec["walk_forward"]
+def emit_walk_forward_c2(spec, a, key="walk_forward_c2", stage=WF_C2_STAGE):
+    """Stage WF_C2 (or WF_C2G with its key): fold x arm units under the stage's C2 contract with the fold's stamped
+    outcome table (``--outcomes``); contract and fold recipe digests and the gate re-checked before every unit;
+    sequential, resumable, capped."""
+    w, wf = spec[key], spec["walk_forward"]
     R = spec["remote_root"]
     gate = Path(spec["gates"][0]["path"]).name
     byname = {x["name"]: x for x in spec["stages"]["A"]}
     cname = Path(w["action_contract"]["path"]).name
-    L = ["#!/bin/bash", f"# clean round {spec['identity']} stage WF_C2 (action contract {w['action_contract']['identity']}): sequential, resumable (STATE "
+    L = ["#!/bin/bash", f"# clean round {spec['identity']} stage {stage} (action contract {w['action_contract']['identity']}): sequential, resumable (STATE "
          "markers); generated by tools/expert_guided_clean_round.py emit; the contract digest, each fold recipe digest and the launch gate are "
          "re-checked before every unit",
          f"Q={R}; PY=~/anaconda3/envs/trading-stack/bin/python; CR=~/.local/bin/crispdm-run", "mkdir -p $Q/STATE $Q/out $Q/outcomes",
-         'log(){ echo "$(date -u +%FT%TZ) [WF_C2] $*" >> $Q/LOG; }',
+         'log(){ echo "$(date -u +%FT%TZ) [' + stage + '] $*" >> $Q/LOG; }',
          f'test -f $Q/{gate} || {{ log "launch gate {gate} missing: refusing"; exit 3; }}',
          "cd $Q/code || exit 1"]
     for fold in w["folds"]:
@@ -593,7 +645,7 @@ def emit_walk_forward_c2(spec, a):
         oc = w["outcomes"]["file_pattern"].replace("<fold>", fold)
         for arm_v in w["arms"]:
             arm = dict(byname[arm_v["base"]], name=arm_v["name"], strategy_fitness=arm_v.get("strategy_fitness"))
-            unit = f"WF_C2_{fold}_{arm_v['name']}"
+            unit = f"{stage}_{fold}_{arm_v['name']}"
             out = f"$Q/out/{unit}"
             cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data", recipe_root="$Q", recipe_file=rname, split_contract=fold, action_contract=cname)
                            + ["--seeds", str(w["seeds"]), "--outcomes", f"$Q/outcomes/{oc}"])
@@ -603,7 +655,7 @@ def emit_walk_forward_c2(spec, a):
                   f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {w.get("memory", spec["memory"])} -t 43200s -n clean-{unit} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{unit}; log "{unit} DONE"; break; }}',
                   f'    grep -q "REFUSED\\|QUEUED HOST_HEADROOM" {out}.log && {{ log "{unit} not admitted (try $try)"; sleep 600; }} || {{ log "{unit} FAILED"; break; }}',
                   "  done", "fi"]
-    L.append('log "STAGE_WF_C2_DONE"')
+    L.append(f'log "STAGE_{stage}_DONE"')
     Path(a.out).write_text("\n".join(L) + "\n")
     print(f"written {a.out} ({len(w['folds']) * len(w['arms'])} units)")
 
@@ -669,12 +721,14 @@ def localize(spec: dict, root: str, thresholds_dir="recipe") -> dict:
                 arm["multires_thresholds"] = f"{root}/{thresholds_dir}/{Path(arm['multires_thresholds']).name}"
     for fd in (s.get("walk_forward") or {}).get("folds", {}).values():
         fd["recipe"]["path"] = f"{root}/recipe/{Path(fd['recipe']['path']).name}"
-    if s.get("walk_forward_v1"):
-        c = s["walk_forward_v1"]["action_contract"]
-        c["path"] = f"{root}/contracts/{Path(c['path']).name}"
-    if s.get("walk_forward_c2"):
-        c = s["walk_forward_c2"]["action_contract"]
-        c["path"] = f"{root}/contracts/{Path(c['path']).name}"
+    for k in ("walk_forward_v1", "walk_forward_v12"):
+        if s.get(k):
+            c = s[k]["action_contract"]
+            c["path"] = f"{root}/contracts/{Path(c['path']).name}"
+    for k in ("walk_forward_c2", "walk_forward_c2g"):
+        if s.get(k):
+            c = s[k]["action_contract"]
+            c["path"] = f"{root}/contracts/{Path(c['path']).name}"
     return s
 
 

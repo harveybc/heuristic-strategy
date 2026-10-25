@@ -1,0 +1,3601 @@
+{
+ "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+ "units": 22,
+ "failed": 8,
+ "passed": 14,
+ "docs": [
+  {
+   "unit": "A_both_hold",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 79,
+      "orders_per_week": 2.925925925925926,
+      "sharpe": 2.863526652517018,
+      "agent_closes": 67,
+      "exits": {
+       "n_close_TP": 9,
+       "n_close_SL": 3,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 59,
+       "n_close_REVERSAL": 8
+      },
+      "side": {
+       "long": 37,
+       "short": 42,
+       "source": "early-close audit replay",
+       "max_share": 0.5316455696202531
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 54,
+      "orders_per_week": 2.0,
+      "sharpe": 0.02331866614725232,
+      "agent_closes": 43,
+      "exits": {
+       "n_close_TP": 6,
+       "n_close_SL": 4,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 41,
+       "n_close_REVERSAL": 2
+      },
+      "side": {
+       "long": 21,
+       "short": 33,
+       "source": "early-close audit replay",
+       "max_share": 0.6111111111111112
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 79,
+      "orders_per_week": 2.925925925925926,
+      "sharpe": 1.5514049953966895,
+      "agent_closes": 64,
+      "exits": {
+       "n_close_TP": 9,
+       "n_close_SL": 6,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 61,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 49,
+       "short": 30,
+       "source": "early-close audit replay",
+       "max_share": 0.620253164556962
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 73,
+     "orders_per_week": 2.7037037037037037,
+     "sharpe": 0.1902020480234662,
+     "agent_closes": 52,
+     "exits": {
+      "n_close_TP": 12,
+      "n_close_SL": 9,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 48,
+      "n_close_REVERSAL": 4
+     },
+     "side": {
+      "long": 37,
+      "short": 36,
+      "source": "early-close audit replay",
+      "max_share": 0.5068493150684932
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_both_hold_shorter",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 76,
+      "orders_per_week": 2.814814814814815,
+      "sharpe": 1.7022117574677544,
+      "agent_closes": 51,
+      "exits": {
+       "n_close_TP": 16,
+       "n_close_SL": 9,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 50,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 91,
+      "orders_per_week": 3.3703703703703702,
+      "sharpe": 3.0916980653345925,
+      "agent_closes": 63,
+      "exits": {
+       "n_close_TP": 17,
+       "n_close_SL": 8,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 60,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 81,
+      "orders_per_week": 3.0,
+      "sharpe": -0.1183410995767066,
+      "agent_closes": 63,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 7,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 58,
+       "n_close_REVERSAL": 5
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 74,
+     "orders_per_week": 2.740740740740741,
+     "sharpe": 1.4177278487003437,
+     "agent_closes": 52,
+     "exits": {
+      "n_close_TP": 14,
+      "n_close_SL": 7,
+      "n_close_FORCED_FLAT": 1,
+      "n_close_AGENT_CLOSE": 50,
+      "n_close_REVERSAL": 2
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_opp_hold",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 102,
+      "orders_per_week": 3.7777777777777777,
+      "sharpe": 1.7095049447384087,
+      "agent_closes": 35,
+      "exits": {
+       "n_close_TP": 25,
+       "n_close_SL": 35,
+       "n_close_FORCED_FLAT": 7,
+       "n_close_AGENT_CLOSE": 24,
+       "n_close_REVERSAL": 11
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 58,
+      "orders_per_week": 2.1481481481481484,
+      "sharpe": -0.14451664988384494,
+      "agent_closes": 21,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 26,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 21,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 96,
+      "orders_per_week": 3.5555555555555554,
+      "sharpe": -1.1582748328201486,
+      "agent_closes": 9,
+      "exits": {
+       "n_close_TP": 23,
+       "n_close_SL": 54,
+       "n_close_FORCED_FLAT": 10,
+       "n_close_AGENT_CLOSE": 6,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 92,
+     "orders_per_week": 3.4074074074074074,
+     "sharpe": -0.694251292557635,
+     "agent_closes": 12,
+     "exits": {
+      "n_close_TP": 26,
+      "n_close_SL": 50,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 11,
+      "n_close_REVERSAL": 1
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_opp_hold_shorter",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 76,
+      "orders_per_week": 2.814814814814815,
+      "sharpe": 1.0128471432754,
+      "agent_closes": 20,
+      "exits": {
+       "n_close_TP": 20,
+       "n_close_SL": 35,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 19,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 89,
+      "orders_per_week": 3.2962962962962963,
+      "sharpe": 0.7360768740191851,
+      "agent_closes": 37,
+      "exits": {
+       "n_close_TP": 15,
+       "n_close_SL": 30,
+       "n_close_FORCED_FLAT": 7,
+       "n_close_AGENT_CLOSE": 35,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 62,
+      "orders_per_week": 2.2962962962962963,
+      "sharpe": 1.2222054446651005,
+      "agent_closes": 8,
+      "exits": {
+       "n_close_TP": 20,
+       "n_close_SL": 30,
+       "n_close_FORCED_FLAT": 4,
+       "n_close_AGENT_CLOSE": 8,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 72,
+     "orders_per_week": 2.6666666666666665,
+     "sharpe": 2.241060391563243,
+     "agent_closes": 15,
+     "exits": {
+      "n_close_TP": 25,
+      "n_close_SL": 31,
+      "n_close_FORCED_FLAT": 1,
+      "n_close_AGENT_CLOSE": 15,
+      "n_close_REVERSAL": 0
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_opp_optimum",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 70,
+      "orders_per_week": 2.5925925925925926,
+      "sharpe": -0.4336665249464729,
+      "agent_closes": 51,
+      "exits": {
+       "n_close_TP": 7,
+       "n_close_SL": 12,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 47,
+       "n_close_REVERSAL": 4
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 69,
+      "orders_per_week": 2.5555555555555554,
+      "sharpe": 0.9557865297458992,
+      "agent_closes": 50,
+      "exits": {
+       "n_close_TP": 7,
+       "n_close_SL": 11,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 46,
+       "n_close_REVERSAL": 4
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 55,
+      "orders_per_week": 2.037037037037037,
+      "sharpe": -0.2755015793694076,
+      "agent_closes": 43,
+      "exits": {
+       "n_close_TP": 5,
+       "n_close_SL": 7,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 42,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 64,
+     "orders_per_week": 2.3703703703703702,
+     "sharpe": -1.8985540410869277,
+     "agent_closes": 47,
+     "exits": {
+      "n_close_TP": 4,
+      "n_close_SL": 13,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 42,
+      "n_close_REVERSAL": 5
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_prime_multires_deap",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 107,
+      "orders_per_week": 3.962962962962963,
+      "sharpe": -0.8399673561554843,
+      "agent_closes": 98,
+      "exits": {
+       "n_close_TP": 2,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 7,
+       "n_close_AGENT_CLOSE": 84,
+       "n_close_REVERSAL": 14
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 104,
+      "orders_per_week": 3.8518518518518516,
+      "sharpe": -0.2759041372269323,
+      "agent_closes": 95,
+      "exits": {
+       "n_close_TP": 4,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 75,
+       "n_close_REVERSAL": 20
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 83,
+      "orders_per_week": 3.074074074074074,
+      "sharpe": -0.9127612047560342,
+      "agent_closes": 77,
+      "exits": {
+       "n_close_TP": 1,
+       "n_close_SL": 1,
+       "n_close_FORCED_FLAT": 4,
+       "n_close_AGENT_CLOSE": 71,
+       "n_close_REVERSAL": 6
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 109,
+     "orders_per_week": 4.037037037037037,
+     "sharpe": -2.9271673162103724,
+     "agent_closes": 101,
+     "exits": {
+      "n_close_TP": 1,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 7,
+      "n_close_AGENT_CLOSE": 88,
+      "n_close_REVERSAL": 13
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_prime_multires_deap_weighted",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 92,
+      "orders_per_week": 3.4074074074074074,
+      "sharpe": -0.707688634755989,
+      "agent_closes": 88,
+      "exits": {
+       "n_close_TP": 1,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 80,
+       "n_close_REVERSAL": 8
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 114,
+      "orders_per_week": 4.222222222222222,
+      "sharpe": -2.259365403999858,
+      "agent_closes": 106,
+      "exits": {
+       "n_close_TP": 3,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 95,
+       "n_close_REVERSAL": 11
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 103,
+      "orders_per_week": 3.814814814814815,
+      "sharpe": -1.103394775581003,
+      "agent_closes": 93,
+      "exits": {
+       "n_close_TP": 2,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 8,
+       "n_close_AGENT_CLOSE": 82,
+       "n_close_REVERSAL": 11
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 102,
+     "orders_per_week": 3.7777777777777777,
+     "sharpe": -0.7445838202034885,
+     "agent_closes": 96,
+     "exits": {
+      "n_close_TP": 1,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 5,
+      "n_close_AGENT_CLOSE": 83,
+      "n_close_REVERSAL": 13
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_prime_multires_default",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 82,
+      "orders_per_week": 3.037037037037037,
+      "sharpe": -1.666405482339271,
+      "agent_closes": 68,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 4,
+       "n_close_AGENT_CLOSE": 68,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 101,
+      "orders_per_week": 3.740740740740741,
+      "sharpe": -0.6002245894621432,
+      "agent_closes": 82,
+      "exits": {
+       "n_close_TP": 15,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 4,
+       "n_close_AGENT_CLOSE": 81,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 58,
+      "orders_per_week": 2.1481481481481484,
+      "sharpe": -1.4686692345878734,
+      "agent_closes": 49,
+      "exits": {
+       "n_close_TP": 8,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 49,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 86,
+     "orders_per_week": 3.185185185185185,
+     "sharpe": -2.24098249422286,
+     "agent_closes": 71,
+     "exits": {
+      "n_close_TP": 11,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 4,
+      "n_close_AGENT_CLOSE": 70,
+      "n_close_REVERSAL": 1
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_zz_hold",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 92,
+      "orders_per_week": 3.4074074074074074,
+      "sharpe": 0.41664901494095985,
+      "agent_closes": 77,
+      "exits": {
+       "n_close_TP": 13,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 74,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 47,
+       "short": 45,
+       "source": "early-close audit replay",
+       "max_share": 0.5108695652173914
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 69,
+      "orders_per_week": 2.5555555555555554,
+      "sharpe": 2.5084064855752444,
+      "agent_closes": 57,
+      "exits": {
+       "n_close_TP": 11,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 54,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 25,
+       "short": 44,
+       "source": "early-close audit replay",
+       "max_share": 0.6376811594202898
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 100,
+      "orders_per_week": 3.7037037037037037,
+      "sharpe": 0.47551401404939375,
+      "agent_closes": 79,
+      "exits": {
+       "n_close_TP": 19,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 76,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 54,
+       "short": 46,
+       "source": "early-close audit replay",
+       "max_share": 0.54
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 90,
+     "orders_per_week": 3.3333333333333335,
+     "sharpe": 0.9564428939863316,
+     "agent_closes": 71,
+     "exits": {
+      "n_close_TP": 19,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 68,
+      "n_close_REVERSAL": 3
+     },
+     "side": {
+      "long": 43,
+      "short": 47,
+      "source": "early-close audit replay",
+      "max_share": 0.5222222222222223
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "A_zz_hold_shorter",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 81,
+      "orders_per_week": 3.0,
+      "sharpe": -1.880757095341954,
+      "agent_closes": 70,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 65,
+       "n_close_REVERSAL": 5
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 100,
+      "orders_per_week": 3.7037037037037037,
+      "sharpe": 1.2701095699400116,
+      "agent_closes": 79,
+      "exits": {
+       "n_close_TP": 21,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 74,
+       "n_close_REVERSAL": 5
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 70,
+      "orders_per_week": 2.5925925925925926,
+      "sharpe": -1.094914701118808,
+      "agent_closes": 54,
+      "exits": {
+       "n_close_TP": 15,
+       "n_close_SL": 1,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 53,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 87,
+     "orders_per_week": 3.2222222222222223,
+     "sharpe": -2.043979995119109,
+     "agent_closes": 71,
+     "exits": {
+      "n_close_TP": 15,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 1,
+      "n_close_AGENT_CLOSE": 69,
+      "n_close_REVERSAL": 2
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "B_winner_aux",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 91,
+      "orders_per_week": 3.3703703703703702,
+      "sharpe": -0.5687285981712862,
+      "agent_closes": 62,
+      "exits": {
+       "n_close_TP": 11,
+       "n_close_SL": 16,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 54,
+       "n_close_REVERSAL": 8
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 64,
+      "orders_per_week": 2.3703703703703702,
+      "sharpe": 0.17260802477956808,
+      "agent_closes": 38,
+      "exits": {
+       "n_close_TP": 12,
+       "n_close_SL": 13,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 37,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 79,
+      "orders_per_week": 2.925925925925926,
+      "sharpe": 0.3469175774458279,
+      "agent_closes": 64,
+      "exits": {
+       "n_close_TP": 9,
+       "n_close_SL": 5,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 62,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 66,
+     "orders_per_week": 2.4444444444444446,
+     "sharpe": -1.0328218227957473,
+     "agent_closes": 43,
+     "exits": {
+      "n_close_TP": 11,
+      "n_close_SL": 12,
+      "n_close_FORCED_FLAT": 0,
+      "n_close_AGENT_CLOSE": 39,
+      "n_close_REVERSAL": 4
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "B_winner_minimal_state",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "unit_failed",
+     "where": "unit",
+     "detail": "no E3M.json: the unit was stopped or ended before writing its results (last log line: E3M_RECIPE_CONFLICT: the shared recipe has no agent feedback (agent_state none))"
+    }
+   ],
+   "seeds": {},
+   "ensemble": null,
+   "unmeasured": [],
+   "blocks": [],
+   "status": "FAILED_SANITY"
+  },
+  {
+   "unit": "B_winner_multires_aux",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 61,
+      "orders_per_week": 2.259259259259259,
+      "sharpe": 2.1700322519981943,
+      "agent_closes": 45,
+      "exits": {
+       "n_close_TP": 14,
+       "n_close_SL": 2,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 44,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 76,
+      "orders_per_week": 2.814814814814815,
+      "sharpe": 1.197793921430031,
+      "agent_closes": 44,
+      "exits": {
+       "n_close_TP": 17,
+       "n_close_SL": 11,
+       "n_close_FORCED_FLAT": 4,
+       "n_close_AGENT_CLOSE": 43,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 69,
+      "orders_per_week": 2.5555555555555554,
+      "sharpe": 0.8336807436007264,
+      "agent_closes": 55,
+      "exits": {
+       "n_close_TP": 8,
+       "n_close_SL": 5,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 53,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 76,
+     "orders_per_week": 2.814814814814815,
+     "sharpe": 0.14427156525990312,
+     "agent_closes": 52,
+     "exits": {
+      "n_close_TP": 15,
+      "n_close_SL": 7,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 49,
+      "n_close_REVERSAL": 3
+     },
+     "side": null
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "WF_V1_wf2022_both_hold_v1",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "zero_agent_closes",
+     "where": "seed 20261022",
+     "block": "INNER_A"
+    }
+   ],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 103,
+      "orders_per_week": 3.814814814814815,
+      "sharpe": 3.9054270636251727,
+      "agent_closes": 84,
+      "exits": {
+       "n_close_TP": 13,
+       "n_close_SL": 4,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 77,
+       "n_close_REVERSAL": 7
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 213,
+      "orders_per_week": 4.018867924528302,
+      "sharpe": -0.6104708868411653,
+      "agent_closes": 176,
+      "exits": {
+       "n_close_TP": 13,
+       "n_close_SL": 19,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 161,
+       "n_close_REVERSAL": 15
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.8828451882845189
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 58,
+      "orders_per_week": 2.1481481481481484,
+      "sharpe": 3.12384448796619,
+      "agent_closes": 56,
+      "exits": {
+       "n_close_TP": 2,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 53,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 131,
+      "orders_per_week": 2.4716981132075473,
+      "sharpe": -0.24797373180226553,
+      "agent_closes": 129,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 2,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 128,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.8773006134969326
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 101,
+      "orders_per_week": 3.740740740740741,
+      "sharpe": 2.0921717070197627,
+      "agent_closes": 27,
+      "exits": {
+       "n_close_TP": 36,
+       "n_close_SL": 27,
+       "n_close_FORCED_FLAT": 11,
+       "n_close_AGENT_CLOSE": 27,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 188,
+      "orders_per_week": 3.547169811320755,
+      "sharpe": -1.06796474590182,
+      "agent_closes": 65,
+      "exits": {
+       "n_close_TP": 38,
+       "n_close_SL": 60,
+       "n_close_FORCED_FLAT": 25,
+       "n_close_AGENT_CLOSE": 65,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.9022869022869023
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [
+       "zero_agent_closes"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 58,
+      "orders_per_week": 2.1481481481481484,
+      "sharpe": 2.6374628835934426,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 29,
+       "n_close_SL": 20,
+       "n_close_FORCED_FLAT": 9,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 108,
+      "orders_per_week": 2.0377358490566038,
+      "sharpe": -1.2232981578405606,
+      "agent_closes": 2,
+      "exits": {
+       "n_close_TP": 34,
+       "n_close_SL": 55,
+       "n_close_FORCED_FLAT": 17,
+       "n_close_AGENT_CLOSE": 2,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.8340336134453782
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 69,
+      "orders_per_week": 2.5555555555555554,
+      "sharpe": 3.917560416398505,
+      "agent_closes": 40,
+      "exits": {
+       "n_close_TP": 19,
+       "n_close_SL": 9,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 39,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 151,
+      "orders_per_week": 2.849056603773585,
+      "sharpe": -0.9270470320602053,
+      "agent_closes": 68,
+      "exits": {
+       "n_close_TP": 28,
+       "n_close_SL": 37,
+       "n_close_FORCED_FLAT": 18,
+       "n_close_AGENT_CLOSE": 68,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.8760869565217392
+    }
+   },
+   "ensemble": null,
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261019/INNER_B/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261020/INNER_B/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261021/INNER_B/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261022/INNER_B/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "seed 20261023/INNER_B/side_balance",
+    "ensemble (no ENSEMBLE.json yet)"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "FAILED_SANITY",
+   "cause_counts": {
+    "zero_agent_closes": 1
+   },
+   "label": "SUPERSEDED_INFEASIBLE_STRATEGY_SPACE"
+  },
+  {
+   "unit": "WF_V1_wf2022_zz_hold_v1",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261019",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261019",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261019",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261019",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "strategy_share_valid_zero",
+     "where": "seed 20261019",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261020",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261020",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261020",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261020",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "strategy_share_valid_zero",
+     "where": "seed 20261020",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261021",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261021",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261021",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261021",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "strategy_share_valid_zero",
+     "where": "seed 20261021",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261022",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261022",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261022",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261022",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "strategy_share_valid_zero",
+     "where": "seed 20261022",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261023",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261023",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_trades",
+     "where": "seed 20261023",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261023",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "strategy_share_valid_zero",
+     "where": "seed 20261023",
+     "block": "INNER_A"
+    }
+   ],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.0
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.0
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.0
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.0
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "zero_trades",
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 0,
+      "orders_per_week": 0.0,
+      "sharpe": 0.0,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 0,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "strategy_share_valid": 0.0
+    }
+   },
+   "ensemble": null,
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261019/INNER_B/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261020/INNER_B/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261021/INNER_B/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261022/INNER_B/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "seed 20261023/INNER_B/side_balance",
+    "ensemble (no ENSEMBLE.json yet)"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "FAILED_SANITY",
+   "cause_counts": {
+    "zero_trades": 10,
+    "below_2_trades_per_week": 10,
+    "strategy_share_valid_zero": 5
+   },
+   "label": "SUPERSEDED_INFEASIBLE_STRATEGY_SPACE"
+  },
+  {
+   "unit": "WF_V1_wf2023_both_hold_v1",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "unit_failed",
+     "where": "unit",
+     "detail": "no E3M.json: the unit was stopped or ended before writing its results (last log line: {\"variant\": \"FULL\", \"seed\": 20261021, \"arbiter\": \"action_contract_v1\", \"strategy\": {\"open_threshold\": 0.269508, \"gain_margin\": -0.657809, \"close_threshold\": 0.5)"
+    }
+   ],
+   "seeds": {},
+   "ensemble": null,
+   "unmeasured": [],
+   "blocks": [],
+   "status": "FAILED_SANITY",
+   "label": "SUPERSEDED_INFEASIBLE_STRATEGY_SPACE"
+  },
+  {
+   "unit": "WF_wf2022_both_hold",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "zero_agent_closes",
+     "where": "seed 20261022",
+     "block": "INNER_A"
+    },
+    {
+     "cause": "zero_agent_closes",
+     "where": "seed 20261022",
+     "block": "INNER_B"
+    }
+   ],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 61,
+      "orders_per_week": 2.259259259259259,
+      "sharpe": 0.01535451432645673,
+      "agent_closes": 48,
+      "exits": {
+       "n_close_TP": 6,
+       "n_close_SL": 5,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 45,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 173,
+      "orders_per_week": 3.2641509433962264,
+      "sharpe": 0.9169564199515048,
+      "agent_closes": 119,
+      "exits": {
+       "n_close_TP": 22,
+       "n_close_SL": 23,
+       "n_close_FORCED_FLAT": 9,
+       "n_close_AGENT_CLOSE": 107,
+       "n_close_REVERSAL": 12
+      },
+      "side": {
+       "long": 98,
+       "short": 75,
+       "source": "early-close audit replay",
+       "max_share": 0.5664739884393064
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 72,
+      "orders_per_week": 2.6666666666666665,
+      "sharpe": 1.0551729110524688,
+      "agent_closes": 61,
+      "exits": {
+       "n_close_TP": 7,
+       "n_close_SL": 4,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 60,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 146,
+      "orders_per_week": 2.7547169811320753,
+      "sharpe": 0.03999117637797658,
+      "agent_closes": 90,
+      "exits": {
+       "n_close_TP": 16,
+       "n_close_SL": 26,
+       "n_close_FORCED_FLAT": 14,
+       "n_close_AGENT_CLOSE": 82,
+       "n_close_REVERSAL": 8
+      },
+      "side": {
+       "long": 79,
+       "short": 67,
+       "source": "early-close audit replay",
+       "max_share": 0.541095890410959
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 54,
+      "orders_per_week": 2.0,
+      "sharpe": 0.8442713919832459,
+      "agent_closes": 24,
+      "exits": {
+       "n_close_TP": 12,
+       "n_close_SL": 15,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 24,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 120,
+      "orders_per_week": 2.2641509433962264,
+      "sharpe": -0.31405948629644365,
+      "agent_closes": 38,
+      "exits": {
+       "n_close_TP": 24,
+       "n_close_SL": 46,
+       "n_close_FORCED_FLAT": 12,
+       "n_close_AGENT_CLOSE": 37,
+       "n_close_REVERSAL": 1
+      },
+      "side": {
+       "long": 59,
+       "short": 61,
+       "source": "early-close audit replay",
+       "max_share": 0.5083333333333333
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [
+       "zero_agent_closes"
+      ],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 54,
+      "orders_per_week": 2.0,
+      "sharpe": 2.2136500266490646,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 27,
+       "n_close_SL": 20,
+       "n_close_FORCED_FLAT": 7,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "zero_agent_closes"
+      ],
+      "unmeasured": [],
+      "trades": 112,
+      "orders_per_week": 2.1132075471698113,
+      "sharpe": -0.6481108072189952,
+      "agent_closes": 0,
+      "exits": {
+       "n_close_TP": 38,
+       "n_close_SL": 59,
+       "n_close_FORCED_FLAT": 15,
+       "n_close_AGENT_CLOSE": 0,
+       "n_close_REVERSAL": 0
+      },
+      "side": {
+       "long": 60,
+       "short": 52,
+       "source": "early-close audit replay",
+       "max_share": 0.5357142857142857
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 88,
+      "orders_per_week": 3.259259259259259,
+      "sharpe": 2.2613305526480567,
+      "agent_closes": 60,
+      "exits": {
+       "n_close_TP": 16,
+       "n_close_SL": 7,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 59,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 153,
+      "orders_per_week": 2.8867924528301887,
+      "sharpe": -0.5521969075263901,
+      "agent_closes": 93,
+      "exits": {
+       "n_close_TP": 25,
+       "n_close_SL": 26,
+       "n_close_FORCED_FLAT": 9,
+       "n_close_AGENT_CLOSE": 85,
+       "n_close_REVERSAL": 8
+      },
+      "side": {
+       "long": 80,
+       "short": 73,
+       "source": "early-close audit replay",
+       "max_share": 0.5228758169934641
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 70,
+     "orders_per_week": 2.5925925925925926,
+     "sharpe": 1.4599736015089693,
+     "agent_closes": 49,
+     "exits": {
+      "n_close_TP": 14,
+      "n_close_SL": 5,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 46,
+      "n_close_REVERSAL": 3
+     },
+     "side": null
+    },
+    "INNER_B": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 124,
+     "orders_per_week": 2.339622641509434,
+     "sharpe": 0.5977056708486199,
+     "agent_closes": 64,
+     "exits": {
+      "n_close_TP": 28,
+      "n_close_SL": 23,
+      "n_close_FORCED_FLAT": 9,
+      "n_close_AGENT_CLOSE": 62,
+      "n_close_REVERSAL": 2
+     },
+     "side": {
+      "long": 75,
+      "short": 49,
+      "source": "early-close audit replay",
+      "max_share": 0.6048387096774194
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "FAILED_SANITY",
+   "cause_counts": {
+    "zero_agent_closes": 2
+   }
+  },
+  {
+   "unit": "WF_wf2022_both_hold_shorter",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 81,
+      "orders_per_week": 3.0,
+      "sharpe": 0.737690979695629,
+      "agent_closes": 63,
+      "exits": {
+       "n_close_TP": 9,
+       "n_close_SL": 5,
+       "n_close_FORCED_FLAT": 4,
+       "n_close_AGENT_CLOSE": 60,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 189,
+      "orders_per_week": 3.5660377358490565,
+      "sharpe": 0.05572494050362286,
+      "agent_closes": 134,
+      "exits": {
+       "n_close_TP": 21,
+       "n_close_SL": 18,
+       "n_close_FORCED_FLAT": 16,
+       "n_close_AGENT_CLOSE": 119,
+       "n_close_REVERSAL": 15
+      },
+      "side": {
+       "long": 117,
+       "short": 72,
+       "source": "early-close audit replay",
+       "max_share": 0.6190476190476191
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 81,
+      "orders_per_week": 3.0,
+      "sharpe": 1.9302615218428094,
+      "agent_closes": 56,
+      "exits": {
+       "n_close_TP": 14,
+       "n_close_SL": 9,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 53,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 176,
+      "orders_per_week": 3.3207547169811322,
+      "sharpe": 0.525709249675911,
+      "agent_closes": 124,
+      "exits": {
+       "n_close_TP": 25,
+       "n_close_SL": 17,
+       "n_close_FORCED_FLAT": 10,
+       "n_close_AGENT_CLOSE": 117,
+       "n_close_REVERSAL": 7
+      },
+      "side": {
+       "long": 94,
+       "short": 82,
+       "source": "early-close audit replay",
+       "max_share": 0.5340909090909091
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 108,
+      "orders_per_week": 4.0,
+      "sharpe": 0.322598393992667,
+      "agent_closes": 59,
+      "exits": {
+       "n_close_TP": 22,
+       "n_close_SL": 21,
+       "n_close_FORCED_FLAT": 6,
+       "n_close_AGENT_CLOSE": 47,
+       "n_close_REVERSAL": 12
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 202,
+      "orders_per_week": 3.811320754716981,
+      "sharpe": 0.804018888212736,
+      "agent_closes": 119,
+      "exits": {
+       "n_close_TP": 37,
+       "n_close_SL": 32,
+       "n_close_FORCED_FLAT": 14,
+       "n_close_AGENT_CLOSE": 108,
+       "n_close_REVERSAL": 11
+      },
+      "side": {
+       "long": 131,
+       "short": 71,
+       "source": "early-close audit replay",
+       "max_share": 0.6485148514851485
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 90,
+      "orders_per_week": 3.3333333333333335,
+      "sharpe": 1.0087640685116939,
+      "agent_closes": 60,
+      "exits": {
+       "n_close_TP": 15,
+       "n_close_SL": 10,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 58,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 190,
+      "orders_per_week": 3.5849056603773586,
+      "sharpe": -1.4735220360082322,
+      "agent_closes": 115,
+      "exits": {
+       "n_close_TP": 24,
+       "n_close_SL": 39,
+       "n_close_FORCED_FLAT": 12,
+       "n_close_AGENT_CLOSE": 103,
+       "n_close_REVERSAL": 12
+      },
+      "side": {
+       "long": 97,
+       "short": 93,
+       "source": "early-close audit replay",
+       "max_share": 0.5105263157894737
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 87,
+      "orders_per_week": 3.2222222222222223,
+      "sharpe": 1.5699676286103847,
+      "agent_closes": 35,
+      "exits": {
+       "n_close_TP": 23,
+       "n_close_SL": 18,
+       "n_close_FORCED_FLAT": 11,
+       "n_close_AGENT_CLOSE": 32,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 158,
+      "orders_per_week": 2.981132075471698,
+      "sharpe": -0.19253186188985713,
+      "agent_closes": 52,
+      "exits": {
+       "n_close_TP": 36,
+       "n_close_SL": 47,
+       "n_close_FORCED_FLAT": 23,
+       "n_close_AGENT_CLOSE": 52,
+       "n_close_REVERSAL": 0
+      },
+      "side": {
+       "long": 85,
+       "short": 73,
+       "source": "early-close audit replay",
+       "max_share": 0.5379746835443038
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 79,
+     "orders_per_week": 2.925925925925926,
+     "sharpe": 0.8696613713789102,
+     "agent_closes": 47,
+     "exits": {
+      "n_close_TP": 18,
+      "n_close_SL": 12,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 44,
+      "n_close_REVERSAL": 3
+     },
+     "side": null
+    },
+    "INNER_B": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 147,
+     "orders_per_week": 2.7735849056603774,
+     "sharpe": 0.5481560855321989,
+     "agent_closes": 72,
+     "exits": {
+      "n_close_TP": 35,
+      "n_close_SL": 27,
+      "n_close_FORCED_FLAT": 13,
+      "n_close_AGENT_CLOSE": 69,
+      "n_close_REVERSAL": 3
+     },
+     "side": {
+      "long": 89,
+      "short": 58,
+      "source": "early-close audit replay",
+      "max_share": 0.6054421768707483
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "WF_wf2022_zz_hold",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 69,
+      "orders_per_week": 2.5555555555555554,
+      "sharpe": -0.3363115072541324,
+      "agent_closes": 51,
+      "exits": {
+       "n_close_TP": 11,
+       "n_close_SL": 1,
+       "n_close_FORCED_FLAT": 6,
+       "n_close_AGENT_CLOSE": 50,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 155,
+      "orders_per_week": 2.9245283018867925,
+      "sharpe": -0.1184205438396261,
+      "agent_closes": 107,
+      "exits": {
+       "n_close_TP": 28,
+       "n_close_SL": 4,
+       "n_close_FORCED_FLAT": 16,
+       "n_close_AGENT_CLOSE": 100,
+       "n_close_REVERSAL": 7
+      },
+      "side": {
+       "long": 89,
+       "short": 66,
+       "source": "early-close audit replay",
+       "max_share": 0.5741935483870968
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 67,
+      "orders_per_week": 2.4814814814814814,
+      "sharpe": 0.4284579689552787,
+      "agent_closes": 55,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 55,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 177,
+      "orders_per_week": 3.339622641509434,
+      "sharpe": -0.9186580847291614,
+      "agent_closes": 145,
+      "exits": {
+       "n_close_TP": 20,
+       "n_close_SL": 2,
+       "n_close_FORCED_FLAT": 10,
+       "n_close_AGENT_CLOSE": 142,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 103,
+       "short": 74,
+       "source": "early-close audit replay",
+       "max_share": 0.5819209039548022
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 58,
+      "orders_per_week": 2.1481481481481484,
+      "sharpe": -0.39702443434606394,
+      "agent_closes": 41,
+      "exits": {
+       "n_close_TP": 14,
+       "n_close_SL": 3,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 41,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 128,
+      "orders_per_week": 2.4150943396226414,
+      "sharpe": 1.3308507256777649,
+      "agent_closes": 89,
+      "exits": {
+       "n_close_TP": 31,
+       "n_close_SL": 3,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 85,
+       "n_close_REVERSAL": 4
+      },
+      "side": {
+       "long": 43,
+       "short": 85,
+       "source": "early-close audit replay",
+       "max_share": 0.6640625
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 56,
+      "orders_per_week": 2.074074074074074,
+      "sharpe": 1.6606826659260798,
+      "agent_closes": 24,
+      "exits": {
+       "n_close_TP": 20,
+       "n_close_SL": 2,
+       "n_close_FORCED_FLAT": 10,
+       "n_close_AGENT_CLOSE": 23,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 112,
+      "orders_per_week": 2.1132075471698113,
+      "sharpe": -0.8342589834963777,
+      "agent_closes": 39,
+      "exits": {
+       "n_close_TP": 35,
+       "n_close_SL": 15,
+       "n_close_FORCED_FLAT": 23,
+       "n_close_AGENT_CLOSE": 37,
+       "n_close_REVERSAL": 2
+      },
+      "side": {
+       "long": 49,
+       "short": 63,
+       "source": "early-close audit replay",
+       "max_share": 0.5625
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 92,
+      "orders_per_week": 3.4074074074074074,
+      "sharpe": -2.3703124501031647,
+      "agent_closes": 86,
+      "exits": {
+       "n_close_TP": 4,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 84,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 159,
+      "orders_per_week": 3.0,
+      "sharpe": 0.6108037764172597,
+      "agent_closes": 109,
+      "exits": {
+       "n_close_TP": 33,
+       "n_close_SL": 5,
+       "n_close_FORCED_FLAT": 12,
+       "n_close_AGENT_CLOSE": 108,
+       "n_close_REVERSAL": 1
+      },
+      "side": {
+       "long": 55,
+       "short": 104,
+       "source": "early-close audit replay",
+       "max_share": 0.6540880503144654
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 66,
+     "orders_per_week": 2.4444444444444446,
+     "sharpe": -0.36360383493342663,
+     "agent_closes": 49,
+     "exits": {
+      "n_close_TP": 16,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 1,
+      "n_close_AGENT_CLOSE": 48,
+      "n_close_REVERSAL": 1
+     },
+     "side": null
+    },
+    "INNER_B": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 126,
+     "orders_per_week": 2.3773584905660377,
+     "sharpe": 0.45994320323111515,
+     "agent_closes": 75,
+     "exits": {
+      "n_close_TP": 32,
+      "n_close_SL": 6,
+      "n_close_FORCED_FLAT": 13,
+      "n_close_AGENT_CLOSE": 72,
+      "n_close_REVERSAL": 3
+     },
+     "side": {
+      "long": 50,
+      "short": 76,
+      "source": "early-close audit replay",
+      "max_share": 0.6031746031746031
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "PASS",
+   "cause_counts": {}
+  },
+  {
+   "unit": "WF_wf2023_both_hold",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261021",
+     "block": "INNER_B"
+    }
+   ],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 66,
+      "orders_per_week": 2.4444444444444446,
+      "sharpe": 0.5979642323710856,
+      "agent_closes": 47,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 6,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 44,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 105,
+      "orders_per_week": 2.019230769230769,
+      "sharpe": -0.0045794748343525125,
+      "agent_closes": 80,
+      "exits": {
+       "n_close_TP": 12,
+       "n_close_SL": 10,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 77,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 68,
+       "short": 37,
+       "source": "early-close audit replay",
+       "max_share": 0.6476190476190476
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 90,
+      "orders_per_week": 3.3333333333333335,
+      "sharpe": 1.4332212804847597,
+      "agent_closes": 34,
+      "exits": {
+       "n_close_TP": 28,
+       "n_close_SL": 20,
+       "n_close_FORCED_FLAT": 8,
+       "n_close_AGENT_CLOSE": 32,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 156,
+      "orders_per_week": 3.0,
+      "sharpe": -0.4769459390080898,
+      "agent_closes": 58,
+      "exits": {
+       "n_close_TP": 37,
+       "n_close_SL": 51,
+       "n_close_FORCED_FLAT": 10,
+       "n_close_AGENT_CLOSE": 54,
+       "n_close_REVERSAL": 4
+      },
+      "side": {
+       "long": 64,
+       "short": 92,
+       "source": "early-close audit replay",
+       "max_share": 0.5897435897435898
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 65,
+      "orders_per_week": 2.4074074074074074,
+      "sharpe": 1.0877114209549839,
+      "agent_closes": 49,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 5,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 47,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [],
+      "trades": 90,
+      "orders_per_week": 1.7307692307692308,
+      "sharpe": -1.2933793298285154,
+      "agent_closes": 73,
+      "exits": {
+       "n_close_TP": 6,
+       "n_close_SL": 11,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 73,
+       "n_close_REVERSAL": 0
+      },
+      "side": {
+       "long": 40,
+       "short": 50,
+       "source": "early-close audit replay",
+       "max_share": 0.5555555555555556
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 68,
+      "orders_per_week": 2.5185185185185186,
+      "sharpe": -0.3599269784698926,
+      "agent_closes": 60,
+      "exits": {
+       "n_close_TP": 6,
+       "n_close_SL": 2,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 59,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 109,
+      "orders_per_week": 2.0961538461538463,
+      "sharpe": -0.9445029329643445,
+      "agent_closes": 83,
+      "exits": {
+       "n_close_TP": 14,
+       "n_close_SL": 11,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 81,
+       "n_close_REVERSAL": 2
+      },
+      "side": {
+       "long": 88,
+       "short": 21,
+       "source": "early-close audit replay",
+       "max_share": 0.8073394495412844
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 67,
+      "orders_per_week": 2.4814814814814814,
+      "sharpe": 0.6572788040464526,
+      "agent_closes": 50,
+      "exits": {
+       "n_close_TP": 8,
+       "n_close_SL": 4,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 48,
+       "n_close_REVERSAL": 2
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 112,
+      "orders_per_week": 2.1538461538461537,
+      "sharpe": -1.6404707262624485,
+      "agent_closes": 68,
+      "exits": {
+       "n_close_TP": 16,
+       "n_close_SL": 22,
+       "n_close_FORCED_FLAT": 6,
+       "n_close_AGENT_CLOSE": 66,
+       "n_close_REVERSAL": 2
+      },
+      "side": {
+       "long": 62,
+       "short": 50,
+       "source": "early-close audit replay",
+       "max_share": 0.5535714285714286
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 65,
+     "orders_per_week": 2.4074074074074074,
+     "sharpe": -0.08896748573011802,
+     "agent_closes": 41,
+     "exits": {
+      "n_close_TP": 14,
+      "n_close_SL": 8,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 40,
+      "n_close_REVERSAL": 1
+     },
+     "side": null
+    },
+    "INNER_B": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 107,
+     "orders_per_week": 2.0576923076923075,
+     "sharpe": -0.7082475434265887,
+     "agent_closes": 60,
+     "exits": {
+      "n_close_TP": 23,
+      "n_close_SL": 21,
+      "n_close_FORCED_FLAT": 3,
+      "n_close_AGENT_CLOSE": 60,
+      "n_close_REVERSAL": 0
+     },
+     "side": {
+      "long": 73,
+      "short": 34,
+      "source": "early-close audit replay",
+      "max_share": 0.6822429906542056
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "FAILED_SANITY",
+   "cause_counts": {
+    "below_2_trades_per_week": 1
+   }
+  },
+  {
+   "unit": "WF_wf2023_both_hold_shorter",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261020",
+     "block": "INNER_B"
+    }
+   ],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 113,
+      "orders_per_week": 4.185185185185185,
+      "sharpe": -0.6339982506499798,
+      "agent_closes": 95,
+      "exits": {
+       "n_close_TP": 9,
+       "n_close_SL": 4,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 70,
+       "n_close_REVERSAL": 25
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 197,
+      "orders_per_week": 3.7884615384615383,
+      "sharpe": 0.7394096517416343,
+      "agent_closes": 147,
+      "exits": {
+       "n_close_TP": 28,
+       "n_close_SL": 16,
+       "n_close_FORCED_FLAT": 6,
+       "n_close_AGENT_CLOSE": 136,
+       "n_close_REVERSAL": 11
+      },
+      "side": {
+       "long": 78,
+       "short": 119,
+       "source": "early-close audit replay",
+       "max_share": 0.6040609137055838
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 68,
+      "orders_per_week": 2.5185185185185186,
+      "sharpe": 1.6658387834405215,
+      "agent_closes": 23,
+      "exits": {
+       "n_close_TP": 21,
+       "n_close_SL": 16,
+       "n_close_FORCED_FLAT": 8,
+       "n_close_AGENT_CLOSE": 23,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [],
+      "trades": 91,
+      "orders_per_week": 1.75,
+      "sharpe": -0.05652911735888567,
+      "agent_closes": 36,
+      "exits": {
+       "n_close_TP": 24,
+       "n_close_SL": 28,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 34,
+       "n_close_REVERSAL": 2
+      },
+      "side": {
+       "long": 35,
+       "short": 56,
+       "source": "early-close audit replay",
+       "max_share": 0.6153846153846154
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 83,
+      "orders_per_week": 3.074074074074074,
+      "sharpe": -0.17093220801016396,
+      "agent_closes": 68,
+      "exits": {
+       "n_close_TP": 5,
+       "n_close_SL": 7,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 61,
+       "n_close_REVERSAL": 7
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 125,
+      "orders_per_week": 2.4038461538461537,
+      "sharpe": -0.862804425420255,
+      "agent_closes": 99,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 13,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 96,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 86,
+       "short": 39,
+       "source": "early-close audit replay",
+       "max_share": 0.688
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 76,
+      "orders_per_week": 2.814814814814815,
+      "sharpe": 1.8866034279412625,
+      "agent_closes": 25,
+      "exits": {
+       "n_close_TP": 24,
+       "n_close_SL": 19,
+       "n_close_FORCED_FLAT": 8,
+       "n_close_AGENT_CLOSE": 24,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 117,
+      "orders_per_week": 2.25,
+      "sharpe": -0.7854023341546832,
+      "agent_closes": 31,
+      "exits": {
+       "n_close_TP": 34,
+       "n_close_SL": 45,
+       "n_close_FORCED_FLAT": 7,
+       "n_close_AGENT_CLOSE": 30,
+       "n_close_REVERSAL": 1
+      },
+      "side": {
+       "long": 65,
+       "short": 52,
+       "source": "early-close audit replay",
+       "max_share": 0.5555555555555556
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 76,
+      "orders_per_week": 2.814814814814815,
+      "sharpe": -0.2714593136026547,
+      "agent_closes": 60,
+      "exits": {
+       "n_close_TP": 7,
+       "n_close_SL": 8,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 55,
+       "n_close_REVERSAL": 5
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 115,
+      "orders_per_week": 2.2115384615384617,
+      "sharpe": -2.1146805986373765,
+      "agent_closes": 67,
+      "exits": {
+       "n_close_TP": 14,
+       "n_close_SL": 27,
+       "n_close_FORCED_FLAT": 7,
+       "n_close_AGENT_CLOSE": 66,
+       "n_close_REVERSAL": 1
+      },
+      "side": {
+       "long": 33,
+       "short": 82,
+       "source": "early-close audit replay",
+       "max_share": 0.7130434782608696
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 78,
+     "orders_per_week": 2.888888888888889,
+     "sharpe": -0.36135172666237386,
+     "agent_closes": 48,
+     "exits": {
+      "n_close_TP": 15,
+      "n_close_SL": 13,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 45,
+      "n_close_REVERSAL": 3
+     },
+     "side": null
+    },
+    "INNER_B": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 132,
+     "orders_per_week": 2.5384615384615383,
+     "sharpe": -0.34541219427680414,
+     "agent_closes": 75,
+     "exits": {
+      "n_close_TP": 28,
+      "n_close_SL": 27,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 73,
+      "n_close_REVERSAL": 2
+     },
+     "side": {
+      "long": 58,
+      "short": 74,
+      "source": "early-close audit replay",
+      "max_share": 0.5606060606060606
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "FAILED_SANITY",
+   "cause_counts": {
+    "below_2_trades_per_week": 1
+   }
+  },
+  {
+   "unit": "WF_wf2023_zz_hold",
+   "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
+   "causes": [
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261021",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "one_side_over_90pct",
+     "where": "seed 20261021",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261022",
+     "block": "INNER_B"
+    },
+    {
+     "cause": "below_2_trades_per_week",
+     "where": "seed 20261023",
+     "block": "INNER_B"
+    }
+   ],
+   "seeds": {
+    "20261019": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 84,
+      "orders_per_week": 3.111111111111111,
+      "sharpe": 1.7091795769152758,
+      "agent_closes": 68,
+      "exits": {
+       "n_close_TP": 14,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 65,
+       "n_close_REVERSAL": 3
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 143,
+      "orders_per_week": 2.75,
+      "sharpe": -1.7262203054609253,
+      "agent_closes": 119,
+      "exits": {
+       "n_close_TP": 18,
+       "n_close_SL": 1,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 116,
+       "n_close_REVERSAL": 3
+      },
+      "side": {
+       "long": 79,
+       "short": 64,
+       "source": "early-close audit replay",
+       "max_share": 0.5524475524475524
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261020": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 96,
+      "orders_per_week": 3.5555555555555554,
+      "sharpe": 0.5379041186374012,
+      "agent_closes": 80,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 6,
+       "n_close_AGENT_CLOSE": 75,
+       "n_close_REVERSAL": 5
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [],
+      "unmeasured": [],
+      "trades": 158,
+      "orders_per_week": 3.0384615384615383,
+      "sharpe": -2.7258014327684403,
+      "agent_closes": 140,
+      "exits": {
+       "n_close_TP": 13,
+       "n_close_SL": 2,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 134,
+       "n_close_REVERSAL": 6
+      },
+      "side": {
+       "long": 49,
+       "short": 109,
+       "source": "early-close audit replay",
+       "max_share": 0.689873417721519
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261021": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 56,
+      "orders_per_week": 2.074074074074074,
+      "sharpe": 2.0833914613206064,
+      "agent_closes": 41,
+      "exits": {
+       "n_close_TP": 9,
+       "n_close_SL": 1,
+       "n_close_FORCED_FLAT": 5,
+       "n_close_AGENT_CLOSE": 41,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "below_2_trades_per_week",
+       "one_side_over_90pct"
+      ],
+      "unmeasured": [],
+      "trades": 99,
+      "orders_per_week": 1.9038461538461537,
+      "sharpe": -1.112726911400256,
+      "agent_closes": 64,
+      "exits": {
+       "n_close_TP": 22,
+       "n_close_SL": 5,
+       "n_close_FORCED_FLAT": 8,
+       "n_close_AGENT_CLOSE": 64,
+       "n_close_REVERSAL": 0
+      },
+      "side": {
+       "long": 90,
+       "short": 9,
+       "source": "early-close audit replay",
+       "max_share": 0.9090909090909091
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261022": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 58,
+      "orders_per_week": 2.1481481481481484,
+      "sharpe": 1.065497761276977,
+      "agent_closes": 47,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 1,
+       "n_close_AGENT_CLOSE": 47,
+       "n_close_REVERSAL": 0
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [],
+      "trades": 95,
+      "orders_per_week": 1.8269230769230769,
+      "sharpe": -0.29120159912685906,
+      "agent_closes": 63,
+      "exits": {
+       "n_close_TP": 26,
+       "n_close_SL": 4,
+       "n_close_FORCED_FLAT": 2,
+       "n_close_AGENT_CLOSE": 62,
+       "n_close_REVERSAL": 1
+      },
+      "side": {
+       "long": 26,
+       "short": 69,
+       "source": "early-close audit replay",
+       "max_share": 0.7263157894736842
+      }
+     },
+     "strategy_share_valid": null
+    },
+    "20261023": {
+     "INNER_A": {
+      "causes": [],
+      "unmeasured": [
+       "side_balance"
+      ],
+      "trades": 58,
+      "orders_per_week": 2.1481481481481484,
+      "sharpe": 1.9807277721683958,
+      "agent_closes": 45,
+      "exits": {
+       "n_close_TP": 10,
+       "n_close_SL": 0,
+       "n_close_FORCED_FLAT": 3,
+       "n_close_AGENT_CLOSE": 44,
+       "n_close_REVERSAL": 1
+      },
+      "side": null
+     },
+     "INNER_B": {
+      "causes": [
+       "below_2_trades_per_week"
+      ],
+      "unmeasured": [],
+      "trades": 95,
+      "orders_per_week": 1.8269230769230769,
+      "sharpe": -1.589612980552829,
+      "agent_closes": 78,
+      "exits": {
+       "n_close_TP": 16,
+       "n_close_SL": 1,
+       "n_close_FORCED_FLAT": 0,
+       "n_close_AGENT_CLOSE": 78,
+       "n_close_REVERSAL": 0
+      },
+      "side": {
+       "long": 23,
+       "short": 72,
+       "source": "early-close audit replay",
+       "max_share": 0.7578947368421053
+      }
+     },
+     "strategy_share_valid": null
+    }
+   },
+   "ensemble": {
+    "INNER_A": {
+     "causes": [],
+     "unmeasured": [
+      "side_balance"
+     ],
+     "trades": 63,
+     "orders_per_week": 2.3333333333333335,
+     "sharpe": 1.4549263507952395,
+     "agent_closes": 46,
+     "exits": {
+      "n_close_TP": 15,
+      "n_close_SL": 0,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 45,
+      "n_close_REVERSAL": 1
+     },
+     "side": null
+    },
+    "INNER_B": {
+     "causes": [],
+     "unmeasured": [],
+     "trades": 104,
+     "orders_per_week": 2.0,
+     "sharpe": -1.512130230742953,
+     "agent_closes": 80,
+     "exits": {
+      "n_close_TP": 20,
+      "n_close_SL": 2,
+      "n_close_FORCED_FLAT": 2,
+      "n_close_AGENT_CLOSE": 79,
+      "n_close_REVERSAL": 1
+     },
+     "side": {
+      "long": 50,
+      "short": 54,
+      "source": "early-close audit replay",
+      "max_share": 0.5192307692307693
+     }
+    },
+    "strategy_share_valid": null
+   },
+   "unmeasured": [
+    "seed 20261019/INNER_A/side_balance",
+    "seed 20261020/INNER_A/side_balance",
+    "seed 20261021/INNER_A/side_balance",
+    "seed 20261022/INNER_A/side_balance",
+    "seed 20261023/INNER_A/side_balance",
+    "ensemble/INNER_A/side_balance"
+   ],
+   "blocks": [
+    "INNER_A",
+    "INNER_B"
+   ],
+   "status": "FAILED_SANITY",
+   "cause_counts": {
+    "below_2_trades_per_week": 3,
+    "one_side_over_90pct": 1
+   }
+  }
+ ]
+}

@@ -96,14 +96,34 @@ def describe(ret: np.ndarray, point: float | None = None, **boot) -> dict:
     return out
 
 
+SANITY_REFUSAL = "REFUSED_FAILED_SANITY"
+
+
+def sanity_refusal(*inputs) -> dict | None:
+    """A verdict that involves a FAILED_SANITY unit is refused (owner 2026-10-25: a run with zero trades, one-sided
+    trades or no early close measures nothing): inputs carrying ``sanity == "FAILED_SANITY"`` name their unit."""
+    bad = [x for x in inputs if isinstance(x, dict) and x.get("sanity") == "FAILED_SANITY"]
+    if not bad:
+        return None
+    return {"verdict": SANITY_REFUSAL, "failed_units": [x.get("unit") for x in bad],
+            "causes": [x.get("sanity_causes") for x in bad], "rule": "no verdict involves a FAILED_SANITY unit"}
+
+
 def holds(fold_stats: dict) -> dict:
-    """HOLDS_RULE over {fold: {"sharpe":..., "se_lo":...}} of the ensemble on the validation window of each fold."""
+    """HOLDS_RULE over {fold: {"sharpe":..., "se_lo":...}} of the ensemble on the validation window of each fold.
+    Refused (``SANITY_REFUSAL``) when any fold's input is a FAILED_SANITY unit."""
+    ref = sanity_refusal(*fold_stats.values())
+    if ref is not None:
+        return {"rule": HOLDS_RULE, "per_fold": {}, **ref}
     per = {f: bool(math.isfinite(v["se_lo"]) and (v["sharpe"] - v["se_lo"]) > 0) for f, v in fold_stats.items()}
     return {"rule": HOLDS_RULE, "per_fold": per, "verdict": "HOLDS" if per and all(per.values()) else "DOES_NOT_HOLD"}
 
 
 def separable(a: dict, b: dict) -> dict:
-    """SEPARABLE_RULE for two windows' {"sharpe", "se_lo"}."""
+    """SEPARABLE_RULE for two windows' {"sharpe", "se_lo"}; refused when either side is a FAILED_SANITY unit."""
+    ref = sanity_refusal(a, b)
+    if ref is not None:
+        return {"rule": SEPARABLE_RULE, **ref}
     pooled = math.sqrt(a["se_lo"] ** 2 + b["se_lo"] ** 2) if math.isfinite(a["se_lo"]) and math.isfinite(b["se_lo"]) else float("nan")
     delta = a["sharpe"] - b["sharpe"]
     return {"rule": SEPARABLE_RULE, "delta": float(delta), "pooled_se": float(pooled),

@@ -219,18 +219,31 @@ def test_strategy_optimiser_cannot_read_outside_the_calibration_rows():
     poisoned = copy.deepcopy(t)
     poisoned["net"][2:] = 50.0
     poisoned["psl"][2:] = 0.99
-    a = C2.freeze(t, cal_rows, score, AC, 1, "final", "sharpe_lcb")
-    b = C2.freeze(poisoned, cal_rows, score, AC, 1, "final", "sharpe_lcb")
+    src = {m: {"rows": cal_rows} for m in C2.CLOSERS}          # the closers' reference rows: calibration visits only
+    a = C2.freeze(t, cal_rows, score, AC, 1, "final", "sharpe_lcb", src)
+    b = C2.freeze(poisoned, cal_rows, score, AC, 1, "final", "sharpe_lcb", src)
+    assert a["gene_map"] == b["gene_map"] and a["feasibility_probe"]["verdict"] == "FEASIBLE"
     assert a["strategy"] == b["strategy"] and a["chosen"]["sharpe"] == b["chosen"]["sharpe"]
     assert [p["sharpe"] for p in a["runs"]["without_veto"]["points"]] == [p["sharpe"] for p in b["runs"]["without_veto"]["points"]]
 
 
 def test_strategy_without_early_close_is_not_selectable():
+    # absolute-gene space (legacy C2): the frozen point is refused, the points stay archived
     AC = C2.default_contract()
     AC["strategy"]["optimizer"]["final"] = {"population": 4, "generations": 1}
+    AC["strategy"].pop("gene_space")
+    AC["strategy"]["genes"] = {"open_margin": [-0.5, 1.5], "close_margin": [-0.5, 1.5], "close_p": [0.3, 1.0], "allow_reverse": [0.0, 1.0], "nop_veto": [0.3, 1.0]}
     fr = C2.freeze(table(2), np.array([0, 1]), lambda v, s: comps(2.0, 3.0, 3.0, 0), AC, 1, "final", "sharpe_lcb")
     assert fr["valid"] is False and "DEGENERATE_NO_EARLY_CLOSE" in fr["note"]
     assert fr["runs"]["without_veto"]["points"]                   # archived, never discarded
+    # scale-adaptive space: no probe point closes a position -> STRATEGY_SPACE_INFEASIBLE, never a silent zero-close strategy
+    AC = C2.default_contract()
+    AC["strategy"]["optimizer"]["final"] = {"population": 4, "generations": 1}
+    src = {m: {"rows": np.array([0, 1])} for m in C2.CLOSERS}
+    with pytest.raises(SystemExit, match="STRATEGY_SPACE_INFEASIBLE"):
+        C2.freeze(table(2), np.array([0, 1]), lambda v, s: comps(2.0, 3.0, 3.0, 0), AC, 1, "final", "sharpe_lcb", src)
+    vis = C2.freeze(table(2), np.array([0, 1]), lambda v, s: comps(2.0, 3.0, 3.0, 0), AC, 1, "visitation", "sharpe_lcb", src)
+    assert vis["valid"] is False and vis["strategy"] is None and vis["note"] == "STRATEGY_SPACE_INFEASIBLE"
 
 
 # ----------------------------------------------------------------------------- E3-M guard, launcher, report rules

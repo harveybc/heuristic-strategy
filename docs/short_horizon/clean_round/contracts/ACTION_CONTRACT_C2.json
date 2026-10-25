@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c2",
  "scientific_release": false,
- "identity": "action_ad45e26e2b62a160",
+ "identity": "action_3ca9b7062b103f94",
  "design": "docs/short_horizon/clean_round/CAUSAL_LADDER_DESIGN_2026_10_25.md (C2: action consequences, no teacher)",
  "action_space": {
   "actions": {
@@ -501,26 +501,37 @@
  },
  "strategy": {
   "genes": {
-   "open_margin": [
-    -0.5,
-    1.5
+   "open_rate": [
+    0.002,
+    0.3
    ],
-   "close_margin": [
-    -0.5,
-    1.5
+   "close_rem_rate": [
+    0.0,
+    0.6
    ],
-   "close_p": [
-    0.3,
-    1.0
+   "close_p_rate": [
+    0.0,
+    0.6
    ],
    "allow_reverse": [
     0.0,
     1.0
    ],
-   "nop_veto": [
-    0.3,
-    1.0
+   "nop_veto_rate": [
+    0.0,
+    0.5
    ]
+  },
+  "gene_space": "calibration_quantile",
+  "gene_map": {
+   "open_margin": "quantile(best predicted net over side x cell, calibration flat rows, 1 - open_rate)",
+   "close_margin": "-quantile(predicted remaining value, calibration-block positioned visits, close_rem_rate)",
+   "close_p": "quantile(calibrated P(SL first), calibration-block positioned visits, 1 - close_p_rate)",
+   "allow_reverse": "gene >= 0.5",
+   "nop_veto": "quantile(calibrated pNOP, calibration flat rows, 1 - nop_veto_rate)",
+   "positioned_visits": "the round-0 INNER_A exit visits (expert trajectory + exploration positions): strategy-free",
+   "frozen": "on the calibration block before the search; recorded in the strategy doc (gene_map)",
+   "feasibility_probe": "corners of the continuous genes + the q-max point; no point with >= 2.0 trades/week and >= 1 agent close -> STRATEGY_SPACE_INFEASIBLE"
   },
   "rule": "flat: per side the cell with the highest predicted net; open the better side when its predicted net > open_margin and (veto kept) pNOP <= nop_veto; positioned: CLOSE when predicted remaining < -close_margin OR calibrated P(SL first) > close_p (optimal stopping), then reverse when allow_reverse and the open rule picks the other side",
   "threshold_targets": {

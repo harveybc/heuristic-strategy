@@ -53,6 +53,12 @@ OPENERS, CLOSERS = ("open_l", "open_s"), ("close_l", "close_s")
 FIELDS = ("pL", "tpL", "slL", "pS", "tpS", "slS", "pN", "pCL", "pCS", "cost")
 PROB_OF = {"open_l": "pL", "open_s": "pS", "nop": "pN", "close_l": "pCL", "close_s": "pCS"}
 STRATEGY_GENES = ("open_threshold", "gain_margin", "close_threshold", "allow_reverse", "nop_veto")
+# v1.2 (2026-10-25, WF_V1 had zero trades: absolute gene bounds were unreachable for small calibrated probabilities):
+# every threshold is a QUANTILE of its calibration-block reference distribution, frozen on that block and recorded
+GENE_SPACE_Q = "calibration_quantile"
+STRATEGY_GENES_Q = ("open_rate", "gain_quantile", "close_rate", "allow_reverse", "nop_veto_rate")
+Q_BOUNDS_V1 = {"open_rate": [0.002, 0.30], "gain_quantile": [0.0, 0.95], "close_rate": [0.0, 0.60], "allow_reverse": [0.0, 1.0],
+               "nop_veto_rate": [0.0, 0.50]}
 NOP_POSITIVE = ("nop_hard", "nop_graded", "negative", "conflict")
 
 
@@ -104,7 +110,14 @@ def validate(doc: dict) -> list:
         errs.append("ACTION_CONTRACT_CALIBRATION")
     s = doc.get("strategy") or {}
     genes = s.get("genes") or {}
-    if tuple(genes) != STRATEGY_GENES:
+    if s.get("gene_space") == GENE_SPACE_Q:
+        if tuple(genes) != STRATEGY_GENES_Q or genes != Q_BOUNDS_V1:
+            errs.append(f"ACTION_CONTRACT_GENES:{list(genes)}")
+        if s.get("require_early_close") is not True:
+            errs.append("ACTION_CONTRACT_EARLY_CLOSE_RULE")
+    elif s.get("gene_space") is not None:
+        errs.append(f"ACTION_CONTRACT_GENE_SPACE:{s.get('gene_space')}")
+    elif tuple(genes) != STRATEGY_GENES:
         errs.append(f"ACTION_CONTRACT_GENES:{list(genes)}")
     for g, b in genes.items():
         if not (isinstance(b, list) and len(b) == 2 and float(b[0]) < float(b[1])):
@@ -529,6 +542,12 @@ def window_components(m: dict, trades, sigma_price, capital: float, min_opw: flo
             "valid": bool(feasible), "violation": float(violation), "reasons": reasons}
 
 
+def seed_sanity(m: dict) -> dict:
+    """The per-seed progress line's sanity fields (trades, sides, agent closes, orders/week) of one trading summary."""
+    return {"trades": int(m.get("trades", 0)), "long": int(m.get("n_entries_long", -1)), "short": int(m.get("n_entries_short", -1)),
+            "agent_closes": int(m.get("n_close_AGENT_CLOSE", 0)) + int(m.get("n_close_REVERSAL", 0)), "opw": round(float(m.get("orders_per_week", 0.0)), 3)}
+
+
 def search_objectives(c: dict) -> tuple:
     """Deb's constraint domination encoded for NSGA-II (weights (+1, -1)): a feasible point keeps (Sharpe, DD); an
     infeasible one gets (-BIG - violation, BIG + violation), so every feasible point dominates every infeasible one and
@@ -660,7 +679,7 @@ def optimize(score, genes: dict, seed: int, population: int, generations: int, v
     archive points form the front on which each variant picks (``freeze_strategy``). Deterministic for a seed; the
     global ``random`` state is restored."""
     from deap import base, creator, tools
-    names = [g for g in (gene_names or STRATEGY_GENES) if veto or g != "nop_veto"]       # C2 passes its own genes / strategy class
+    names = [g for g in (gene_names or STRATEGY_GENES) if veto or not g.startswith("nop_veto")]   # C2 passes its own genes / strategy class
     make_strategy = make_strategy or Strategy.from_genes
     lo = [float(genes[g][0]) for g in names]
     hi = [float(genes[g][1]) for g in names]
@@ -730,6 +749,81 @@ def archive_view(points: list, name: str, make_strategy=None) -> dict:
             "note": "best_unconstrained_* are NOT SELECTABLE (the activity rule selects); shown so the owner sees what each fitness would do without it"}
 
 
+class GeneMap:
+    """Scale-adaptive genes (v1.2 / C2 / C2G, 2026-10-25): every threshold gene is a RATE or a QUANTILE of a reference
+    score distribution measured on the calibration block (restricted view only), frozen before the search and recorded.
+    ``rules``: absolute gene -> (quantile gene, reference, kind), kinds:
+      upper_rate      abs = quantile(ref, 1 - rate)   (a share ``rate`` of the reference lies above the threshold)
+      quantile        abs = quantile(ref, u)
+      neg_lower_rate  abs = -quantile(ref, rate)      (close when value < -abs: a share ``rate`` lies below)
+      copy            abs = gene                      (allow_reverse)
+    A missing veto gene maps to "no veto" (the max of its reference: the strict ``>`` never fires)."""
+    GRID = tuple(round(x, 4) for x in np.linspace(0.0, 1.0, 101))
+
+    def __init__(self, refs: dict, rules: dict, note: str = ""):
+        self.refs = {k: np.sort(np.asarray(v, float)[np.isfinite(np.asarray(v, float))]) for k, v in refs.items()}
+        self.rules, self.note = rules, note
+        empty = [k for k, v in self.refs.items() if not len(v)]
+        if empty:
+            raise SystemExit(f"STRATEGY_SPACE_INFEASIBLE:no calibration-block reference rows for {empty}")
+
+    def q(self, ref: str, u: float) -> float:
+        return float(np.quantile(self.refs[ref], min(max(float(u), 0.0), 1.0)))
+
+    def to_absolute(self, g: dict) -> dict:
+        out = {}
+        for a, (qn, ref, kind) in self.rules.items():
+            if kind == "copy":
+                out[a] = float(g.get(qn, 0.0))
+                continue
+            u = float(g.get(qn, 0.0))
+            out[a] = self.q(ref, 1.0 - u) if kind == "upper_rate" else (self.q(ref, u) if kind == "quantile" else -self.q(ref, u))
+        return out
+
+    def describe(self) -> dict:
+        return {"rules": {a: {"gene": r[0], "reference": r[1], "kind": r[2]} for a, r in self.rules.items()}, "note": self.note,
+                "references": {k: {"rows": int(len(v)), "quantiles": [float(np.quantile(v, u)) for u in self.GRID]} for k, v in self.refs.items()},
+                "grid": list(self.GRID), "frozen_on": "the calibration block (restricted view), before the search"}
+
+
+def v1_gene_map(view: dict, rows) -> GeneMap:
+    """v1.2 references on the calibration rows: open score max(pL, pS); best expected gain over sides; the closers'
+    calibrated exit probability (both sides pooled; v1 closers are position-independent, so their score at a positioned
+    bar is that row's score); pNOP."""
+    r = np.asarray(rows, np.int64)
+    pL, pS = view["pL"][r], view["pS"][r]
+    gL = expected_gain(pL, view["tpL"][r], view["slL"][r], view["cost"][r])
+    gS = expected_gain(pS, view["tpS"][r], view["slS"][r], view["cost"][r])
+    refs = {"open_score": np.fmax(pL, pS), "best_gain": np.fmax(gL, gS), "close_score": np.r_[view["pCL"][r], view["pCS"][r]], "nop_score": view["pN"][r]}
+    rules = {"open_threshold": ("open_rate", "open_score", "upper_rate"), "gain_margin": ("gain_quantile", "best_gain", "quantile"),
+             "close_threshold": ("close_rate", "close_score", "upper_rate"), "allow_reverse": ("allow_reverse", None, "copy"),
+             "nop_veto": ("nop_veto_rate", "nop_score", "upper_rate")}
+    return GeneMap(refs, rules, "v1.2: references on the calibration rows of the restricted table")
+
+
+def probe_points(genes: dict) -> list:
+    """The feasibility probe (2026-10-25): every corner of the continuous non-veto genes (allow_reverse 0, no veto) plus
+    the q-max point (the most permissive open gene, every other continuous gene at its midpoint)."""
+    cont = [g for g in genes if g != "allow_reverse" and not g.startswith("nop_veto")]
+    pts = []
+    for mask in range(2 ** len(cont)):
+        pts.append({g: float(genes[g][(mask >> i) & 1]) for i, g in enumerate(cont)} | {"allow_reverse": 0.0})
+    open_g = cont[0]
+    pts.append({g: (float(genes[g][1]) if g == open_g else 0.5 * (float(genes[g][0]) + float(genes[g][1]))) for g in cont} | {"allow_reverse": 0.0})
+    return pts
+
+
+def feasibility_probe(score, genes: dict, make_strategy) -> dict:
+    """Score the probe points; feasible when some point reaches >= 2.0 trades/week AND at least one agent close."""
+    rows = []
+    for g in probe_points(genes):
+        c = score(make_strategy(g, False))
+        rows.append({"genes": g, "opw": c["opw"], "trades": c["trades"], "agent_closes": c["agent_closes"], "sharpe": c["sharpe"], "valid": c["valid"]})
+    ok = [r for r in rows if r["opw"] >= MIN_TRADES_PER_WEEK and r["agent_closes"] >= 1 and r["trades"] > 0]
+    return {"points": rows, "feasible_points": len(ok), "verdict": "FEASIBLE" if ok else "STRATEGY_SPACE_INFEASIBLE",
+            "rule": f"some probe point reaches >= {MIN_TRADES_PER_WEEK:g} trades/week AND >= 1 agent close on the calibration block"}
+
+
 EARLY_CLOSE_RULE = ("owner 2026-10-25 (pre-registered before any audit number was read): early close is indispensable; with "
                     "strategy.require_early_close a point that never closes voluntarily on the calibration block (agent closes = 0) "
                     "is DEGENERATE_NO_EARLY_CLOSE and not selectable; it stays in the archive")
@@ -741,7 +835,7 @@ def early_close_front(points: list) -> list:
 
 
 def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: int, budget: str = "final", primary: str = DEFAULT_FITNESS,
-                    gene_names=None, make_strategy=None, restrict_fn=None) -> dict:
+                    gene_names=None, make_strategy=None, restrict_fn=None, gene_map_fn=None) -> dict:
     """The upper layer, frozen on the calibration block only: the table is restricted to ``cal_rows`` BEFORE the
     optimiser sees it. Two searches (pre-registered): without the NOP veto and with it. The composite scales come from
     the valid front points of both searches (``term_scales``); every archived point gets every variant's value; each
@@ -752,6 +846,23 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
     view = (restrict_fn or restrict)(table, cal_rows)
     s = contract["strategy"]
     o = s["optimizer"][budget]
+    gmap, probe = None, None
+    if s.get("gene_space") == GENE_SPACE_Q:
+        # v1.2 / C2 / C2G: thresholds as quantiles of calibration-block references, frozen here; then the probe
+        gmap = (gene_map_fn or (lambda v: v1_gene_map(v, cal_rows)))(view)
+        base = make_strategy or Strategy.from_genes
+        make_strategy = lambda g, veto, _b=base, _m=gmap: _b(_m.to_absolute(g), veto)  # noqa: E731
+        gene_names = tuple(s["genes"])
+        probe = feasibility_probe(lambda st: score_table(view, st), s["genes"], make_strategy)
+        if probe["verdict"] != "FEASIBLE":
+            if budget == "final":
+                raise SystemExit(f"STRATEGY_SPACE_INFEASIBLE:{json.dumps({k: v for k, v in probe.items() if k != 'points'})}:"
+                                 f"best opw {max((r['opw'] for r in probe['points']), default=0):.2f}, max agent closes "
+                                 f"{max((r['agent_closes'] for r in probe['points']), default=0)}")
+            nf = {"chosen": None, "strategy": None, "nop_veto_kept": False, "valid": False, "archive_view": None, "note": "STRATEGY_SPACE_INFEASIBLE"}
+            return {"budget": budget, "runs": {"without_veto": {"points": [], "front": []}, "with_veto": {"points": [], "front": []}},
+                    "primary_fitness": primary, "by_fitness": {f: dict(nf) for f in FITNESS}, "term_scales": {}, "chosen": None, "strategy": None,
+                    "nop_veto_kept": False, "valid": False, "note": "STRATEGY_SPACE_INFEASIBLE", "gene_map": gmap.describe(), "feasibility_probe": probe}
     runs = {}
     for veto in (False, True):
         runs["with_veto" if veto else "without_veto"] = optimize(lambda st: score_table(view, st), s["genes"], seed, int(o["population"]), int(o["generations"]), veto,
@@ -792,8 +903,12 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
            "chosen": p["chosen"], "strategy": p["strategy"], "nop_veto_kept": p["nop_veto_kept"], "valid": p["valid"]}
     if require_ec:
         doc["early_close_rule"] = EARLY_CLOSE_RULE
+    if gmap is not None:
+        doc["gene_space"], doc["gene_map"], doc["feasibility_probe"] = GENE_SPACE_Q, gmap.describe(), probe
     if not p["valid"]:
         doc["note"] = p["note"]
+        if gmap is not None and budget == "final":     # never let the optimiser silently return a zero-trade strategy
+            raise SystemExit(f"STRATEGY_NO_SELECTABLE_POINT:{primary}:{p['note']}")
     return doc
 
 

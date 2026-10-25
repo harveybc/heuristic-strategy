@@ -28,6 +28,13 @@ among commands): every categorical decision is ``softmax_ce`` over its declared 
 never intervals mapped to several actions). Refusals: CATEGORICAL_FROM_CONTINUOUS, CONTINUOUS_THROUGH_SOFTMAX,
 HEAD_DIM_MISMATCH, ENCODING_UNKNOWN, CONTINUOUS_BOUNDS, CONTINUOUS_LOSS, ACTION_UNREACHABLE, VALUE_RULE_UNKNOWN,
 VALUE_TARGET_NOT_EXPECTED_VALUE, VALUE_TARGET_INTERVALS.
+
+C2G (owner 2026-10-25, "Sí, como brazo extra"; schema ``expert_guided_action_contract.c2g``): C2 plus ONE change, the
+closers alone also see the geometry of their own open order (``GEOMETRY``: signed distance to the SL and to the TP in
+the order's own sigma, hours held, side), computed after bar b from the order's levels and close[b]. Every other
+state slot, for every specialist, is refused (``STATE_SLOT_NOT_ALLOWED``), and so is geometry on an opener or on NOP
+(``GEOMETRY_ON_NON_CLOSER``). Because a closer's output now depends on the open order, closer outputs are computed
+on demand per (order, row) and cached per order (``CloserGeo``), never precomputed per row; openers and NOP are C2's.
 """
 from __future__ import annotations
 
@@ -45,9 +52,14 @@ from . import multires as MR
 from . import outcomes as OC
 
 SCHEMA = "expert_guided_action_contract.c2"
+SCHEMA_G = "expert_guided_action_contract.c2g"        # C2 + closer-only order geometry (owner 2026-10-25)
 SPECIALISTS = ("open_l", "open_s", "nop", "close_l", "close_s")
 OPENERS, CLOSERS = ("open_l", "open_s"), ("close_l", "close_s")
 GENES = ("open_margin", "close_margin", "close_p", "allow_reverse", "nop_veto")
+# scale-adaptive genes (2026-10-25, after WF_V1's zero trades): rates / quantiles of calibration-block references
+GENES_Q = ("open_rate", "close_rem_rate", "close_p_rate", "allow_reverse", "nop_veto_rate")
+Q_BOUNDS = {"open_rate": [0.002, 0.30], "close_rem_rate": [0.0, 0.60], "close_p_rate": [0.0, 0.60], "allow_reverse": [0.0, 1.0],
+            "nop_veto_rate": [0.0, 0.50]}
 NET_BOUND = (-4.0, 4.0)
 REM_BOUND = (-4.0, 4.0)
 CLASSES = {"open_l": ["NOT_TP_FIRST", "TP_FIRST"], "open_s": ["NOT_TP_FIRST", "TP_FIRST"], "nop": ["TRADE", "NOP"],
@@ -55,6 +67,9 @@ CLASSES = {"open_l": ["NOT_TP_FIRST", "TP_FIRST"], "open_s": ["NOT_TP_FIRST", "T
 VALUE_RULE = "expected_value_vs_margin"
 SIDE_OF = {"open_l": 0, "open_s": 1, "close_l": 0, "close_s": 1}
 DEFAULT_BOUNDS = ((0.25, 3.0), (0.5, 3.0))
+GEOMETRY = ("dist_sl_sigma", "dist_tp_sigma", "hours_held", "side")     # C2G closer-only inputs, in this order
+N_GEO = len(GEOMETRY)
+HOURS_SCALE = 24.0                                    # hours_held = elapsed hours / 24 (days); fixed, declared
 
 
 def cell_name(c) -> str:
@@ -113,7 +128,14 @@ def default_contract() -> dict:
         "specialists": spec,
         "calibration": {"method": "platt_binary", "fit_block": "INNER_A", "ece_bins": 15, "heads": [f"{m}.decision" for m in SPECIALISTS]},
         "strategy": {
-            "genes": {"open_margin": [-0.5, 1.5], "close_margin": [-0.5, 1.5], "close_p": [0.3, 1.0], "allow_reverse": [0.0, 1.0], "nop_veto": [0.3, 1.0]},
+            "genes": dict(Q_BOUNDS), "gene_space": ACT.GENE_SPACE_Q,
+            "gene_map": {"open_margin": "quantile(best predicted net over side x cell, calibration flat rows, 1 - open_rate)",
+                         "close_margin": "-quantile(predicted remaining value, calibration-block positioned visits, close_rem_rate)",
+                         "close_p": "quantile(calibrated P(SL first), calibration-block positioned visits, 1 - close_p_rate)",
+                         "allow_reverse": "gene >= 0.5", "nop_veto": "quantile(calibrated pNOP, calibration flat rows, 1 - nop_veto_rate)",
+                         "positioned_visits": "the round-0 INNER_A exit visits (expert trajectory + exploration positions): strategy-free",
+                         "frozen": "on the calibration block before the search; recorded in the strategy doc (gene_map)",
+                         "feasibility_probe": "corners of the continuous genes + the q-max point; no point with >= 2.0 trades/week and >= 1 agent close -> STRATEGY_SPACE_INFEASIBLE"},
             "rule": ("flat: per side the cell with the highest predicted net; open the better side when its predicted net > open_margin "
                      "and (veto kept) pNOP <= nop_veto; positioned: CLOSE when predicted remaining < -close_margin OR calibrated "
                      "P(SL first) > close_p (optimal stopping), then reverse when allow_reverse and the open rule picks the other side"),
@@ -140,7 +162,7 @@ def default_contract() -> dict:
 
 def validate(doc: dict) -> list:
     errs = []
-    if doc.get("schema") != SCHEMA:
+    if doc.get("schema") not in (SCHEMA, SCHEMA_G):
         errs.append("C2_CONTRACT_SCHEMA")
     if doc.get("identity") != ACT.identity_of(doc):
         errs.append("C2_CONTRACT_IDENTITY")
@@ -150,6 +172,7 @@ def validate(doc: dict) -> list:
     if tuple(sp) != SPECIALISTS:
         errs.append(f"C2_CONTRACT_SPECIALISTS:{list(sp)}")
     errs += encoding_audit(doc)["errors"]
+    errs += state_slot_errors(doc)
     oc = doc.get("outcomes") or {}
     cells = [tuple(c) for c in oc.get("cells") or []]
     if cells != [tuple(c) for c in OC.CELLS] or tuple(oc.get("ref_cell") or ()) != OC.REF_CELL or oc.get("window_end") != OC.TEST_START:
@@ -170,7 +193,10 @@ def validate(doc: dict) -> list:
         errs.append("C2_CONTRACT_CALIBRATION")
     s = doc.get("strategy") or {}
     genes = s.get("genes") or {}
-    if tuple(genes) != GENES:
+    if s.get("gene_space") == ACT.GENE_SPACE_Q:
+        if tuple(genes) != GENES_Q or genes != Q_BOUNDS:
+            errs.append(f"C2_CONTRACT_GENES:{list(genes)}")
+    elif s.get("gene_space") is not None or tuple(genes) != GENES:
         errs.append(f"C2_CONTRACT_GENES:{list(genes)}")
     for g, b in genes.items():
         if not (isinstance(b, list) and len(b) == 2 and float(b[0]) < float(b[1])):
@@ -200,6 +226,56 @@ def validate(doc: dict) -> list:
     c = doc.get("constraints") or {}
     if c.get("agent_state") != "none" or c.get("variants") != ["FULL"] or c.get("teacher") != "none":
         errs.append("C2_CONTRACT_CONSTRAINTS")
+    return errs
+
+
+def default_contract_geometry() -> dict:
+    """The C2G contract: C2 (``default_contract``) plus the closer-only order geometry block, sealed."""
+    doc = json.loads(json.dumps(default_contract()))
+    doc["schema"], doc["identity"] = SCHEMA_G, None
+    doc["design"] += ("; C2G (owner 2026-10-25, 'Sí, como brazo extra'): the closers alone also see the geometry of their "
+                      "own open order; openers and NOP unchanged")
+    for m in SPECIALISTS:
+        doc["specialists"][m]["state_slots"] = list(GEOMETRY) if m in CLOSERS else []
+    doc["closer_order_geometry"] = {
+        "order": list(GEOMETRY), "applies_to": list(CLOSERS), "hours_scale": HOURS_SCALE,
+        "inputs": {"dist_sl_sigma": "side * (close[b] - SL) / sigma_entry", "dist_tp_sigma": "side * (TP - close[b]) / sigma_entry",
+                   "hours_held": f"(open time of bar b + 1 h - open time of the fill bar) / 1 h / {HOURS_SCALE:g}",
+                   "side": "+1 long, -1 short"},
+        "sigma_entry": "the decision sigma the engine used to set this order's levels (Position.sigma)",
+        "causality": "computed after bar b from the open order's own levels and close[b]; nothing after b enters",
+        "network_input": "closers: recipe window (+) the nine agent-state slots as constant zeros (as C2) (+) these four values; openers / NOP: as C2",
+        "forbidden": "any other state slot for any specialist (balance, equity, PnL history, entries count, agent outputs, can_enter, ...); geometry on openers or NOP",
+        "owner_words": "Sí, como brazo extra (2026-10-25)"}
+    doc["constraints"]["closer_inputs"] = "recipe_window+order_geometry"
+    return ACT.seal(doc)
+
+
+def state_slot_errors(doc: dict) -> list:
+    """C2G's input rule: only the closers carry state slots, and only exactly ``GEOMETRY``; a C2 contract carries none."""
+    errs = []
+    g = doc.get("schema") == SCHEMA_G
+    for m, d in (doc.get("specialists") or {}).items():
+        slots = list(d.get("state_slots") or [])
+        for x in slots:
+            if x not in GEOMETRY:
+                errs.append(f"STATE_SLOT_NOT_ALLOWED:{m}:{x}")
+            elif m not in CLOSERS:
+                errs.append(f"GEOMETRY_ON_NON_CLOSER:{m}:{x}")
+            elif not g:
+                errs.append(f"STATE_SLOT_NOT_ALLOWED:{m}:{x}:a C2 contract carries no state slot")
+        if g and m in CLOSERS and slots != list(GEOMETRY):
+            errs.append(f"C2G_CLOSER_GEOMETRY:{m}:{slots}")
+    geo = doc.get("closer_order_geometry")
+    if g:
+        geo = geo or {}
+        if list(geo.get("order") or []) != list(GEOMETRY) or sorted(geo.get("inputs") or {}) != sorted(GEOMETRY) \
+                or list(geo.get("applies_to") or []) != list(CLOSERS) or float(geo.get("hours_scale", -1)) != HOURS_SCALE:
+            errs.append("C2G_GEOMETRY_BLOCK")
+        if (doc.get("constraints") or {}).get("closer_inputs") != "recipe_window+order_geometry":
+            errs.append("C2G_CONSTRAINTS")
+    elif geo is not None:
+        errs.append("STATE_SLOT_NOT_ALLOWED:closer_order_geometry on a C2 contract")
     return errs
 
 
@@ -260,7 +336,135 @@ def load(path) -> dict:
 
 
 def is_c2(doc: dict) -> bool:
-    return isinstance(doc, dict) and doc.get("schema") == SCHEMA
+    """C2 or C2G (both run through this module)."""
+    return isinstance(doc, dict) and doc.get("schema") in (SCHEMA, SCHEMA_G)
+
+
+def is_c2g(doc: dict) -> bool:
+    return isinstance(doc, dict) and doc.get("schema") == SCHEMA_G
+
+
+# ----------------------------------------------------------------------------- C2G: closer-only order geometry
+def order_geometry(pos, bars, close, v_ns) -> np.ndarray:
+    """(n, 4) ``GEOMETRY`` of the open ``pos`` at decision bars ``bars``: signed distances to its SL / TP in its own
+    sigma, hours held since the fill bar opened (scaled), side. Causal: close of bar b and the order's own levels."""
+    b = np.asarray(bars, np.int64)
+    side, sg = float(pos.direction), float(pos.sigma)
+    c = np.asarray(close, float)[b]
+    hours = (np.asarray(v_ns, np.int64)[b] + E.H_NS - int(np.asarray(v_ns, np.int64)[int(pos.entry_bar)])) / E.H_NS
+    return np.c_[side * (c - float(pos.sl)) / sg, side * (float(pos.tp) - c) / sg, hours / HOURS_SCALE,
+                 np.full(len(b), side)].astype(np.float32)
+
+
+def geometry_fn(cx):
+    """pos, bar -> (4,) geometry on ``cx``'s bars (for the exit tables)."""
+    close = cx.ds.bars["CLOSE"].to_numpy(float)
+    v = cx.ds.bars.index.as_unit("ns").asi8
+
+    def f(pos, bar):
+        return order_geometry(pos, [bar], close, v)[0]
+    return f
+
+
+def X_geo(Xw, rows, n_state, G) -> np.ndarray:
+    """Closer input under C2G: recipe window (+) ``n_state`` constant zeros (agent_state none, as C2) (+) the geometry."""
+    rows = np.asarray(rows, np.int64)
+    G = np.asarray(G, np.float32).reshape(len(rows), N_GEO)
+    return np.c_[Xw[rows], np.zeros((len(rows), n_state), np.float32), G].astype(np.float32)
+
+
+def exit_sets_geo(cx, xt: dict, period: str, side_index: int):
+    """``OC.exit_sets`` plus the geometry of every kept visit: (rows, y, R, G)."""
+    m = OC.exit_mask(cx, xt, period, side_index)
+    if not len(m) or not m.any():
+        return np.zeros(0, np.int64), np.zeros(0, np.int64), np.zeros((0, 1), np.float32), np.zeros((0, N_GEO), np.float32)
+    return (xt["row"][m], xt["sl_first"][m].astype(np.int64), xt["remaining"][m][:, None].astype(np.float32),
+            np.asarray(xt["geo"], np.float32)[m])
+
+
+class CloserGeo:
+    """The closers' outputs under C2G. They depend on the open order, so they are computed on demand: the first time an
+    order is consulted at row r0, one batched forward pass covers rows r0 .. r0 + CHUNK - 1 (an order cannot outlive the
+    week's forced flat), cached per order; later rows extend with a new segment. ``members`` = [(pols, calibration)]:
+    each member's calibrated P(SL first) and remaining value; several members (seed ensemble) are averaged, then
+    ``ens_cal`` (one Platt map per closer refitted on the ensemble) is applied to the mean probability's logit, exactly
+    as the per-row table path does (mean of calibrated tables -> logits -> Platt). ``allowed`` = visible rows (the
+    strategy optimiser's restriction to the calibration block); a row outside raises, as a blank table row does."""
+    CHUNK = 168
+
+    def __init__(self, cx, members, n_state, allowed=None, ens_cal=None, cache=None):
+        self.cx, self.members, self.ns, self.allowed, self.ens_cal = cx, list(members), int(n_state), allowed, ens_cal
+        self.cache = {} if cache is None else cache
+        self.close = cx.ds.bars["CLOSE"].to_numpy(float)
+        self.v = cx.ds.bars.index.as_unit("ns").asi8
+
+    def restricted(self, keep):
+        allowed = keep if self.allowed is None else (np.asarray(keep, bool) & self.allowed)
+        return CloserGeo(self.cx, self.members, self.ns, allowed, self.ens_cal, self.cache)
+
+    def with_ens_cal(self, cal: dict):
+        return CloserGeo(self.cx, self.members, self.ns, self.allowed, {m: {"a": float(cal[m]["a"]), "b": float(cal[m]["b"])} for m in CLOSERS})
+
+    @staticmethod
+    def merge(cgs: list):
+        c0 = cgs[0]
+        return CloserGeo(c0.cx, [mb for c in cgs for mb in c.members], c0.ns)
+
+    def _mean(self, m, X):
+        ps, rm = [], []
+        for pols, cal in self.members:
+            z, r = ACT.module_outputs(pols[m], X)
+            ps.append(ACT.platt(z, cal[m]["a"], cal[m]["b"]))
+            rm.append(np.asarray(r, float)[:, 0])
+        return np.mean(ps, axis=0), np.mean(rm, axis=0)
+
+    def rows_values(self, m, rows, G):
+        """(remaining value, P(SL first)) of closer ``m`` on (rows, G), with the ensemble map when set (references)."""
+        X = X_geo(self.cx.Xw, rows, self.ns, G)
+        p, rem = self._mean(m, X)
+        if self.ens_cal is not None:
+            p = ACT.platt(ACT.logit(np.nan_to_num(p, nan=0.5)), self.ens_cal[m]["a"], self.ens_cal[m]["b"])
+        return rem, p
+
+    def raw_logit_rows(self, m, rows, G) -> np.ndarray:
+        """Logit of the members' mean calibrated P(SL first) on (rows, G) (the ensemble's Platt refit input)."""
+        if not len(rows):
+            return np.zeros(0)
+        p, _ = self._mean(m, X_geo(self.cx.Xw, rows, self.ns, G))
+        return ACT.logit(np.nan_to_num(p, nan=0.5))
+
+    def _segment(self, pos, r0):
+        n = len(self.cx.Xw)
+        rows = np.arange(r0, min(r0 + self.CHUNK, n), dtype=np.int64)
+        bars = np.asarray(self.cx.ds.row_bar, np.int64)[rows]
+        ok = bars >= int(pos.entry_bar)
+        G = order_geometry(pos, np.where(ok, bars, int(pos.entry_bar)), self.close, self.v)
+        m = "close_l" if pos.direction > 0 else "close_s"
+        p, rem = self._mean(m, X_geo(self.cx.Xw, rows, self.ns, G))
+        if self.ens_cal is not None:
+            p = ACT.platt(ACT.logit(np.nan_to_num(p, nan=0.5)), self.ens_cal[m]["a"], self.ens_cal[m]["b"])
+        return r0, np.where(ok, rem, np.nan), np.where(ok, p, np.nan)
+
+    def value(self, r, bar, pos):
+        """(predicted remaining value, P(SL first)) of the open ``pos`` at row r (decision after bar ``bar``)."""
+        r = int(r)
+        if self.allowed is not None and not self.allowed[r]:
+            raise ValueError(f"C2_ROW_OUTSIDE_TABLE:closer:{r}")
+        if int(self.cx.ds.row_bar[r]) != int(bar):
+            raise ValueError(f"C2G_ROW_BAR_MISMATCH:{r}:{bar}")
+        # the order is identified by its fill bar, side, levels and sigma; a cache is never shared across calibrations
+        # (``with_ens_cal`` / ``merge`` start a fresh one), only across the restricted views of one evaluator
+        segs = self.cache.setdefault((int(pos.entry_bar), int(pos.direction), float(pos.sl), float(pos.tp), float(pos.sigma)), [])
+        for r0, rem, p in segs:
+            if r0 <= r < r0 + len(rem):
+                break
+        else:
+            r0, rem, p = self._segment(pos, r)
+            segs.append((r0, rem, p))
+        x, q = float(rem[r - r0]), float(p[r - r0])
+        if not (math.isfinite(x) and math.isfinite(q)):
+            raise ValueError(f"C2_ROW_OUTSIDE_TABLE:closer:{r}")
+        return x, q
 
 
 # ----------------------------------------------------------------------------- per-row table
@@ -268,8 +472,9 @@ FIELDS = ("net", "ptp", "pn", "rem", "psl")
 RAW = {"ptp": "z_ptp", "pn": "z_pn", "psl": "z_psl"}
 
 
-def raw_table(pols: dict, Xw, rows, n_state: int, n_cells: int = len(OC.CELLS)) -> dict:
-    """Uncalibrated outputs on ``rows`` (agent state zeros: agent_state none); NaN elsewhere. ``z_*`` = logit margins."""
+def raw_table(pols: dict, Xw, rows, n_state: int, n_cells: int = len(OC.CELLS), closers: bool = True) -> dict:
+    """Uncalibrated outputs on ``rows`` (agent state zeros: agent_state none); NaN elsewhere. ``z_*`` = logit margins.
+    ``closers=False`` (C2G): the closers' per-row columns stay NaN (their outputs depend on the order: ``CloserGeo``)."""
     n = len(Xw)
     t = {"net": np.full((n, 2, n_cells), np.nan), "z_ptp": np.full((n, 2), np.nan), "z_pn": np.full(n, np.nan),
          "rem": np.full((n, 2), np.nan), "z_psl": np.full((n, 2), np.nan)}
@@ -278,7 +483,7 @@ def raw_table(pols: dict, Xw, rows, n_state: int, n_cells: int = len(OC.CELLS)) 
     for m in OPENERS:
         z, r = ACT.module_outputs(pols[m], X)
         t["z_ptp"][rows, SIDE_OF[m]], t["net"][rows, SIDE_OF[m], :] = z, r
-    for m in CLOSERS:
+    for m in (CLOSERS if closers else ()):
         z, r = ACT.module_outputs(pols[m], X)
         t["z_psl"][rows, SIDE_OF[m]], t["rem"][rows, SIDE_OF[m]] = z, r[:, 0]
     t["z_pn"][rows] = ACT.module_outputs(pols["nop"], X)[0]
@@ -299,11 +504,16 @@ def calibrate_table(raw: dict, cal: dict) -> dict:
     z = raw["z_pn"]
     t["ptp"], t["psl"] = pt, ps
     t["pn"] = np.where(np.isfinite(z), ACT.platt(np.nan_to_num(z), cal["nop"]["a"], cal["nop"]["b"]), np.nan)
+    if "closer" in raw:                                   # C2G ensemble: the refitted closer Platt maps on the mean logit
+        t["closer"] = raw["closer"].with_ens_cal(cal)
     return t
 
 
 def mean_tables(tables: list) -> dict:
-    return {f: np.mean([t[f] for t in tables], axis=0) for f in FIELDS}
+    out = {f: np.mean([t[f] for t in tables], axis=0) for f in FIELDS}
+    if "closer" in tables[0]:                             # C2G: the closers' members are pooled (averaged on demand)
+        out["closer"] = CloserGeo.merge([t["closer"] for t in tables])
+    return out
 
 
 def to_raw(table: dict) -> dict:
@@ -312,6 +522,8 @@ def to_raw(table: dict) -> dict:
     for f, z in RAW.items():
         p = table[f]
         r[z] = np.where(np.isfinite(p), ACT.logit(np.nan_to_num(p, nan=0.5)), np.nan)
+    if "closer" in table:
+        r["closer"] = table["closer"]
     return r
 
 
@@ -319,7 +531,8 @@ def restrict(table: dict, rows) -> dict:
     """Every row outside ``rows`` blanked (NaN): the only view the strategy optimiser gets."""
     keep = np.zeros(len(table["pn"]), bool)
     keep[np.asarray(rows, np.int64)] = True
-    return {f: np.where(keep.reshape((-1,) + (1,) * (v.ndim - 1)), v, np.nan) for f, v in table.items()}
+    return {f: (v.restricted(keep) if f == "closer" else np.where(keep.reshape((-1,) + (1,) * (v.ndim - 1)), v, np.nan))
+            for f, v in table.items()}
 
 
 # ----------------------------------------------------------------------------- the strategy (upper layer)
@@ -369,7 +582,10 @@ class PolicyC2:
                 best = (float(net[ci]), d, self.cells[ci][0], self.cells[ci][1])
         return None if best is None else best[1:]
 
-    def close_now(self, r, si) -> bool:
+    def close_now(self, r, si, bar=None, pos=None) -> bool:
+        if "closer" in self.t:                            # C2G: the closer reads its own order's geometry
+            rem, psl = self.t["closer"].value(r, bar, pos)
+            return rem < -self.s.close_margin or psl > self.s.close_p
         return float(self._v("rem", r, si)) < -self.s.close_margin or float(self._v("psl", r, si)) > self.s.close_p
 
     def __call__(self, cx):
@@ -377,7 +593,7 @@ class PolicyC2:
             pos = int(st[0])
             if pos != 0:
                 si = 0 if pos > 0 else 1
-                if not self.close_now(r, si):
+                if not self.close_now(r, si, bar, env.pos if "closer" in self.t else None):
                     return E.HOLD, 1.5, 2.0
                 o = self.open_decision(r)
                 if o is not None and self.s.allow_reverse and o[0] != (E.LONG if pos > 0 else E.SHORT):
@@ -393,9 +609,42 @@ def strategy_of(doc: dict):
     return None if s is None else StrategyC2(**s)
 
 
-def freeze(table, cal_rows, score_table, contract, seed, budget, primary):
+def closer_reference(table: dict, src: dict) -> dict:
+    """The closers' calibration-block references on positioned visits: ``src`` = {closer: {"rows", "G" (C2G)}} (the
+    round-0 INNER_A exit visits); C2 reads the per-row table, C2G evaluates each visit with its own order's geometry.
+    Both sides pooled: {"rem": ..., "psl": ...}."""
+    rem, psl = [], []
+    for m in CLOSERS:
+        d = src.get(m) or {}
+        r = np.asarray(d.get("rows", []), np.int64)
+        if not len(r):
+            continue
+        if "closer" in table:
+            x, q = table["closer"].rows_values(m, r, d["G"])
+        else:
+            x, q = table["rem"][r, SIDE_OF[m]], table["psl"][r, SIDE_OF[m]]
+        rem.append(np.asarray(x, float))
+        psl.append(np.asarray(q, float))
+    return {"rem": np.concatenate(rem) if rem else np.zeros(0), "psl": np.concatenate(psl) if psl else np.zeros(0)}
+
+
+def gene_map(view: dict, rows, closer_ref: dict) -> ACT.GeneMap:
+    r = np.asarray(rows, np.int64)
+    best = np.nanmax(np.where(np.isfinite(view["net"][r]), view["net"][r], -np.inf).reshape(len(r), -1), axis=1) if len(r) else np.zeros(0)
+    refs = {"open_score": np.where(np.isfinite(best), best, np.nan), "rem_ref": closer_ref["rem"], "psl_ref": closer_ref["psl"], "nop_score": view["pn"][r]}
+    rules = {"open_margin": ("open_rate", "open_score", "upper_rate"), "close_margin": ("close_rem_rate", "rem_ref", "neg_lower_rate"),
+             "close_p": ("close_p_rate", "psl_ref", "upper_rate"), "allow_reverse": ("allow_reverse", None, "copy"),
+             "nop_veto": ("nop_veto_rate", "nop_score", "upper_rate")}
+    return ACT.GeneMap(refs, rules, "C2: open on calibration flat rows; closers on the round-0 INNER_A positioned visits")
+
+
+def freeze(table, cal_rows, score_table, contract, seed, budget, primary, closer_src=None):
+    gm = None
+    if (contract.get("strategy") or {}).get("gene_space") == ACT.GENE_SPACE_Q:
+        ref = closer_reference(table, closer_src or {})
+        gm = lambda view: gene_map(view, cal_rows, ref)  # noqa: E731
     return ACT.freeze_strategy(table, cal_rows, score_table, contract, seed, budget, primary,
-                               gene_names=GENES, make_strategy=StrategyC2.from_genes, restrict_fn=restrict)
+                               gene_names=GENES, make_strategy=StrategyC2.from_genes, restrict_fn=restrict, gene_map_fn=gm)
 
 
 # ----------------------------------------------------------------------------- label sets and metrics
@@ -421,7 +670,7 @@ def nop_rows(cx, et, period, nopl):
     return np.asarray(rr, np.int64), np.asarray(yy, np.int64)
 
 
-def sets(cx, et, xt, period, nopl, n_state, clipped=None):
+def sets(cx, et, xt, period, nopl, n_state, clipped=None, geo=False, geo_out=None):
     """{module: (X, y, R, Rm)} (nop: (X, y)) and {module: rows} for ``period``: openers from the entry table, closers
     from the exit table ``xt``, NOP from the ladder. Regression targets clipped to the declared bounds (counted)."""
     D, rows = {}, {}
@@ -433,11 +682,18 @@ def sets(cx, et, xt, period, nopl, n_state, clipped=None):
         D[m] = (X_of(cx.Xw, r, n_state), y, R, np.ones_like(R))
         rows[m] = r
     for m in CLOSERS:
-        r, y, R = OC.exit_sets(cx, xt, period, SIDE_OF[m])
+        if geo:                                           # C2G: closer rows carry their order's geometry
+            r, y, R, G = exit_sets_geo(cx, xt, period, SIDE_OF[m])
+            X = X_geo(cx.Xw, r, n_state, G)
+            if geo_out is not None:
+                geo_out[m] = G
+        else:
+            r, y, R = OC.exit_sets(cx, xt, period, SIDE_OF[m])
+            X = X_of(cx.Xw, r, n_state)
         R, n = clip_targets(R, REM_BOUND)
         if clipped is not None:
             clipped[f"{period}/{m}"] = n
-        D[m] = (X_of(cx.Xw, r, n_state), y, R, np.ones_like(R))
+        D[m] = (X, y, R, np.ones_like(R))
         rows[m] = r
     r, y = nop_rows(cx, et, period, nopl)
     D["nop"] = (X_of(cx.Xw, r, n_state), y)
@@ -504,10 +760,13 @@ def save_sets(path, named: dict):
     """``named``: {key: {module: rows / y / R}} -> one npz (the ensemble's Platt refit and the reported-only metrics)."""
     arrs = {}
     for key, per in named.items():
-        for m, (rows, y, R) in per.items():
+        for m, t in per.items():
+            rows, y, R = t[:3]
             arrs[f"{key}|{m}|rows"], arrs[f"{key}|{m}|y"] = np.asarray(rows, np.int64), np.asarray(y, np.int64)
             if R is not None:
                 arrs[f"{key}|{m}|R"] = np.asarray(R, np.float32)
+            if len(t) > 3 and t[3] is not None:              # C2G closers: the geometry of every saved visit
+                arrs[f"{key}|{m}|G"] = np.asarray(t[3], np.float32)
     np.savez_compressed(path, **arrs)
 
 
@@ -523,7 +782,7 @@ def load_sets(path) -> dict:
 def sets_from_saved(cx, per: dict, n_state) -> dict:
     D = {}
     for m, d in per.items():
-        X = X_of(cx.Xw, d["rows"], n_state)
+        X = X_geo(cx.Xw, d["rows"], n_state, d["G"]) if "G" in d else X_of(cx.Xw, d["rows"], n_state)
         D[m] = (X, d["y"]) if "R" not in d else (X, d["y"], d["R"], np.ones_like(d["R"]))
     return D
 
@@ -533,10 +792,13 @@ def run_seed(cx, seed, d):
     """One seed under C2. ``d``: contract, fit_module, SCFG, NS, rows_all, cal_rows, et (entry table), x0 (round-0 exit
     tables by period), nopl, rounds, led, ledger, fitness, sig. Every fitted or chosen quantity reads TRAIN / INNER_A only."""
     AC, SCFG, NS = d["contract"], d["SCFG"], d["NS"]
+    G = is_c2g(AC)
     clipped = {}
     xt = {p: d["x0"][p] for p in ("TRAIN", "INNER_A")}
-    D_tr, _ = sets(cx, d["et"], xt["TRAIN"], "TRAIN", d["nopl"], NS, clipped)
-    D_in, rows_in = sets(cx, d["et"], xt["INNER_A"], "INNER_A", d["nopl"], NS, clipped)
+    D_tr, _ = sets(cx, d["et"], xt["TRAIN"], "TRAIN", d["nopl"], NS, clipped, geo=G)
+    go_in = {}
+    D_in, rows_in = sets(cx, d["et"], xt["INNER_A"], "INNER_A", d["nopl"], NS, clipped, geo=G, geo_out=go_in)
+    closer_src = {m: {"rows": rows_in[m], "G": go_in.get(m)} for m in CLOSERS}
     min_opw = float(AC["strategy"]["calibration_min_trades_per_week"])
     primary = d["fitness"]
 
@@ -549,11 +811,16 @@ def run_seed(cx, seed, d):
         fit_now = list(SPECIALISTS) if rnd == 0 else list(CLOSERS)
         if rnd > 0 and comp is not None:
             for p, store in (("TRAIN", D_tr), ("INNER_A", D_in)):
-                xr = OC.exit_table(cx, SCFG, OC.visit_positions(cx, p, comp(cx), SCFG))
+                xr = OC.exit_table(cx, SCFG, OC.visit_positions(cx, p, comp(cx), SCFG), geometry_fn=geometry_fn(cx) if G else None)
                 for m in CLOSERS:
-                    r, y, R = OC.exit_sets(cx, xr, p, SIDE_OF[m])
+                    if G:
+                        r, y, R, Gm = exit_sets_geo(cx, xr, p, SIDE_OF[m])
+                        X = X_geo(cx.Xw, r, NS, Gm)
+                    else:
+                        r, y, R = OC.exit_sets(cx, xr, p, SIDE_OF[m])
+                        X = X_of(cx.Xw, r, NS)
                     R, _ = clip_targets(R, REM_BOUND)
-                    store[m] = cat_sets(store[m], (X_of(cx.Xw, r, NS), y, R, np.ones_like(R)))
+                    store[m] = cat_sets(store[m], (X, y, R, np.ones_like(R)))
         for m in fit_now:
             if len(D_tr[m][1]) == 0 or len(D_in[m][1]) == 0 or len(np.unique(D_tr[m][1])) < 2:
                 if m in pols:
@@ -564,17 +831,19 @@ def run_seed(cx, seed, d):
                         rows_inner=int(len(D_in[m][1])), label_counts=np.bincount(D_tr[m][1], minlength=2).tolist())
             pols[m], infos[m] = d["fit_module"]("FULL", m, D_tr[m], D_in[m], seed)
         cal = calibrate(pols, D_in)
-        table = calibrate_table(raw_table(pols, cx.Xw, d["rows_all"], NS), cal)
+        table = calibrate_table(raw_table(pols, cx.Xw, d["rows_all"], NS, closers=not G), cal)
+        if G:
+            table["closer"] = CloserGeo(cx, [(pols, cal)], NS)
         if rnd == d["rounds"]:
             break
-        fr = freeze(table, d["cal_rows"], score_table, AC, seed, "visitation", primary)
+        fr = freeze(table, d["cal_rows"], score_table, AC, seed, "visitation", primary, closer_src)
         st_ = strategy_of(fr)
         rounds.append({"round": rnd, "visitation_strategy": fr["strategy"], "valid": fr["valid"], "chosen": fr["chosen"],
                        "fallback": None if st_ else "no valid visitation strategy on INNER_A: the round adds no visited closer rows",
                        "closer_rows": {m: int(len(D_tr[m][1])) for m in CLOSERS}})
         d["ledger"](d["led"], rung="E3M_C2", event="VISITATION_STRATEGY", seed=seed, round=rnd, strategy=fr["strategy"])
         comp = PolicyC2(table, st_) if st_ is not None else None
-    fr = freeze(table, d["cal_rows"], score_table, AC, seed, "final", primary)
+    fr = freeze(table, d["cal_rows"], score_table, AC, seed, "final", primary, closer_src)
     st_ = strategy_of(fr) or NO_TRADE
     d["ledger"](d["led"], rung="E3M_C2", event="FREEZE", seed=seed, strategy=fr["strategy"], chosen=fr["chosen"], chosen_on="INNER_A")
     extra = {"calibration": {m: {k: c[k] for k in ("a", "b", "rows", "positives", "single_class", "before", "after")} for m, c in cal.items()},
@@ -604,10 +873,15 @@ def run_e3m(ctx: dict) -> dict:
                  "eligible_rows": {p: int((et["eligible"] & (ds.period == p)).sum()) for p in ("TRAIN", "INNER_A", "INNER_B", "OBS_2024")},
                  "teacher": "none (the expert only supplies round-0 visited states)", "contract_rule": AC["strategy"]["rule"]}
     # round-0 exit visits (states only): the expert's trajectory + exploration positions, per period
+    G = is_c2g(AC)
+    if G:
+        res["c2"]["closer_order_geometry"] = {"inputs": list(GEOMETRY), "applies_to": list(CLOSERS), "hours_scale": HOURS_SCALE,
+                                              "closer_n_state": NS + N_GEO, "openers_and_nop_n_state": NS,
+                                              "owner_words": "Sí, como brazo extra (2026-10-25)"}
     x0 = {}
     for p in ("TRAIN", "INNER_A", "INNER_B"):
         vis = OC.visit_positions(cx, p, cx.expert, ECFG) + OC.visit_positions(cx, p, cx.prior_random(ctx["prior"], 0), SCFG)
-        x0[p] = OC.exit_table(cx, SCFG, vis)
+        x0[p] = OC.exit_table(cx, SCFG, vis, geometry_fn=geometry_fn(cx) if G else None)
     res["c2"]["round0_exit_visits"] = {p: int(len(x0[p]["row"])) for p in x0}
     mr = MR.MultiResLabels(cx, MR.Thresholds(), MR.LADDER, ctx["EXPERT"])
     nopl = ACT.NopLabels(mr)
@@ -619,10 +893,12 @@ def run_e3m(ctx: dict) -> dict:
     res["action_contract"]["primary_fitness"] = d["fitness"]
     named = {}
     for p in ("INNER_A", "INNER_B"):
-        Dp, rp = sets(cx, et, x0[p], p, ACT.NopLabels(mr), NS)
-        named[p] = {m: (rp[m], Dp[m][1], Dp[m][2] if len(Dp[m]) > 2 else None) for m in SPECIALISTS}
+        go = {}
+        Dp, rp = sets(cx, et, x0[p], p, ACT.NopLabels(mr), NS, geo=G, geo_out=go)
+        named[p] = {m: (rp[m], Dp[m][1], Dp[m][2] if len(Dp[m]) > 2 else None, go.get(m)) for m in SPECIALISTS}
     save_sets(out / "C2_SETS.npz", named)
-    D_ib = sets_from_saved(cx, {m: {"rows": r, "y": y, **({"R": R} if R is not None else {})} for m, (r, y, R) in named["INNER_B"].items()}, NS)
+    D_ib = sets_from_saved(cx, {m: {"rows": r, "y": y, **({"R": R} if R is not None else {}), **({"G": g} if g is not None else {})}
+                                for m, (r, y, R, g) in named["INNER_B"].items()}, NS)
     frozen = {}
     for seed in SEEDS:
         pols, infos, extra, c, table = run_seed(cx, seed, d)
@@ -658,7 +934,8 @@ def run_e3m(ctx: dict) -> dict:
         res["trials"].setdefault("FULL", {})[str(seed)] = rec
         print(json.dumps({"variant": "FULL", "seed": seed, "arbiter": "action_contract_c2", "strategy": best["strategy"],
                           "sharpe": {p: round(rec["trading"][p]["sharpe_daily_sqrt365"], 2) for p in rec["trading"]},
-                          "opw": {p: round(rec["trading"][p]["orders_per_week"], 2) for p in rec["trading"]}}), flush=True)
+                          "opw": {p: round(rec["trading"][p]["orders_per_week"], 2) for p in rec["trading"]},
+                          "seed_sanity": {p: ACT.seed_sanity(rec["trading"][p]) for p in rec["trading"]}}), flush=True)
     DEC = AC["blocks"]["decision"]
     sh = [res["trials"]["FULL"][str(s)]["trading"][DEC]["sharpe_daily_sqrt365"] for s in SEEDS]
     res["decision"] = {"means": {"FULL": {"decision_block": DEC, "seed_mean_sharpe": float(np.mean(sh)),
@@ -674,8 +951,11 @@ def run_e3m(ctx: dict) -> dict:
 
 
 # ----------------------------------------------------------------------------- seed tables (ensemble / audit)
-def seed_table(pols, cx, NS, calibration) -> dict:
-    return calibrate_table(raw_table(pols, cx.Xw, np.flatnonzero(cx.obs_ok), NS), calibration)
+def seed_table(pols, cx, NS, calibration, geo: bool = False) -> dict:
+    t = calibrate_table(raw_table(pols, cx.Xw, np.flatnonzero(cx.obs_ok), NS, closers=not geo), calibration)
+    if geo:
+        t["closer"] = CloserGeo(cx, [(pols, calibration)], NS)
+    return t
 
 
 def ensemble_calibration(ens_table: dict, cx, saved_inner_a: dict) -> tuple:
@@ -688,7 +968,7 @@ def ensemble_calibration(ens_table: dict, cx, saved_inner_a: dict) -> tuple:
         if m in OPENERS:
             z = raw["z_ptp"][r, SIDE_OF[m]]
         elif m in CLOSERS:
-            z = raw["z_psl"][r, SIDE_OF[m]]
+            z = raw["closer"].raw_logit_rows(m, r, saved_inner_a[m]["G"]) if "closer" in raw else raw["z_psl"][r, SIDE_OF[m]]
         else:
             z = raw["z_pn"][r]
         a_, b_ = ACT.fit_platt(z, y)
@@ -698,6 +978,12 @@ def ensemble_calibration(ens_table: dict, cx, saved_inner_a: dict) -> tuple:
 
 def exit_prob(cx, table):
     """P(SL first) of the open position's side at the decision row (the early-close audit's closer score)."""
+    if "closer" in table:                                # C2G: the closer's score needs the open order itself
+        def g(bar, st, pos):
+            return table["closer"].value(int(cx.rob[bar]), bar, pos)[1]
+        g.wants_position = True
+        return g
+
     def f(bar, st):
         return table["psl"][cx.rob[bar], 0 if int(st[0]) > 0 else 1]
     return f

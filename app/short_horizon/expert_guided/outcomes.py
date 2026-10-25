@@ -226,10 +226,12 @@ def visit_positions(cx, period, act, cfg):
     return out
 
 
-def exit_table(cx, cfg, visits, end=TEST_START) -> dict:
-    """Per visit: side index, row, remaining value of HOLD, sl_first, resolution bar, censored."""
+def exit_table(cx, cfg, visits, end=TEST_START, geometry_fn=None) -> dict:
+    """Per visit: side index, row, remaining value of HOLD, sl_first, resolution bar, censored. ``geometry_fn(pos, bar)``
+    (C2G only) adds ``geo``: the closer-only geometry of the visited order at that decision (an input, causal)."""
     env = make_env(cx, cfg, end=end)
     rec = {k: [] for k in ("row", "bar", "side", "remaining", "sl_first", "exit_bar", "censored")}
+    geo = []
     for r, bar, pos in visits:
         if not (env.first <= bar < env.last):
             continue
@@ -239,17 +241,29 @@ def exit_table(cx, cfg, visits, end=TEST_START) -> dict:
         rec["side"].append(0 if pos.direction > 0 else 1)
         for k in ("remaining", "sl_first", "exit_bar", "censored"):
             rec[k].append(o[k])
-    return {"row": np.asarray(rec["row"], np.int64), "bar": np.asarray(rec["bar"], np.int64), "side": np.asarray(rec["side"], np.int64),
-            "remaining": np.asarray(rec["remaining"], float), "sl_first": np.asarray(rec["sl_first"], np.int64),
-            "exit_bar": np.asarray(rec["exit_bar"], np.int64), "censored": np.asarray(rec["censored"], bool)}
+        if geometry_fn is not None:
+            geo.append(geometry_fn(pos, bar))
+    out = {"row": np.asarray(rec["row"], np.int64), "bar": np.asarray(rec["bar"], np.int64), "side": np.asarray(rec["side"], np.int64),
+           "remaining": np.asarray(rec["remaining"], float), "sl_first": np.asarray(rec["sl_first"], np.int64),
+           "exit_bar": np.asarray(rec["exit_bar"], np.int64), "censored": np.asarray(rec["censored"], bool)}
+    if geometry_fn is not None:
+        out["geo"] = np.asarray(geo, np.float32).reshape(len(out["row"]), -1) if geo else np.zeros((0, 4), np.float32)
+    return out
+
+
+def exit_mask(cx, xt: dict, period: str, side_index: int) -> np.ndarray:
+    """Boolean mask of the available exit visits of one side in ``period`` (empty when the table is empty)."""
+    m = (xt["side"] == side_index) & (cx.ds.period[xt["row"]] == period) if len(xt["row"]) else np.zeros(0, bool)
+    if not len(m):
+        return m
+    return m & available(cx, xt["exit_bar"], xt["censored"], period) & np.isfinite(xt["remaining"])
 
 
 def exit_sets(cx, xt: dict, period: str, side_index: int):
     """(rows, y = SL first, R = remaining) of the available exit visits of one side in ``period``."""
-    m = (xt["side"] == side_index) & (cx.ds.period[xt["row"]] == period) if len(xt["row"]) else np.zeros(0, bool)
+    m = exit_mask(cx, xt, period, side_index)
     if not len(m):
         return np.zeros(0, np.int64), np.zeros(0, np.int64), np.zeros((0, 1), np.float32)
-    m &= available(cx, xt["exit_bar"], xt["censored"], period) & np.isfinite(xt["remaining"])
     return xt["row"][m], xt["sl_first"][m].astype(np.int64), xt["remaining"][m][:, None].astype(np.float32)
 
 

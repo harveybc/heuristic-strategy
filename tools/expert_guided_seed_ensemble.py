@@ -73,7 +73,8 @@ def load_module(out_dir: Path, e3m: dict, module: str, seed: str, n_feat: int, w
     if "lo" in sd and "hi" in sd:                      # the regression bounds travel in the checkpoint (persistent buffers)
         kw["reg_bounds"] = tuple(zip(sd["lo"].tolist(), sd["hi"].tolist()))
         nr = len(sd["lo"])
-    net = T.TemporalPolicyNet(n_feat, win, nc, n_reg=nr, n_state=len(E.STATE_NAMES), **kw)
+    ns = int((e3m.get("n_state_by_module") or {}).get(module, len(E.STATE_NAMES)))     # C2G closers: + order geometry
+    net = T.TemporalPolicyNet(n_feat, win, nc, n_reg=nr, n_state=ns, **kw)
     net.load_state_dict(sd, strict=True)
     return T.TorchPolicy(net)
 
@@ -218,7 +219,7 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
     for s in seeds:
         pols = {m: load_module(out_dir, e3m, m, s, n_feat, win) for m in C2.SPECIALISTS}
         doc.setdefault("head_shapes", {})[s] = ACT.check_head_shapes(AC, {m: p.m for m, p in pols.items()})
-        t = C2.seed_table(pols, cx, NS, trials[s]["action_contract"]["calibration"])
+        t = C2.seed_table(pols, cx, NS, trials[s]["action_contract"]["calibration"], geo=C2.is_c2g(AC))
         tables.append(t)
         st_s = C2.strategy_of(trials[s]["action_contract"]["strategy"]) or C2.NO_TRADE
         doc["per_seed"][s] = {}
@@ -238,7 +239,8 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
         return ACT.window_components(m, trades, sig, SCFG.capital, min_opw)
 
     primary = ac.get("primary_fitness") or ACT.DEFAULT_FITNESS
-    fr = C2.freeze(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary)
+    closer_src = {m: {"rows": saved[cb][m]["rows"], "G": saved[cb][m].get("G")} for m in C2.CLOSERS if m in saved[cb]}
+    fr = C2.freeze(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary, closer_src)
     doc["arbiter"] = {"arbiter": "action_contract_c2", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": fr["chosen"],
                       "rule": "mean of the seeds' calibrated probabilities and predicted values -> one Platt refit per binary head on INNER_A -> strategy re-optimised on INNER_A"}
     doc["ensemble_calibration"] = cal_e
@@ -272,7 +274,8 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
 
 def evaluate(out_dir: Path, ds, periods: list, seeds: list | None = None, cfg=None, selection: str = "INNER_A") -> dict:
     e3m = json.loads((out_dir / "E3M.json").read_text())
-    if (e3m.get("action_contract") or {}).get("contract", {}).get("schema") == "expert_guided_action_contract.c2":
+    from app.short_horizon.expert_guided import c2 as C2
+    if C2.is_c2((e3m.get("action_contract") or {}).get("contract", {})):            # C2 and C2G
         tr = e3m["trials"]["FULL"]
         return evaluate_c2(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg)
     if e3m.get("action_contract"):

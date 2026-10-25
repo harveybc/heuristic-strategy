@@ -978,17 +978,20 @@ def run(a):
     tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
                                   for d in []] + [parse_track(cx, d) for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
+    NSM = {}                                  # per-module state width; empty = every module NS (byte-identical default)
     if AC and C2MODE:
         MODS["FULL"] = C2.modules()
         BOUNDS.update({m: C2.reg_bounds(m) for m in C2.SPECIALISTS})
+        if C2.is_c2g(AC):                     # C2G (owner 2026-10-25): the closers alone also read their order's geometry
+            NSM = {m: NS + C2.N_GEO for m in C2.CLOSERS}
     elif AC:
         MODS["FULL"] = dict(MODS["FULL"], nop=(2, 0))
         BOUNDS["nop"] = ((0.25, 3.0), (0.5, 3.0))
-    params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, reg_bounds=BOUNDS[m], **ARCH).parameters()))
+    params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NSM.get(m, NS), reg_bounds=BOUNDS[m], **ARCH).parameters()))
                   for m, (nc, nr) in MODS[v].items()} for v in variants}
     HEADS = None
     if AC:                                    # runtime encoding check: the networks' heads match the contract's declared heads
-        HEADS = ACT.check_head_shapes(AC, {m: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, reg_bounds=BOUNDS[m], **ARCH)
+        HEADS = ACT.check_head_shapes(AC, {m: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NSM.get(m, NS), reg_bounds=BOUNDS[m], **ARCH)
                                            for m, (nc, nr) in MODS["FULL"].items()})
     agent_state = {"mode": a.agent_state, "inventory": inventory, "n_state_slots": NS,
                    "included": [n for n, v in inventory.items() if v == "included"],
@@ -1019,6 +1022,8 @@ def run(a):
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
            "split_contract": ds.meta["split_contract"], "agent_state": agent_state, "scaler_file": scaler_path.name,
            "probe": {}}
+    if NSM:                                   # C2G only: the ensemble / audit rebuild each module with its own state width
+        res["n_state_by_module"] = {m: NSM.get(m, NS) for m in MODS["FULL"]}
     if AC:
         res["action_contract"] = {"identity": AC["identity"], "sha256": ACT.sha256_file(a.action_contract), "contract": AC,
                                   "encoding_audit": (C2.encoding_audit(AC) if C2MODE else ACT.encoding_audit(AC)), "head_shapes": HEADS,
@@ -1033,7 +1038,8 @@ def run(a):
 
     def probe(pol):
         """Logits of the saved module on fixed rows with a zero (flat-equivalent) state: ties the checkpoint to the tensors."""
-        X = np.stack([np.r_[cx.Xw[r], np.zeros(NS, np.float32)] for r in probe_rows]).astype(np.float32) if len(probe_rows) else np.zeros((0, cx.Xw.shape[1] + NS), np.float32)
+        ns = int(getattr(getattr(pol, "m", None), "n_state", NS) or NS)      # C2G closers: NS + geometry (zeros here too)
+        X = np.stack([np.r_[cx.Xw[r], np.zeros(ns, np.float32)] for r in probe_rows]).astype(np.float32) if len(probe_rows) else np.zeros((0, cx.Xw.shape[1] + ns), np.float32)
         lg, rg = pol(X)
         return {"rows": probe_rows.tolist(), "row_ts_ns": [int(cx.ds.row_ts[r]) for r in probe_rows], "state": "zeros",
                 "logits": lg.tolist(), "reg": None if rg is None else rg.tolist()}
@@ -1048,7 +1054,7 @@ def run(a):
                                   Ri=D_in[2] if nr else None, Rmi=D_in[3] if nr else None, class_weight=w,
                                   sample_weight=D_tr[4] if len(D_tr) > 4 else None,
                                   dropout=a.dropout, lr=1e-3, wd=a.wd, batch=256, max_epochs=a.max_epochs, patience=10,
-                                  device=device, net=lambda: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS,
+                                  device=device, net=lambda: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NSM.get(m, NS),
                                                                                   dropout=a.dropout, reg_bounds=BOUNDS[m], **ARCH))
         return T.TorchPolicy(model), info
 
@@ -1135,7 +1141,8 @@ def run(a):
                 res["trials"].setdefault(v, {})[str(seed)] = rec
                 print(json.dumps({"variant": v, "seed": seed, "arbiter": "action_contract_v1", "strategy": best["strategy"],
                                   "sharpe": {p: round(rec["trading"][p]["sharpe_daily_sqrt365"], 2) for p in rec["trading"]},
-                                  "opw": {p: round(rec["trading"][p]["orders_per_week"], 2) for p in rec["trading"]}, "s": round(time.time() - t0, 1)}), flush=True)
+                                  "opw": {p: round(rec["trading"][p]["orders_per_week"], 2) for p in rec["trading"]}, "s": round(time.time() - t0, 1),
+                                  "seed_sanity": {p: ACT.seed_sanity(rec["trading"][p]) for p in rec["trading"]}}), flush=True)
                 continue
             D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW),
                               *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW) for t in tracks[1:]])

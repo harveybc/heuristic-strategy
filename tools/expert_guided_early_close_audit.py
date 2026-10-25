@@ -136,11 +136,12 @@ def audit_replay(make_env, bar_range, decide, exit_prob=None) -> dict:
         observable = out is not None
         action, tp, sl = out if observable else (E.HOLD, 1.5, 2.0)
         if p is not None and observable:
-            pe = exit_prob(bar, st) if exit_prob is not None else None
+            pe = None if exit_prob is None else (exit_prob(bar, st, p) if getattr(exit_prob, "wants_position", False) else exit_prob(bar, st))
             fired = action == E.CLOSE or (action in (E.LONG, E.SHORT) and (1 if action == E.LONG else -1) != p.direction)
             cn = cf_close_now(cf, p, bar)
             pos_bars.append({"bar": bar, "side": int(p.direction), "p_exit": None if pe is None else float(pe), "fired": bool(fired),
-                             "close_now_net": float(cn["net_usd"]), "entry_bar": int(p.entry_bar)})
+                             "close_now_net": float(cn["net_usd"]), "entry_bar": int(p.entry_bar),
+                             "dist_sl_sigma": float(p.direction * (env.c[bar] - p.sl) / p.sigma) if p.sigma > 0 else float("nan")})
         if p is not None:
             bars_rec.append(int(p.direction))
         n_before = len(env.trades)
@@ -226,6 +227,7 @@ def summarize(a: dict, capital: float, no_ec: dict | None = None) -> dict:
                      "precision_sl_first": (tp_ / int(fired.sum())) if fired.sum() else float("nan"),
                      "recall_sl_first": (tp_ / int((y1 == 1).sum())) if (y1 == 1).any() else float("nan"),
                      "auc_sl_first": auc(pe, y1), "auc_close_better": auc(pe, y2)}
+    out["closer_by_dist_sl_sigma"] = closer_by_bucket(lab, pe, y1, fired)
     # direction balance
     di = pd.DatetimeIndex(m["daily_equity"].index) if hasattr(m["daily_equity"], "index") else None
     sides = np.array(a["positioned_sides"], int)
@@ -252,6 +254,28 @@ def summarize(a: dict, capital: float, no_ec: dict | None = None) -> dict:
         out["flags"].append("DEGENERATE_NO_EARLY_CLOSE")
     if len(closes) and math.isfinite(ci[1]) and ci[1] < 0:
         out["flags"].append("HARMFUL_EARLY_CLOSE")
+    return out
+
+
+DIST_SL_EDGES = (0.0, 0.5, 1.0, 1.5, 2.0, 3.0)        # sigma of the order itself (C2G lane, 2026-10-25)
+
+
+def closer_by_bucket(lab: list, pe, y1, fired) -> list:
+    """Closer quality split by the order's signed distance to its SL in its own sigma at the decision (where does the
+    order geometry help?): per bucket rows, SL-first rate, fired rate, precision, recall and AUC of the closer score."""
+    d = np.array([r.get("dist_sl_sigma", np.nan) for r in lab], float)
+    edges = (-np.inf,) + DIST_SL_EDGES[1:] + (np.inf,)
+    out = []
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        m = (d >= lo) & (d < hi)
+        n = int(m.sum())
+        yy, ff = y1[m], fired[m]
+        tp_ = int((ff & (yy == 1)).sum())
+        out.append({"dist_sl_sigma": [None if not np.isfinite(lo) else float(lo), None if not np.isfinite(hi) else float(hi)], "rows": n,
+                    "sl_first_rate": float(yy.mean()) if n else float("nan"), "fired_rate": float(ff.mean()) if n else float("nan"),
+                    "precision_sl_first": (tp_ / int(ff.sum())) if n and ff.sum() else float("nan"),
+                    "recall_sl_first": (tp_ / int((yy == 1).sum())) if n and (yy == 1).any() else float("nan"),
+                    "auc_sl_first": auc(pe[m], yy) if n else float("nan")})
     return out
 
 
@@ -332,9 +356,10 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
     SCFG, _ = effective_contracts(e0.get("exec_contract", "sac"), e0.get("min_orders_per_week"))
     capital = float(SCFG.capital)
     from app.short_horizon.expert_guided import c2 as C2
-    c2 = (e0.get("action_contract") or {}).get("contract", {}).get("schema") == C2.SCHEMA     # stage C2 (consequence learning)
+    c2 = C2.is_c2((e0.get("action_contract") or {}).get("contract", {}))     # stage C2 / C2G (consequence learning)
+    c2g = C2.is_c2g((e0.get("action_contract") or {}).get("contract", {}))   # C2G: closers also read their order's geometry
     v1 = bool(e0.get("action_contract")) and not c2
-    doc = {"dirs": [str(d) for d in dirs], "v1": v1, "c2": c2, "split_contract": ds.meta["split_contract"], "periods": periods,
+    doc = {"dirs": [str(d) for d in dirs], "v1": v1, "c2": c2, **({"c2g": True} if c2g else {}), "split_contract": ds.meta["split_contract"], "periods": periods,
            "recipe": e0.get("recipe"), "rule": RULE, "per_seed": {}, "ensemble": {}, "verification": {}}
 
     def run(policy_fn, exit_prob, p, ref, what):
@@ -358,7 +383,7 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
             doc["per_seed"][s] = {}
             if c2:
                 pols = {m: SE.load_module(d, e3m, m, s, n_feat, win) for m in C2.SPECIALISTS}
-                t = C2.seed_table(pols, cx, NS, tr["action_contract"]["calibration"])
+                t = C2.seed_table(pols, cx, NS, tr["action_contract"]["calibration"], geo=c2g)
                 tables.append(t)
                 st_s = C2.strategy_of(tr["action_contract"]["strategy"])
                 if st_s is None:
