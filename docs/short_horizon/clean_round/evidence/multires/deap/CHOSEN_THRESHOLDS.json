@@ -1,0 +1,8 @@
+{
+ "f_close_take": 0.6031,
+ "min_votes": 1,
+ "theta_close": 0.0847,
+ "theta_f": 0.5905,
+ "theta_mae": 0.2339,
+ "theta_vol": 0.556
+}
