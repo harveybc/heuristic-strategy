@@ -96,3 +96,47 @@ modelo generativo condicionado (nuestro `synthetic-datagen`).
 C2 primero, porque ataca directamente la causa más probable del fracaso actual y da el objetivo del cierre temprano;
 luego C1 como auxiliares/descriptores; luego C3 sobre la selección; C4 en paralelo como evaluación. Cada etapa se
 pre-registra antes de correr y se juzga en el walk-forward.
+
+## 6. Evaluación de una propuesta externa (meta-learners, IPTW, contrafactuales por cVAE), 2026-10-25
+
+Se revisó una propuesta que trata las características como "tratamiento" (do(Xᵢ = x')), el régimen ZigZag actual como
+confusor y el régimen futuro como resultado; con Causal Forests / X-Learners, ponderación IPTW de la pérdida y
+contrafactuales por abducción en el espacio latente de un cVAE.
+
+**Se rechaza, con medición:**
+
+- **IPTW sobre características: inviable por positividad.** Medido en TRAIN (`evidence/causal/FEATURE_POSITIVITY_TRAIN.json`):
+  - la característica mediana se predice desde las otras 119 con R² 0.94 (con un modelo lineal, que es una cota
+    inferior);
+  - el 61 % tiene R² ≥ 0.9 y el 23 % ≥ 0.99;
+  - los pesos IPTW de la característica mediana dejan un tamaño efectivo de muestra de **44 filas de 18 063 (0.24 %)**,
+    con un peso máximo 1 514 veces la media.
+  
+  Entrenar con esos pesos equivale a entrenar con unas decenas de filas.
+- **do(característica) no está bien definido.** Una fase de Hilbert o una densidad multitaper es una función
+  determinista del camino pasado de precios. No se puede fijar sin cambiar ese camino, y por tanto todas las demás
+  características (violación de consistencia / intervención bien definida). Su "efecto causal" sobre el régimen futuro
+  no es una cantidad identificable con estos datos.
+- **"Contrafactual" por cVAE: no lo es.** Perturbar un 10 % una dimensión latente y decodificar produce entradas
+  sintéticas fuera de la distribución observada. El latente de un VAE no está identificado como ruido exógeno de un
+  SCM (los resultados de imposibilidad de desenredado lo confirman). Es aumento de datos o entrenamiento adversarial,
+  útil quizá como regularizador, pero no un contrafactual de Pearl. La promesa de "convergencia exponencial" no tiene
+  respaldo.
+- **El régimen actual sacado del ZigZag "hasta T" filtra el futuro** si no se usa la versión confirmada causalmente: el
+  último tramo del ZigZag se repinta.
+- **Hechos que no coinciden con nuestro sistema**: barras H1, no ticks; 121 columnas en la receta, no 45; y el ZigZag
+  no es un experto humano.
+
+**Se adopta, reformulado:**
+
+- **Estratificar por régimen causal-confirmado.** Usar el estado del ZigZag multi-escala **confirmado en T** (sin
+  repintado) como entorno, junto con los años, en la selección invariante de C3 (ICP/IRM). La heterogeneidad del
+  efecto por régimen es una pregunta legítima.
+- **Meta-learners (EconML) donde el tratamiento sí es manipulable: nuestra acción.** Allí ni siquiera hace falta
+  propensidad, porque el replay da el resultado de **todas** las acciones (C2). Para motores exógenos (eventos, sorpresas
+  macro) se usan DML / causal forest con los refutadores de DoWhy (tratamiento placebo, causa común aleatoria,
+  subconjuntos) antes de afirmar un efecto.
+- **Sensibilidad de las cabezas a perturbaciones pequeñas dentro de la variedad de datos** (p. ej. entre ventanas
+  vecinas reales) como regularizador medido en el walk-forward (C4), declarado como robustez, no como contrafactual.
+
+Librerías: EconML y DoWhy (PyWhy) para lo exógeno; nada de SCM nativo en un cVAE.
