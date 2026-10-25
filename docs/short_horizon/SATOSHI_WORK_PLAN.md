@@ -317,3 +317,8 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
 | S10 | auditoría de cierre temprano (contrafactual exacto por trade; regla: sin cierres propios = degenerada; valor negativo = dañina) | D6 | `evidence/early_close/` (línea base: recall 6–11 %, valor ≤ 0 en 5/6) | hecho; la de v1 espera |
 | S11 | **C2**: tablas de resultados exactas del motor + regresión de consecuencias + cierre por parada óptima | D6, imitation gap | `RESULTS_WF_C2_2026_10_25.md` | encadenada tras S10 |
 | S12 | **C2G** (palabra del propietario: "Sí, como brazo extra"): cerradores ven la geometría de su orden (distancia a SL/TP en σ, horas, lado) | D6 | contraste C2G vs C2 | encadenada tras S11 |
+- 2026-10-25 15:00Z: defecto de cero trades corregido (v1.2: umbrales como cuantiles del bloque de calibración + prueba
+  de factibilidad + cierre temprano obligatorio) y **filtro de cordura** en todas las cadenas (hs @c541075). Filtro
+  retroactivo: 8 de 22 unidades FAILED_SANITY, incluidas tres de las seis de la línea base del walk-forward → los
+  veredictos de la línea base de las 13:10Z se retiran. Cadena única `run_chain_v12_c2_c2g.sh` corriendo (WF_V12 → C2
+  → C2G); primera semilla pasó el filtro (trades en ambos lados, cierres propios > 0, aunque pocos: ~8 %).
