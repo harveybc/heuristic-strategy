@@ -1,5 +1,5 @@
 {
- "identity": "clean-expert-guided-a1-20261024-v6",
+ "identity": "clean-expert-guided-a1-20261024-v7",
  "status": "FROZEN on the accepted shared recipe (Musashi re-review 2026-10-24, ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT); launch gate = the owner's word for the expert-guided lane",
  "recipe": {
   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/CONSUMER_RECIPE.json",
@@ -233,6 +233,11 @@
    "from": "clean-expert-guided-a1-20261024-v5",
    "adds": "walk_forward_v1 block (stage WF_V1: 2 folds x {both_hold_v1, zz_hold_v1} x 5 seeds under ACTION_CONTRACT_v1 action_a8b7afa079968c16); stage arms refuse an action contract (consolidated has no post-freeze decision block); fitness variants F0 sharpe_lcb (default), F1 sharpe_plus_return, F2 sharpe_plus_return_plus_activity, F3 trade_tstat (reused), F4 calmar, F5 return_minus_dd (reused), F6 balanced; composites scaled by the pre-registered median-|term| rule on the calibration-block front; variant chosen on wf2022's decision year, confirmed on wf2023; contract resealed action_e2d7b01c36264cfc; owner correction: activity exactly 2.0/week as a selection criterion, Deb constraint domination, full evaluation archive, archive views in the report; contract resealed action_8788be516afe261f; encoding audit (softmax_ce / bounded_sigmoid declared per head, CATEGORICAL_FROM_CONTINUOUS refused, runtime HEAD_SHAPE_MISMATCH); contract resealed action_490039ad1bf73dbd",
    "date": "2026-10-25"
+  },
+  {
+   "identity": "clean-expert-guided-a1-20261024-v7",
+   "from": "clean-expert-guided-a1-20261024-v6",
+   "adds": "early_close_rule (pre-registered): DEGENERATE_NO_EARLY_CLOSE not selectable, early-close value required, HARMFUL_EARLY_CLOSE flag; ACTION_CONTRACT_v1_1 (require_early_close) staged for the next stage only; WF_V1 untouched"
   }
  ],
  "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule. A 9G request was QUEUED on HOST_HEADROOM (host_free_for_new 8.57 GB with the 3 GiB desktop reserve and the owner's VM resident), so the cap is the host's maximum admissible, 7G, one unit at a time; if the extra-expert arms stop again at 7G they are declared NOT_RUNNABLE_ON_THIS_HOST, never re-tried under a smaller cap | v4 (2026-10-25): after the owner restarted the host (~21 GiB available) the three extra-expert arms ran at 10G and finished; 10G is the cap of every unit from here on (seed extension, stage B); never lowered after a refusal",
@@ -363,5 +368,22 @@
    "balanced"
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_V1 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)"
+ },
+ "early_close_rule": {
+  "registered": "2026-10-25, before any early-close audit number was read",
+  "why": "owner 2026-10-25: early close is an indispensable, non-omittable business behaviour of every model (close when the learned pattern says the SL comes before the TP); Musashi's SAC policies were found never to close voluntarily",
+  "rule": "PRE-REGISTERED 2026-10-25 before any audit number was read: a selectable strategy must close early (agent closes > 0 on the calibration block), otherwise DEGENERATE_NO_EARLY_CLOSE and not selectable (owner's business rule); the early-close value is a REQUIRED reported metric for every arm; a closer whose early-close value 95 % CI is entirely < 0 is HARMFUL_EARLY_CLOSE (it cuts winners): a defect to fix, not a reason to remove early closing",
+  "selection": "owner 2026-10-25 (pre-registered before any audit number was read): early close is indispensable; with strategy.require_early_close a point that never closes voluntarily on the calibration block (agent closes = 0) is DEGENERATE_NO_EARLY_CLOSE and not selectable; it stays in the archive",
+  "required_metric": "early-close value = sum over agent closes of (actual net - engine counterfactual hold net), USD and sigma, bootstrap 95 % CI over trades; reported for every arm (tools/expert_guided_early_close_audit.py)",
+  "flags": {
+   "DEGENERATE_NO_EARLY_CLOSE": "zero agent closes (not selectable)",
+   "HARMFUL_EARLY_CLOSE": "early-close value 95 % CI entirely < 0: the closer cuts winners; a defect to fix, never a reason to remove early closing"
+  },
+  "next_stage_contract": {
+   "path": "docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_v1_1.json",
+   "identity": "action_349ba351034c7de4",
+   "sha256": "ffc94094495909e712c909c5efa2fa8d3441db0db3412dc193fbcd8bb21475c1",
+   "applies_to": "the NEXT stage only; the running stage WF_V1 keeps ACTION_CONTRACT_v1 (action_490039ad1bf73dbd) and its installed code unchanged"
+  }
  }
 }

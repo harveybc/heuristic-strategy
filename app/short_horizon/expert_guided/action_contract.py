@@ -525,6 +525,7 @@ def window_components(m: dict, trades, sigma_price, capital: float, min_opw: flo
             "opw": opw, "opd": opw / TRADING_DAYS_PER_WEEK, "r_ann": r_ann, "trade_t": trade_t, "trade_mean_sigma": float(tr.mean()) if len(tr) else float("nan"),
             "trade_tstat_reused": tstat_reused, "calmar": calmar, "return_minus_dd": return_minus_dd(r_ann, dd), "trades": int(n), "days": int(days),
             "weeks_below_2": int(m.get("weeks_below_min_orders", 0)), "weeks_below_2_share": float(m.get("weeks_below_min_share", 0.0)),
+            "agent_closes": int(m.get("n_close_AGENT_CLOSE", 0)) + int(m.get("n_close_REVERSAL", 0)),
             "valid": bool(feasible), "violation": float(violation), "reasons": reasons}
 
 
@@ -728,6 +729,16 @@ def archive_view(points: list, name: str) -> dict:
             "note": "best_unconstrained_* are NOT SELECTABLE (the activity rule selects); shown so the owner sees what each fitness would do without it"}
 
 
+EARLY_CLOSE_RULE = ("owner 2026-10-25 (pre-registered before any audit number was read): early close is indispensable; with "
+                    "strategy.require_early_close a point that never closes voluntarily on the calibration block (agent closes = 0) "
+                    "is DEGENERATE_NO_EARLY_CLOSE and not selectable; it stays in the archive")
+
+
+def early_close_front(points: list) -> list:
+    """The selectable front under the early-close rule: valid points with at least one agent close, non-dominated."""
+    return sorted(_nondominated([p for p in points if p["valid"] and int(p.get("agent_closes", 0)) > 0]), key=lambda r: -r["sharpe"])
+
+
 def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: int, budget: str = "final", primary: str = DEFAULT_FITNESS) -> dict:
     """The upper layer, frozen on the calibration block only: the table is restricted to ``cal_rows`` BEFORE the
     optimiser sees it. Two searches (pre-registered): without the NOP veto and with it. The composite scales come from
@@ -742,13 +753,19 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
     runs = {}
     for veto in (False, True):
         runs["with_veto" if veto else "without_veto"] = optimize(lambda st: score_table(view, st), s["genes"], seed, int(o["population"]), int(o["generations"]), veto)
-    reference = runs["without_veto"]["front"] + runs["with_veto"]["front"]
+    require_ec = bool(s.get("require_early_close", False))
+    if require_ec:
+        for r in runs.values():
+            r["front_early_close"] = early_close_front(r["points"])
+            r["degenerate_no_early_close_points"] = sum(1 for p in r["points"] if p["valid"] and int(p.get("agent_closes", 0)) == 0)
+    sel = "front_early_close" if require_ec else "front"
+    reference = runs["without_veto"][sel] + runs["with_veto"][sel]
     scales = term_scales(reference)
     allp = []
     for r in runs.values():
         for p in r["points"]:
             p["fitness"] = {f: fitness(f, p, scales) for f in FITNESS}
-        r["chosen"] = {f: choose(r["front"], f) for f in FITNESS}
+        r["chosen"] = {f: choose(r[sel], f) for f in FITNESS}
         allp += r["points"]
     by = {}
     for f in FITNESS:
@@ -757,8 +774,10 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
         pick = b if keep else a
         view_f = archive_view(allp, f)
         if pick is None:
-            by[f] = {"chosen": None, "strategy": None, "nop_veto_kept": False, "valid": False, "archive_view": view_f,
-                     "note": f"NO_VALID_FRONT_POINT_ON_THE_CALIBRATION_BLOCK (>= {MIN_TRADES_PER_WEEK:g} trades/week); INVALID"}
+            note = f"NO_VALID_FRONT_POINT_ON_THE_CALIBRATION_BLOCK (>= {MIN_TRADES_PER_WEEK:g} trades/week); INVALID"
+            if require_ec and (runs["without_veto"]["front"] or runs["with_veto"]["front"]):
+                note = "DEGENERATE_NO_EARLY_CLOSE: every valid front point closes no position voluntarily on the calibration block; INVALID"
+            by[f] = {"chosen": None, "strategy": None, "nop_veto_kept": False, "valid": False, "archive_view": view_f, "note": note}
             continue
         by[f] = {"chosen": {k: v for k, v in pick.items()}, "strategy": _strategy_dict(dict(pick, veto=keep)), "nop_veto_kept": keep, "valid": True,
                  "archive_view": view_f}
@@ -768,6 +787,8 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
            "nop_rule": "per fitness variant: the NOP veto stays only if it strictly improves the chosen point's calibration-block lower confidence bound (pre-registered)",
            "choice_rule": "search NSGA-II (Sharpe up, DD down) under Deb's constraint domination; each fitness variant picks its frozen point among the VALID front points",
            "chosen": p["chosen"], "strategy": p["strategy"], "nop_veto_kept": p["nop_veto_kept"], "valid": p["valid"]}
+    if require_ec:
+        doc["early_close_rule"] = EARLY_CLOSE_RULE
     if not p["valid"]:
         doc["note"] = p["note"]
     return doc
