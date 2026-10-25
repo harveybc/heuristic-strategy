@@ -295,3 +295,7 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   el año de decisión de wf2022, confirmada en wf2023; todas reportadas; sin GPU extra.
 - **Cadena**: walk-forward actual (línea base) → WF_V1 (control y `both_hold` con v1, 5 semillas, 2 folds, 7
   variantes de fitness) → informe; todo encadenado en el 4090.
+- Corrección del propietario: actividad = ≥ 2.0 trades/semana exactos (sin margen 2.5) y es **criterio de selección**,
+  no filtro: se archiva todo punto evaluado (incluidos los de cero trades), búsqueda con dominancia por restricciones
+  (factible > infactible; menor violación gana), y los informes muestran también el mejor punto sin restricción
+  ("no seleccionable") para comparar las funciones de fitness con toda la información.
