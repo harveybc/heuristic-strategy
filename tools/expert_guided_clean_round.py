@@ -190,6 +190,10 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
             if a.get("aux_targets") not in (None, False, True) and a.get("aux_targets") not in AUX_MODES:
                 errs.append(f"AUX_TARGETS_UNKNOWN:{tag}:{a.get('aux_targets')}")
             errs += multires_arm_errors(a, tag)
+            if a.get("strategy_fitness"):
+                errs.append(f"STRATEGY_FITNESS_WITHOUT_ACTION_CONTRACT:{tag}")
+            if a.get("action_contract"):
+                errs.append(f"ACTION_CONTRACT_NEEDS_DECISION_BLOCK:{tag}:{spec['split_contract']} has no post-freeze decision block")
             if a.get("extra_experts"):
                 miss = [d for d in a["extra_experts"] if not adm.get(str(d))]
                 if miss:
@@ -203,6 +207,61 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
             if "--recipe" not in cmd or any(f in cmd for f in FORBIDDEN_FLAGS) or "rolling" in cmd:
                 errs.append(f"COMMAND_NOT_RECIPE_BOUND:{stage}/{a['name']}")
     errs += walk_forward_errors(spec, rec)
+    errs += walk_forward_v1_errors(spec)
+    return errs
+
+
+WF_V1_STAGE = "WF_V1"
+
+
+def walk_forward_v1_errors(spec: dict) -> list:
+    """Stage WF_V1 (output contract v1, 2026-10-25): every arm = a stage-A arm plus the pinned action contract, on the
+    walk-forward folds of the WF stage (each with a post-freeze decision block, INNER_B), the pre-registered seeds and
+    rules, and the WF arm of the same base as its baseline. The contract file must exist, match its digest and identity
+    and validate; a fold whose split lacks a post-freeze decision block is refused."""
+    w = spec.get("walk_forward_v1")
+    if not w:
+        return []
+    errs = []
+    from app.short_horizon.expert_guided import action_contract as ACT
+    from app.short_horizon.expert_guided import data as DG
+    cp = Path(w.get("action_contract", {}).get("path", ""))
+    if not cp.exists():
+        errs.append("WF_V1_CONTRACT_MISSING")
+    else:
+        if sha(cp) != w["action_contract"].get("sha256"):
+            errs.append("WF_V1_CONTRACT_DIGEST_MISMATCH")
+        doc = json.loads(cp.read_text())
+        if doc.get("identity") != w["action_contract"].get("identity"):
+            errs.append("WF_V1_CONTRACT_IDENTITY_MISMATCH")
+        errs += [f"WF_V1_{e}" for e in ACT.validate(doc)]
+        for fold in w.get("folds", []):
+            try:
+                ACT.require_decision_block(doc, DG.split_contract(fold), fold)
+            except (SystemExit, ValueError) as ex:
+                errs.append(f"WF_V1_FOLD_REFUSED:{fold}:{ex}")
+    base = {x["name"] for x in spec["stages"].get("A", [])}
+    wf = spec.get("walk_forward") or {}
+    for arm in w.get("arms", []):
+        if arm.get("base") not in base:
+            errs.append(f"WF_V1_BASE_UNKNOWN:{arm.get('name')}")
+        if arm.get("base") not in wf.get("arms", []):
+            errs.append(f"WF_V1_NO_BASELINE:{arm.get('name')}")
+        if arm.get("agent_state", "none") != "none":
+            errs.append(f"WF_V1_AGENT_STATE_FORBIDDEN:{arm.get('name')}")
+        if arm.get("strategy_fitness") and arm["strategy_fitness"] not in ACT.FITNESS:
+            errs.append(f"WF_V1_FITNESS_UNKNOWN:{arm.get('name')}:{arm['strategy_fitness']}")
+    if sorted(w.get("fitness_variants") or []) != sorted(ACT.FITNESS):
+        errs.append("WF_V1_FITNESS_VARIANTS_NOT_ALL_REPORTED")
+    if not w.get("fitness_rule"):
+        errs.append("WF_V1_FITNESS_RULE_NOT_PREREGISTERED")
+    for fold in w.get("folds", []):
+        if fold not in (wf.get("folds") or {}):
+            errs.append(f"WF_V1_FOLD_NOT_IN_WF:{fold}")
+    if not w.get("seeds"):
+        errs.append("WF_V1_SEEDS_MISSING")
+    if not w.get("rule"):
+        errs.append("WF_V1_RULE_NOT_PREREGISTERED")
     return errs
 
 
@@ -270,7 +329,7 @@ def gates_open(spec) -> list:
     return missing
 
 
-def e3m_cmd(spec, arm, out, remote, recipe_root=None, recipe_file=None, split_contract=None):
+def e3m_cmd(spec, arm, out, remote, recipe_root=None, recipe_file=None, split_contract=None, action_contract=None):
     """The pinned E3-M command of one arm: the recipe supplies columns, consumer operations, scaler constants, window,
     groups and model (E3-M refuses contradicting flags); the arm supplies only training-side treatments. ``remote`` is
     the data root (admitted / sel15 / store); ``recipe_root`` (default ``remote``) holds ``recipe/`` — the staged
@@ -298,6 +357,10 @@ def e3m_cmd(spec, arm, out, remote, recipe_root=None, recipe_file=None, split_co
         cmd += ["--core", str(m["core"])]
     if arm.get("extra_experts"):
         cmd += ["--extra-experts", ",".join(str(d) for d in arm["extra_experts"])]
+    if action_contract:
+        cmd += ["--action-contract", f"{rr}/contracts/{Path(action_contract).name}"]
+        if arm.get("strategy_fitness"):
+            cmd += ["--strategy-fitness", str(arm["strategy_fitness"])]
     return cmd
 
 
@@ -338,6 +401,8 @@ def cmd_emit(a):
         raise SystemExit(f"GATES_CLOSED:{[g['path'] for g in miss]}")
     if a.stage == WF_STAGE:
         return emit_walk_forward(spec, a)
+    if a.stage == WF_V1_STAGE:
+        return emit_walk_forward_v1(spec, a)
     arms = spec["stages"][a.stage]
     if a.stage == "B":                                            # A and A_prime carry their own labels; B inherits the winner
         dec = json.loads(Path(a.winner_from).read_text())
@@ -407,6 +472,41 @@ def emit_walk_forward(spec, a):
     print(f"written {a.out} ({len(wf['folds']) * len(wf['arms'])} units)")
 
 
+def emit_walk_forward_v1(spec, a):
+    """Stage WF_V1: fold x arm units = the WF stage's base arm + the pinned action contract (its digest and the fold
+    recipe's digest re-checked before every unit); same gate, caps, STATE marks and retries as the other stages."""
+    w, wf = spec["walk_forward_v1"], spec["walk_forward"]
+    R = spec["remote_root"]
+    gate = Path(spec["gates"][0]["path"]).name
+    byname = {x["name"]: x for x in spec["stages"]["A"]}
+    cname = Path(w["action_contract"]["path"]).name
+    L = ["#!/bin/bash", f"# clean round {spec['identity']} stage WF_V1 (action contract {w['action_contract']['identity']}): sequential, resumable (STATE "
+         "markers); generated by tools/expert_guided_clean_round.py emit; the contract digest, each fold recipe digest and the launch gate are "
+         "re-checked before every unit",
+         f"Q={R}; PY=~/anaconda3/envs/trading-stack/bin/python; CR=~/.local/bin/crispdm-run", "mkdir -p $Q/STATE $Q/out",
+         'log(){ echo "$(date -u +%FT%TZ) [WF_V1] $*" >> $Q/LOG; }',
+         f'test -f $Q/{gate} || {{ log "launch gate {gate} missing: refusing"; exit 3; }}',
+         "cd $Q/code || exit 1"]
+    for fold in w["folds"]:
+        fd = wf["folds"][fold]
+        rname = Path(fd["recipe"]["path"]).name
+        for arm_v in w["arms"]:
+            arm = dict(byname[arm_v["base"]], name=arm_v["name"], strategy_fitness=arm_v.get("strategy_fitness"))
+            unit = f"WF_V1_{fold}_{arm_v['name']}"
+            out = f"$Q/out/{unit}"
+            cmd = " ".join(e3m_cmd(spec, arm, out, "$Q/data", recipe_root="$Q", recipe_file=rname, split_contract=fold, action_contract=cname)
+                           + ["--seeds", str(w["seeds"])])
+            L += [f'if [ ! -f $Q/STATE/{unit} ]; then',
+                  f'  echo "{w["action_contract"]["sha256"]}  $Q/contracts/{cname}" | sha256sum -c --quiet || {{ log "action contract digest differs before {unit}: refusing"; exit 4; }}',
+                  f'  echo "{fd["recipe"]["sha256"]}  $Q/recipe/{rname}" | sha256sum -c --quiet || {{ log "fold recipe digest differs before {unit}: refusing"; exit 4; }}',
+                  f'  for try in $(seq 1 72); do CUDA_VISIBLE_DEVICES=${{GPU:-0}} $CR -q -m {w.get("memory", spec["memory"])} -t 43200s -n clean-{unit} -- $PY {cmd} > {out}.log 2>&1 && {{ touch $Q/STATE/{unit}; log "{unit} DONE"; break; }}',
+                  f'    grep -q "REFUSED\\|QUEUED HOST_HEADROOM" {out}.log && {{ log "{unit} not admitted (try $try)"; sleep 600; }} || {{ log "{unit} FAILED"; break; }}',
+                  "  done", "fi"]
+    L.append('log "STAGE_WF_V1_DONE"')
+    Path(a.out).write_text("\n".join(L) + "\n")
+    print(f"written {a.out} ({len(w['folds']) * len(w['arms'])} units)")
+
+
 def cmd_decide(a):
     """Frozen rule: highest seed-mean INNER_A Sharpe (consolidated inner block) among arms whose seeds are all valid
     (the three of the run, plus any --pool-suffix seed extension of the same recipe and support); ties -> fewer
@@ -468,6 +568,9 @@ def localize(spec: dict, root: str, thresholds_dir="recipe") -> dict:
                 arm["multires_thresholds"] = f"{root}/{thresholds_dir}/{Path(arm['multires_thresholds']).name}"
     for fd in (s.get("walk_forward") or {}).get("folds", {}).values():
         fd["recipe"]["path"] = f"{root}/recipe/{Path(fd['recipe']['path']).name}"
+    if s.get("walk_forward_v1"):
+        c = s["walk_forward_v1"]["action_contract"]
+        c["path"] = f"{root}/contracts/{Path(c['path']).name}"
     return s
 
 

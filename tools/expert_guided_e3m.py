@@ -43,6 +43,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from app.short_horizon.expert_guided import action_contract as ACT  # noqa: E402
 from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
 from app.short_horizon.expert_guided import multires as MR  # noqa: E402
@@ -455,7 +456,7 @@ def row_weight(labels, label_mode, sample_weights, info, bar, r):
 
 
 def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, tracks=None, track=None, aux=None,
-               labels=None, label_mode="zigzag", sample_weights=False):
+               labels=None, label_mode="zigzag", sample_weights=False, nop_labels=None, rows_out=None):
     """vis rows -> {module: (X, y, R, Rm)}; flat labels from the expert's issued action (round 0) or the oracle,
     positioned labels from ``exit_label``. With ``final_before_bar`` (refit sweep) a row is used only when its label
     is FINAL before that bar: hindsight support end (flat rows) or the order's resolution bar (positioned rows).
@@ -467,9 +468,14 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
     "both" relabel flat rows by ``SignalLabels.flat_action`` and positioned rows by the declared closer rule (see
     ``SignalLabels``); a censored signal drops the row under "opportunity" and leaves the exit rule alone under "both".
     ``sample_weights`` (multires only): the returned tuples carry a fifth element, the per-row loss weight (label
-    fitness on flat rows, 1 on positioned rows); default False returns the 4-tuples unchanged."""
+    fitness on flat rows, 1 on positioned rows); default False returns the 4-tuples unchanged.
+    ``nop_labels`` (action contract v1, default None = unchanged): an ``ACT.NopLabels``; every flat row that produced
+    opener labels also yields one ``nop`` sample, consistent with them (the arm opens -> NOP 0), returned as a 5-tuple
+    with its weight. ``rows_out`` (default None): {module: [dataset row of every sample, in order]} for calibration."""
     use_sig = labels is not None and label_mode != "zigzag"
     acc = {m: ([], [], [], [], []) for m in MODULES[variant]}
+    if nop_labels is not None:
+        acc["nop"] = ([], [], [], [], [])
     for r, bar, st, a_exp, tp_exp, sl_exp, info in vis:
         if final_before_bar is not None:
             if info is not None:
@@ -514,12 +520,25 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
             if use_sig:
                 labs = [x for lab in labs for x in (_signal_flat(labels, label_mode, bar, r, lab) or [])]
         wt = row_weight(labels, label_mode, sample_weights, info, bar, r)
+        if nop_labels is not None and info is None and labs:
+            nl = nop_labels.label(bar, r, any(x[0] in (E.LONG, E.SHORT) for x in labs))
+            if nl is not None:
+                X, Y, R, Rm, W = acc["nop"]
+                X.append(np.r_[cx.Xw[r], E.masked_state(st, mask)])
+                Y.append(nl[0])
+                R.append((0.0, 0.0))
+                Rm.append(0.0)
+                W.append(nl[1])
+                if rows_out is not None:
+                    rows_out.setdefault("nop", []).append(int(r))
         for a, tp, sl in labs:
             for m, (y, is_open) in labels_for(variant, st, a).items():
                 X, Y, R, Rm, W = acc[m]
                 X.append(np.r_[cx.Xw[r], E.masked_state(st, mask)])
                 Y.append(y)
                 W.append(wt)
+                if rows_out is not None:
+                    rows_out.setdefault(m, []).append(int(r))
                 if aux is None:
                     R.append((tp, sl))
                     Rm.append(float(is_open))
@@ -531,7 +550,7 @@ def build_sets(variant, vis, cx, from_expert, final_before_bar=None, mask=None, 
                     hv, ok = aux.hold_gain(bar, r, 1 if m == "close_l" else -1)
                     R.append((hv,))
                     Rm.append((ok,))
-    return {m: (pack(*v[:4]) + (np.asarray(v[4], np.float32),) if sample_weights else pack(*v[:4])) for m, v in acc.items() if len(v[1])}
+    return {m: (pack(*v[:4]) + (np.asarray(v[4], np.float32),) if (sample_weights or m == "nop") else pack(*v[:4])) for m, v in acc.items() if len(v[1])}
 
 
 # ----------------------------------------------------------------------------- composed policy
@@ -617,6 +636,206 @@ class Composed:
         return np.asarray(out)
 
 
+# ----------------------------------------------------------------------------- action contract v1 (owner 2026-10-25)
+def realized_excursions(cx, horizon=72):
+    """Per bar and side, in causal sigma at the fill bar: the favourable and the adverse excursion of an entry at the
+    next open, up to the optimal expert's next pivot, ``horizon`` bars and the forced flat (the AuxTargets horizon).
+    Diagnostics of the TP / SL heads only (never a label, never an input)."""
+    ds = cx.ds
+    o, h, l = (ds.bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW"))
+    n = len(o)
+    piv = np.array([i for i, _, _ in ds.pivots], np.int64)
+    nxt = piv[np.minimum(np.searchsorted(piv, np.arange(n), side="right"), len(piv) - 1)] if len(piv) else np.full(n, n - 1)
+    flat = forced_flat_bars(ds)
+    sig = np.asarray(ds.sigma, float)
+    fav = {1: np.full(n, np.nan), -1: np.full(n, np.nan)}
+    adv = {1: np.full(n, np.nan), -1: np.full(n, np.nan)}
+    for b in range(n - 2):
+        end = int(min(nxt[b], b + horizon, flat[b], n - 1))
+        s = sig[b + 1]
+        if end <= b + 1 or not np.isfinite(s) or s <= 0:
+            continue
+        hh, ll = h[b + 1:end + 1].max(), l[b + 1:end + 1].min()
+        fav[1][b], adv[1][b] = (hh - o[b + 1]) / s, (o[b + 1] - ll) / s
+        fav[-1][b], adv[-1][b] = (o[b + 1] - ll) / s, (hh - o[b + 1]) / s
+    return fav, adv
+
+
+def _corr(x, y):
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    ok = np.isfinite(x) & np.isfinite(y)
+    if ok.sum() < 3 or np.std(x[ok]) == 0 or np.std(y[ok]) == 0:
+        return {"pearson": float("nan"), "spearman": float("nan"), "n": int(ok.sum())}
+    rk = lambda v: np.argsort(np.argsort(v)).astype(float)   # noqa: E731
+    return {"pearson": float(np.corrcoef(x[ok], y[ok])[0, 1]), "spearman": float(np.corrcoef(rk(x[ok]), rk(y[ok]))[0, 1]), "n": int(ok.sum())}
+
+
+def tp_sl_diagnostics(pols, D, rows, cx, exc) -> dict:
+    """TP / SL heads of each opener on its OPEN-labelled rows (the Huber loss mask): MAE in sigma against the targets,
+    and correlation with the realized favourable (TP) / adverse (SL) excursion of the row's bar."""
+    fav, adv = exc
+    out = {}
+    for m, side in (("open_l", 1), ("open_s", -1)):
+        if m not in D or m not in rows:
+            continue
+        n = len(rows[m])
+        X, R, Rm = D[m][0][:n], D[m][2][:n], D[m][3][:n]
+        k = np.asarray(Rm, float) > 0
+        if not k.any():
+            out[m] = {"rows": 0}
+            continue
+        _, rg = ACT.module_outputs(pols[m], X[k])
+        bars = cx.ds.row_bar[np.asarray(rows[m], np.int64)[k]]
+        out[m] = {"rows": int(k.sum()), "tp_mae_sigma": float(np.mean(np.abs(rg[:, 0] - R[k, 0]))), "sl_mae_sigma": float(np.mean(np.abs(rg[:, 1] - R[k, 1]))),
+                  "tp_target_mean": float(R[k, 0].mean()), "sl_target_mean": float(R[k, 1].mean()), "sl_target_std": float(R[k, 1].std()),
+                  "tp_vs_realized_favourable": _corr(rg[:, 0], fav[side][bars]), "sl_vs_realized_adverse": _corr(rg[:, 1], adv[side][bars]),
+                  "mask": "rows whose label is an OPEN of this side (labels_for is_open)",
+                  "bound_coverage": {q: {"min": float(rg[:, j].min()), "max": float(rg[:, j].max()), "lo": lo_, "hi": hi_,
+                                         "share_at_lo": float(np.mean(rg[:, j] <= lo_ + 0.01 * (hi_ - lo_))), "share_at_hi": float(np.mean(rg[:, j] >= hi_ - 0.01 * (hi_ - lo_))),
+                                         "target_share_at_bounds": float(np.mean((R[k, j] <= lo_ + 1e-9) | (R[k, j] >= hi_ - 1e-9)))}
+                                     for j, (q, lo_, hi_) in enumerate((("tp", 0.25, 3.0), ("sl", 0.5, 3.0)))}}
+    return out
+
+
+def calibrate_modules(pols, D, bins=15):
+    """Platt map per specialist on its calibration-block samples D[m] (INNER_A), with AUC / Brier / ECE / reliability
+    before (raw softmax) and after."""
+    cal = {}
+    for m, pol in pols.items():
+        z, _ = ACT.module_outputs(pol, D[m][0])
+        y = np.asarray(D[m][1], int)
+        a_, b_ = ACT.fit_platt(z, y)
+        cal[m] = {"a": a_, "b": b_, "temperature": (1.0 / a_) if a_ > 0 else float("inf"), "rows": int(len(y)), "positives": int(y.sum()),
+                  "single_class": bool(y.min() == y.max()) if len(y) else True,
+                  "before": ACT.head_metrics(ACT.sigmoid(z), y, bins), "after": ACT.head_metrics(ACT.platt(z, a_, b_), y, bins)}
+    return cal
+
+
+def report_metrics(pols, cal, D, bins=15):
+    """Head metrics on another block with the FROZEN calibration (reported only; nothing is fitted here)."""
+    out = {}
+    for m, pol in pols.items():
+        if m not in D:
+            continue
+        z, _ = ACT.module_outputs(pol, D[m][0])
+        y = np.asarray(D[m][1], int)
+        out[m] = {"raw": ACT.head_metrics(ACT.sigmoid(z), y, bins), "calibrated": ACT.head_metrics(ACT.platt(z, cal[m]["a"], cal[m]["b"]), y, bins)}
+    return out
+
+
+NO_TRADE = ACT.Strategy(2.0, 1e9, 2.0, False, None)
+
+
+def v1_seed(cx, seed, d):
+    """One seed under the action contract v1. ``d``: contract, mods, labels, label_mode, mask, tracks, demo_vis,
+    extra_vis, explore, nop_mr, fit_module, SCFG, led, NS, rows_all, cost, cal_rows, exc. Every fitted or chosen quantity
+    (early stopping, Platt maps, visitation and final strategies) reads TRAIN / INNER_A only: D_tr / D_in come from
+    TRAIN / INNER_A visits, the Platt maps from D_in, and the strategy optimiser sees the table restricted to the
+    INNER_A rows (``ACT.freeze_strategy``). Returns (pols, infos, rec_extra, policy)."""
+    AC, v, mask, tracks, SCFG = d["contract"], "FULL", d["mask"], d["tracks"], d["SCFG"]
+    kw = dict(mask=mask, labels=d["labels"], label_mode=d["label_mode"])
+    nopl = ACT.NopLabels(d["nop_mr"])
+    rows0 = {}
+    D_tr = merge_sets(build_sets(v, d["demo_vis"]["TRAIN"] + d["explore"]["TRAIN"], cx, True, nop_labels=nopl, **kw),
+                      *[build_sets(v, d["extra_vis"][(t.name, "TRAIN")], cx, True, track=t, **kw) for t in tracks[1:]])
+    D_in = merge_sets(build_sets(v, d["demo_vis"]["INNER_A"] + d["explore"]["INNER_A"], cx, True, nop_labels=nopl, rows_out=rows0, **kw),
+                      *[build_sets(v, d["extra_vis"][(t.name, "INNER_A")], cx, True, track=t, rows_out=rows0, **kw) for t in tracks[1:]])
+    min_opw = float(AC["strategy"]["calibration_min_trades_per_week"])
+
+    sig = np.asarray(cx.ds.sigma, float)
+    primary = d.get("fitness") or ACT.DEFAULT_FITNESS
+
+    def score_table(view, strat):
+        m, trades = ACT.rollout_with_trades(cx, "INNER_A", ACT.ContractPolicy(view, strat)(cx), SCFG)
+        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw)
+
+    pols, infos, comp, rounds = {}, {}, None, []
+    for rnd in range(ROUNDS + 1):
+        if rnd > 0:
+            _, vtr = collect(cx, "TRAIN", comp(cx), SCFG)
+            _, vin = collect(cx, "INNER_A", comp(cx), SCFG)
+            multi = tracks if len(tracks) > 1 else None
+            for m, D in build_sets(v, vtr, cx, False, tracks=multi, nop_labels=nopl, **kw).items():
+                D_tr[m] = cat(D_tr[m], D) if m in D_tr else D
+            for m, D in build_sets(v, vin, cx, False, tracks=multi, nop_labels=nopl, **kw).items():
+                D_in[m] = cat(D_in[m], D) if m in D_in else D
+        for m in d["mods"]:
+            if m not in D_tr or m not in D_in or len(np.unique(D_tr[m][1])) < 2:
+                if m in pols:
+                    ledger(d["led"], rung="E3M", event="MODULE_KEPT", variant=v, module=m, seed=seed, round=rnd)
+                    continue
+                raise SystemExit(f"E3M_EMPTY_PARTITION:{v}:{m}:round{rnd}")
+            ledger(d["led"], rung="E3M", event="FIT", variant=v, module=m, seed=seed, round=rnd, rows_train=len(D_tr[m][1]),
+                   rows_inner=len(D_in[m][1]), label_counts=np.bincount(D_tr[m][1]).tolist())
+            pols[m], infos[m] = d["fit_module"](v, m, D_tr[m], D_in[m], seed)
+        cal = calibrate_modules(pols, D_in)
+        table = ACT.calibrate_table(ACT.raw_table(pols, cx.Xw, d["rows_all"], d["NS"], d["cost"]), cal)
+        if rnd == ROUNDS:
+            break
+        fr = ACT.freeze_strategy(table, d["cal_rows"], score_table, AC, seed, "visitation", primary)
+        st_ = ACT.strategy_of(fr)
+        rounds.append({"round": rnd, "visitation_strategy": fr["strategy"], "valid": fr["valid"], "nop_veto_kept": fr["nop_veto_kept"],
+                       "chosen": fr["chosen"], "fallback": None if st_ else "inherited prob arbiter at the 6 % rate (no valid strategy on INNER_A)",
+                       "archive": {k: r["points"] for k, r in fr["runs"].items()}, "term_scales": fr["term_scales"]})
+        ledger(d["led"], rung="E3M", event="V1_VISITATION_STRATEGY", seed=seed, round=rnd, strategy=fr["strategy"], chosen=fr["chosen"])
+        if st_ is not None:
+            comp = ACT.ContractPolicy(table, st_)
+        else:
+            comp = Composed(v, pols, "prob", tau=0.5, mask=mask)
+            comp.tau = float(np.quantile(comp.open_scores(cx, cx.ds.rows("INNER_A")), 1 - 0.06))
+    fr = ACT.freeze_strategy(table, d["cal_rows"], score_table, AC, seed, "final", primary)
+    st_ = ACT.strategy_of(fr) or NO_TRADE
+    ledger(d["led"], rung="E3M", event="FREEZE", variant=v, seed=seed, arbiter="action_contract_v1", strategy=fr["strategy"], chosen=fr["chosen"],
+           nop_veto_kept=fr["nop_veto_kept"], chosen_on="INNER_A")
+    seen, nr, ny = set(), [], []
+    for r, y, w, kind, arm_open in nopl.rows:
+        if cx.ds.period[r] == "INNER_A" and r not in seen:
+            seen.add(r)
+            nr.append(r)
+            ny.append(y)
+    extra = {"calibration": {m: {k: c[k] for k in ("a", "b", "temperature", "rows", "positives", "single_class", "before", "after")} for m, c in cal.items()},
+             "strategy": fr, "visitation_rounds": rounds, "nop_label_consistency": nopl.table,
+             "nop_information_calibration_block": ACT.nop_information(table, nr, ny),
+             "tp_sl_calibration_block": tp_sl_diagnostics(pols, D_in, rows0, cx, d["exc"]),
+             "best_epochs": {m: int(infos[m]["best_epoch"]) for m in infos}}
+    return pols, infos, extra, ACT.ContractPolicy(table, st_), table
+
+
+def v1_round0_sets(cx, period, d, rows_out=None):
+    """Round-0 label sets of a block (demonstrations + exploration positions + extra demonstrators, NOP included): the
+    INNER_B report (frozen maps, reported only) and the ensemble's single Platt refit on INNER_A."""
+    v, kw = "FULL", dict(mask=d["mask"], labels=d["labels"], label_mode=d["label_mode"])
+    nopl = ACT.NopLabels(d["nop_mr"])
+    return merge_sets(build_sets(v, d["demo_vis"][period] + d["explore"][period], cx, True, nop_labels=nopl, rows_out=rows_out, **kw),
+                      *[build_sets(v, d["extra_vis"][(t.name, period)], cx, True, track=t, rows_out=rows_out, **kw) for t in d["tracks"][1:]])
+
+
+def v1_context(cx, e3m_like: dict, ECFG, SCFG, periods=("TRAIN", "INNER_A")) -> dict:
+    """Rebuild the label machinery of a v1 run from its recorded label arguments (E3-M itself and the seed ensemble):
+    the arm's labels, the demonstrator tracks, the NOP ladder labels, the round-0 visits and the exploration positions
+    (the TRAIN-prior random policy, seed 0, as the run). Deterministic: no network involved."""
+    la = e3m_like["label_args"]
+    ds = cx.ds
+    cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("HIGH", "LOW", "CLOSE"))
+    mode = la["labels"]
+    if mode == "multires":
+        th = MR.Thresholds.from_json(la["multires_thresholds_json"]) if la.get("multires_thresholds_json") else MR.Thresholds()
+        labels = MR.MultiResLabels(cx, th, MR.LADDER, DG.EXPERT)
+    elif mode != "zigzag":
+        labels = SignalLabels(cx, mode, la["closer_rule"], SG.SignalParams(theta_open=la["theta_open"], theta_close=la["theta_close"]))
+    else:
+        labels = None
+    tracks = [ExpertTrack(cx)] + [parse_track(cx, x) for x in (la["extra_experts"].split(",") if la.get("extra_experts") else [])]
+    _, vtr0 = collect(cx, "TRAIN", cx.expert, ECFG)
+    prior = (np.bincount(np.array([q[3] for q in vtr0], int), minlength=4) / len(vtr0)).tolist()
+    d = {"labels": labels, "label_mode": mode, "tracks": tracks, "mask": E.state_mask("none"),
+         "nop_mr": MR.MultiResLabels(cx, MR.Thresholds(), MR.LADDER, DG.EXPERT),
+         "demo_vis": {p: collect(cx, p, cx.expert, ECFG)[1] for p in periods},
+         "extra_vis": {(t.name, p): collect(cx, p, t.policy(cx), ECFG)[1] for t in tracks[1:] for p in periods},
+         "explore": {p: [q for q in collect(cx, p, cx.prior_random(prior, 0), SCFG)[1] if q[6] is not None] for p in periods}}
+    return d
+
+
 # ----------------------------------------------------------------------------- run
 def effective_contracts(exec_contract: str, min_orders_per_week=None):
     """(student/evaluation config, expert-demonstration config) actually used by a run. ``sac`` = the replay contract
@@ -649,6 +868,20 @@ def run(a):
     verify = not a.no_verify
     DG.check_scaling(a.scaling)                   # typed refusal before any read
     sc = DG.split_contract(a.split_contract)
+    AC = None
+    if getattr(a, "strategy_fitness", "") and not a.action_contract:
+        raise SystemExit("STRATEGY_FITNESS_REQUIRES_ACTION_CONTRACT")
+    if a.action_contract:
+        # output contract v1 (owner 2026-10-25): five calibrated specialists + one frozen parametric strategy; every
+        # choice on INNER_A, decision on the post-freeze INNER_B; typed refusals before any data is read
+        AC = ACT.load(a.action_contract)
+        ACT.require_decision_block(AC, sc, a.split_contract)
+        if a.variants != "FULL":
+            raise SystemExit("ACTION_CONTRACT_ONLY_FOR_FULL")
+        if a.agent_state != "none":
+            raise SystemExit("ACTION_CONTRACT_REQUIRES_AGENT_STATE_NONE")
+        if a.aux_targets or getattr(a, "sample_weights", False):
+            raise SystemExit("ACTION_CONTRACT_V1_REFUSES_AUX_TARGETS_AND_SAMPLE_WEIGHTS")
     mask, inventory = E.state_mask(a.agent_state), E.state_inventory(a.agent_state)
     SCFG, ECFG = effective_contracts(a.exec_contract, a.min_orders_per_week)
     if a.aux_targets and a.variants != "FULL":
@@ -740,8 +973,15 @@ def run(a):
     tracks = [ExpertTrack(cx)] + [ExpertTrack(cx, Z.Params(depth=DG.EXPERT.depth, deviation_pips=float(d), backstep=DG.EXPERT.backstep))
                                   for d in []] + [parse_track(cx, d) for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
+    if AC:
+        MODS["FULL"] = dict(MODS["FULL"], nop=(2, 0))
+        BOUNDS["nop"] = ((0.25, 3.0), (0.5, 3.0))
     params = {v: {m: int(sum(p.numel() for p in T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, reg_bounds=BOUNDS[m], **ARCH).parameters()))
                   for m, (nc, nr) in MODS[v].items()} for v in variants}
+    HEADS = None
+    if AC:                                    # runtime encoding check: the networks' heads match the contract's declared heads
+        HEADS = ACT.check_head_shapes(AC, {m: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NS, reg_bounds=BOUNDS[m], **ARCH)
+                                           for m, (nc, nr) in MODS["FULL"].items()})
     agent_state = {"mode": a.agent_state, "inventory": inventory, "n_state_slots": NS,
                    "included": [n for n, v in inventory.items() if v == "included"],
                    "constant_zero": [n for n, v in inventory.items() if v == "constant_zero"], "params": params,
@@ -755,6 +995,7 @@ def run(a):
            experts=[t.name for t in tracks], window=[WIN_E, int(ds.meta["input_contract"]["stride_rows"])],
            exec_contract=a.exec_contract, aux_targets=bool(a.aux_targets), aux_mode=(a.aux_targets or None), min_orders_per_week=SCFG.min_orders_per_week,
            extractor_groups=ARCH.get("group_names"), labels=a.labels, closer_rule=a.closer_rule if LABELS else None,
+           action_contract=(AC["identity"] if AC else None),
            decision="variant x arbiter: highest seed-mean INNER_A Sharpe among valid; ties -> fewer models; 2024 once")
     scaler_path = DG.write_scaler(out, ds, rung="E3M", agent_state=a.agent_state, split_contract=a.split_contract)
     res = {"exec_contract": a.exec_contract, "min_orders_per_week": SCFG.min_orders_per_week, "seeds": list(SEEDS),
@@ -770,6 +1011,13 @@ def run(a):
            "cost_sigma": COST_SIGMA, "device": device, "comparators": {}, "trials": {}, "verify": verify,
            "split_contract": ds.meta["split_contract"], "agent_state": agent_state, "scaler_file": scaler_path.name,
            "probe": {}}
+    if AC:
+        res["action_contract"] = {"identity": AC["identity"], "sha256": ACT.sha256_file(a.action_contract), "contract": AC,
+                                  "encoding_audit": ACT.encoding_audit(AC), "head_shapes": HEADS,
+                                  "calibration_block": "INNER_A", "decision_block": "INNER_B", "read_once": "OBS_2024",
+                                  "label_args": {"labels": a.labels, "closer_rule": a.closer_rule, "theta_open": a.theta_open, "theta_close": a.theta_close,
+                                                 "extra_experts": a.extra_experts,
+                                                 "multires_thresholds_json": Path(a.multires_thresholds).read_text() if a.multires_thresholds else ""}}
     if LMODE == "multires" and SW:
         res["labels"]["sample_weights"] = "consumed: every flat training row's CE term is scaled by its label fitness (--sample-weights)"
     probe_rows = cx.ds.rows("INNER_A")
@@ -813,8 +1061,66 @@ def run(a):
                                  "expert_confirmed": summary(cx.rollout(p, cx.confirmed, SCFG)[0]),
                                  "no_trade": summary(cx.rollout(p, lambda *x: (E.HOLD, 1.5, 2.0), SCFG)[0])}
     frozen = {}
+    V1 = None
+    if AC:
+        rows_all = np.flatnonzero(cx.obs_ok)
+        V1 = {"contract": AC, "mods": MODS["FULL"], "labels": LABELS, "label_mode": LMODE, "mask": mask, "tracks": tracks,
+              "demo_vis": demo_vis, "extra_vis": extra_vis, "explore": explore, "fit_module": fit_module, "SCFG": SCFG, "led": led, "NS": NS,
+              "nop_mr": MR.MultiResLabels(cx, MR.Thresholds(), MR.LADDER, DG.EXPERT), "rows_all": rows_all,
+              "cost": ACT.row_cost_sigma(SCFG.profile.round_trip_price(), ds.sigma, ds.row_bar, AC["strategy"]["cost_sigma"]),
+              "cal_rows": np.flatnonzero(cx.obs_ok & (ds.period == AC["blocks"]["calibration"])), "exc": realized_excursions(cx),
+              "fitness": a.strategy_fitness or AC["strategy"]["fitness"]["default"]}
+        res["action_contract"]["primary_fitness"] = V1["fitness"]
+        res["action_contract"]["cost"] = {"cost_sigma_allowance": AC["strategy"]["cost_sigma"], "round_trip_price": SCFG.profile.round_trip_price(),
+                                          "per_row_sigma_p50": float(np.nanmedian(V1["cost"][rows_all])), "units": "sigma multiples (price / causal sigma price)"}
+        ib = {}
     for v in variants:
         for seed in SEEDS:
+            if AC:
+                pols, infos, extra, c, table = v1_seed(cx, seed, V1)
+                frozen[(v, seed)] = c
+                if not ib:
+                    ib_vis = {"demo_vis": {"INNER_B": collect(cx, "INNER_B", cx.expert, ECFG)[1]},
+                              "extra_vis": {(t.name, "INNER_B"): collect(cx, "INNER_B", t.policy(cx), ECFG)[1] for t in tracks[1:]},
+                              "explore": {"INNER_B": [q for q in collect(cx, "INNER_B", cx.prior_random(prior, 0), SCFG)[1] if q[6] is not None]}}
+                    ib_rows = {}
+                    ib["sets"] = v1_round0_sets(cx, "INNER_B", dict(V1, **ib_vis), rows_out=ib_rows)
+                    ib["rows"] = ib_rows
+                calp = {m: extra["calibration"][m] for m in pols}
+                extra["reported_only_INNER_B"] = {"heads": report_metrics(pols, calp, ib["sets"]),
+                                                  "tp_sl": tp_sl_diagnostics(pols, ib["sets"], ib["rows"], cx, V1["exc"]),
+                                                  "note": "frozen calibration and heads; nothing fitted or chosen on INNER_B"}
+                chosen = extra["strategy"]["chosen"]
+                best = {"arbiter": "action_contract_v1", "rate": None, "tau": None, "strategy": extra["strategy"]["strategy"],
+                        "nop_veto_kept": extra["strategy"]["nop_veto_kept"], "sharpe": None if chosen is None else chosen["sharpe"],
+                        "lcb": None if chosen is None else chosen["lcb"], "valid": chosen is not None}
+                rec = {"fits": {m: {k: infos[m][k] for k in ("epochs", "best_epoch", "params", "stop_reason")} for m in infos},
+                       "arbiter_trials": (extra["strategy"]["runs"]["with_veto"]["front"] + extra["strategy"]["runs"]["without_veto"]["front"]),
+                       "arbiter": best, "trading": {}, "musashi_contract": {}, "action_contract": extra}
+                for p in DEV:
+                    rec["trading"][p] = summary(cx.rollout(p, c(cx), SCFG)[0])
+                    rec["musashi_contract"][p] = summary(cx.rollout(p, c(cx), MUSASHI_CFG)[0])
+                for f, bf in extra["strategy"]["by_fitness"].items():        # every fitness variant, same trained seed (no refit)
+                    if bf["strategy"] is not None:
+                        cf = ACT.ContractPolicy(table, ACT.Strategy(**bf["strategy"]))
+                        bf["trading"] = {p: summary(cx.rollout(p, cf(cx), SCFG)[0]) for p in DEV}
+                    bu = bf["archive_view"]["best_unconstrained_by_fitness"]
+                    if bu is not None:                                       # what the fitness would do without the rule: NOT SELECTABLE
+                        cu = ACT.ContractPolicy(table, ACT.Strategy(**bu["strategy"]))
+                        bu["trading_not_selectable"] = {p: summary(cx.rollout(p, cu(cx), SCFG)[0]) for p in DEV}
+                rec["action_contract"]["out_of_sample_activity"] = {
+                    "INNER_B_trades_per_week": rec["trading"].get("INNER_B", {}).get("orders_per_week"),
+                    "owner_rule": "below 2 trades/week on INNER_B = INVALID", "valid_INNER_B": rec["trading"].get("INNER_B", {}).get("valid")}
+                for m, pol in pols.items():
+                    torch.save(pol.m.state_dict(), out / f"{v}_{m}_{seed}.pt")
+                    res["probe"][f"{v}_{m}_{seed}"] = probe(pol)
+                (out / "PROBE.json").write_text(json.dumps({"split_contract": a.split_contract, "agent_state": a.agent_state,
+                                                            "scaling": a.scaling, "probe": res["probe"]}, indent=1))
+                res["trials"].setdefault(v, {})[str(seed)] = rec
+                print(json.dumps({"variant": v, "seed": seed, "arbiter": "action_contract_v1", "strategy": best["strategy"],
+                                  "sharpe": {p: round(rec["trading"][p]["sharpe_daily_sqrt365"], 2) for p in rec["trading"]},
+                                  "opw": {p: round(rec["trading"][p]["orders_per_week"], 2) for p in rec["trading"]}, "s": round(time.time() - t0, 1)}), flush=True)
+                continue
             D_tr = merge_sets(build_sets(v, demo_vis["TRAIN"] + explore["TRAIN"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW),
                               *[build_sets(v, extra_vis[(t.name, "TRAIN")], cx, True, mask=mask, track=t, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW) for t in tracks[1:]])
             D_in = merge_sets(build_sets(v, demo_vis["INNER_A"] + explore["INNER_A"], cx, True, mask=mask, aux=AUX, labels=LABELS, label_mode=LMODE, sample_weights=SW),
@@ -879,13 +1185,18 @@ def run(a):
                               "opw": round(rec["trading"][DEV[-1]]["orders_per_week"], 1), "s": round(time.time() - t0, 1)}), flush=True)
     # decision on INNER_A (seed means), 2024 once
     means = {}
+    DEC = AC["blocks"]["decision"] if AC else "INNER_A"
     for v in variants:
-        sh = [res["trials"][v][str(s)]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in SEEDS]
-        valid = all(res["trials"][v][str(s)]["trading"]["INNER_A"]["valid"] for s in SEEDS)
+        sh = [res["trials"][v][str(s)]["trading"][DEC]["sharpe_daily_sqrt365"] for s in SEEDS]
+        valid = all(res["trials"][v][str(s)]["trading"][DEC]["valid"] for s in SEEDS)
         means[v] = {"inner_a_sharpe_mean": float(np.mean(sh)), "all_valid": valid, "n_models": len(MODULES[v])}
+        if AC:
+            means[v] = {"decision_block": DEC, "seed_mean_sharpe": float(np.mean(sh)), "all_valid": valid, "n_models": len(MODS[v]),
+                        "note": "one variant (FULL) under the contract: nothing to choose here; arms are decided between runs by the seed ENSEMBLE on INNER_B"}
     ok = [v for v in variants if means[v]["all_valid"]]
-    chosen = max(ok or variants, key=lambda v: (means[v]["inner_a_sharpe_mean"], -means[v]["n_models"]))
-    res["decision"] = {"means": means, "chosen": chosen, "rule": "highest seed-mean INNER_A Sharpe among all-valid; ties -> fewer models"}
+    chosen = max(ok or variants, key=lambda v: (means[v].get("inner_a_sharpe_mean", means[v].get("seed_mean_sharpe")), -means[v]["n_models"]))
+    res["decision"] = {"means": means, "chosen": chosen, "rule": "highest seed-mean INNER_A Sharpe among all-valid; ties -> fewer models" if not AC
+                       else "action contract v1: single FULL variant; decision between arms by the seed ensemble on INNER_B (launcher / report)"}
     ledger(led, rung="E3M", event="DECISION", **res["decision"])
     ledger(led, rung="E3M", event="READ", periods=["OBS_2024"], purpose=f"single read: chosen variant {chosen} + comparators")
     res["comparators"]["OBS_2024"] = {"expert_demonstrations": summary(cx.rollout("OBS_2024", cx.expert, ECFG)[0]),
@@ -957,6 +1268,11 @@ def build_parser():
     ap.add_argument("--recipe", default="", help="pinned shared consumer recipe (v2): columns, consumer operations, scaler constants, "
                     "window, groups and model come from it; nothing is measured or refitted (audit A3)")
     ap.add_argument("--feature-list", default="", help="JSON with {'features': [...]} selected from the store")
+    ap.add_argument("--action-contract", default="", help="output contract v1 JSON (ACTION_CONTRACT_v1.json): five calibrated specialists "
+                    "(open_l, open_s, nop, close_l, close_s) and one parametric strategy frozen on INNER_A, decided on the post-freeze INNER_B; default off")
+    ap.add_argument("--strategy-fitness", choices=[""] + list(ACT.FITNESS), default="",
+                    help="action contract v1 only: the fitness variant that picks the frozen strategy point (default: the contract's, sharpe_lcb); "
+                         "every variant is still optimised and recorded")
     ap.add_argument("--cpu", action="store_true")
     return ap
 

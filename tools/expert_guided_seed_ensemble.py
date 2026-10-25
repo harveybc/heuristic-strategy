@@ -29,6 +29,7 @@ from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
 from app.short_horizon.expert_guided import stats as ST  # noqa: E402
 from tools.expert_guided_e1t import Ctx, summary  # noqa: E402
+from app.short_horizon.expert_guided import action_contract as ACT  # noqa: E402
 from tools.expert_guided_e3m import Composed, effective_contracts  # noqa: E402
 
 MODULES = ("open_l", "open_s", "close_l", "close_s")
@@ -98,8 +99,107 @@ def window_stats(m: dict, cfg) -> dict:
             "se_lo": d["se_lo"], "sharpe_minus_se": d["sharpe_minus_se"], "days": d["days"], "bootstrap": d["bootstrap"]}
 
 
+def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=None) -> dict:
+    """Seed ensemble of an action-contract-v1 arm: per seed, its calibrated table and its own frozen strategy are
+    replayed again (verification against the run); the ENSEMBLE averages the seeds' calibrated probabilities and TP/SL,
+    refits ONE Platt map per specialist on the ensemble over the calibration block (round-0 label rows of INNER_A,
+    rebuilt deterministically from the run's label arguments), and re-optimises the strategy on the calibration block
+    only (never a member's strategy). The decision between arms reads this ensemble on the decision block."""
+    from tools import expert_guided_e3m as M
+    ac = e3m["action_contract"]
+    AC = ac["contract"]
+    cb = AC["blocks"]["calibration"]
+    cx = Ctx(ds)
+    cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("HIGH", "LOW", "CLOSE"))
+    n_feat, win, NS = ds.windows.shape[2], ds.windows.shape[1], len(E.STATE_NAMES)
+    SCFG, ECFG = effective_contracts(e3m.get("exec_contract", "sac"), e3m.get("min_orders_per_week"))
+    cfg = cfg or SCFG
+    trials = e3m["trials"]["FULL"]
+    rows_all = np.flatnonzero(cx.obs_ok)
+    cost = ACT.row_cost_sigma(SCFG.profile.round_trip_price(), ds.sigma, ds.row_bar, AC["strategy"]["cost_sigma"])
+    cal_rows = np.flatnonzero(cx.obs_ok & (ds.period == cb))
+    doc = {"arm_dir": str(out_dir), "recipe": e3m.get("recipe"), "split_contract": ds.meta["split_contract"], "seeds": seeds, "periods": periods,
+           "support_hash": ds.meta["support_hash"], "action_contract": {"identity": ac["identity"], "sha256": ac["sha256"]},
+           "per_seed": {}, "ensemble": {}, "verification": {"per_seed_replay_equals_run": {}}}
+    tables = []
+    for s in seeds:
+        pols = {m: load_module(out_dir, e3m, m, s, n_feat, win) for m in ACT.SPECIALISTS}
+        doc.setdefault("head_shapes", {})[s] = ACT.check_head_shapes(AC, {m: p.m for m, p in pols.items()})
+        cal = trials[s]["action_contract"]["calibration"]
+        t = ACT.calibrate_table(ACT.raw_table(pols, cx.Xw, rows_all, NS, cost), cal)
+        tables.append(t)
+        st_s = ACT.strategy_of(trials[s]["action_contract"]["strategy"]) or M.NO_TRADE
+        doc["per_seed"][s] = {}
+        for p in periods:
+            m = cx.rollout(p, ACT.ContractPolicy(t, st_s)(cx), cfg)[0]
+            doc["per_seed"][s][p] = window_stats(m, cfg)
+            run_v = trials[s]["trading"].get(p, {}).get("sharpe_daily_sqrt365")
+            if run_v is not None:
+                doc["verification"]["per_seed_replay_equals_run"][f"{s}/{p}"] = bool(abs(run_v - m["sharpe_daily_sqrt365"]) < 1e-9)
+    ens = ACT.mean_tables(tables)
+    # ONE Platt map per specialist refitted on the ensemble, calibration block only (round-0 label rows of INNER_A)
+    d = M.v1_context(cx, ac, ECFG, SCFG, periods=(cb,))
+    rows0 = {}
+    sets = M.v1_round0_sets(cx, cb, d, rows_out=rows0)
+    ens_raw = {f: v.copy() for f, v in ens.items()}
+    cal_e = {}
+    for m, f in ACT.PROB_OF.items():
+        ens_raw[f] = np.where(np.isfinite(ens[f]), ACT.logit(np.nan_to_num(ens[f], nan=0.5)), np.nan)
+        r = np.asarray(rows0.get(m, []), np.int64)
+        y = np.asarray(sets[m][1], int) if m in sets else np.zeros(0, int)
+        if len(r) != len(y):
+            raise SystemExit(f"ENSEMBLE_V1_ROWS_MISALIGNED:{m}")
+        z = ens_raw[f][r]
+        a_, b_ = ACT.fit_platt(z, y)
+        cal_e[m] = {"a": a_, "b": b_, "rows": int(len(y)), "before": ACT.head_metrics(ACT.sigmoid(z), y), "after": ACT.head_metrics(ACT.platt(z, a_, b_), y)}
+    ens_t = ACT.calibrate_table(ens_raw, cal_e)
+    min_opw = float(AC["strategy"]["calibration_min_trades_per_week"])
+    sig = np.asarray(ds.sigma, float)
+
+    def score_table(view, strat):
+        m, trades = ACT.rollout_with_trades(cx, cb, ACT.ContractPolicy(view, strat)(cx), SCFG)
+        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw)
+
+    primary = ac.get("primary_fitness") or ACT.DEFAULT_FITNESS
+    fr = ACT.freeze_strategy(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary)
+    doc["arbiter"] = {"arbiter": "action_contract_v1", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": fr["chosen"],
+                      "rule": "mean of the seeds' calibrated probabilities and TP/SL -> one Platt refit per specialist on INNER_A -> strategy re-optimised on INNER_A (never a member's)"}
+    doc["ensemble_calibration"] = cal_e
+    doc["ensemble_strategy"] = fr
+    doc["by_fitness"] = {}
+    for f, bf in fr["by_fitness"].items():                 # every fitness variant on the same ensemble (no refit)
+        st_f = ACT.Strategy(**bf["strategy"]) if bf["strategy"] is not None else M.NO_TRADE
+        w = {}
+        for p in periods:
+            if p == "OBS_2024" and f != primary:
+                continue                                    # 2024: one read, the arm's own variant only
+            m = cx.rollout(p, ACT.ContractPolicy(ens_t, st_f)(cx), cfg)[0]
+            w[p] = window_stats(m, cfg)
+        ib = w.get("INNER_B", {}).get("metrics")
+        av = bf["archive_view"]
+        bu = av["best_unconstrained_by_fitness"]
+        if bu is not None:                                  # the fitness without the activity rule: NOT SELECTABLE, reported
+            cu = ACT.ContractPolicy(ens_t, ACT.Strategy(**bu["strategy"]))
+            bu["windows_not_selectable"] = {p: window_stats(cx.rollout(p, cu(cx), cfg)[0], cfg) for p in periods if p != "OBS_2024"}
+        doc["by_fitness"][f] = {"strategy": bf["strategy"], "valid_on_calibration": bf["valid"], "nop_veto_kept": bf["nop_veto_kept"],
+                                "chosen_components": bf["chosen"], "windows": w, "archive_view": av,
+                                "out_of_sample_activity": None if ib is None else {"INNER_B_trades_per_week": ib["orders_per_week"], "valid": bool(ib["valid"] and ib["orders_per_week"] >= 2.0)}}
+    doc["ensemble"] = doc["by_fitness"][primary]["windows"]
+    if "INNER_B" in doc["ensemble"]:
+        ib = doc["ensemble"]["INNER_B"]["metrics"]
+        doc["out_of_sample_activity"] = {"INNER_B_trades_per_week": ib["orders_per_week"], "valid": ib["valid"],
+                                         "owner_rule": "below 2 trades/week on INNER_B = INVALID"}
+    doc["verification"]["all_per_seed_replays_equal_run"] = all(doc["verification"]["per_seed_replay_equals_run"].values())
+    doc["verification"]["recomputed_sharpe_equals_engine"] = all(v["recomputed_equals_engine"] for s in doc["per_seed"].values() for v in s.values()) and \
+        all(v["recomputed_equals_engine"] for v in doc["ensemble"].values())
+    return doc
+
+
 def evaluate(out_dir: Path, ds, periods: list, seeds: list | None = None, cfg=None, selection: str = "INNER_A") -> dict:
     e3m = json.loads((out_dir / "E3M.json").read_text())
+    if e3m.get("action_contract"):
+        tr = e3m["trials"]["FULL"]
+        return evaluate_v1(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg)
     trials = e3m["trials"]["FULL"]
     seeds = [str(s) for s in (seeds or list(trials))]
     missing = [s for s in seeds if s not in trials]

@@ -5,6 +5,8 @@
                  seed-ensemble replay with its Lo SE and bootstrap interval (ENSEMBLE.json written by
                  tools/expert_guided_seed_ensemble.py), failed arms with their recorded cause, the 5-seed decision and
                  the Stage B ranking; owner closure table (control = same rows).
+  wf-v1          stage WF_V1 (action contract v1): per fold, each v1 arm next to its baseline (the WF arm of the same base);
+                 HOLDS / SEPARABLE on the INNER_B ensembles; INVALID when the ensemble trades < 2 per week on INNER_B.
   walk-forward   per fold x arm: per-seed and ensemble Sharpe on TRAIN / INNER_A / INNER_B (validation year, scored after
                  freeze) with SE and bootstrap; the PRE-REGISTERED verdicts (stats.HOLDS_RULE / SEPARABLE_RULE); 2024 one
                  read per unit; owner closure table (naive = control zz_hold on the same rows).
@@ -196,7 +198,7 @@ def cmd_walk_forward(a):
             u = next(x for x in units if x["unit"] == f"WF_{fold}_{arm}")
             if u["status"] == "DONE" and u.get("ensemble") and "INNER_B" in u["ensemble"]:
                 per[fold] = {"sharpe": u["ensemble"]["INNER_B"]["sharpe"], "se_lo": u["ensemble"]["INNER_B"]["se_lo"]}
-        verdicts[arm] = ST.holds(per) if len(per) == len(wf["folds"]) else {"rule": ST.HOLDS_RULE, "per_fold": per, "verdict": "NO_NEW_MEASUREMENT: a fold is missing or has no ensemble"}
+        verdicts[arm] = (ST.holds(per) if len(per) == len(wf["folds"]) else {"rule": ST.HOLDS_RULE, "per_fold": {}, "verdict": "NO_NEW_MEASUREMENT: a fold is missing or has no ensemble"}) | {"inputs": per}
     control = spec["decision_control"]
     sep = {}
     for fold in wf["folds"]:
@@ -222,7 +224,7 @@ def cmd_walk_forward(a):
           f"Regla pre-registrada (antes de leer): {wf.get('rule')}", ""]
     for fold in wf["folds"]:
         md += table_md([x for x in units if x["fold"] == fold], ("TRAIN", "INNER_A", "INNER_B", "OBS_2024"), f"Pliegue {fold} (INNER_B = año de validación)")
-    md += ["## Veredictos", ""] + [f"- **{arm}**: {v['verdict']} — " + ", ".join(f"{f}: {fmt(x['sharpe'])} − SE {fmt(x['se_lo'])}" for f, x in v["per_fold"].items()) for arm, v in verdicts.items()] + [""]
+    md += ["## Veredictos", ""] + [f"- **{arm}**: {v['verdict']} — " + ", ".join(f"{f}: {fmt(x['sharpe'])} − SE {fmt(x['se_lo'])}" for f, x in v["inputs"].items()) for arm, v in verdicts.items()] + [""]
     if sep:
         md += ["## Separabilidad frente al control (ensamble, año de validación)", ""] + [f"- {k}: Δ {v['delta']:+.2f} vs SE agrupado {fmt(v['pooled_se'])} → {v['verdict']}" for k, v in sep.items()] + [""]
     md += ["## Tabla de cierre (regla del propietario)", ""]
@@ -232,10 +234,260 @@ def cmd_walk_forward(a):
     print(json.dumps({"units": [(u["unit"], u["status"]) for u in units], "verdicts": {k: v["verdict"] for k, v in verdicts.items()}, "out": a.out_md}))
 
 
+def v1_details(out: Path, unit: str) -> dict:
+    """Per seed of a v1 unit: the NOP-veto decision, the calibrated ECE per specialist on the calibration block, the NOP
+    information test and the out-of-sample activity (reported, never a choice)."""
+    e3 = out / unit / "E3M.json"
+    if not e3.exists():
+        return {}
+    e = json.loads(e3.read_text())
+    det = {}
+    for s_, rec in e["trials"]["FULL"].items():
+        ac = rec.get("action_contract") or {}
+        det[s_] = {"nop_veto_kept": (ac.get("strategy") or {}).get("nop_veto_kept"), "strategy": (ac.get("strategy") or {}).get("strategy"),
+                   "ece_after": {m: c["after"]["ece"] for m, c in (ac.get("calibration") or {}).items()},
+                   "nop_delta_logloss": (ac.get("nop_information_calibration_block") or {}).get("delta_logloss"),
+                   "inner_b_opw": (ac.get("out_of_sample_activity") or {}).get("INNER_B_trades_per_week")}
+    return det
+
+
+def fitness_rows(out: Path, w: dict) -> tuple:
+    """One row per (arm, fitness variant, fold) from the v1 ENSEMBLE.json files, and the pre-registered variant rule:
+    chosen on wf2022's decision year (highest ensemble Sharpe - 1 SE among variants valid there with >= 2 trades/week),
+    confirmed on wf2023 (Sharpe - 1 SE > 0 with >= 2 trades/week) or refuted; every variant is reported."""
+    rows, rule = [], {}
+    folds = list(w["folds"])
+    for arm in w["arms"]:
+        per = {}
+        for fold in folds:
+            ep = out / f"WF_V1_{fold}_{arm['name']}" / "ENSEMBLE.json"
+            ens = json.loads(ep.read_text()) if ep.exists() else {}
+            sc = (ens.get("ensemble_strategy") or {}).get("term_scales")
+            if sc:
+                rule.setdefault("_scales", {})[f"{fold}/{arm['name']}"] = sc
+            for f in w.get("fitness_variants", []):
+                bf = (ens.get("by_fitness") or {}).get(f)
+                ib = (bf or {}).get("windows", {}).get("INNER_B")
+                if ib is None:
+                    rows.append({"arm": arm["name"], "fitness": f, "fold": fold, "status": "NO_NEW_MEASUREMENT"})
+                    continue
+                opw = ib["metrics"]["orders_per_week"]
+                valid = bool(ib["metrics"]["valid"] and opw >= 2.0)
+                av = bf.get("archive_view") or {}
+                bu = av.get("best_unconstrained_by_fitness") or {}
+                bub = (bu.get("windows_not_selectable") or {}).get("INNER_B")
+                bs = av.get("best_sharpe_unconstrained") or {}
+                bv = av.get("best_valid_by_fitness") or {}
+                r = {"arm": arm["name"], "fitness": f, "fold": fold, "status": "DONE", "sharpe": ib["sharpe"], "se_lo": ib["se_lo"],
+                     "lcb": ib["sharpe_minus_se"], "opw": opw, "dd": ib["metrics"]["max_drawdown_pct"], "valid": valid,
+                     "verdict": "VALID" if valid else "INVALID (owner's rule: < 2 trades/week on INNER_B)",
+                     "strategy": bf.get("strategy"), "valid_on_calibration": bf.get("valid_on_calibration"),
+                     "chosen_calibration": bf.get("chosen_components"),
+                     "archive": {"share_valid": av.get("share_valid"), "points": av.get("points"),
+                                 "best_sharpe_unconstrained_calibration": bs.get("sharpe"), "best_sharpe_unconstrained_opw": bs.get("opw"),
+                                 "best_valid_by_fitness_calibration": {"fitness": bv.get("fitness"), "sharpe": bv.get("sharpe"), "opw": bv.get("opw")} if bv else None,
+                                 "best_unconstrained_by_fitness_calibration": {"fitness": bu.get("fitness"), "sharpe": bu.get("sharpe"), "opw": bu.get("opw"), "valid": bu.get("valid")} if bu else None,
+                                 "best_unconstrained_INNER_B_not_selectable": None if bub is None else {"sharpe": bub["sharpe"], "se_lo": bub["se_lo"], "opw": bub["metrics"]["orders_per_week"],
+                                                                                                         "dd": bub["metrics"]["max_drawdown_pct"], "label": "NOT SELECTABLE"}}}
+                rows.append(r)
+                per.setdefault(fold, {})[f] = r
+        c0, c1 = (folds + [None, None])[:2]
+        cand = [r for r in (per.get(c0) or {}).values() if r["valid"] and math.isfinite(r["lcb"])]
+        if not cand:
+            rule[arm["name"]] = {"chosen": None, "verdict": f"NO_VALID_VARIANT_ON_{c0}"}
+            continue
+        best = max(cand, key=lambda r: r["lcb"])
+        conf = (per.get(c1) or {}).get(best["fitness"])
+        ok = bool(conf and conf["valid"] and math.isfinite(conf["lcb"]) and conf["lcb"] > 0)
+        rule[arm["name"]] = {"chosen": best["fitness"], "chosen_on": c0, "lcb_chosen_fold": best["lcb"], "confirm_fold": c1,
+                             "lcb_confirm_fold": None if not conf else conf["lcb"], "opw_confirm_fold": None if not conf else conf["opw"],
+                             "verdict": "CONFIRMED" if ok else "REFUTED"}
+    return rows, rule
+
+
+EVIDENCE_KEYS = ("D1", "D2", "D3", "D4", "D5", "E")
+
+
+def _mean(xs):
+    xs = [float(x) for x in xs if x is not None and isinstance(x, (int, float)) and math.isfinite(float(x))]
+    return st.mean(xs) if xs else None
+
+
+def closure_evidence(out: Path, w: dict) -> dict:
+    """The evidence column of OUTPUT_CONTRACT_V1_CLOSURE.md, from the WF_V1 artifacts (E3M.json per seed, ENSEMBLE.json)."""
+    per = {k: [] for k in EVIDENCE_KEYS}
+    opt, decay, nop_kept, nop_n, ens_kept, dll, ece_b, ece_a, br_b, br_a, ib_ece, front_opw, share_v, ib_opw, mae_tp, mae_sl, cov_hi, audits, shapes = \
+        [], [], 0, 0, [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
+    nop_auc = []
+    for fold in w["folds"]:
+        for arm in w["arms"]:
+            u = f"WF_V1_{fold}_{arm['name']}"
+            e3 = out / u / "E3M.json"
+            if not e3.exists():
+                continue
+            e = json.loads(e3.read_text())
+            ac = e.get("action_contract") or {}
+            audits.append((ac.get("encoding_audit") or {}).get("verdict"))
+            shapes.append(all(v.get("status") == "MATCH" for v in (ac.get("head_shapes") or {}).values()) if ac.get("head_shapes") else None)
+            for s_, rec in e["trials"]["FULL"].items():
+                x = rec.get("action_contract") or {}
+                stg = x.get("strategy") or {}
+                ch = stg.get("chosen")
+                fr = ((stg.get("runs") or {}).get("with_veto" if stg.get("nop_veto_kept") else "without_veto") or {}).get("front") or []
+                if ch and fr:
+                    opt.append(ch["sharpe"] - st.median([p["sharpe"] for p in fr]))
+                    front_opw += [p["opw"] for p in fr]
+                ib = (rec.get("trading") or {}).get("INNER_B")
+                if ch and ib:
+                    decay.append(ch["sharpe"] - ib["sharpe_daily_sqrt365"])
+                for r in (stg.get("runs") or {}).values():
+                    share_v.append(r.get("share_valid"))
+                nop_n += 1
+                nop_kept += int(bool(stg.get("nop_veto_kept")))
+                dll.append((x.get("nop_information_calibration_block") or {}).get("delta_logloss"))
+                cal = x.get("calibration") or {}
+                if "nop" in cal:
+                    nop_auc.append(cal["nop"]["after"]["auc"])
+                for m, c in cal.items():
+                    ece_b.append(c["before"]["ece"]); ece_a.append(c["after"]["ece"]); br_b.append(c["before"]["brier"]); br_a.append(c["after"]["brier"])
+                for m, c in ((x.get("reported_only_INNER_B") or {}).get("heads") or {}).items():
+                    ib_ece.append(c["calibrated"]["ece"])
+                for m, t in (x.get("tp_sl_calibration_block") or {}).items():
+                    mae_tp.append(t.get("tp_mae_sigma")); mae_sl.append(t.get("sl_mae_sigma"))
+                    cov_hi.append(((t.get("bound_coverage") or {}).get("tp") or {}).get("share_at_hi"))
+            ep = out / u / "ENSEMBLE.json"
+            if ep.exists():
+                en = json.loads(ep.read_text())
+                ens_kept.append(bool((en.get("arbiter") or {}).get("nop_veto_kept")))
+                ib_opw.append(((en.get("out_of_sample_activity") or {}).get("INNER_B_trades_per_week")))
+    f = lambda x, p="{:.3f}": fmt(x, p)  # noqa: E731
+    ev = {
+        "D1": (f"optimismo re-medido en el bloque de calibración (elegido − mediana del frente válido): {f(_mean(opt), '{:+.2f}')} (auditoría: +1.08); "
+               f"Sharpe elegido en INNER_A − Sharpe en INNER_B (nunca elegido allí): {f(_mean(decay), '{:+.2f}')} sobre {len(decay)} semillas; prueba de envenenamiento: ver la suite"),
+        "D2": (f"veto NOP conservado en {nop_kept}/{nop_n} semillas y {sum(ens_kept)}/{len(ens_kept)} ensambles; AUC del NOP calibrado en INNER_A {f(_mean(nop_auc))}; "
+               f"Δ log-loss medio con pNOP {f(_mean(dll), '{:+.4f}')}"),
+        "D3": (f"ECE medio {f(_mean(ece_b))} → {f(_mean(ece_a))} y Brier {f(_mean(br_b))} → {f(_mean(br_a))} en INNER_A (antes → después de Platt); "
+               f"ECE calibrado en INNER_B (sólo reportado) {f(_mean(ib_ece))}; tablas de fiabilidad de 15 bins en E3M.json y ENSEMBLE.json"),
+        "D4": (f"órdenes/semana en los frentes válidos: mín {f(min(front_opw) if front_opw else None, '{:.2f}')}, mediana {f(st.median(front_opw) if front_opw else None, '{:.2f}')}, "
+               f"máx {f(max(front_opw) if front_opw else None, '{:.2f}')}; % de puntos válidos en el archivo {f(100 * _mean(share_v) if _mean(share_v) is not None else None, '{:.0f}')} %; "
+               f"trades/semana del ensamble en INNER_B: " + ", ".join(f(x, '{:.2f}') for x in ib_opw)),
+        "D5": (f"MAE TP {f(_mean(mae_tp))} σ, SL {f(_mean(mae_sl))} σ en INNER_A; salidas TP en la cota superior {f(100 * _mean(cov_hi) if _mean(cov_hi) is not None else None, '{:.1f}')} %"),
+        "E": (f"auditoría de codificación: {', '.join(sorted(set(str(a) for a in audits))) or 'NO_NEW_MEASUREMENT'} en {len(audits)} unidades; "
+              f"forma de las cabezas = contrato en {sum(1 for x in shapes if x)}/{len(shapes)} unidades"),
+    }
+    if not audits:
+        ev = {k: "NO_NEW_MEASUREMENT: no WF_V1 unit finished" for k in EVIDENCE_KEYS}
+    return ev
+
+
+def fill_closure(template: str, evidence: dict) -> str:
+    """Replace ONLY the evidence markers; every other character of the template is kept."""
+    outp = template
+    for k in EVIDENCE_KEYS:
+        outp = outp.replace(f"<!-- EVIDENCE:{k} -->", str(evidence.get(k, "NO_NEW_MEASUREMENT")).replace("|", "/"))
+    return outp
+
+
+def cmd_wf_v1(a):
+    out = Path(a.results)
+    spec = json.loads(Path(a.spec).read_text())
+    w = spec["walk_forward_v1"]
+    units, verdicts, sep, validity = [], {}, {}, {}
+    for fold in w["folds"]:
+        for arm in w["arms"]:
+            u = unit_doc(out, f"WF_V1_{fold}_{arm['name']}") | {"fold": fold, "arm": arm["name"], "base": arm["base"], "v1": v1_details(out, f"WF_V1_{fold}_{arm['name']}")}
+            b = unit_doc(out, f"WF_{fold}_{arm['base']}") | {"fold": fold, "arm": arm["base"], "baseline_of": arm["name"]}
+            units += [u, b]
+            ue, be = u.get("ensemble") or {}, b.get("ensemble") or {}
+            if "INNER_B" in ue:
+                opw = ue["INNER_B"]["opw"]
+                validity[f"{fold}/{arm['name']}"] = {"INNER_B_trades_per_week": opw, "valid": bool(ue["INNER_B"]["valid"] and opw >= 2.0),
+                                                     "verdict": "VALID" if ue["INNER_B"]["valid"] and opw >= 2.0 else "INVALID (owner's rule: < 2 trades/week on INNER_B)"}
+            if "INNER_B" in ue and "INNER_B" in be:
+                sep[f"{fold}/{arm['name']}_vs_{arm['base']}"] = ST.separable({"sharpe": ue["INNER_B"]["sharpe"], "se_lo": ue["INNER_B"]["se_lo"]},
+                                                                             {"sharpe": be["INNER_B"]["sharpe"], "se_lo": be["INNER_B"]["se_lo"]})
+    for arm in w["arms"]:
+        per = {}
+        for fold in w["folds"]:
+            u = next(x for x in units if x["unit"] == f"WF_V1_{fold}_{arm['name']}")
+            if u["status"] == "DONE" and u.get("ensemble") and "INNER_B" in u["ensemble"]:
+                per[fold] = {"sharpe": u["ensemble"]["INNER_B"]["sharpe"], "se_lo": u["ensemble"]["INNER_B"]["se_lo"]}
+        v = (ST.holds(per) if len(per) == len(w["folds"]) else {"rule": ST.HOLDS_RULE, "per_fold": {}, "verdict": "NO_NEW_MEASUREMENT: a fold is missing or has no ensemble"}) | {"inputs": per}
+        if any(not validity.get(f"{f}/{arm['name']}", {}).get("valid", False) for f in w["folds"]) and v["verdict"] == "HOLDS":
+            v["verdict"] = "INVALID: holds on Sharpe but trades fewer than 2 per week on INNER_B in some fold"
+        verdicts[arm["name"]] = v
+    closure = {}
+    for fold in w["folds"]:
+        fu = [x for x in units if x["fold"] == fold]
+        rows = []
+        for arm in w["arms"]:
+            pair = [x for x in fu if x["unit"] in (f"WF_V1_{fold}_{arm['name']}", f"WF_{fold}_{arm['base']}")]
+            rows += closure_rows(pair, f"WF_{fold}_{arm['base']}", "INNER_B", f"{fold}: v1 vs its baseline (same base arm, same fold), validation year scored after freeze")
+        closure[fold] = rows
+    frows, frule = fitness_rows(out, w)
+    doc = {"caveat": CAVEAT, "spec": spec["identity"], "action_contract": w["action_contract"], "rule_preregistered": w["rule"], "units": units,
+           "verdicts": verdicts, "separability_vs_baseline": sep, "out_of_sample_activity": validity, "closure": closure,
+           "fitness_rule_preregistered": w.get("fitness_rule"), "fitness_rows": frows, "fitness_variant_rule": frule}
+    Path(a.out_json).write_text(json.dumps(doc, indent=1, default=float))
+    md = [f"# Contrato de salidas v1 en el walk-forward: resultados con errores estándar (spec `{spec['identity']}`, {a.date})", "",
+          f"Contrato `{w['action_contract']['identity']}` (sha `{w['action_contract']['sha256'][:12]}…`): cinco especialistas calibrados (Platt en INNER_A), una estrategia "
+          "paramétrica congelada en INNER_A por la mayor cota inferior (Sharpe − 1 EE) con ≥ 2.5 trades/semana; decisión en INNER_B por el ENSAMBLE de semillas. "
+          "Línea base = el mismo brazo del walk-forward sin contrato. Replays de estudiantes; **no es una estrategia operable**; 2024 una lectura; TEST cerrado.", "",
+          f"Regla pre-registrada (antes de leer): {w['rule']}", ""]
+    for fold in w["folds"]:
+        md += table_md([x for x in units if x["fold"] == fold], ("TRAIN", "INNER_A", "INNER_B", "OBS_2024"), f"Pliegue {fold}: v1 y su línea base")
+    md += ["## Veredictos", ""] + [f"- **{k}**: {v['verdict']} — " + ", ".join(f"{f}: {fmt(x['sharpe'])} − SE {fmt(x['se_lo'])}" for f, x in v["inputs"].items()) for k, v in verdicts.items()] + [""]
+    md += ["## Actividad fuera de muestra (INNER_B, ensamble)", ""] + [f"- {k}: {fmt(v['INNER_B_trades_per_week'])} trades/semana → {v['verdict']}" for k, v in validity.items()] + [""]
+    if sep:
+        md += ["## v1 frente a su línea base (ensamble, INNER_B)", ""] + [f"- {k}: Δ {v['delta']:+.2f} vs SE agrupado {fmt(v['pooled_se'])} → {v['verdict']}" for k, v in sep.items()] + [""]
+    md += ["## Variantes de fitness de la estrategia (mismos especialistas y ensambles; sólo cambia el punto congelado)", "",
+           f"Regla pre-registrada: {w.get('fitness_rule')}", "",
+           "| brazo | fitness | pliegue | elegido: Sharpe INNER_B ± SE | Sharpe − SE | trades/semana | DD % | veredicto | archivo: % válidos | mejor Sharpe sin restricción (calibración, tr/sem) | mejor por fitness sin restricción → INNER_B (**no seleccionable**) | mejor válido por fitness (calibración) |",
+           "| --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | --- | --- | --- |"]
+    for r in frows:
+        if r["status"] != "DONE":
+            md.append(f"| {r['arm']} | {r['fitness']} | {r['fold']} | — | — | — | — | {r['status']} | | | | |")
+            continue
+        ar = r["archive"]
+        nb = ar.get("best_unconstrained_INNER_B_not_selectable")
+        bv = ar.get("best_valid_by_fitness_calibration")
+        md.append(f"| {r['arm']} | {r['fitness']} | {r['fold']} | {fmt(r['sharpe'])} ± {fmt(r['se_lo'])} | {fmt(r['lcb'])} | {fmt(r['opw'])} | {fmt(r['dd'], '{:.1f}')} | {r['verdict']} | "
+                  f"{fmt(100 * ar['share_valid'] if ar.get('share_valid') is not None else None, '{:.0f}')} % | {fmt(ar.get('best_sharpe_unconstrained_calibration'))} ({fmt(ar.get('best_sharpe_unconstrained_opw'))}) | "
+                  + (f"{fmt(nb['sharpe'])} ± {fmt(nb['se_lo'])}, {fmt(nb['opw'])} tr/sem — no seleccionable" if nb else "—") + " | "
+                  + (f"{fmt(bv['fitness'], '{:.3g}')} (Sharpe {fmt(bv['sharpe'])}, {fmt(bv['opw'])} tr/sem)" if bv else "—") + " |")
+    md += [""] + [f"- **{k}**: variante elegida en {v.get('chosen_on', '—')} = `{v['chosen']}` → {v['verdict']}" + (f" (Sharpe − SE en {v['confirm_fold']}: {fmt(v['lcb_confirm_fold'])}, {fmt(v['opw_confirm_fold'])} trades/semana)" if v.get("chosen") else "")
+                   for k, v in frule.items() if not k.startswith("_")] + [""]
+    if frule.get("_scales"):
+        md += ["Escalas de los términos compuestos (regla pre-registrada: s_k = mediana |término| en el frente válido de INNER_A del ensamble; c_k = 1/s_k):", "",
+               "| pliegue/brazo | " + " | ".join(f"s_{t} (c)" for t in ("sharpe", "r_ann", "opd", "dd")) + " | respaldo usado |", "| --- | ---: | ---: | ---: | ---: | --- |"]
+        for k, sc in frule["_scales"].items():
+            md.append(f"| {k} | " + " | ".join(f"{fmt(sc[t]['s'], '{:.4g}')} ({fmt(sc[t]['c'], '{:.4g}')})" for t in ("sharpe", "r_ann", "opd", "dd"))
+                      + " | " + (", ".join(t for t in sc if sc[t]["fallback_used"]) or "ninguno") + " |")
+        md.append("")
+    md += ["## Detalle por semilla (veto NOP, ECE calibrada, información de NOP, actividad en INNER_B)", ""]
+    for u in units:
+        for s_, dd in (u.get("v1") or {}).items():
+            md.append(f"- {u['unit']} semilla {s_}: veto NOP {'conservado' if dd['nop_veto_kept'] else 'desactivado'}; ECE tras calibrar "
+                      + ", ".join(f"{m} {fmt(x, '{:.3f}')}" for m, x in dd["ece_after"].items()) + f"; Δ log-loss con pNOP {fmt(dd['nop_delta_logloss'], '{:+.4f}')}; INNER_B {fmt(dd['inner_b_opw'])} trades/semana")
+    md += ["", "## Tabla de cierre (regla del propietario)", ""]
+    for fold in w["folds"]:
+        md += closure_md(closure[fold])
+    ev = closure_evidence(out, w)
+    doc["closure_evidence"] = ev
+    Path(a.out_json).write_text(json.dumps(doc, indent=1, default=float))
+    tpl = Path(a.closure_template).read_text() if getattr(a, "closure_template", None) else None
+    if tpl:
+        filled = fill_closure(tpl, ev)
+        Path(a.closure_out).write_text(filled)
+        md += ["## Tabla de cierre D1–D5 y codificación", ""] + [ln for ln in filled.splitlines() if ln.startswith("|")] + [""]
+    Path(a.out_md).write_text("\n".join(md))
+    print(json.dumps({"units": [(u["unit"], u["status"]) for u in units], "verdicts": {k: v["verdict"] for k, v in verdicts.items()}, "out": a.out_md}))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name, fn in (("b-ensemble", cmd_b_ensemble), ("walk-forward", cmd_walk_forward)):
+    for name, fn in (("b-ensemble", cmd_b_ensemble), ("walk-forward", cmd_walk_forward), ("wf-v1", cmd_wf_v1)):
         p = sub.add_parser(name)
         p.add_argument("--spec", required=True)
         p.add_argument("--results", required=True, help="the package out/ directory")
@@ -244,6 +496,9 @@ def main():
         p.add_argument("--date", default="2026-10-25")
         if name == "b-ensemble":
             p.add_argument("--decision-5seed", default=None)
+        if name == "wf-v1":
+            p.add_argument("--closure-template", default=None, help="OUTPUT_CONTRACT_V1_CLOSURE.md with the evidence markers")
+            p.add_argument("--closure-out", default=None)
         p.set_defaults(fn=fn)
     a = ap.parse_args()
     a.fn(a)
