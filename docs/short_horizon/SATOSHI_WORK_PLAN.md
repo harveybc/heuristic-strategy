@@ -322,3 +322,8 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   retroactivo: 8 de 22 unidades FAILED_SANITY, incluidas tres de las seis de la línea base del walk-forward → los
   veredictos de la línea base de las 13:10Z se retiran. Cadena única `run_chain_v12_c2_c2g.sh` corriendo (WF_V12 → C2
   → C2G); primera semilla pasó el filtro (trades en ambos lados, cierres propios > 0, aunque pocos: ~8 %).
+- 2026-10-25 17:45Z: cadena v12 terminada, **las 8 unidades FAILED_SANITY** (semillas de un solo lado; C2/C2G con
+  < 2 trades/sem fuera de muestra porque el optimizador se sienta en el borde). Palabra del propietario: actividad en
+  calibración "con confianza estadística" (cota inferior del IC 90 % ≥ 2.0). L12: umbrales por lado + restricción de
+  balance ≤ 90 %, regla de actividad con IC, arreglo del informe, diagnóstico de diversidad de fitness → cadena v13 con
+  parada en la primera semilla de cada etapa si falla el filtro.
