@@ -299,3 +299,18 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   no filtro: se archiva todo punto evaluado (incluidos los de cero trades), búsqueda con dominancia por restricciones
   (factible > infactible; menor violación gana), y los informes muestran también el mejor punto sin restricción
   ("no seleccionable") para comparar las funciones de fitness con toda la información.
+
+### Lista de tareas de salidas y fitness (orden de ejecución, todas automatizadas en una cadena)
+
+| # | tarea | defecto que cierra | prueba / evidencia | estado |
+| --- | --- | --- | --- | --- |
+| S0 | walk-forward actual (diseño viejo) como línea base honesta | — | `RESULTS_WALK_FORWARD_2026_10_25.md` | corriendo en el 4090 |
+| S1 | **auditoría automática de codificación**: toda decisión categórica = softmax + CE con sus clases; todo parámetro continuo = sigmoide acotada + Huber; se rechaza una decisión categórica sacada de umbrales de una salida continua (el error de Musashi), y también una cabeza con dimensión distinta a sus clases o una acción sin cabeza | E | pruebas de mutación (incluida la réplica del diseño de Musashi, que debe ser rechazada) | L8 |
+| S2 | capa superior elegida sólo en calibración; bloque de decisión puntuado una vez tras congelar | **D1** (sesgo +1.08) | mutación: envenenar el año de decisión no cambia épocas, calibración ni estrategia; optimismo re-medido | L8 |
+| S3 | especialista NOP con etiquetas NOP duro/graduado multi-resolución | **D2** | métricas de cabeza; el veto se queda sólo si mejora la cota inferior | L8 |
+| S4 | calibración afín por especialista | **D3** | Brier/ECE antes/después, tabla de fiabilidad | L8 |
+| S5 | estrategia paramétrica optimizada (NSGA-II, dominancia por restricciones, ≥ 2.0 trades/sem), archivo completo de puntos | **D4** | órdenes/sem en todo el frente y fuera de muestra | L8 |
+| S6 | TP/SL acotados en la red, Huber sólo en filas OPEN | **D5** | cobertura de cotas, MAE frente a excursiones realizadas | L8 |
+| S7 | variantes de fitness F0–F6 con coeficientes normalizados | — | tablas por variante con archivo completo; elección en wf2022, confirmación en wf2023 | L8 |
+| S8 | etapa WF_V1 (control y `both_hold` con v1, 5 semillas, 2 años) + informe con tabla de cierre D1–D5/E | todos | `RESULTS_WF_V1_2026_10_25.md`, `OUTPUT_CONTRACT_V1_CLOSURE.md` | encadenada tras S0 |
+| S9 | proponer `ACTION_CONTRACT_v1` como contrato compartido con la línea SAC de Musashi; par puente sobre su receta v3 | — | documento para Musashi | después de S8 |
