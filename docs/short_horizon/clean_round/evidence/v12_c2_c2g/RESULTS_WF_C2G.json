@@ -1,0 +1,591 @@
+{
+ "identity": "clean-expert-guided-a1-20261024-v9",
+ "stage": "WF_C2G",
+ "contract": {
+  "path": "/var/tmp/expert-guided-clean-a1-20261024/contracts/ACTION_CONTRACT_C2G.json",
+  "sha256": "9f601a136755b5973f8ba20bc18e8c286ed0976c256319ae6c8825677b33bd64",
+  "identity": "action_af7d8c66612d1d29"
+ },
+ "rule": "PRE-REGISTERED 2026-10-25 before any WF_C2G or WF_C2 result exists: HOLDS / SEPARABLE as already pre-registered (an arm HOLDS only if its seed-ensemble validation Sharpe minus one Lo standard error is > 0 in BOTH walk-forward folds (wf2022 and wf2023), otherwise DOES_NOT_HOLD; two arms are SEPARABLE on a window only when |Sharpe_a - Sharpe_b| > the pooled Lo standard error sqrt(SE_a^2 + SE_b^2), otherwise NOT_SEPARABLE); C2G is compared by the seed ENSEMBLES on INNER_B (never seed means) with the C2 arm of the same fold (WF_C2_<fold>_zz_feat_c2: the direct contrast, the only difference is the closers' order geometry) and with the WF baseline (WF_<fold>_zz_hold); an ensemble with fewer than 2 trades/week on INNER_B is INVALID (owner's rule) whatever its Sharpe; 2024 one read, never decides; every verdict also obeys the sanity gate (sanity_gate.rule)",
+ "early_close_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2G or WF_C2 result exists: C2G counts as fixing the early close only if its ensemble early-close value (engine counterfactual hold of every agent close, INNER_B, the arm's primary fitness) is > 0 in BOTH folds AND its closer recall of SL-first is >= 2x the baseline's (the WF_<fold>_zz_hold ensemble, same fold, same audit tool); the direct C2G vs C2 contrast (early-close value, recall, AUC, cut-winner share, and the same quantities by bucket of the order's distance to its SL) is reported per fold; a C2G strategy with no agent close on the calibration block is DEGENERATE_NO_EARLY_CLOSE and not selectable (require_early_close in the contract)",
+ "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
+ "arms": {
+  "zz_feat_c2g": {
+   "folds": {
+    "wf2022": {
+     "unit": "WF_C2G_wf2022_zz_feat_c2g",
+     "c2g": {
+      "sharpe": 0.34461044193775364,
+      "se_lo": 1.0028325972574714,
+      "opw": 1.6415094339622642,
+      "dd": 29.836348984636,
+      "valid": false,
+      "trades": 87,
+      "unit": "WF_C2G_wf2022_zz_feat_c2g",
+      "sanity": "FAILED_SANITY",
+      "sanity_causes": {
+       "below_2_trades_per_week": 3,
+       "one_side_over_90pct": 2
+      }
+     },
+     "c2": {
+      "unit": "WF_C2_wf2022_zz_feat_c2",
+      "sharpe": 0.06034803695937652,
+      "se_lo": 1.002753538136156,
+      "opw": 1.9433962264150944,
+      "dd": 28.25143042670213,
+      "valid": false,
+      "trades": 103,
+      "sanity": "FAILED_SANITY",
+      "sanity_causes": {
+       "below_2_trades_per_week": 2,
+       "one_side_over_90pct": 2
+      }
+     },
+     "baseline_wf": {
+      "unit": "WF_wf2022_zz_hold",
+      "sharpe": 0.45994320323111515,
+      "se_lo": 1.0028963206428425,
+      "opw": 2.3773584905660377,
+      "dd": 31.232589693522293,
+      "valid": true,
+      "trades": 126,
+      "sanity": "PASS",
+      "sanity_causes": []
+     },
+     "obs_2024_one_read": {
+      "sharpe": -2.3501566765818946,
+      "se_lo": 1.0037759098854755,
+      "opw": 1.9433962264150944,
+      "dd": 32.48006439206292,
+      "valid": false,
+      "trades": 103
+     },
+     "status": "DONE",
+     "separable_vs_c2": {
+      "rule": "no verdict involves a FAILED_SANITY unit",
+      "verdict": "REFUSED_FAILED_SANITY",
+      "failed_units": [
+       "WF_C2G_wf2022_zz_feat_c2g",
+       "WF_C2_wf2022_zz_feat_c2"
+      ],
+      "causes": [
+       {
+        "below_2_trades_per_week": 3,
+        "one_side_over_90pct": 2
+       },
+       {
+        "below_2_trades_per_week": 2,
+        "one_side_over_90pct": 2
+       }
+      ]
+     },
+     "separable_vs_wf": {
+      "rule": "no verdict involves a FAILED_SANITY unit",
+      "verdict": "REFUSED_FAILED_SANITY",
+      "failed_units": [
+       "WF_C2G_wf2022_zz_feat_c2g"
+      ],
+      "causes": [
+       {
+        "below_2_trades_per_week": 3,
+        "one_side_over_90pct": 2
+       }
+      ]
+     }
+    },
+    "wf2023": {
+     "unit": "WF_C2G_wf2023_zz_feat_c2g",
+     "c2g": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90,
+      "unit": "WF_C2G_wf2023_zz_feat_c2g",
+      "sanity": "FAILED_SANITY",
+      "sanity_causes": {
+       "below_2_trades_per_week": 2
+      }
+     },
+     "c2": {
+      "unit": "WF_C2_wf2023_zz_feat_c2",
+      "sharpe": -2.5232931366666502,
+      "se_lo": 1.0085045875516068,
+      "opw": 1.4807692307692308,
+      "dd": 38.8738733120487,
+      "valid": false,
+      "trades": 77,
+      "sanity": "FAILED_SANITY",
+      "sanity_causes": {
+       "below_2_trades_per_week": 4,
+       "single_exit_reason": 2
+      }
+     },
+     "baseline_wf": {
+      "unit": "WF_wf2023_zz_hold",
+      "sharpe": -1.512130230742953,
+      "se_lo": 1.0057064652506018,
+      "opw": 2.0,
+      "dd": 31.088963317784035,
+      "valid": true,
+      "trades": 104,
+      "sanity": "FAILED_SANITY",
+      "sanity_causes": {
+       "below_2_trades_per_week": 3,
+       "one_side_over_90pct": 1
+      }
+     },
+     "obs_2024_one_read": {
+      "sharpe": 0.16676846989487465,
+      "se_lo": 1.0000190489436038,
+      "opw": 1.8679245283018868,
+      "dd": 18.484086308964937,
+      "valid": false,
+      "trades": 99
+     },
+     "status": "DONE",
+     "separable_vs_c2": {
+      "rule": "no verdict involves a FAILED_SANITY unit",
+      "verdict": "REFUSED_FAILED_SANITY",
+      "failed_units": [
+       "WF_C2G_wf2023_zz_feat_c2g",
+       "WF_C2_wf2023_zz_feat_c2"
+      ],
+      "causes": [
+       {
+        "below_2_trades_per_week": 2
+       },
+       {
+        "below_2_trades_per_week": 4,
+        "single_exit_reason": 2
+       }
+      ]
+     },
+     "separable_vs_wf": {
+      "rule": "no verdict involves a FAILED_SANITY unit",
+      "verdict": "REFUSED_FAILED_SANITY",
+      "failed_units": [
+       "WF_C2G_wf2023_zz_feat_c2g",
+       "WF_wf2023_zz_hold"
+      ],
+      "causes": [
+       {
+        "below_2_trades_per_week": 2
+       },
+       {
+        "below_2_trades_per_week": 3,
+        "one_side_over_90pct": 1
+       }
+      ]
+     }
+    }
+   },
+   "fitness": {
+    "wf2022": {
+     "sharpe_lcb": {
+      "sharpe": 0.34461044193775364,
+      "se_lo": 1.0028325972574714,
+      "opw": 1.6415094339622642,
+      "dd": 29.836348984636,
+      "valid": false,
+      "trades": 87
+     },
+     "sharpe_plus_return": {
+      "sharpe": 0.34461044193775364,
+      "se_lo": 1.0028325972574714,
+      "opw": 1.6415094339622642,
+      "dd": 29.836348984636,
+      "valid": false,
+      "trades": 87
+     },
+     "sharpe_plus_return_plus_activity": {
+      "sharpe": 0.34461044193775364,
+      "se_lo": 1.0028325972574714,
+      "opw": 1.6415094339622642,
+      "dd": 29.836348984636,
+      "valid": false,
+      "trades": 87
+     },
+     "trade_tstat": {
+      "sharpe": 0.34461044193775364,
+      "se_lo": 1.0028325972574714,
+      "opw": 1.6415094339622642,
+      "dd": 29.836348984636,
+      "valid": false,
+      "trades": 87
+     },
+     "calmar": {
+      "sharpe": 0.7627637532875169,
+      "se_lo": 1.0031505525350706,
+      "opw": 1.5849056603773586,
+      "dd": 21.516019722668975,
+      "valid": false,
+      "trades": 84
+     },
+     "return_minus_dd": {
+      "sharpe": 0.34461044193775364,
+      "se_lo": 1.0028325972574714,
+      "opw": 1.6415094339622642,
+      "dd": 29.836348984636,
+      "valid": false,
+      "trades": 87
+     },
+     "balanced": {
+      "sharpe": 0.34461044193775364,
+      "se_lo": 1.0028325972574714,
+      "opw": 1.6415094339622642,
+      "dd": 29.836348984636,
+      "valid": false,
+      "trades": 87
+     }
+    },
+    "wf2023": {
+     "sharpe_lcb": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90
+     },
+     "sharpe_plus_return": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90
+     },
+     "sharpe_plus_return_plus_activity": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90
+     },
+     "trade_tstat": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90
+     },
+     "calmar": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90
+     },
+     "return_minus_dd": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90
+     },
+     "balanced": {
+      "sharpe": -2.023427565678455,
+      "se_lo": 1.0069470427196836,
+      "opw": 1.7307692307692308,
+      "dd": 33.38489496971665,
+      "valid": false,
+      "trades": 90
+     }
+    }
+   },
+   "holds": {
+    "rule": "no verdict involves a FAILED_SANITY unit",
+    "per_fold": {},
+    "verdict": "REFUSED_FAILED_SANITY",
+    "failed_units": [
+     "WF_C2G_wf2022_zz_feat_c2g",
+     "WF_C2G_wf2023_zz_feat_c2g"
+    ],
+    "causes": [
+     {
+      "below_2_trades_per_week": 3,
+      "one_side_over_90pct": 2
+     },
+     {
+      "below_2_trades_per_week": 2
+     }
+    ]
+   },
+   "holds_c2": {
+    "rule": "no verdict involves a FAILED_SANITY unit",
+    "per_fold": {},
+    "verdict": "REFUSED_FAILED_SANITY",
+    "failed_units": [
+     "WF_C2_wf2022_zz_feat_c2",
+     "WF_C2_wf2023_zz_feat_c2"
+    ],
+    "causes": [
+     {
+      "below_2_trades_per_week": 2,
+      "one_side_over_90pct": 2
+     },
+     {
+      "below_2_trades_per_week": 4,
+      "single_exit_reason": 2
+     }
+    ]
+   },
+   "holds_baseline_wf": {
+    "rule": "no verdict involves a FAILED_SANITY unit",
+    "per_fold": {},
+    "verdict": "REFUSED_FAILED_SANITY",
+    "failed_units": [
+     "WF_wf2023_zz_hold"
+    ],
+    "causes": [
+     {
+      "below_2_trades_per_week": 3,
+      "one_side_over_90pct": 1
+     }
+    ]
+   },
+   "invalid_by_activity": {
+    "wf2022": true,
+    "wf2023": true
+   },
+   "early_close": {
+    "c2g": {
+     "wf2022": {
+      "value_usd": 2060.0137647190318,
+      "ci95": [
+       -3890.7747517784974,
+       8645.982871305217
+      ],
+      "recall": 0.03954214360041623,
+      "auc": 0.6128081137201539,
+      "early_close_share": 0.735632183908046,
+      "flags": [],
+      "cut_winner_share": 0.46875
+     },
+     "wf2023": {
+      "value_usd": 617.7132026041661,
+      "ci95": [
+       -3429.936393372875,
+       4582.844099330241
+      ],
+      "recall": 0.06635802469135803,
+      "auc": 0.6142872286641551,
+      "early_close_share": 0.8111111111111111,
+      "flags": [],
+      "cut_winner_share": 0.4657534246575342
+     }
+    },
+    "c2": {
+     "wf2022": {
+      "value_usd": 4042.361578428879,
+      "ci95": [
+       -3874.7723023858694,
+       12342.783737479047
+      ],
+      "recall": 0.033191489361702124,
+      "auc": 0.5208812832721331,
+      "early_close_share": 0.6893203883495146,
+      "flags": [],
+      "cut_winner_share": 0.4647887323943662
+     },
+     "wf2023": {
+      "value_usd": 2331.1902879497015,
+      "ci95": [
+       -1107.013970082615,
+       6081.939152458417
+      ],
+      "recall": 0.040051679586563305,
+      "auc": 0.5104160702903446,
+      "early_close_share": 0.7272727272727273,
+      "flags": [],
+      "cut_winner_share": 0.42857142857142855
+     }
+    },
+    "baseline_wf": {
+     "wf2022": {
+      "value_usd": -837.6733914285397,
+      "ci95": [
+       -6289.860990109285,
+       4792.401004010272
+      ],
+      "recall": 0.05752961082910321,
+      "auc": 0.614599997134821,
+      "early_close_share": 0.5952380952380952,
+      "flags": [],
+      "cut_winner_share": 0.5733333333333334
+     },
+     "wf2023": {
+      "value_usd": -2817.2012060351512,
+      "ci95": [
+       -6070.999650478409,
+       547.5379201825111
+      ],
+      "recall": 0.09848484848484848,
+      "auc": 0.5648916010361793,
+      "early_close_share": 0.7692307692307693,
+      "flags": [],
+      "cut_winner_share": 0.575
+     }
+    },
+    "per_fold": {
+     "wf2022": {
+      "value_usd": 2060.0137647190318,
+      "value_positive": true,
+      "recall": 0.03954214360041623,
+      "baseline_recall": 0.05752961082910321,
+      "recall_at_least_2x": false,
+      "verdict": "FAIL"
+     },
+     "wf2023": {
+      "value_usd": 617.7132026041661,
+      "value_positive": true,
+      "recall": 0.06635802469135803,
+      "baseline_recall": 0.09848484848484848,
+      "recall_at_least_2x": false,
+      "verdict": "FAIL"
+     }
+    },
+    "verdict": "REFUSED_FAILED_SANITY",
+    "refused": {
+     "verdict": "REFUSED_FAILED_SANITY",
+     "failed_units": [
+      "WF_C2G_wf2022_zz_feat_c2g",
+      "WF_C2G_wf2023_zz_feat_c2g",
+      "WF_wf2023_zz_hold",
+      "WF_C2_wf2022_zz_feat_c2",
+      "WF_C2_wf2023_zz_feat_c2"
+     ],
+     "causes": {
+      "WF_C2G_wf2022_zz_feat_c2g": {
+       "below_2_trades_per_week": 3,
+       "one_side_over_90pct": 2
+      },
+      "WF_C2G_wf2023_zz_feat_c2g": {
+       "below_2_trades_per_week": 2
+      },
+      "WF_wf2023_zz_hold": {
+       "below_2_trades_per_week": 3,
+       "one_side_over_90pct": 1
+      },
+      "WF_C2_wf2022_zz_feat_c2": {
+       "below_2_trades_per_week": 2,
+       "one_side_over_90pct": 2
+      },
+      "WF_C2_wf2023_zz_feat_c2": {
+       "below_2_trades_per_week": 4,
+       "single_exit_reason": 2
+      }
+     }
+    }
+   },
+   "early_close_contrast_c2g_vs_c2": {
+    "wf2022": {
+     "value_usd_c2g": 2060.0137647190318,
+     "value_usd_c2": 4042.361578428879,
+     "delta_value_usd": -1982.3478137098473,
+     "recall_c2g": 0.03954214360041623,
+     "recall_c2": 0.033191489361702124,
+     "auc_c2g": 0.6128081137201539,
+     "auc_c2": 0.5208812832721331,
+     "cut_winner_share_c2g": 0.46875,
+     "cut_winner_share_c2": 0.4647887323943662,
+     "verdict": "MIXED"
+    },
+    "wf2023": {
+     "value_usd_c2g": 617.7132026041661,
+     "value_usd_c2": 2331.1902879497015,
+     "delta_value_usd": -1713.4770853455354,
+     "recall_c2g": 0.06635802469135803,
+     "recall_c2": 0.040051679586563305,
+     "auc_c2g": 0.6142872286641551,
+     "auc_c2": 0.5104160702903446,
+     "cut_winner_share_c2g": 0.4657534246575342,
+     "cut_winner_share_c2": 0.42857142857142855,
+     "verdict": "MIXED"
+    }
+   },
+   "fitness_choice": {
+    "chosen": null,
+    "verdict": "REFUSED_FAILED_SANITY",
+    "refused": {
+     "verdict": "REFUSED_FAILED_SANITY",
+     "failed_units": [
+      "WF_C2G_wf2022_zz_feat_c2g",
+      "WF_C2G_wf2023_zz_feat_c2g",
+      "WF_wf2023_zz_hold",
+      "WF_C2_wf2022_zz_feat_c2",
+      "WF_C2_wf2023_zz_feat_c2"
+     ],
+     "causes": {
+      "WF_C2G_wf2022_zz_feat_c2g": {
+       "below_2_trades_per_week": 3,
+       "one_side_over_90pct": 2
+      },
+      "WF_C2G_wf2023_zz_feat_c2g": {
+       "below_2_trades_per_week": 2
+      },
+      "WF_wf2023_zz_hold": {
+       "below_2_trades_per_week": 3,
+       "one_side_over_90pct": 1
+      },
+      "WF_C2_wf2022_zz_feat_c2": {
+       "below_2_trades_per_week": 2,
+       "one_side_over_90pct": 2
+      },
+      "WF_C2_wf2023_zz_feat_c2": {
+       "below_2_trades_per_week": 4,
+       "single_exit_reason": 2
+      }
+     }
+    }
+   },
+   "sanity": {
+    "WF_C2G_wf2022_zz_feat_c2g": {
+     "sanity": "FAILED_SANITY",
+     "sanity_causes": {
+      "below_2_trades_per_week": 3,
+      "one_side_over_90pct": 2
+     }
+    },
+    "WF_C2G_wf2023_zz_feat_c2g": {
+     "sanity": "FAILED_SANITY",
+     "sanity_causes": {
+      "below_2_trades_per_week": 2
+     }
+    },
+    "WF_wf2022_zz_hold": {
+     "sanity": "PASS",
+     "sanity_causes": []
+    },
+    "WF_wf2023_zz_hold": {
+     "sanity": "FAILED_SANITY",
+     "sanity_causes": {
+      "below_2_trades_per_week": 3,
+      "one_side_over_90pct": 1
+     }
+    },
+    "WF_C2_wf2022_zz_feat_c2": {
+     "sanity": "FAILED_SANITY",
+     "sanity_causes": {
+      "below_2_trades_per_week": 2,
+      "one_side_over_90pct": 2
+     }
+    },
+    "WF_C2_wf2023_zz_feat_c2": {
+     "sanity": "FAILED_SANITY",
+     "sanity_causes": {
+      "below_2_trades_per_week": 4,
+      "single_exit_reason": 2
+     }
+    }
+   }
+  }
+ }
+}
