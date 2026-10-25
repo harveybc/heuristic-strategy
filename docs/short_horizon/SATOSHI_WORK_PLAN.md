@@ -261,3 +261,8 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   DEAP NSGA-II de umbrales (corriendo en el coordinador, tope 3 GiB, ≈ 2 h) + emisor corregido. Etapa A ≈ 35 min/brazo,
   fin ≈ 01:30–02:00Z. Retractación registrada: las aperturas del óptimo medidas son barras de pivote, no "entradas
   tardías". Siguiente: con `CHOSEN_THRESHOLDS.json` y la receta v3 de Musashi, etapa A' (puente + 3 brazos multires).
+- 2026-10-25 01:30Z: etapa A 4/7 (los tres brazos `*_shorter` tocan el tope de 6 GiB y el host del 4090 no admite ≥ 9G:
+  NOT_RUNNABLE allí; buscar host con margen). Decisión INTERINA (regla congelada): `both_hold` 1.48 ± 1.16 > control
+  1.13 ± 0.97 > `opp_hold` 0.14 > `opp_optimum` 0.08 en INNER_A; dispersión ≈ diferencias. DEAP de umbrales hecho
+  (@bbb7dcb). Etapa A' (3 brazos multires, receta v2, spec v3 @9742ccd) corriendo en el 4090 desde 01:26Z a 7G.
+  Pendiente: etapa B, par puente v3, los tres brazos shorter en otro host.
