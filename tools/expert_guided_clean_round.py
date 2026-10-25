@@ -88,6 +88,33 @@ LABEL_MODES, CLOSER_RULES = ("zigzag", "opportunity", "both", "multires"), ("hol
 FORBIDDEN_FLAGS = ("--feature-list", "--groups", "--window", "--stride", "--eligible-from")
 
 
+def multires_arm_errors(a: dict, tag: str) -> list:
+    """Multi-resolution arms (owner 2026-10-24, design §4): thresholds and sample weights exist only in that label
+    mode; the closer is the multires rule (no ``closer_rule`` key); a thresholds file must exist, parse as
+    ``multires.Thresholds`` and match its declared digest, so the DEAP choice is pinned, not retyped."""
+    errs = []
+    mr = a.get("labels", "zigzag") == "multires"
+    if a.get("multires_thresholds") and not mr:
+        errs.append(f"THRESHOLDS_WITHOUT_MULTIRES:{tag}")
+    if a.get("sample_weights") and not mr:
+        errs.append(f"SAMPLE_WEIGHTS_WITHOUT_MULTIRES:{tag}")
+    if mr and "closer_rule" in a:
+        errs.append(f"CLOSER_RULE_WITH_MULTIRES:{tag}")
+    if a.get("multires_thresholds"):
+        tp = Path(a["multires_thresholds"])
+        if not tp.exists():
+            errs.append(f"THRESHOLDS_FILE_MISSING:{tag}")
+        else:
+            try:
+                from app.short_horizon.expert_guided import multires as MR
+                MR.Thresholds.from_json(tp.read_text())
+            except Exception as ex:                       # noqa: BLE001 -- any parse/field error is a refusal
+                errs.append(f"THRESHOLDS_INVALID:{tag}:{type(ex).__name__}")
+            if a.get("multires_thresholds_sha256") and sha(tp) != a["multires_thresholds_sha256"]:
+                errs.append(f"THRESHOLDS_DIGEST_MISMATCH:{tag}")
+    return errs
+
+
 def validate(spec: dict, local_root: Path | None = None) -> list:
     """Refuse every configuration the owner forbade and every drift from the ACCEPTED shared recipe (Musashi's
     re-review 2026-10-24): the launcher consumes the recipe and varies only training-side treatments."""
@@ -149,7 +176,7 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
             errs.append(f"STAGE_WITHOUT_NO_FEEDBACK_ARM:{stage}")
         for a in arms:
             tag = f"{stage}/{a['name']}"
-            if stage == "A" and a.get("agent_state", "none") != "none":
+            if stage.startswith("A") and a.get("agent_state", "none") != "none":     # A and A_prime: no agent feedback
                 errs.append(f"AGENT_STATE_FORBIDDEN:{tag}")
             if a.get("agent_state", "none") not in ("none", "minimal"):
                 errs.append(f"AGENT_STATE_UNKNOWN:{tag}")
@@ -160,6 +187,7 @@ def validate(spec: dict, local_root: Path | None = None) -> list:
             for k in ("list", "groups", "window", "extractor"):
                 if a.get(k) is not None:
                     errs.append(f"ARM_OVERRIDES_RECIPE:{tag}:{k}")
+            errs += multires_arm_errors(a, tag)
             if a.get("extra_experts"):
                 miss = [d for d in a["extra_experts"] if not adm.get(str(d))]
                 if miss:
@@ -198,7 +226,9 @@ def e3m_cmd(spec, arm, out, remote, recipe_root=None):
            "--scaling", spec["scaling"], "--nonstationary", spec["nonstationary"], "--split-contract", spec["split_contract"],
            "--agent-state", arm.get("agent_state", "none"), "--exec-contract", spec["exec_contract"],
            "--min-orders-per-week", str(spec["min_orders_per_week"]),
-           "--labels", arm.get("labels", "zigzag"), "--closer-rule", arm.get("closer_rule", "hold_through")]
+           "--labels", arm.get("labels", "zigzag")]
+    if arm.get("labels", "zigzag") != "multires":                 # the multires closer is its own rule (remaining / f_close)
+        cmd += ["--closer-rule", arm.get("closer_rule", "hold_through")]
     if arm.get("aux_targets"):
         cmd += ["--aux-targets"]
     if arm.get("multires_thresholds"):
@@ -248,10 +278,10 @@ def cmd_emit(a):
     if miss:
         raise SystemExit(f"GATES_CLOSED:{[g['path'] for g in miss]}")
     arms = spec["stages"][a.stage]
-    if a.stage != "A":
+    if a.stage == "B":                                            # A and A_prime carry their own labels; B inherits the winner
         dec = json.loads(Path(a.winner_from).read_text())
         win = next(x for x in spec["stages"]["A"] if x["name"] == dec["chosen"])
-        arms = [dict(win, **{k: v for k, v in x.items() if v is not None}, name=x["name"]) for x in arms]
+        arms = [dict(win, **{k: v for k, v in x.items() if v is not None and k != "name"}, name=x["name"]) for x in arms]
     R = spec["remote_root"]
     gate = Path(spec["gates"][0]["path"]).name
     rec_name = Path(spec["recipe"]["path"]).name

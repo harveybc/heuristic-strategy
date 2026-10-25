@@ -1,5 +1,5 @@
 {
- "identity": "clean-expert-guided-a1-20261024",
+ "identity": "clean-expert-guided-a1-20261024-v3",
  "status": "FROZEN on the accepted shared recipe (Musashi re-review 2026-10-24, ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT); launch gate = the owner's word for the expert-guided lane",
  "recipe": {
   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/CONSUMER_RECIPE.json",
@@ -63,7 +63,7 @@
   "design": "docs/short_horizon/clean_round/EXPERT_SIGNAL_PER_AGENT.md rev 2.1",
   "note": "ZigZag demonstrations and opportunity/both labels are TRAINING-ONLY treatments: never an observation, never real-time eligibility, never human feedback"
  },
- "memory": "6G",
+ "memory": "9G",
  "remote_root": "/var/tmp/expert-guided-clean-a1-20261024",
  "gates": [
   {
@@ -147,6 +147,31 @@
     "agent_state": "minimal",
     "note": "declared control: position + can_enter only; the simulator keeps its full state"
    }
+  ],
+  "A_prime": [
+   {
+    "name": "multires_default",
+    "labels": "multires",
+    "agent_state": "none",
+    "note": "ladder {3, rev20, rev15, rev10, rev8, rev5} scored against the optimum; declared default thresholds (0.5 / 0.5 / 0.25 sigma / 0.1 / 0.9); closer = multires rule"
+   },
+   {
+    "name": "multires_deap",
+    "labels": "multires",
+    "agent_state": "none",
+    "multires_thresholds": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/evidence/multires/deap/CHOSEN_THRESHOLDS.json",
+    "multires_thresholds_sha256": "a84c5f57a6775c926170bc4e35028d15c9b85d94bf7aa2d7fe99018bcfaecd58",
+    "note": "DEAP NSGA-II chosen thresholds (evidence/multires/deap/FINAL.json; hindsight objective declared): theta_f 0.5905, theta_mae 0.2339, theta_vol 0.556, theta_close 0.0847, f_close_take 0.6031"
+   },
+   {
+    "name": "multires_deap_weighted",
+    "labels": "multires",
+    "agent_state": "none",
+    "multires_thresholds": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/evidence/multires/deap/CHOSEN_THRESHOLDS.json",
+    "multires_thresholds_sha256": "a84c5f57a6775c926170bc4e35028d15c9b85d94bf7aa2d7fe99018bcfaecd58",
+    "sample_weights": true,
+    "note": "same thresholds; graded NOP / negatives / opens weighted by fitness in the CE loss (--sample-weights)"
+   }
   ]
  },
  "release_states": {
@@ -177,5 +202,18 @@
    "note": "derived from C's receipt chain; v1 kept as CONSUMER_RECIPE_v1_contaminated.json; the SAC consumer must produce an equal probe before any campaign"
   },
   "note": "No global RELEASE: Musashi's re-review of A1-A4 and the owner's confirmation remain; the expert-guided clean round and the SAC-without-expert contrast are separate subsequent experiments on this recipe."
- }
+ },
+ "revisions": [
+  {
+   "identity": "clean-expert-guided-a1-20261024",
+   "spec_sha256_prefix": "dd37a9c6e17f2381",
+   "ran": "stage A (7 arms x 3 seeds) 2026-10-24 21:24Z-23:50Z; 4 arms finished, the 3 extra-expert arms stopped at the 6G cap (crispdm PRESSURE_STOP_SUSTAINED_ABOVE_RESPOND, tree peak ~6.0 GB)"
+  },
+  {
+   "identity": "clean-expert-guided-a1-20261024-v3",
+   "adds": "stage A_prime (multi-resolution labels scored against the optimum, design section 4; owner 2026-10-24 'orquesta y ejecuta'); memory 9G sized from the stage A incident records; recipe, model, regularization, split, store unchanged"
+  }
+ ],
+ "memory_note": "stage A ran at 6G: the four single-demonstrator arms fit, the three --extra-experts arms reached a tree peak of ~6.0 GB and were stopped by the admission monitor's pressure rule; 9G is sized from that evidence against ~10 GiB available on the host (one unit at a time); a refused cap is never lowered",
+ "decision_a_prime": "same frozen rule as stage A on the A_prime arms plus the stage A arms (same recipe v2, same support): highest seed-mean INNER_A Sharpe among arms with all three seeds valid; ties -> fewer parameters, then the control zz_hold; 2024 never consulted; the v3 recipe (px.er_1 retired) is a later bridge pair, never compared directly"
 }

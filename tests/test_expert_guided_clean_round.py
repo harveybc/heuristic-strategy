@@ -44,6 +44,8 @@ def spec(tmp_path):
                                                   {"spec": "rev10", "admitted": True}, {"spec": "rev5", "admitted": False},
                                                   {"spec": "6", "admitted": True}]}))
     gate = tmp_path / "LAUNCH_EXPERT_GUIDED.json"
+    th = tmp_path / "CHOSEN_THRESHOLDS.json"
+    th.write_text(json.dumps({"theta_f": 0.59, "theta_mae": 0.23, "theta_vol": 0.556, "theta_close": 0.085, "f_close_take": 0.6, "min_votes": 1}))
     s = {"identity": "t", "scaling": "fixed_train", "nonstationary": "diff", "split_contract": "consolidated", "exec_contract": "sac", "min_orders_per_week": 2.0,
          "store": {"path": str(store), "sha256": hashlib.sha256(STORE).hexdigest()},
          "recipe": {"path": str(rec), "sha256": C.sha(rec), "identity": "recipe_test0000000001"},
@@ -55,6 +57,9 @@ def spec(tmp_path):
          "stages": {"A": [{"name": "zz", "labels": "zigzag"},
                           {"name": "opp_hold", "labels": "opportunity", "closer_rule": "hold_through"},
                           {"name": "both_experts", "labels": "both", "extra_experts": ["2", "rev10"]}],
+                    "A_prime": [{"name": "multires_default", "labels": "multires"},
+                                {"name": "multires_deap", "labels": "multires", "multires_thresholds": str(th), "multires_thresholds_sha256": C.sha(th)},
+                                {"name": "multires_deap_weighted", "labels": "multires", "multires_thresholds": str(th), "sample_weights": True}],
                     "B": [{"name": "winner_aux", "aux_targets": True},
                           {"name": "winner_minimal_state", "agent_state": "minimal"}]}}
     return s, tmp_path
@@ -87,12 +92,55 @@ def test_valid_spec_passes(spec):
     (lambda s: s["stages"]["A"][0].update(window=[24, 1]), "ARM_OVERRIDES_RECIPE"),
     (lambda s: s.update(exec_contract="native"), "EXEC_CONTRACT_NOT_REPLAY"),
     (lambda s: s.update(min_orders_per_week=3.0), "MIN_ORDERS_PER_WEEK_NOT_OWNER_RULE"),
+    (lambda s: s["stages"]["A_prime"][0].update(agent_state="minimal"), "AGENT_STATE_FORBIDDEN"),
+    (lambda s: s["stages"]["A"][0].update(multires_thresholds="/x.json"), "THRESHOLDS_WITHOUT_MULTIRES"),
+    (lambda s: s["stages"]["A"][0].update(sample_weights=True), "SAMPLE_WEIGHTS_WITHOUT_MULTIRES"),
+    (lambda s: s["stages"]["A_prime"][0].update(closer_rule="hold_through"), "CLOSER_RULE_WITH_MULTIRES"),
+    (lambda s: s["stages"]["A_prime"][1].update(multires_thresholds="/nonexistent/th.json"), "THRESHOLDS_FILE_MISSING"),
+    (lambda s: s["stages"]["A_prime"][1].update(multires_thresholds_sha256="0" * 64), "THRESHOLDS_DIGEST_MISMATCH"),
 ])
 def test_each_forbidden_configuration_is_refused(spec, mut, code):
     s, _ = spec
     s = copy.deepcopy(s)
     mut(s)
     assert any(e.startswith(code) for e in C.validate(s)), C.validate(s)
+
+
+def test_invalid_thresholds_file_is_refused(spec, tmp_path):
+    s, t = spec
+    bad = t / "BAD.json"
+    bad.write_text(json.dumps({"theta_f": 0.5, "theta_unknown": 1}))
+    s = copy.deepcopy(s)
+    s["stages"]["A_prime"][1].update(multires_thresholds=str(bad), multires_thresholds_sha256=C.sha(bad))
+    assert any(e.startswith("THRESHOLDS_INVALID") for e in C.validate(s)), C.validate(s)
+
+
+def test_multires_commands_carry_thresholds_and_weights_without_a_closer_rule(spec):
+    s, _ = spec
+    d = " ".join(C.e3m_cmd(s, s["stages"]["A_prime"][0], "OUT", "ROOT", recipe_root="Q"))
+    assert "--labels multires" in d and "--closer-rule" not in d and "--multires-thresholds" not in d and "--sample-weights" not in d
+    w = " ".join(C.e3m_cmd(s, s["stages"]["A_prime"][2], "OUT", "ROOT", recipe_root="Q"))
+    assert "--multires-thresholds Q/recipe/CHOSEN_THRESHOLDS.json" in w and "--sample-weights" in w and "--recipe Q/recipe/CONSUMER_RECIPE.json" in w
+    z = " ".join(C.e3m_cmd(s, s["stages"]["A"][0], "OUT", "ROOT"))
+    assert "--closer-rule hold_through" in z and "--multires" not in z                       # existing arms unchanged
+
+
+def test_emit_a_prime_needs_no_winner_and_b_still_inherits(spec, tmp_path):
+    s, t = spec
+    sp = t / "SPEC.json"
+    sp.write_text(json.dumps(s))
+    (t / "LAUNCH_EXPERT_GUIDED.json").write_text("{}")
+    a = type("A", (), {"spec": str(sp), "stage": "A_prime", "winner_from": None, "out": str(t / "qp.sh")})()
+    C.cmd_emit(a)
+    q = (t / "qp.sh").read_text()
+    assert q.count("expert_guided_e3m.py run") == 3 and q.count("--labels multires") == 3 and "--closer-rule" not in q
+    assert "--multires-thresholds $Q/recipe/CHOSEN_THRESHOLDS.json" in q and q.count("--sample-weights") == 1
+    dec = t / "DEC.json"
+    dec.write_text(json.dumps({"chosen": "opp_hold"}))
+    b = type("A", (), {"spec": str(sp), "stage": "B", "winner_from": str(dec), "out": str(t / "qb.sh")})()
+    C.cmd_emit(b)
+    qb = (t / "qb.sh").read_text()
+    assert qb.count("--labels opportunity") == 2 and "--aux-targets" in qb
 
 
 def test_recipe_drift_is_refused(spec):
