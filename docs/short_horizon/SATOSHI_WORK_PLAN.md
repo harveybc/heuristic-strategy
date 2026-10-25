@@ -266,3 +266,8 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   1.13 ± 0.97 > `opp_hold` 0.14 > `opp_optimum` 0.08 en INNER_A; dispersión ≈ diferencias. DEAP de umbrales hecho
   (@bbb7dcb). Etapa A' (3 brazos multires, receta v2, spec v3 @9742ccd) corriendo en el 4090 desde 01:26Z a 7G.
   Pendiente: etapa B, par puente v3, los tres brazos shorter en otro host.
+- 2026-10-25 06:10Z: A + A' completas (hs @8ae6380, `RESULTS_A_APRIME_2026_10_25.md`). Regla congelada: `both_hold_shorter`
+  1.56 ± 1.31 ≈ `both_hold` 1.48 ± 1.16 > control 1.13 (no separables con 3 semillas); **los tres brazos multires como
+  etiqueta de clase son negativos en INNER_A** (el estudiante se queda sin ejemplos: NOP 86 %). Decisión: multires pasa
+  a ser **métrica auxiliar** (aptitud como regresión sobre las etiquetas `both`), no clase. L6: 2 semillas extra para los
+  dos `both` → decisión a 5 semillas → etapa B (`winner_aux`, `winner_minimal_state`, `winner_multires_aux`) encadenada.
