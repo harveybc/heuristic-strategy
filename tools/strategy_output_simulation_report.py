@@ -254,7 +254,33 @@ def coefficient_table(runs: list) -> str:
     return "\n".join(lines)
 
 
-def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
+PATH_LABEL = {"base": "camino real sin intervención", "shock_2sigma": "salto persistente 2σ contra la posición", "shock_3sigma": "salto 3σ", "shock_4sigma": "salto 4σ",
+              "spread_x5_24h": "spread ×5 durante 24 h", "missing_runs_6_24h": "rachas sin observación de 6–24 h", "vol_x2_in_heads": "ruido de las cabezas ×2 (motor intacto)",
+              "regime_splice_trend_range_trend": "régimen tendencia → rango → tendencia (empalme real)"}
+MECH_LABEL = {"early_close": "cierre temprano", "nop_veto": "veto NOP", "best_of_day": "puerta mejor del día", "volume": "fórmula de volumen"}
+
+
+def intervention_table(ints: list) -> str:
+    """Per family x level x path x mechanism: loss-limiting ratio (DD with / without) with its CI, the net difference and the
+    verdict (TOLERANT when the CI upper bound < 1); plus the strategy's own loss under each intervention vs the base path."""
+    if not ints:
+        return "(sin batería de intervenciones)"
+    lines = ["| familia | calidad | camino | mecanismo | ratio DD con/sin [IC 95 %] | Δ neto medio USD (con − sin) | veredicto | caminos |", "| --- | ---: | --- | --- | --- | ---: | --- | ---: |"]
+    for d in sorted(ints, key=lambda x: (x["family"], x["level"], x["fold"])):
+        for path, mechs in d["summary"].items():
+            for mech, r in mechs.items():
+                if mech == "_path":
+                    continue
+                lines.append(f"| {d['family']} | {d['level']:.2f} | {PATH_LABEL.get(path, path)} ({d['fold']}) | {MECH_LABEL.get(mech, mech)} | {r['ratio']:.2f} [{r['low']:.2f}, {r['high']:.2f}] | {r['net_diff_mean']:+.0f} | {r['verdict']} | {r['n']} |")
+    lines += ["", "| familia | calidad | camino | neto medio USD (todo activado) | DD medio USD | neto base | DD base | caminos |", "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
+    for d in sorted(ints, key=lambda x: (x["family"], x["level"], x["fold"])):
+        for path, mechs in d["summary"].items():
+            p = mechs.get("_path") or {}
+            lines.append(f"| {d['family']} | {d['level']:.2f} | {PATH_LABEL.get(path, path)} ({d['fold']}) | {p.get('net_mean', float('nan')):.0f} | {p.get('dd_usd_mean', float('nan')):.0f} | {p.get('base_net_mean', float('nan')):.0f} | {p.get('base_dd_usd_mean', float('nan')):.0f} | {p.get('paths', 0)} |")
+    return "\n".join(lines)
+
+
+def write(df: pd.DataFrame, runs: list, out: Path, docs: str, ints: list | None = None):
     if "family" not in df:
         df = df.assign(family="c3")
     df_c3 = df[df["family"] == "c3"]
@@ -290,6 +316,7 @@ def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
     frag += ["## Cobertura del catálogo (escenario × puerta × familia × calidad → folds, semillas, rechazos)", "", coverage_table(df), ""]
     frag += ["## Régimen de mercado: trimestres del año de decisión por terciles de volatilidad y tendencia (base, puerta por barra)", "", quarter_table(runs), ""]
     frag += ["", "## Genes congelados por configuración", "", gene_table(runs), "", "## Sensibilidad de los genes (±0.1 en el cuantil, bloque de selección)", "", sensitivity_table(runs), ""]
+    frag += ["## Batería de intervenciones y contrafactuales (bloque de decisión; genes congelados en selección)", "", intervention_table(ints or []), ""]
     frag += ["## Figuras", ""] + [f"- [{label} — variantes de calidad]({docs}/{figs[m + ':quality']})" for m, label in METRICS if m + ":quality" in figs] \
          + [f"- [{label} — variantes de ejecución]({docs}/{figs[m + ':execution']})" for m, label in METRICS if m + ":execution" in figs] \
          + [f"- [Sharpe vs MAE/naive]({docs}/{figs['mae']})", f"- [Neto vs MAE/naive]({docs}/{figs['mae_net']})", ""]

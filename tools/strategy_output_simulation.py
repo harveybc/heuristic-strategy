@@ -939,7 +939,8 @@ def cmd_report(a):
     out.mkdir(parents=True, exist_ok=True)
     df.to_csv(out / "SWEEP_ROWS.csv", index=False)
     from tools import strategy_output_simulation_report as R
-    R.write(df, runs, out, a.docs)
+    ints = [json.loads(p.read_text()) for p in sorted(Path(a.interventions).glob("INT_*.json"))] if a.interventions else []
+    R.write(df, runs, out, a.docs, ints)
     print(json.dumps({"rows": int(len(df)), "out": str(out)}))
 
 
@@ -967,6 +968,7 @@ def main():
     rp.add_argument("--runs", required=True)
     rp.add_argument("--out", required=True)
     rp.add_argument("--docs", required=True)
+    rp.add_argument("--interventions", default=None)
     a = ap.parse_args()
     {"truth": cmd_truth, "run": cmd_run, "report": cmd_report}[a.cmd](a)
 
