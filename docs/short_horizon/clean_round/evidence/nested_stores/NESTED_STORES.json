@@ -1,0 +1,836 @@
+{
+ "schema": "nested_stores.v1",
+ "built": "2026-10-26",
+ "host_dir": "<4090-host>/var/tmp/nested-stores-20261026/out/<fold>/",
+ "tool": "predictor tools/nested_fold_stores.py (branch satoshi/timing-selection-20261019)",
+ "parent_pool_sha256": "cd0eb8d20c0d0888f7814cda410557a79a927e5cc125e9de5c15dbe073d2f543",
+ "source_sha256": "c80847bb149c7af1ad50e42301b5cd70608e6c37702ce8cc6a7b9eb70f36d2ca",
+ "feature_list": "FEATURE_LIST_core19.json",
+ "learned_producers_for_core19": [],
+ "note": "no core19 column is a learned-producer output; fold-local statistics are the transform decisions (layer-1 decide/diagnostics on the fold's TRAIN) and the hygiene constants. Decisions and constants came out IDENTICAL across the 12 folds, so the 12 parquets are byte-identical (same store sha); the fold identity (fit window, train rows, decision/embargo blocks) lives in each MANIFEST (distinct sha). The scaler is fitted per fold by the consumer recipe.",
+ "decisions_per_column": {
+  "HIGH": {
+   "scope": "DIFF",
+   "global": "DIFF",
+   "reason": "non-stationary level (ADF p=0.897, KPSS p=0.010)"
+  },
+  "RAW_LOG_RANGE": {
+   "scope": "LOG",
+   "global": "LOG",
+   "reason": "positive and skewed (TRAIN skew 2.70 -> 0.09 with log(x)); ASINH 2.70->2.70 does not halve"
+  },
+  "RAW_CLOSE_LOG_RETURN": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "stationary, not strongly skewed"
+  },
+  "RAW_ELAPSED_HOURS": {
+   "scope": "LOG1P_SHIFT",
+   "global": "NONE",
+   "reason": "TRAIN kurtosis 119.0 > 20: log1p(x - 1)"
+  },
+  "ATR": {
+   "scope": "LOG",
+   "global": "NONE",
+   "reason": "positive and skewed (TRAIN skew 2.16 -> 0.61 with log(x)); ASINH 2.16->2.16 does not halve"
+  },
+  "RSI": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "MACD_Histogram": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "stationary, not strongly skewed"
+  },
+  "ADX": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "stationary, not strongly skewed"
+  },
+  "DI_minus": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "stationary, not strongly skewed"
+  },
+  "Stochastic_D": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "WilliamsR": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "rolling_std_24": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "stationary, not strongly skewed"
+  },
+  "hod_sin": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "hod_cos": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "dow_cos": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "bounded, calendar encoding or regime probability/entropy"
+  },
+  "OPEN": {
+   "scope": "DIFF",
+   "global": "DIFF",
+   "reason": "non-stationary level (ADF p=0.909, KPSS p=0.010)"
+  },
+  "LOW": {
+   "scope": "DIFF",
+   "global": "DIFF",
+   "reason": "non-stationary level (ADF p=0.911, KPSS p=0.010)"
+  },
+  "CLOSE": {
+   "scope": "DIFF",
+   "global": "DIFF",
+   "reason": "non-stationary level (ADF p=0.904, KPSS p=0.010)"
+  },
+  "RAW_BAR_LOG_RETURN": {
+   "scope": "NONE",
+   "global": "NONE",
+   "reason": "stationary, not strongly skewed"
+  }
+ },
+ "folds": {
+  "wf2021q3": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "862e193ad40032f42c3f770507af68f53116ca79d300434197ba8a301b793b8f",
+   "fit_window": [
+    "2020-01-01",
+    "2021-01-01"
+   ],
+   "decision": [
+    "2021-07-01",
+    "2021-10-01"
+   ],
+   "embargo": [
+    "2021-06-24",
+    "2021-07-01"
+   ],
+   "train_rows": 6232,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9985593407454474
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 119.0 > 20: log1p(x - 1)",
+    "train_kurtosis": 118.97238819311713,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2021q4": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "8baf839a406d3075c9af29f3f69c51cdb1e279f23d856ff23916ed71cf94595a",
+   "fit_window": [
+    "2020-01-01",
+    "2021-04-01"
+   ],
+   "decision": [
+    "2021-10-01",
+    "2022-01-01"
+   ],
+   "embargo": [
+    "2021-09-24",
+    "2021-10-01"
+   ],
+   "train_rows": 7746,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9982605303318162
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 120.8 > 20: log1p(x - 1)",
+    "train_kurtosis": 120.79078134600549,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2022n": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "f6deb3316dd4e7ffd760a0cf7d1926e082da460cf69d3f697f289a6b0da95c21",
+   "fit_window": [
+    "2020-01-01",
+    "2021-07-01"
+   ],
+   "decision": [
+    "2022-01-01",
+    "2023-01-01"
+   ],
+   "embargo": [
+    "2021-12-25",
+    "2022-01-01"
+   ],
+   "train_rows": 9306,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9981465896548244
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 119.9 > 20: log1p(x - 1)",
+    "train_kurtosis": 119.91645628304009,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2022q1": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "a29a0200765a53cbfbe57912d1e7065544a6a03868c36889fecea46ca23a722e",
+   "fit_window": [
+    "2020-01-01",
+    "2021-07-01"
+   ],
+   "decision": [
+    "2022-01-01",
+    "2022-04-01"
+   ],
+   "embargo": [
+    "2021-12-25",
+    "2022-01-01"
+   ],
+   "train_rows": 9306,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9981465896548244
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 119.9 > 20: log1p(x - 1)",
+    "train_kurtosis": 119.91645628304009,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2022q2": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "7eb4a20d899c8b36377583af6361a228a3504591c0489b106be91546e63ce68e",
+   "fit_window": [
+    "2020-01-01",
+    "2021-10-01"
+   ],
+   "decision": [
+    "2022-04-01",
+    "2022-07-01"
+   ],
+   "embargo": [
+    "2022-03-25",
+    "2022-04-01"
+   ],
+   "train_rows": 10890,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9982164645194908
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 119.6 > 20: log1p(x - 1)",
+    "train_kurtosis": 119.55737456814478,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2022q3": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "7dfdff5f934201c5b8bb7c550d1f21b41f5d0b64dad665d7c50af91da0d2c967",
+   "fit_window": [
+    "2020-01-01",
+    "2022-01-01"
+   ],
+   "decision": [
+    "2022-07-01",
+    "2022-10-01"
+   ],
+   "embargo": [
+    "2022-06-24",
+    "2022-07-01"
+   ],
+   "train_rows": 12467,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9983733066659239
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 119.2 > 20: log1p(x - 1)",
+    "train_kurtosis": 119.19187603158504,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2022q4": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "68f5163489fda06a7f9037b9770006b9c4f9475bf7c585200a11655fe76bcbfc",
+   "fit_window": [
+    "2020-01-01",
+    "2022-04-01"
+   ],
+   "decision": [
+    "2022-10-01",
+    "2023-01-01"
+   ],
+   "embargo": [
+    "2022-09-24",
+    "2022-10-01"
+   ],
+   "train_rows": 14005,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9984877658370555
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 118.6 > 20: log1p(x - 1)",
+    "train_kurtosis": 118.5528583895601,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2023n": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "1864d3609c29ecc0fd7c7affb76625f6dee34e0d0d2534925b83b137599608bf",
+   "fit_window": [
+    "2020-01-01",
+    "2022-07-01"
+   ],
+   "decision": [
+    "2023-01-01",
+    "2024-01-01"
+   ],
+   "embargo": [
+    "2022-12-25",
+    "2023-01-01"
+   ],
+   "train_rows": 15565,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9979947895602774
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 118.2 > 20: log1p(x - 1)",
+    "train_kurtosis": 118.21713298610786,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2023q1": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "b7759c2acd4772a611530be499b4df564ad1967637e545130c7be42b02033287",
+   "manifest_sha256": "f163e563d19e4dbc9684caddc6088fe44221dbbd8c619abfb473afb7e02d9f0b",
+   "fit_window": [
+    "2020-01-01",
+    "2022-07-01"
+   ],
+   "decision": [
+    "2023-01-01",
+    "2023-04-01"
+   ],
+   "embargo": [
+    "2022-12-25",
+    "2023-01-01"
+   ],
+   "train_rows": 15565,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9979947895602774
+    }
+   ],
+   "flips": [
+    "ATR"
+   ],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 118.2 > 20: log1p(x - 1)",
+    "train_kurtosis": 118.21713298610786,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2023q2": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "ee7282bf4b4954a1e89fbcdee5f6805ca600468ae8f90ef6bd7f15230e73fe89",
+   "manifest_sha256": "e70fda094bc20a2c696e9c9d337b8d72721dc27e4f893df442c4b3df08ca08c9",
+   "fit_window": [
+    "2020-01-01",
+    "2022-10-01"
+   ],
+   "decision": [
+    "2023-04-01",
+    "2023-07-01"
+   ],
+   "embargo": [
+    "2023-03-25",
+    "2023-04-01"
+   ],
+   "train_rows": 17147,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9960709624773215
+    }
+   ],
+   "flips": [],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 118.1 > 20: log1p(x - 1)",
+    "train_kurtosis": 118.10206494645621,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2023q3": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "ee7282bf4b4954a1e89fbcdee5f6805ca600468ae8f90ef6bd7f15230e73fe89",
+   "manifest_sha256": "d1e379df684c8910f00d10f728b3a61365231b81830bf2fcb77ed5f905533368",
+   "fit_window": [
+    "2020-01-01",
+    "2023-01-01"
+   ],
+   "decision": [
+    "2023-07-01",
+    "2023-10-01"
+   ],
+   "embargo": [
+    "2023-06-24",
+    "2023-07-01"
+   ],
+   "train_rows": 18698,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9956113370701262
+    }
+   ],
+   "flips": [],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 117.9 > 20: log1p(x - 1)",
+    "train_kurtosis": 117.88879851531463,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  },
+  "wf2023q4": {
+   "store_file": "full_pool_eurusd_h1.parquet",
+   "store_sha256": "ee7282bf4b4954a1e89fbcdee5f6805ca600468ae8f90ef6bd7f15230e73fe89",
+   "manifest_sha256": "733137c0a769d16881a55a5cf8ecd607bcece5f9c26be27189d2ee937b800bc3",
+   "fit_window": [
+    "2020-01-01",
+    "2023-04-01"
+   ],
+   "decision": [
+    "2023-10-01",
+    "2024-01-01"
+   ],
+   "embargo": [
+    "2023-09-24",
+    "2023-10-01"
+   ],
+   "train_rows": 20249,
+   "rows": 31116,
+   "features": [
+    "HIGH@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_CLOSE_LOG_RETURN",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "RSI",
+    "MACD_Histogram",
+    "ADX",
+    "DI_minus",
+    "Stochastic_D",
+    "WilliamsR",
+    "rolling_std_24",
+    "hod_sin",
+    "hod_cos",
+    "dow_cos",
+    "OPEN@diff",
+    "LOW@diff",
+    "RAW_BAR_LOG_RETURN"
+   ],
+   "n_features": 18,
+   "dedup_dropped": [
+    {
+     "dropped": "CLOSE@diff",
+     "kept": "RAW_CLOSE_LOG_RETURN",
+     "train_r2": 0.9959645505291618
+    }
+   ],
+   "flips": [],
+   "elapsed": {
+    "slot": "RAW_ELAPSED_HOURS",
+    "global": "NONE",
+    "scope": "LOG1P_SHIFT",
+    "flip": false,
+    "reason": "TRAIN kurtosis 117.7 > 20: log1p(x - 1)",
+    "train_kurtosis": 117.71534491723311,
+    "shift": 1.0
+   },
+   "witness": "PASS",
+   "learned_producers": []
+  }
+ }
+}
