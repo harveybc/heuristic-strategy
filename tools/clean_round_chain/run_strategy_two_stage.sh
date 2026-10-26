@@ -27,6 +27,6 @@ run_b(){ f=$1; fam=$2
      --family $fam --levels ${LEVELS_B:-0.55,0.62,0.7,0.8,0.9} --seeds ${SEEDS:-0,1,2} --bounds-from $ROOT/hier/STAGE_A_$fam.json --tag stageB_ --out $ROOT/runs > $ROOT/logs/stage_b_${f}_${fam}.log 2>&1 \
      && log "stage B $f $fam DONE" || log "stage B $f $fam FAILED (see logs/stage_b_${f}_${fam}.log)"
 }
-export -f run_b log; export ROOT CODE PY CR ADM CSV SEEDS MEM LEVELS_B MAXWAIT
+export -f run_b log; export ROOT CODE PY CR ADM CSV SEEDS MEM LEVELS_B MAXWAIT NAME_SUFFIX
 [ -s $JOBLIST ] && cat $JOBLIST | xargs -P $JOBS -L 1 bash -c 'run_b $0 $1'
 log "two-stage end"
