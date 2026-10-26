@@ -7,7 +7,7 @@
  "source_sha256": "c80847bb149c7af1ad50e42301b5cd70608e6c37702ce8cc6a7b9eb70f36d2ca",
  "feature_list": "FEATURE_LIST_core19.json",
  "learned_producers_for_core19": [],
- "note": "no core19 column is a learned-producer output; fold-local statistics are the transform decisions (layer-1 decide/diagnostics on the fold's TRAIN) and the hygiene constants. Decisions and constants came out IDENTICAL across the 12 folds, so the 12 parquets are byte-identical (same store sha); the fold identity (fit window, train rows, decision/embargo blocks) lives in each MANIFEST (distinct sha). The scaler is fitted per fold by the consumer recipe.",
+ "note": "no core19 column is a learned-producer output; fold-local statistics are the transform decisions (layer-1 decide/diagnostics on the fold's TRAIN) and the hygiene constants. Two distinct parquets: ATR is decided LOG (TRAIN skew > 2) on 9 folds and stays NONE on wf2023q2/q3/q4, every other decision/constant is identical across folds, so folds with equal decisions share a store sha; the fold identity (fit window, train rows, decision/embargo blocks, decision record) lives in each MANIFEST (12 distinct shas). The scaler is fitted per fold by the consumer recipe.",
  "decisions_per_column": {
   "HIGH": {
    "scope": "DIFF",
@@ -832,5 +832,23 @@
    "witness": "PASS",
    "learned_producers": []
   }
+ },
+ "store_sha_groups": {
+  "b7759c2acd4772a6": [
+   "wf2021q3",
+   "wf2021q4",
+   "wf2022n",
+   "wf2022q1",
+   "wf2022q2",
+   "wf2022q3",
+   "wf2022q4",
+   "wf2023n",
+   "wf2023q1"
+  ],
+  "ee7282bf4b4954a1": [
+   "wf2023q2",
+   "wf2023q3",
+   "wf2023q4"
+  ]
  }
 }

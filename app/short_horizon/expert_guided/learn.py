@@ -86,7 +86,7 @@ def _loss(model, X, y, R, Rm, w, device, batch=8192, train=False):
 
 def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, class_weight=None, hidden=(128, 64),
         dropout=0.1, lr=1e-3, wd=1e-4, batch=256, max_epochs=200, patience=10, min_delta=1e-8, device="cpu",
-        log_every=None, init_state=None, net=None, sample_weight=None):
+        log_every=None, init_state=None, net=None, sample_weight=None, reg_norm="rows", reg_weight=1.0):
     """``net``: optional zero-argument factory returning a model with PolicyNet's forward contract (e.g. the
     temporal trunk of ``temporal.py``); default None keeps the MLP path unchanged. ``sample_weight`` (per training row,
     default None = unchanged loss): the CE term becomes sum(s * w_y * l) / sum(s * w_y), the class-weighted mean with
@@ -122,7 +122,12 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
                 cw = torch.ones_like(sb) if w is None else w[yb]
                 loss = (sb * ce_rows(lg, yb)).sum() / torch.clamp((sb * cw).sum(), min=1e-12)
             if Rt is not None:
-                loss = loss + _masked_huber(rg, Rt[idx], Rmt[idx]).sum() / max(len(idx), 1)
+                hub = _masked_huber(rg, Rt[idx], Rmt[idx]).sum()
+                if reg_norm == "masked":        # C3 loss balance (A2-12): Huber per masked row, declared weight
+                    mrows = (Rmt[idx].sum(1) if Rmt[idx].dim() == 2 else Rmt[idx]).gt(0).sum()
+                    loss = loss + float(reg_weight) * hub / torch.clamp(mrows, min=1)
+                else:
+                    loss = loss + hub / max(len(idx), 1)
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -143,7 +148,7 @@ def fit(X, y, Xi, yi, *, seed, n_cls=3, R=None, Rm=None, Ri=None, Rmi=None, clas
                 break
     model.load_state_dict(best_state)
     model.eval()
-    info = {"epochs": len(hist), "best_epoch": best_ep, "best_score": best, "stop_reason": stop,
+    info = {"epochs": len(hist), "best_epoch": best_ep, "best_score": best, "stop_reason": stop, "reg_norm": reg_norm, "reg_weight": float(reg_weight),
             "max_epochs": max_epochs, "patience": patience, "min_delta": min_delta, "seconds": time.time() - t0,
             "monitor": "0.5*(TRAIN loss + INNER_A loss), both inference mode at the epoch end",
             "optimizer": {"name": "AdamW", "lr": lr, "weight_decay": wd}, "dropout": dropout,

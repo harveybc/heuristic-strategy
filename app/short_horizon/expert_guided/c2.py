@@ -599,6 +599,9 @@ class StrategyC2PS:
 
 def strategy_from_dict(d: dict):
     """Rebuild a frozen C2 strategy from its recorded dict (``StrategyC2`` or, v1.3, ``StrategyC2PS``)."""
+    if "close_margin_l" in d:                             # C3 (2026-10-26): per-side close thresholds, early-close switch
+        from . import c3 as C3
+        return C3.StrategyC3(**d)
     return StrategyC2PS(**d) if "open_margin_l" in d else StrategyC2(**d)
 
 

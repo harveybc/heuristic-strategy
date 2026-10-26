@@ -45,6 +45,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app.short_horizon.expert_guided import action_contract as ACT  # noqa: E402
 from app.short_horizon.expert_guided import c2 as C2  # noqa: E402
+from app.short_horizon.expert_guided import c3 as C3  # noqa: E402
 from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
 from app.short_horizon.expert_guided import multires as MR  # noqa: E402
@@ -871,6 +872,7 @@ def run(a):
     sc = DG.split_contract(a.split_contract)
     AC = None
     C2MODE = False
+    C3MODE = False
     if getattr(a, "outcomes", None) and not a.action_contract:
         raise SystemExit("OUTCOMES_REQUIRE_C2_ACTION_CONTRACT")
     if getattr(a, "strategy_fitness", "") and not a.action_contract:
@@ -878,8 +880,10 @@ def run(a):
     if a.action_contract:
         # output contract v1 (owner 2026-10-25): five calibrated specialists + one frozen parametric strategy; every
         # choice on INNER_A, decision on the post-freeze INNER_B; typed refusals before any data is read
-        C2MODE = C2.is_c2(json.loads(Path(a.action_contract).read_text()))     # stage C2 (2026-10-25): action consequences, no teacher
-        AC = C2.load(a.action_contract) if C2MODE else ACT.load(a.action_contract)
+        _acdoc = json.loads(Path(a.action_contract).read_text())
+        C3MODE = C3.is_c3(_acdoc)                                              # stage C3 (2026-10-26): the audit's label / target fixes
+        C2MODE = C2.is_c2(_acdoc) or C3MODE                                    # stage C2 (2026-10-25): action consequences, no teacher
+        AC = C3.load(a.action_contract) if C3MODE else (C2.load(a.action_contract) if C2MODE else ACT.load(a.action_contract))
         ACT.require_decision_block(AC, sc, a.split_contract)
         if a.variants != "FULL":
             raise SystemExit("ACTION_CONTRACT_ONLY_FOR_FULL")
@@ -938,6 +942,8 @@ def run(a):
         raise SystemExit(f"E3M_WINDOW_LAYOUT:{ds.windows.shape[1]}!={WIN_E}")
     DEV = tuple(sc["report"])                     # dev3y: TRAIN, INNER_A, INNER_B; consolidated: TRAIN, INNER_A (inner block)
     ARCH = dict(units=a.units, branch=a.branch, core=a.core, depth=a.depth, head=a.head)
+    if (a.trunk, a.fusion_units, a.core_blocks, a.readout) != ("u", 8, 2, "flatten"):   # residual_tcn (2026-10-26): declared; defaults byte-identical
+        ARCH.update(trunk=a.trunk, fusion_units=a.fusion_units, core_blocks=a.core_blocks, readout=a.readout)
     MODS = dict(MODULES)
     BOUNDS = {m: ((0.25, 3.0), (0.5, 3.0)) for v_ in MODULES for m in MODULES[v_]}
     if a.aux_targets:
@@ -979,7 +985,12 @@ def run(a):
                                   for d in []] + [parse_track(cx, d) for d in (a.extra_experts.split(",") if a.extra_experts else [])]
     variants = [v for v in VARIANTS if v in a.variants.split(",")]
     NSM = {}                                  # per-module state width; empty = every module NS (byte-identical default)
-    if AC and C2MODE:
+    if AC and C3MODE:
+        _cells = [tuple(c) for c in AC["outcomes"]["cells"]]
+        MODS["FULL"] = C3.modules(_cells)
+        BOUNDS.update({m: C3.reg_bounds(m, _cells) for m in C3.SPECIALISTS})
+        NSM = {m: NS + C2.N_GEO for m in C2.CLOSERS}
+    elif AC and C2MODE:
         MODS["FULL"] = C2.modules()
         BOUNDS.update({m: C2.reg_bounds(m) for m in C2.SPECIALISTS})
         if C2.is_c2g(AC):                     # C2G (owner 2026-10-25): the closers alone also read their order's geometry
@@ -1044,6 +1055,8 @@ def run(a):
         return {"rows": probe_rows.tolist(), "row_ts_ns": [int(cx.ds.row_ts[r]) for r in probe_rows], "state": "zeros",
                 "logits": lg.tolist(), "reg": None if rg is None else rg.tolist()}
 
+    FIT_EXTRA = {}                            # C3: loss-balance kwargs set by the contract's runner (default: unchanged)
+
     def fit_module(v, m, D_tr, D_in, seed):
         nc, nr = MODS[v][m]
         f = np.maximum(np.bincount(D_tr[1], minlength=nc) / len(D_tr[1]), 1e-3)   # 1/sqrt(freq), as E1-T
@@ -1055,7 +1068,7 @@ def run(a):
                                   sample_weight=D_tr[4] if len(D_tr) > 4 else None,
                                   dropout=a.dropout, lr=1e-3, wd=a.wd, batch=256, max_epochs=a.max_epochs, patience=10,
                                   device=device, net=lambda: T.TemporalPolicyNet(nf, WIN_E, nc, n_reg=nr, n_state=NSM.get(m, NS),
-                                                                                  dropout=a.dropout, reg_bounds=BOUNDS[m], **ARCH))
+                                                                                  dropout=a.dropout, reg_bounds=BOUNDS[m], **ARCH), **FIT_EXTRA)
         return T.TorchPolicy(model), info
 
     # expert trajectory (round 0 demonstrations) and comparators
@@ -1075,9 +1088,11 @@ def run(a):
                                  "expert_confirmed": summary(cx.rollout(p, cx.confirmed, SCFG)[0]),
                                  "no_trade": summary(cx.rollout(p, lambda *x: (E.HOLD, 1.5, 2.0), SCFG)[0])}
     if C2MODE:
-        res = C2.run_e3m({"cx": cx, "ds": ds, "a": a, "AC": AC, "res": res, "out": out, "SCFG": SCFG, "ECFG": ECFG, "MUSASHI_CFG": MUSASHI_CFG,
-                          "NS": NS, "led": led, "ledger": ledger, "summary": summary, "DEV": DEV, "SEEDS": SEEDS, "prior": prior,
-                          "fit_module": fit_module, "probe": probe, "ROUNDS": ROUNDS, "EXPERT": DG.EXPERT})
+        _ctx = {"cx": cx, "ds": ds, "a": a, "AC": AC, "res": res, "out": out, "SCFG": SCFG, "ECFG": ECFG, "MUSASHI_CFG": MUSASHI_CFG,
+                "NS": NS, "led": led, "ledger": ledger, "summary": summary, "DEV": DEV, "SEEDS": SEEDS, "prior": prior,
+                "fit_module": fit_module, "probe": probe, "ROUNDS": ROUNDS, "EXPERT": DG.EXPERT, "fit_extra": FIT_EXTRA, "sc": sc,
+                "ARCH": ARCH, "split_name": a.split_contract}
+        res = C3.run_e3m(_ctx) if C3MODE else C2.run_e3m(_ctx)
         res["wall_seconds"] = time.time() - t0
         (out / "E3M.json").write_text(json.dumps(jsonable(res), indent=1))
         print(json.dumps({"decision": res["decision"], "wall": round(res["wall_seconds"], 1)}))
@@ -1247,6 +1262,10 @@ def build_parser():
     ap.add_argument("--out", required=True)
     ap.add_argument("--features", choices=["v4", "core15"], default="core15")
     ap.add_argument("--variants", default=",".join(VARIANTS))
+    ap.add_argument("--trunk", choices=["u", "residual_tcn"], default="u", help="trunk variant (residual_tcn = Musashi's minimal grouped TCN, declared)")
+    ap.add_argument("--fusion-units", type=int, default=8)
+    ap.add_argument("--core-blocks", type=int, default=2)
+    ap.add_argument("--readout", choices=["flatten", "last"], default="flatten")
     ap.add_argument("--units", type=int, default=2)
     ap.add_argument("--branch", type=int, default=None)
     ap.add_argument("--core", type=int, default=None)
