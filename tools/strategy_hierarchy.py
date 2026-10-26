@@ -216,6 +216,7 @@ def stage_a(worlds: list, bounds: dict, family: str, AC, seed: int, population: 
         cal_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == S.CAL_BLOCK))
         sel_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == S.SEL_BLOCK))
         view_rows = np.union1d(cal_rows, sel_rows)
+        table["cost_row"] = S.row_costs(cx, SCFG, truth.cost - C3.cost_sigma_of(cx, SCFG, 0.0, cal_rows))   # per-bar cost BEFORE the view (the perbar gate)
         view = C2.restrict(table, view_rows)
         ref = C3.closer_reference_sides(table, S.closer_src_of(truth))
         sig = np.asarray(cx.ds.sigma, float)
@@ -228,9 +229,11 @@ def stage_a(worlds: list, bounds: dict, family: str, AC, seed: int, population: 
             gm = SF.gene_map_full(view, cal_rows, ref, cells, truth.e_time, truth.cost, bounds)
             make = lambda g, _gm=gm: SF.StrategyFull.from_genes(_gm.to_absolute(g), "nop_veto_rate" in g, fam[0], fam[1])  # noqa: E731
             Pol, roll = S.policy_factory(S.PolicyFullPerBar, SCFG), SF.rollout_with_volume
-        table["cost_row"] = S.row_costs(cx, SCFG, truth.cost - C3.cost_sigma_of(cx, SCFG, 0.0, cal_rows))
         score = S.score_fn(cx, SCFG, cells, truth.e_time, truth.cost, AC, S.SEL_BLOCK, sig, min_opw, Pol, roll)
         scorers.append((score, view, make))
+        w.pop("truth", None); w.pop("table", None); w.pop("sim", None)      # memory: the scorer holds the restricted view only (78 leaves OOM-killed a 3G cap)
+    import gc
+    gc.collect()
     archive = []
     scales = {"sharpe": 1.0, "r_ann": 0.2, "opd": 0.6}     # provisional; recalibrated from the first generation (declared rule c_k = 1/median|term|)
 
@@ -415,12 +418,13 @@ def cmd_stage_a(a):
     for i, leaf in enumerate(leaves):
         w = leaf_world(cx, SCFG, AC, leaf, S.SEL_BLOCK, a.seed * 1000 + i)
         w["leaf"] = leaf
+        w["achieved"] = w["sim"]["achieved"]
         worlds.append(w)
         print(json.dumps({"world": leaf["id"], "witness": w["witness"], "sec": round(time.time() - t0)}), flush=True)
     fam = S.FAMILIES[a.family]
     bounds = SF.gene_bounds(*fam) if fam else {k: list(v) for k, v in C3.Q_BOUNDS.items()}
     doc = stage_a(worlds, bounds, a.family, AC, a.seed, a.population, a.generations, Path(a.out))
-    doc_leaves = [{"id": w["leaf"]["id"], "witness": w["witness"], "achieved": w["sim"]["achieved"]} for w in worlds]
+    doc_leaves = [{"id": w["leaf"]["id"], "witness": w["witness"], "achieved": w["achieved"]} for w in worlds]
     (Path(a.out) / f"STAGE_A_{a.family}_leaves.json").write_text(json.dumps(doc_leaves, indent=1, default=float))
     print(json.dumps({"family": a.family, "leaves": len(worlds), "evaluations": doc["evaluations"], "valid": doc["valid_points"], "pareto": len(doc["pareto"]),
                       "robust_points": doc["robust_region"]["points"], "best_mean": (doc["best_mean"] or {}).get("mean")}))
