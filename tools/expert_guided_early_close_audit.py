@@ -342,8 +342,10 @@ def check_reproduces(m: dict, ref: dict, what: str) -> dict:
     return {"reproduces_run": True, "checked": [k for k in METRIC_KEYS_FLOAT + METRIC_KEYS_INT if k in ref]}
 
 
-def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dict:
-    """Every seed of the unit (``dirs``: the arm dir and any seed-extension dirs) and its ensemble, on ``periods``."""
+def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None, on_run=None, only_primary: bool = False) -> dict:
+    """Every seed of the unit (``dirs``: the arm dir and any seed-extension dirs) and its ensemble, on ``periods``.
+    ``on_run(what, period, audit, make_env, summary)`` (optional) receives every verified replay (the trading-detail
+    report uses it); ``only_primary`` restricts the ensemble to its primary fitness variant. Defaults: unchanged."""
     from tools.expert_guided_e1t import Ctx
     from tools.expert_guided_e3m import Composed, effective_contracts
     from tools import expert_guided_seed_ensemble as SE
@@ -369,7 +371,10 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
         au = audit_replay(mk, None, dec, exit_prob)
         doc["verification"][what] = check_reproduces(au["metrics"], ref, what)
         ne = audit_replay(mk, None, no_early_close(dec), None)["metrics"]
-        return summarize(au, capital, ne)
+        out = summarize(au, capital, ne)
+        if on_run is not None:
+            on_run(what, p, au, mk, out)
+        return out
 
     seeds = []
     tables = []
@@ -421,6 +426,8 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
             ens_t = C2.calibrate_table(C2.to_raw(C2.mean_tables(tables)), en["ensemble_calibration"])
             primary = en["arbiter"]["primary_fitness"]
             for fname, bf in en["by_fitness"].items():
+                if only_primary and fname != en["arbiter"]["primary_fitness"]:
+                    continue
                 if bf["strategy"] is None:
                     doc["ensemble"][fname] = {"note": "NO_VALID_STRATEGY on the calibration block: nothing to replay"}
                     continue
@@ -440,6 +447,8 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None) -> dic
             ens_t = ACT.calibrate_table(ens_raw, en["ensemble_calibration"])
             primary = en["arbiter"]["primary_fitness"]
             for fname, bf in en["by_fitness"].items():
+                if only_primary and fname != en["arbiter"]["primary_fitness"]:
+                    continue
                 if bf["strategy"] is None:
                     doc["ensemble"][fname] = {"note": "NO_VALID_STRATEGY on the calibration block: nothing to replay"}
                     continue
