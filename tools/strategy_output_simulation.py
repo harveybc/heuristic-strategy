@@ -622,15 +622,36 @@ def evaluate_quarters(cx, SCFG, table, strat, cells, e_time, cost, sig, AC, Pol,
     return out
 
 
+def apply_stage_a(AC: dict, stage_a: dict | None) -> dict:
+    """Stage B: the gene bounds restricted to the Stage-A robust box (box ∩ declared bounds; a degenerate box keeps the
+    declared bound); the Stage-A optimum is recorded for the out-of-block comparison."""
+    if not stage_a:
+        return AC
+    box = (stage_a.get("robust_region") or {}).get("box") or {}
+    ac = copy.deepcopy(AC)
+    g = ac["strategy"]["genes"]
+    for k in list(g):
+        if k in box:
+            lo, hi = float(box[k][0]), float(box[k][1])
+            lo, hi = max(lo, float(g[k][0])), min(hi, float(g[k][1]))
+            if hi - lo < 1e-9:
+                hi = min(float(g[k][1]), lo + 0.02 * (float(g[k][1]) - float(g[k][0])) + 1e-9)
+            g[k] = [lo, hi]
+    ac["strategy"]["stage_a"] = {"family": stage_a.get("family"), "robust_points": (stage_a.get("robust_region") or {}).get("points"),
+                                 "best_mean_genes": (stage_a.get("best_mean") or {}).get("genes"), "evaluations": stage_a.get("evaluations")}
+    return ac
+
+
 def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_dir: Path, fold: str, freeze_per_seed: bool = True,
-               missing_frac: float = 0.0, ledger: bool = True, gate: str = "contract", family: str = "c3") -> dict:
+               missing_frac: float = 0.0, ledger: bool = True, gate: str = "contract", family: str = "c3", stage_a: dict | None = None) -> dict:
     fam = FAMILIES[family]
     if fam is None:
         Pol, roll, freeze_fn = policy_cls(gate), ACT.rollout_with_trades, None
+        AC = apply_stage_a(AC, stage_a)
     else:
         tpf, vf = fam
         SCFG = scfg_full(SCFG, vf)
-        AC = contract_full(AC, tpf, vf)
+        AC = apply_stage_a(contract_full(AC, tpf, vf), stage_a)
         Pol = policy_factory(PolicyFullPerBar if gate == "perbar" else SF.PolicyFull, SCFG)
         roll = SF.rollout_with_volume
     cost_row = row_costs(cx, SCFG, truth.cost - C3.cost_sigma_of(cx, SCFG, 0.0, np.flatnonzero(cx.obs_ok & (cx.ds.period == CAL_BLOCK)))) if gate == "perbar" else None
@@ -645,6 +666,7 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
            "exec_config": {"max_entries_per_day": SCFG.max_entries_per_day, "sizing_mode": getattr(SCFG.variant, "sizing_mode", None), "risk_pct": getattr(SCFG.variant, "risk_pct", None),
                            "cutoff_h": getattr(SCFG.variant, "entry_cutoff_hours_before_flat", None), "percentual_order_size": SCFG.percentual_order_size, "rel_volume": SCFG.sizing.rel_volume},
            "formulas": (AC["strategy"].get("formulas") if fam else None), "genes_bounds": AC["strategy"]["genes"], "primary_fitness": AC["strategy"]["fitness"]["default"],
+           "stage_a": AC["strategy"].get("stage_a"),
            "exec_variant": (AC.get("exec_variant") or {}).get("identity"), "blocks": {"calibration": CAL_BLOCK, "selection": SEL_BLOCK, "decision": DEC_BLOCK},
            "cost_sigma": truth.cost, "e_time": truth.e_time, "per_seed": []}
     obs_backup = cx.obs_ok.copy()
@@ -693,6 +715,23 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
                 if seed == seeds[0]:                                   # one-at-a-time gene sensitivity on the SELECTION block (declared)
                     rec["sensitivity"] = (gene_sensitivity_full(cx, SCFG, table, fr, truth, AC, cells, sig, min_opw, view_rows, cal_rows, Pol, roll, tpf, vf)
                                           if fam else gene_sensitivity(cx, SCFG, table, fr, truth, AC, cells, sig, min_opw, view_rows, cal_rows, Pol=Pol))
+                sa_genes = ((AC["strategy"].get("stage_a") or {}).get("best_mean_genes"))
+                if sa_genes:                                           # Stage-A optimum on the real blocks: the out-of-block gain / loss of Stage B
+                    view = C2.restrict(table, view_rows)
+                    ref = C3.closer_reference_sides(table, closer_src_of(truth))
+                    if fam is None:
+                        gm_ = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
+                        st_a = C3.StrategyC3.from_genes(gm_.to_absolute(sa_genes), "nop_veto_rate" in sa_genes)
+                    else:
+                        gm_ = SF.gene_map_full(view, cal_rows, ref, cells, truth.e_time, truth.cost, AC["strategy"]["genes"])
+                        st_a = SF.StrategyFull.from_genes(gm_.to_absolute(sa_genes), "nop_veto_rate" in sa_genes, tpf, vf, float(getattr(SCFG.variant, "risk_pct", 0.01)))
+                    if rec.get("early_close_disabled"):
+                        st_a = st_a.no_early_close()
+                    da = evaluate(cx, SCFG, table, st_a, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, False, None, Pol, roll)
+                    sa_ = evaluate(cx, SCFG, table, st_a, cells, truth.e_time, truth.cost, SEL_BLOCK, sig, AC, SCFG.capital, False, None, Pol, roll)
+                    rec["stage_a_optimum"] = {"genes": sa_genes, "selection": {k: sa_["metrics"].get(k) for k in ("sharpe_daily_sqrt365", "net_profit_usd", "orders_per_week", "trades")} | {"expectancy": sa_["expectancy_sigma"].get("expectancy")},
+                                              "decision": {k: da["metrics"].get(k) for k in ("sharpe_daily_sqrt365", "net_profit_usd", "orders_per_week", "trades", "max_drawdown_pct", "valid")}
+                                                          | {"expectancy": da["expectancy_sigma"].get("expectancy"), "expectancy_low": da["expectancy_sigma"].get("low"), "expectancy_high": da["expectancy_sigma"].get("high")}}
                 # (owner) which fitness: every variant's chosen point, scored ONCE on the decision block (and on selection, for the gap)
                 byf = {}
                 for f, v in fr["by_fitness"].items():
@@ -898,13 +937,15 @@ def cmd_run(a):
     seeds = [int(s) for s in a.seeds.split(",")]
     for lv in [float(x) for x in a.levels.split(",")]:
         q = quality_for(a.variant, lv)
-        p = out / (f"RUN_{a.fold}_{a.variant}_{a.gate}_q{lv:.2f}.json" if a.family == "c3" else f"RUN_{a.fold}_{a.variant}_{a.gate}_{a.family}_q{lv:.2f}.json")
+        p = out / ((f"RUN_{a.fold}_{a.variant}_{a.gate}_q{lv:.2f}.json" if a.family == "c3" else f"RUN_{a.fold}_{a.variant}_{a.gate}_{a.family}_q{lv:.2f}.json").replace("RUN_", f"RUN_{a.tag}" if a.tag else "RUN_"))
         if p.exists() and not a.force:
             print(json.dumps({"skip": str(p)}), flush=True)
             continue
         miss = {"missing10": 0.10, "missing30": 0.30}.get(a.variant, 0.0)
-        res = run_config(cx, S, truth, AC, q, seeds, a.variant, out, a.fold, missing_frac=miss, ledger=not a.no_ledger, gate=a.gate, family=a.family)
+        stage_a = json.loads(Path(a.bounds_from).read_text()) if a.bounds_from else None
+        res = run_config(cx, S, truth, AC, q, seeds, a.variant, out, a.fold, missing_frac=miss, ledger=not a.no_ledger, gate=a.gate, family=a.family, stage_a=stage_a)
         res["scenario"] = SCENARIOS.get(a.variant, "")
+        res["tag"] = a.tag
         res["level"] = lv
         p.write_text(json.dumps(res, indent=1, default=float))
 
@@ -916,7 +957,7 @@ def _agg(runs: list) -> list:
             d = s.get("decision") or {}
             m, c, ex = d.get("metrics", {}), d.get("components", {}), d.get("expectancy_sigma", {})
             sel = (s.get("selection") or {}).get("metrics", {})
-            rows.append({"fold": r["fold"], "variant": r["variant"], "gate": r.get("gate", "contract"), "family": r.get("family", "c3"), "level": r["level"], "seed": s["seed"], "refused": s.get("refused"),
+            rows.append({"fold": r["fold"], "variant": r["variant"], "gate": r.get("gate", "contract"), "family": r.get("family", "c3"), "tag": r.get("tag", ""), "level": r["level"], "seed": s["seed"], "refused": s.get("refused"),
                          "auc_cal": s.get("simulation", {}).get("achieved", {}).get("calibration", {}).get("auc_tp_first_side0"),
                          "auc_dec": s.get("simulation", {}).get("achieved", {}).get("decision", {}).get("auc_tp_first_side0"),
                          "spearman_dec": s.get("simulation", {}).get("achieved", {}).get("decision", {}).get("spearman_net_side0"),
@@ -943,7 +984,20 @@ def cmd_report(a):
     df.to_csv(out / "SWEEP_ROWS.csv", index=False)
     from tools import strategy_output_simulation_report as R
     ints = [json.loads(p.read_text()) for p in sorted(Path(a.interventions).glob("INT_*.json"))] if a.interventions else []
-    R.write(df, runs, out, a.docs, ints)
+    sa = {}
+    cat, done = [], {}
+    if a.hier:
+        for p in sorted(Path(a.hier).glob("STAGE_A_*.json")):
+            if "_leaves" in p.name or "archive" in p.name:
+                continue
+            d = json.loads(p.read_text())
+            sa[d["family"]] = d
+        cp = Path(a.hier) / "CATALOG.json"
+        cat = json.loads(cp.read_text()) if cp.exists() else []
+        for p in sorted(Path(a.hier).glob("STAGE_A_*_leaves.json")):
+            for x in json.loads(p.read_text()):
+                done[x["id"]] = done.get(x["id"], 0) + 1
+    R.write(df, runs, out, a.docs, ints, sa, cat, done, Path(a.contracts) if a.contracts else None)
     print(json.dumps({"rows": int(len(df)), "out": str(out)}))
 
 
@@ -965,6 +1019,8 @@ def main():
     r.add_argument("--seeds", default="0,1,2")
     r.add_argument("--gate", default="contract", choices=list(POLICIES))
     r.add_argument("--family", default="c3", choices=list(FAMILIES))
+    r.add_argument("--bounds-from", default=None, help="Stage-A JSON (STAGE_A_<family>.json): restrict the genes to its robust box (Stage B)")
+    r.add_argument("--tag", default="")
     r.add_argument("--force", action="store_true")
     r.add_argument("--no-ledger", action="store_true")
     rp = sub.add_parser("report")
@@ -972,6 +1028,8 @@ def main():
     rp.add_argument("--out", required=True)
     rp.add_argument("--docs", required=True)
     rp.add_argument("--interventions", default=None)
+    rp.add_argument("--hier", default=None, help="the two-stage directory (CATALOG.json, STAGE_A_<family>.json, *_leaves.json)")
+    rp.add_argument("--contracts", default=None, help="where STRATEGY_PARAMS_FROZEN_v1.json is written")
     a = ap.parse_args()
     {"truth": cmd_truth, "run": cmd_run, "report": cmd_report}[a.cmd](a)
 

@@ -149,3 +149,19 @@ def test_catalog_knobs_lag_drift_saturation_and_inversion(monkeypatch):
     assert 0.64 < sim["achieved"]["decision"]["auc_tp_first_side0"] < 0.80
     assert S.quality_for("asym", 0.8).open_s == pytest.approx(0.7) and S.quality_for("nop_only", 0.8).nop == 0.8 and S.quality_for("nop_only", 0.8).open == 0.5
     assert set(S.SCENARIOS) == set(S.VARIANTS)
+
+
+def test_stage_b_box_restricts_bounds_and_keeps_declared_ones():
+    """Stage B (owner 2026-10-26): the gene bounds become box ∩ declared; genes absent from the box keep their bounds; a
+    degenerate box widens to 2 % of the declared range so NSGA-II still has a segment to search."""
+    from tools import strategy_output_simulation as S
+    AC = {"strategy": {"genes": {"a": [0.0, 1.0], "b": [0.2, 0.8], "c": [0.0, 1.0]}, "fitness": {"default": "F2"}}}
+    sa = {"family": "c3", "evaluations": 3, "robust_region": {"points": 2, "box": {"a": [0.3, 0.6], "b": [0.0, 0.5], "c": [0.4, 0.4]}}, "best_mean": {"genes": {"a": 0.5}}}
+    out = S.apply_stage_a(AC, sa)
+    assert out["strategy"]["genes"]["a"] == [0.3, 0.6]
+    assert out["strategy"]["genes"]["b"] == [0.2, 0.5]
+    lo, hi = out["strategy"]["genes"]["c"]
+    assert lo == 0.4 and 0.41 < hi < 0.43
+    assert out["strategy"]["stage_a"]["best_mean_genes"] == {"a": 0.5}
+    assert AC["strategy"]["genes"]["a"] == [0.0, 1.0]                   # the input contract is untouched
+    assert S.apply_stage_a(AC, None) is AC

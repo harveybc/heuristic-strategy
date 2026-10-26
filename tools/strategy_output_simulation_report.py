@@ -299,7 +299,7 @@ def freeze_params(runs: list, stage_a: dict | None, family: str, gate: str = "pe
             ach = ((s.get("simulation") or {}).get("achieved") or {}).get("calibration") or {}
             auc = np.nanmean([ach.get("auc_tp_first_side0", np.nan), ach.get("auc_tp_first_side1", np.nan)])
             if g and np.isfinite(auc):
-                rows.append({"level": r["level"], "fold": r["fold"], "seed": s["seed"], "auc_cal": float(auc), "genes": g, "strategy": s.get("strategy_effective"),
+                rows.append({"level": r["level"], "fold": r["fold"], "seed": s["seed"], "auc_cal": float(auc), "genes": g, "strategy": s.get("strategy_effective"), "stage_b": str(r.get("tag", "")).startswith("stageB"),
                              "dec_exp": ((s.get("decision") or {}).get("expectancy_sigma") or {}).get("expectancy"),
                              "dec_sharpe": ((s.get("decision") or {}).get("metrics") or {}).get("sharpe_daily_sqrt365")})
     table = []
@@ -319,10 +319,10 @@ def freeze_params(runs: list, stage_a: dict | None, family: str, gate: str = "pe
         for k in inb[0]["genes"]:
             vals = np.array([x["genes"][k] for x in inb], float)
             med = float(np.median(vals))
-            if k in box:
+            if k in box and not any(x["stage_b"] for x in inb):
                 med = float(min(max(med, box[k][0]), box[k][1]))
             genes[k] = {"median": med, "min": float(vals.min()), "max": float(vals.max())}
-        table.append({"band": [lo, min(hi, 1.0)], "source": src, "n": len(inb), "levels": sorted({x["level"] for x in inb}), "genes": genes,
+        table.append({"band": [lo, min(hi, 1.0)], "source": src, "n": len(inb), "levels": sorted({x["level"] for x in inb}), "stage_b": bool(all(x["stage_b"] for x in inb)), "genes": genes,
                       "decision_expectancy_mean": float(np.nanmean([x["dec_exp"] for x in inb if x["dec_exp"] is not None])) if any(x["dec_exp"] is not None for x in inb) else None,
                       "decision_sharpe_mean": float(np.nanmean([x["dec_sharpe"] for x in inb if x["dec_sharpe"] is not None])) if any(x["dec_sharpe"] is not None for x in inb) else None,
                       "absolute_strategy_example": inb[0]["strategy"]})
@@ -331,9 +331,76 @@ def freeze_params(runs: list, stage_a: dict | None, family: str, gate: str = "pe
                                               "the coefficients (tp/sl/volume) and observe_bars are used as they are; the cutoff is the execution contract's (24 h)"}
 
 
-def write(df: pd.DataFrame, runs: list, out: Path, docs: str, ints: list | None = None):
+def stage_tables(runs: list, stage_a_docs: dict) -> str:
+    """Stage A (Pareto set, robust region box) and Stage B (A-vs-B parameter shift, out-of-block gain / loss with CI)."""
+    lines = []
+    for fam, sa in stage_a_docs.items():
+        rr = sa.get("robust_region") or {}
+        lines += [f"### Etapa A — familia `{fam}`: {sa.get('leaves')} hojas, {sa.get('evaluations')} evaluaciones, {sa.get('valid_points')} válidas, frente de Pareto {len(sa.get('pareto') or [])} puntos, región robusta {rr.get('points')} puntos", "",
+                  "| gen | caja robusta [mín, máx] | óptimo A (mejor media) |", "| --- | --- | ---: |"]
+        best = (sa.get("best_mean") or {}).get("genes") or {}
+        for g, b in (rr.get("box") or {}).items():
+            lines.append(f"| {g} | [{b[0]:.3f}, {b[1]:.3f}] | {best.get(g, float('nan')):.3f} |")
+        lines += ["", "| Pareto: media compuesta | CVaR-10 % |", "| ---: | ---: |"] + [f"| {p['mean']:.3f} | {p['cvar10']:.3f} |" for p in (sa.get("pareto") or [])[:12]] + [""]
+        if sa.get("per_regime_best") or rr.get("per_regime_best"):
+            prb = rr.get("per_regime_best") or {}
+            lines += ["| régimen L1 | mejor media compuesta en el régimen |", "| --- | ---: |"] + [f"| {k} | {v:.3f} |" for k, v in prb.items()] + [""]
+    rows = []
+    for r in runs:
+        if not str(r.get("tag", "")).startswith("stageB"):
+            continue
+        for s in r["per_seed"]:
+            sa = s.get("stage_a_optimum") or {}
+            d = (s.get("decision") or {}).get("metrics") or {}
+            ex = (s.get("decision") or {}).get("expectancy_sigma") or {}
+            rows.append({"family": r.get("family", "c3"), "fold": r["fold"], "level": r["level"], "seed": s["seed"],
+                         "B_exp": ex.get("expectancy"), "B_lo": ex.get("low"), "B_hi": ex.get("high"), "B_sharpe": d.get("sharpe_daily_sqrt365"), "B_net": d.get("net_profit_usd"),
+                         "A_exp": (sa.get("decision") or {}).get("expectancy"), "A_lo": (sa.get("decision") or {}).get("expectancy_low"), "A_hi": (sa.get("decision") or {}).get("expectancy_high"),
+                         "A_sharpe": (sa.get("decision") or {}).get("sharpe_daily_sqrt365"), "A_net": (sa.get("decision") or {}).get("net_profit_usd"),
+                         "genes_B": s.get("chosen_genes") or {}, "genes_A": sa.get("genes") or {}})
+    if rows:
+        d = pd.DataFrame(rows)
+        lines += ["### Etapa B — óptimo real dentro de la caja de A frente al óptimo de A replicado en el mismo bloque de decisión", "",
+                  "| familia | fold | calidad | semilla | expect. B [IC] | expect. A [IC] | Δ (B − A) | Sharpe B / A | neto B / A USD |", "| --- | --- | ---: | ---: | --- | --- | ---: | --- | --- |"]
+        for _, r in d.iterrows():
+            f = lambda x: ("—" if x is None or (isinstance(x, float) and not math.isfinite(x)) else f"{x:.3f}")  # noqa: E731
+            dl = (r["B_exp"] - r["A_exp"]) if (r["B_exp"] is not None and r["A_exp"] is not None) else float("nan")
+            lines.append(f"| {r['family']} | {r['fold']} | {r['level']:.2f} | {r['seed']} | {f(r['B_exp'])} [{f(r['B_lo'])}, {f(r['B_hi'])}] | {f(r['A_exp'])} [{f(r['A_lo'])}, {f(r['A_hi'])}] | {dl:+.3f} | {f(r['B_sharpe'])} / {f(r['A_sharpe'])} | {r['B_net']:.0f} / {r['A_net']:.0f} |")
+        lines += ["", "Desplazamiento de parámetros A → B (media sobre semillas y folds por familia y calidad):", ""]
+        for (fam, lv), g in d.groupby(["family", "level"]):
+            keys = sorted({k for x in g["genes_B"] for k in x})
+            lines += [f"| familia {fam}, calidad {lv:.2f} | " + " | ".join(keys) + " |", "| --- | " + " | ".join("---" for _ in keys) + " |"]
+            lines.append("| A | " + " | ".join(f"{np.mean([x.get(k, np.nan) for x in g['genes_A']]):.3f}" for k in keys) + " |")
+            lines.append("| B | " + " | ".join(f"{np.mean([x.get(k, np.nan) for x in g['genes_B']]):.3f}" for k in keys) + " |")
+            lines.append("")
+        dd = d.dropna(subset=["B_exp", "A_exp"])
+        if len(dd):
+            diff = (dd["B_exp"] - dd["A_exp"]).to_numpy()
+            rng = np.random.default_rng(20261026)
+            bs = np.array([rng.choice(diff, len(diff)).mean() for _ in range(2000)])
+            lines += [f"Ganancia fuera de bloque de la re-optimización (B − A, expectativa σ, media sobre {len(diff)} celdas): {diff.mean():+.3f} [IC 95 % {np.quantile(bs, 0.025):+.3f}, {np.quantile(bs, 0.975):+.3f}]", ""]
+    return "\n".join(lines) if lines else "(sin etapas A/B)"
+
+
+def hierarchy_table(catalog: list, leaves_done: dict) -> str:
+    if not catalog:
+        return "(sin catálogo)"
+    lines = ["| hoja | nivel | régimen | vol | fina | variante L4 | calidad | ejecución L5 | comportamiento esperado | testigo | hecha (semillas) |", "| --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- |"]
+    for x in catalog:
+        done = leaves_done.get(x["id"])
+        lines.append(f"| {x['id']} | {x['level']} | {x['regime']} | {x['vol']} | {x['fine']} | {x['variant']} | {x['quality']:.2f} | {json.dumps(x.get('exec') or {})} | {x['expected']} | {x['witness']} | {('sí (' + str(done) + ')') if done else 'no'} |")
+    return "\n".join(lines)
+
+
+def write(df: pd.DataFrame, runs: list, out: Path, docs: str, ints: list | None = None, stage_a_docs: dict | None = None, catalog: list | None = None,
+          leaves_done: dict | None = None, contracts_dir: Path | None = None):
     if "family" not in df:
         df = df.assign(family="c3")
+    if "tag" not in df:
+        df = df.assign(tag="")
+    runs_b = [r for r in runs if str(r.get("tag", "")).startswith("stageB")]
+    runs = [r for r in runs if not str(r.get("tag", "")).startswith("stageB")]   # the sweep tables never mix the Stage-B points in
+    df = df[df["tag"].fillna("").astype(str) == ""]
     df_c3 = df[df["family"] == "c3"]
     p = pooled(df_c3)
     p.to_csv(out / "SWEEP_POOLED.csv", index=False)
@@ -368,6 +435,29 @@ def write(df: pd.DataFrame, runs: list, out: Path, docs: str, ints: list | None 
     frag += ["## Régimen de mercado: trimestres del año de decisión por terciles de volatilidad y tendencia (base, puerta por barra)", "", quarter_table(runs), ""]
     frag += ["", "## Genes congelados por configuración", "", gene_table(runs), "", "## Sensibilidad de los genes (±0.1 en el cuantil, bloque de selección)", "", sensitivity_table(runs), ""]
     frag += ["## Batería de intervenciones y contrafactuales (bloque de decisión; genes congelados en selección)", "", intervention_table(ints or []), ""]
+    frag += ["## Jerarquía de escenarios (catálogo) y cobertura de las hojas sintéticas", "", hierarchy_table(catalog or [], leaves_done or {}), ""]
+    frag += ["## Optimización en dos etapas", "", stage_tables(runs_b, stage_a_docs or {}), ""]
+    import hashlib
+    frozen_all = {}
+    for fam in ("c3", "param_param", "cell_param", "param_risk"):
+        fz = freeze_params(runs_b or runs, (stage_a_docs or {}).get(fam), fam)
+        if any(b.get("genes") for b in fz["bands"]):
+            frozen_all[fam] = fz
+    if frozen_all and contracts_dir is not None:
+        contracts_dir.mkdir(parents=True, exist_ok=True)
+        body = json.dumps({"schema": "strategy_params_frozen.v1", "families": frozen_all, "primary_family": ("param_param" if "param_param" in frozen_all else "c3")}, indent=1, sort_keys=True, default=float)
+        sha = hashlib.sha256(body.encode()).hexdigest()
+        doc = json.loads(body)
+        doc["sha256_body"] = sha
+        (contracts_dir / "STRATEGY_PARAMS_FROZEN_v1.json").write_text(json.dumps(doc, indent=1, sort_keys=True))
+        frag += ["## Parámetros congelados por banda de calidad (contrato `STRATEGY_PARAMS_FROZEN_v1.json`)", "", f"sha256 del cuerpo: `{sha}`; regla de banda: {BAND_RULE}", ""]
+        for fam, fz in frozen_all.items():
+            keys = sorted({k for b in fz["bands"] if b.get("genes") for k in b["genes"]})
+            frag += [f"### familia `{fam}`", "", "| banda AUC | fuente | n | " + " | ".join(keys) + " |", "| --- | --- | ---: | " + " | ".join("---" for _ in keys) + " |"]
+            for b in fz["bands"]:
+                if b.get("genes"):
+                    frag.append(f"| [{b['band'][0]:.2f}, {b['band'][1]:.2f}) | {b['source']} | {b['n']} | " + " | ".join(f"{b['genes'][k]['median']:.3f}" for k in keys) + " |")
+            frag.append("")
     frag += ["## Figuras", ""] + [f"- [{label} — variantes de calidad]({docs}/{figs[m + ':quality']})" for m, label in METRICS if m + ":quality" in figs] \
          + [f"- [{label} — variantes de ejecución]({docs}/{figs[m + ':execution']})" for m, label in METRICS if m + ":execution" in figs] \
          + [f"- [Sharpe vs MAE/naive]({docs}/{figs['mae']})", f"- [Neto vs MAE/naive]({docs}/{figs['mae_net']})", ""]
