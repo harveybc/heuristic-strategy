@@ -428,6 +428,9 @@ def walk_forward_errors(spec: dict, rec: dict) -> list:
         fr = json.loads(fp.read_text())
         if fr.get("identity") != fd["recipe"].get("identity"):
             errs.append(f"WF_FOLD_IDENTITY_MISMATCH:{tag}")
+        e = nested_store_error(DG.split_contract(fold), fr, (spec.get("store") or {}).get("sha256"), tag)
+        if e:
+            errs.append(e)
         if fr.get("schema") != "expert_guided_consumer_recipe.v2" or fr.get("scientific_release") is not False:
             errs.append(f"WF_FOLD_SCHEMA:{tag}")
         d = fr.get("derived_from") or {}
@@ -454,6 +457,18 @@ def gates_open(spec) -> list:
         if not p.exists() or (g.get("must_contain") and g["must_contain"] not in p.read_text()):
             missing.append(g)
     return missing
+
+
+def nested_store_error(fold_contract: dict, fold_recipe: dict, spec_store_sha: str | None, tag: str) -> str | None:
+    """Protocol v11 (audit A1-1 / A5-4): a nested-fold unit may not bind the consolidated store; the fold recipe must
+    declare ``fold_local_store`` for that fold and pin a store that is not the spec's consolidated one."""
+    if not (fold_contract or {}).get("fold_local_store_required"):
+        return None
+    fl = fold_recipe.get("fold_local_store")
+    store_sha = (fold_recipe.get("store") or {}).get("sha256")
+    if not fl or (spec_store_sha and store_sha == spec_store_sha):
+        return f"NESTED_FOLD_STORE_NOT_FOLD_LOCAL:{tag}:the recipe binds the consolidated store (fold_local_store={fl!r})"
+    return None
 
 
 def e3m_cmd(spec, arm, out, remote, recipe_root=None, recipe_file=None, split_contract=None, action_contract=None):

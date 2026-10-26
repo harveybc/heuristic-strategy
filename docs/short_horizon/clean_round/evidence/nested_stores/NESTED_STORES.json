@@ -850,5 +850,12 @@
    "wf2023q3",
    "wf2023q4"
   ]
+ },
+ "status": "SUPERSEDED",
+ "superseded_reason": "owner order 2026-10-26: the 19-column list is NOT a selection and must not be used for anything; the floating selection runs on the FULL candidate set first",
+ "rebuild_121_columns": {
+  "status": "STOPPED_BY_OWNER_ORDER",
+  "detail": "never launched on the host; code (predictor tools/nested_fold_stores.py build-full/check-full, activity forward-only expanding mode, fold_local_producers --activity-mode) committed and tested, no fold store built",
+  "owner_rule": "reuse the existing datalake artifacts: consolidated consumer store cd0eb8d2... (121 columns, consumer scope TRAIN 2020-01->2023-07, INNER_A 2023-07->2024-01 = selection block, declared development, not independent confirmation) and the selection-v5 stage artifacts, as Musashi's selection does; no new store for the selection"
  }
 }

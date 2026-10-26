@@ -19,6 +19,11 @@ setup(
         ],
         'trade_lifecycle_policy.plugins': [
             'prediction_entry_exit_v1=app.policies.prediction_entry_exit:PredictionEntryExitPolicy'
+        ],
+        # real-model evaluator for Musashi's feature_selector (owner 2026-10-26): the floating selection trains MY
+        # specialists; resolved by feature_selector.plugins.resolve('evaluators', 'expert_guided_model')
+        'feature_selector.evaluators': [
+            'expert_guided_model=app.short_horizon.expert_guided.fs_evaluator:ExpertGuidedModelEvaluator'
         ]
     },
     install_requires=[
