@@ -39,7 +39,12 @@ import numpy as np
 RULES = {"EXACT_RESIDUAL": 1e-9, "NEAR_R2": 0.99, "DRIFT_AUC": 0.75, "FAMILY_VAR": 0.99, "FAMILY_MIN_COLS": 2, "FAMILY_B5_MIN_SIZE": 5,
          "informative_tasks": ("opener3", "hit"), "model": "hgb", "train_end": "2023-07-01", "drift_split": "2023-01-01",
          "periods": (("2020", "2020-01-01", "2021-01-01"), ("2021", "2021-01-01", "2022-01-01"), ("2022", "2022-01-01", "2023-01-01"), ("2023H1", "2023-01-01", "2023-07-01"))}
-GRID = {"NEAR_R2": (0.95, 0.99, 0.999), "DRIFT_AUC": (0.70, 0.75, 0.80), "FAMILY_VAR": (0.98, 0.99, 0.995)}
+GRID = {"NEAR_R2": (0.95, 0.99, 0.999), "DRIFT_AUC": (0.70, 0.75, 0.80), "FAMILY_VAR": (0.90, 0.98, 0.99, 0.995)}
+# named profiles, declared before any run: the budget profile feeds the SBFS start set (tier A); everything it moves
+# goes to tier B (reinclusion pool), nothing is deleted. Search cost grows about quadratically with |A|.
+PROFILES = {"strict_v2_default": {"NEAR_R2": 0.99, "FAMILY_VAR": 0.99},
+            "strict_v2_budget": {"NEAR_R2": 0.95, "FAMILY_VAR": 0.90}}
+SBFS_START_PROFILE = "strict_v2_budget"
 # a column is a raw LEVEL unless its name carries one of these tokens (changes, ratios, oscillators, encodings, bounded)
 LEVEL_EXCLUDE_TOKENS = ("@diff", "ret", "chg", "change", "ratio", "logret", "z156", "_sin", "_cos", "session", "hours_", "energy", "phase", "inst_freq",
                         "slope", "entropy", "rg.gmm.p", "p_hit", "close_loc", "px.er_", "rv_", "position", ".D1", ".D2", ".D3", ".D4", "@asinh",
@@ -348,7 +353,10 @@ def main():
     comp_order = read_component_order(Path(a.selection) / "CONTRASTS_PARENT_COMPONENTS.csv", RULES["model"], RULES["informative_tasks"])
     meas = measure(a.store, cols, RULES)
     R = RULES
-    res = run(cols, fam, status, task_gain, meas, R["NEAR_R2"], R["DRIFT_AUC"], R["FAMILY_VAR"], R["EXACT_RESIDUAL"], R["FAMILY_MIN_COLS"], R["FAMILY_B5_MIN_SIZE"])
+    profiles = {}
+    for name, pv in PROFILES.items():
+        profiles[name] = run(cols, fam, status, task_gain, meas, pv["NEAR_R2"], R["DRIFT_AUC"], pv["FAMILY_VAR"], R["EXACT_RESIDUAL"], R["FAMILY_MIN_COLS"], R["FAMILY_B5_MIN_SIZE"])
+    res = profiles[SBFS_START_PROFILE]
     sens = {}
     for k, vals in GRID.items():
         for v in vals:
@@ -359,6 +367,10 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     doc = {"schema": "expert_guided_prefilter.v2", "rules": {k: v for k, v in R.items() if k != "periods"}, "periods": R["periods"], "level_exclude_tokens": LEVEL_EXCLUDE_TOKENS,
+           "profiles": {n: {"thresholds": PROFILES[n], "counts": profiles[n]["counts"], "tier_A": profiles[n]["tier_a"], "tier_B": profiles[n]["tier_b"], "reasons": profiles[n]["reasons"],
+                            "b1_clusters": profiles[n]["b1_clusters"], "b5_detail": profiles[n]["b5"],
+                            "sha256_tier_A": hashlib.sha256(json.dumps(profiles[n]["tier_a"]).encode()).hexdigest(), "sha256_tier_B": hashlib.sha256(json.dumps(profiles[n]["tier_b"]).encode()).hexdigest()} for n in PROFILES},
+           "sbfs_start_profile": SBFS_START_PROFILE, "sbfs_start_reason": "search cost grows about quadratically with |tier A|; tier B stays in the floating reinclusion pool, nothing is deleted",
            "recipe_identity": rec.get("identity"), "fit_block": ["2020-01-01", R["train_end"]], "rows_train": meas["rows_train"], "rows_common_support": meas["rows_common"], "support_hash": meas["support_hash"],
            "counts": res["counts"], "tier_A": res["tier_a"], "tier_B": res["tier_b"],
            "definitive": {c: res["reasons"][c] for c in cols if res["reasons"].get(c, "").startswith(("D", "ABSENT"))},
@@ -367,7 +379,7 @@ def main():
            "b4_component_order_not_applied": comp_order, "b5_detail": res["b5"], "sensitivity": sens,
            "sha256_tier_A": hashlib.sha256(json.dumps(res["tier_a"]).encode()).hexdigest(), "sha256_tier_B": hashlib.sha256(json.dumps(res["tier_b"]).encode()).hexdigest()}
     (out / "CANDIDATES_STRICT.json").write_text(json.dumps(doc, indent=1))
-    print(json.dumps({"counts": res["counts"], "sensitivity": sens}, indent=1))
+    print(json.dumps({"profiles": {n: profiles[n]["counts"] for n in PROFILES}, "sbfs_start_profile": SBFS_START_PROFILE, "sensitivity": sens}, indent=1))
 
 
 if __name__ == "__main__":

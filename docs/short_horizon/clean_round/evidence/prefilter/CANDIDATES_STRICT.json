@@ -73,6 +73,1171 @@
   "price_minus_ema",
   "minus_close"
  ],
+ "profiles": {
+  "strict_v2_default": {
+   "thresholds": {
+    "NEAR_R2": 0.99,
+    "FAMILY_VAR": 0.99
+   },
+   "counts": {
+    "start": 121,
+    "ABSENT": 0,
+    "D1_constant": 1,
+    "D2_exact_duplicate": 6,
+    "B1_near_duplicate": 4,
+    "B2_drift_alert_level": 0,
+    "B3_family_no_evidence": 1,
+    "B5_family_redundancy": 9,
+    "tier_A": 100,
+    "tier_B": 14,
+    "universe_after_definitive": 114
+   },
+   "tier_A": [
+    "OPEN@diff",
+    "HIGH@diff",
+    "LOW@diff",
+    "CLOSE@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "BB_Width",
+    "ATR_ratio",
+    "rolling_std_24",
+    "RSI",
+    "Stochastic_K",
+    "WilliamsR",
+    "ROC",
+    "BB_position",
+    "price_minus_ema",
+    "hod_sin",
+    "hod_cos",
+    "cal.utc_dow_sin",
+    "cal.utc_dow_cos",
+    "cal.utc_session_asia",
+    "cal.utc_session_europe",
+    "cal.utc_session_us",
+    "px.logret_2",
+    "px.logret_4",
+    "px.logret_6",
+    "px.logret_12",
+    "px.logret_24",
+    "px.logret_48",
+    "px.range_2@log",
+    "px.range_4@log",
+    "px.range_6@log",
+    "px.range_12",
+    "px.range_24",
+    "px.range_48",
+    "px.close_loc_1",
+    "px.close_loc_2",
+    "px.close_loc_4",
+    "px.close_loc_6",
+    "px.close_loc_12",
+    "px.close_loc_24",
+    "px.close_loc_48",
+    "px.er_2",
+    "px.er_4",
+    "px.er_6",
+    "px.er_12",
+    "px.er_24",
+    "px.er_48",
+    "px.hours_since_session_open",
+    "cdl.upper_wick_pips@asinh",
+    "cdl.lower_wick_pips@asinh",
+    "cdl.close_minus_low_pips@asinh",
+    "cdl.high_minus_close_pips@asinh",
+    "dly.us10y.level@diff",
+    "dly.us10y.chg_1d",
+    "dly.us10y.chg_5d",
+    "cot.eur.net_long",
+    "cot.eur.net_change",
+    "cot.eur.net_share",
+    "cot.eur.net_z156",
+    "fac.fx_f1.ret_1",
+    "fac.fx_f1.ret_4",
+    "fac.fx_f1.ret_24",
+    "fac.fx_f1.kalman_slope",
+    "ev.tokyo_fix.hours_since",
+    "ev.london_fix.hours_since",
+    "ev.ny_cut.hours_since",
+    "act.p_hit",
+    "ssa.trend_minus_close_pips",
+    "ssa.c2_pips",
+    "ssa.c3_pips",
+    "wv.lc.A4@diff",
+    "wv.lc.D4",
+    "wv.lc.D3",
+    "wv.lc.D2",
+    "wv.lc.D1",
+    "wv.lc.energy_D4@log",
+    "wv.lc.energy_D3@log",
+    "wv.lc.energy_D2@log",
+    "wv.lc.energy_D1@diff",
+    "wv.r1.D4",
+    "wv.r1.D3",
+    "wv.r1.D2",
+    "wv.r1.D1",
+    "wv.r1.energy_D4@log",
+    "wv.r1.energy_D3@log",
+    "wv.r1.energy_D2@log",
+    "wv.r1.energy_D1@diff",
+    "hb.r1.phase_cos",
+    "hb.r1.phase_sin",
+    "hb.r1.inst_freq",
+    "hb.lc_detr.inst_freq",
+    "hb.eur.phase_cos",
+    "hb.eur.phase_sin",
+    "hb.eur.inst_freq",
+    "px.rv_24",
+    "rg.gmm.p0",
+    "rg.gmm.p1",
+    "rg.gmm.p2",
+    "rg.gmm.entropy"
+   ],
+   "tier_B": [
+    "RAW_BAR_LOG_RETURN",
+    "RAW_CLOSE_LOG_RETURN",
+    "Stochastic_D",
+    "CCI",
+    "dow_sin",
+    "dow_cos",
+    "cal.utc_hod_sin",
+    "cal.utc_hod_cos",
+    "cal.london_hod_sin",
+    "cal.london_hod_cos",
+    "cdl.body_pips",
+    "cdl.range_pips@asinh",
+    "wv.usd.A4",
+    "kf.lc.level_minus_close"
+   ],
+   "reasons": {
+    "RAW_BAR_LOG_RETURN": "B5_family_redundancy",
+    "RAW_CLOSE_LOG_RETURN": "B1_near_duplicate",
+    "Stochastic_D": "B5_family_redundancy",
+    "CCI": "B5_family_redundancy",
+    "dow_sin": "B5_family_redundancy",
+    "dow_cos": "B5_family_redundancy",
+    "cal.utc_hod_sin": "B5_family_redundancy",
+    "cal.utc_hod_cos": "B5_family_redundancy",
+    "cal.london_hod_sin": "B5_family_redundancy",
+    "cal.london_hod_cos": "B5_family_redundancy",
+    "px.logret_1": "D2_exact_duplicate",
+    "px.range_1@log": "D2_exact_duplicate",
+    "px.er_1": "D1_constant",
+    "cdl.body_pips": "B1_near_duplicate",
+    "cdl.range_pips@asinh": "B1_near_duplicate",
+    "ev.tokyo_fix.hours_to": "D2_exact_duplicate",
+    "ev.london_fix.hours_to": "D2_exact_duplicate",
+    "ev.ny_cut.hours_to": "D2_exact_duplicate",
+    "wv.r1.A4": "D2_exact_duplicate",
+    "wv.usd.A4": "B3_family_no_evidence",
+    "kf.lc.level_minus_close": "B1_near_duplicate"
+   },
+   "b1_clusters": [
+    {
+     "members": [
+      "CLOSE@diff",
+      "RAW_CLOSE_LOG_RETURN",
+      "kf.lc.level_minus_close"
+     ],
+     "keep": "CLOSE@diff",
+     "tier_b": [
+      "RAW_CLOSE_LOG_RETURN",
+      "kf.lc.level_minus_close"
+     ]
+    },
+    {
+     "members": [
+      "RAW_BAR_LOG_RETURN",
+      "cdl.body_pips"
+     ],
+     "keep": "RAW_BAR_LOG_RETURN",
+     "tier_b": [
+      "cdl.body_pips"
+     ]
+    },
+    {
+     "members": [
+      "RAW_LOG_RANGE@log",
+      "cdl.range_pips@asinh"
+     ],
+     "keep": "RAW_LOG_RANGE@log",
+     "tier_b": [
+      "cdl.range_pips@asinh"
+     ]
+    }
+   ],
+   "b5_detail": {
+    "inv.raw": {
+     "kept": [
+      "CLOSE@diff",
+      "OPEN@diff",
+      "RAW_LOG_RANGE@log",
+      "RAW_ELAPSED_HOURS",
+      "HIGH@diff",
+      "LOW@diff"
+     ],
+     "tier_b": [
+      "RAW_BAR_LOG_RETURN"
+     ],
+     "trace": [
+      {
+       "block": "CLOSE@diff",
+       "explained": 0.37460919587534613
+      },
+      {
+       "block": "OPEN@diff",
+       "explained": 0.5947810214049596
+      },
+      {
+       "block": "RAW_LOG_RANGE@log",
+       "explained": 0.7457945455307706
+      },
+      {
+       "block": "RAW_ELAPSED_HOURS",
+       "explained": 0.8881921166722994
+      },
+      {
+       "block": "HIGH@diff",
+       "explained": 0.9473923508340569
+      },
+      {
+       "block": "LOW@diff",
+       "explained": 0.9967251242077361
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "inv.momentum": {
+     "kept": [
+      "BB_position",
+      "Stochastic_K",
+      "price_minus_ema",
+      "ROC",
+      "WilliamsR",
+      "RSI"
+     ],
+     "tier_b": [
+      "Stochastic_D",
+      "CCI"
+     ],
+     "trace": [
+      {
+       "block": "BB_position",
+       "explained": 0.7550639300583262
+      },
+      {
+       "block": "Stochastic_K",
+       "explained": 0.8573805189722871
+      },
+      {
+       "block": "price_minus_ema",
+       "explained": 0.9288729325672247
+      },
+      {
+       "block": "ROC",
+       "explained": 0.9600508327552666
+      },
+      {
+       "block": "WilliamsR",
+       "explained": 0.9780771572723022
+      },
+      {
+       "block": "RSI",
+       "explained": 0.9904299076625305
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "calendar": {
+     "kept": [
+      "hod_sin",
+      "hod_cos",
+      "cal.utc_dow_sin",
+      "cal.utc_dow_cos",
+      "cal.utc_session_europe",
+      "cal.utc_session_asia",
+      "cal.utc_session_us"
+     ],
+     "tier_b": [
+      "dow_sin",
+      "dow_cos",
+      "cal.utc_hod_sin",
+      "cal.utc_hod_cos",
+      "cal.london_hod_sin",
+      "cal.london_hod_cos"
+     ],
+     "trace": [
+      {
+       "block": "hod",
+       "explained": 0.6020174875955716
+      },
+      {
+       "block": "cal.utc_dow",
+       "explained": 0.9032000233809965
+      },
+      {
+       "block": "cal.utc_session_europe",
+       "explained": 0.9632486013118763
+      },
+      {
+       "block": "cal.utc_session_asia",
+       "explained": 0.9778649370671437
+      },
+      {
+       "block": "cal.utc_session_us",
+       "explained": 0.9911840876924181
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.logret": {
+     "kept": [
+      "px.logret_6",
+      "px.logret_24",
+      "px.logret_2",
+      "px.logret_48",
+      "px.logret_12",
+      "px.logret_4"
+     ],
+     "tier_b": [],
+     "trace": [
+      {
+       "block": "px.logret_6",
+       "explained": 0.47453969024801523
+      },
+      {
+       "block": "px.logret_24",
+       "explained": 0.6920417494216835
+      },
+      {
+       "block": "px.logret_2",
+       "explained": 0.8189696659409595
+      },
+      {
+       "block": "px.logret_48",
+       "explained": 0.8988007735653643
+      },
+      {
+       "block": "px.logret_12",
+       "explained": 0.957450347740267
+      },
+      {
+       "block": "px.logret_4",
+       "explained": 1.0
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.range": {
+     "kept": [
+      "px.range_6@log",
+      "px.range_24",
+      "px.range_2@log",
+      "px.range_48",
+      "px.range_12",
+      "px.range_4@log"
+     ],
+     "tier_b": [],
+     "trace": [
+      {
+       "block": "px.range_6@log",
+       "explained": 0.577933363907823
+      },
+      {
+       "block": "px.range_24",
+       "explained": 0.7925202809603725
+      },
+      {
+       "block": "px.range_2@log",
+       "explained": 0.8769108144603082
+      },
+      {
+       "block": "px.range_48",
+       "explained": 0.9336558630219097
+      },
+      {
+       "block": "px.range_12",
+       "explained": 0.9827195396523806
+      },
+      {
+       "block": "px.range_4@log",
+       "explained": 1.0
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.close_loc": {
+     "kept": [
+      "px.close_loc_6",
+      "px.close_loc_24",
+      "px.close_loc_1",
+      "px.close_loc_48",
+      "px.close_loc_2",
+      "px.close_loc_12",
+      "px.close_loc_4"
+     ],
+     "tier_b": [],
+     "trace": [
+      {
+       "block": "px.close_loc_6",
+       "explained": 0.5528905051906307
+      },
+      {
+       "block": "px.close_loc_24",
+       "explained": 0.7453047673637658
+      },
+      {
+       "block": "px.close_loc_1",
+       "explained": 0.8901737959736739
+      },
+      {
+       "block": "px.close_loc_48",
+       "explained": 0.9271031049893103
+      },
+      {
+       "block": "px.close_loc_2",
+       "explained": 0.9600019820260439
+      },
+      {
+       "block": "px.close_loc_12",
+       "explained": 0.9851516047067448
+      },
+      {
+       "block": "px.close_loc_4",
+       "explained": 1.0
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.er": {
+     "kept": [
+      "px.er_6",
+      "px.er_24",
+      "px.er_2",
+      "px.er_48",
+      "px.er_12",
+      "px.er_4"
+     ],
+     "tier_b": [],
+     "trace": [
+      {
+       "block": "px.er_6",
+       "explained": 0.2564957994976518
+      },
+      {
+       "block": "px.er_24",
+       "explained": 0.47141025379232115
+      },
+      {
+       "block": "px.er_2",
+       "explained": 0.6397257664830898
+      },
+      {
+       "block": "px.er_48",
+       "explained": 0.7715196616321246
+      },
+      {
+       "block": "px.er_12",
+       "explained": 0.8882618569994626
+      },
+      {
+       "block": "px.er_4",
+       "explained": 1.0
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "wavelet/log_close": {
+     "kept": [
+      "wv.lc.energy_D2@log",
+      "wv.lc.D3",
+      "wv.lc.D1",
+      "wv.lc.energy_D1@diff",
+      "wv.lc.D2",
+      "wv.lc.D4",
+      "wv.lc.A4@diff",
+      "wv.lc.energy_D4@log",
+      "wv.lc.energy_D3@log"
+     ],
+     "tier_b": [],
+     "trace": [
+      {
+       "block": "wv.lc.energy_D2@log",
+       "explained": 0.2670251368605773
+      },
+      {
+       "block": "wv.lc.D3",
+       "explained": 0.3831077197379549
+      },
+      {
+       "block": "wv.lc.D1",
+       "explained": 0.4945372532957264
+      },
+      {
+       "block": "wv.lc.energy_D1@diff",
+       "explained": 0.6059184298425182
+      },
+      {
+       "block": "wv.lc.D2",
+       "explained": 0.7164780205687373
+      },
+      {
+       "block": "wv.lc.D4",
+       "explained": 0.825859592440616
+      },
+      {
+       "block": "wv.lc.A4@diff",
+       "explained": 0.9339947098644784
+      },
+      {
+       "block": "wv.lc.energy_D4@log",
+       "explained": 0.9725226466964326
+      },
+      {
+       "block": "wv.lc.energy_D3@log",
+       "explained": 1.0
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "wavelet/logret_1": {
+     "kept": [
+      "wv.r1.energy_D2@log",
+      "wv.r1.D3",
+      "wv.r1.energy_D1@diff",
+      "wv.r1.D1",
+      "wv.r1.D4",
+      "wv.r1.D2",
+      "wv.r1.energy_D4@log",
+      "wv.r1.energy_D3@log"
+     ],
+     "tier_b": [],
+     "trace": [
+      {
+       "block": "wv.r1.energy_D2@log",
+       "explained": 0.3088635566687348
+      },
+      {
+       "block": "wv.r1.D3",
+       "explained": 0.4346176325578667
+      },
+      {
+       "block": "wv.r1.energy_D1@diff",
+       "explained": 0.5600388147857271
+      },
+      {
+       "block": "wv.r1.D1",
+       "explained": 0.6850940828201757
+      },
+      {
+       "block": "wv.r1.D4",
+       "explained": 0.8098476828949914
+      },
+      {
+       "block": "wv.r1.D2",
+       "explained": 0.934244902535826
+      },
+      {
+       "block": "wv.r1.energy_D4@log",
+       "explained": 0.9712140031567362
+      },
+      {
+       "block": "wv.r1.energy_D3@log",
+       "explained": 1.0
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    }
+   },
+   "sha256_tier_A": "6f547af4bd0f6c1d2169efb249f8c35e852ef37b158bde52697789a80ceaf044",
+   "sha256_tier_B": "e235110107f43364d063d6c6619bedd2b52e73c7be59d9b541884e9571c5aa33"
+  },
+  "strict_v2_budget": {
+   "thresholds": {
+    "NEAR_R2": 0.95,
+    "FAMILY_VAR": 0.9
+   },
+   "counts": {
+    "start": 121,
+    "ABSENT": 0,
+    "D1_constant": 1,
+    "D2_exact_duplicate": 6,
+    "B1_near_duplicate": 13,
+    "B2_drift_alert_level": 0,
+    "B3_family_no_evidence": 1,
+    "B5_family_redundancy": 17,
+    "tier_A": 83,
+    "tier_B": 31,
+    "universe_after_definitive": 114
+   },
+   "tier_A": [
+    "OPEN@diff",
+    "HIGH@diff",
+    "LOW@diff",
+    "RAW_LOG_RANGE@log",
+    "RAW_ELAPSED_HOURS",
+    "ATR",
+    "BB_Width",
+    "ATR_ratio",
+    "rolling_std_24",
+    "Stochastic_K",
+    "CCI",
+    "price_minus_ema",
+    "hod_sin",
+    "hod_cos",
+    "dow_sin",
+    "dow_cos",
+    "cal.utc_session_europe",
+    "px.logret_2",
+    "px.logret_6",
+    "px.logret_12",
+    "px.logret_24",
+    "px.logret_48",
+    "px.range_2@log",
+    "px.range_6@log",
+    "px.range_24",
+    "px.range_48",
+    "px.close_loc_1",
+    "px.close_loc_6",
+    "px.close_loc_24",
+    "px.close_loc_48",
+    "px.er_2",
+    "px.er_4",
+    "px.er_6",
+    "px.er_12",
+    "px.er_24",
+    "px.er_48",
+    "px.hours_since_session_open",
+    "cdl.upper_wick_pips@asinh",
+    "cdl.lower_wick_pips@asinh",
+    "cdl.close_minus_low_pips@asinh",
+    "cdl.high_minus_close_pips@asinh",
+    "dly.us10y.level@diff",
+    "dly.us10y.chg_1d",
+    "dly.us10y.chg_5d",
+    "cot.eur.net_long",
+    "cot.eur.net_change",
+    "cot.eur.net_share",
+    "fac.fx_f1.ret_1",
+    "fac.fx_f1.ret_4",
+    "fac.fx_f1.ret_24",
+    "fac.fx_f1.kalman_slope",
+    "ev.tokyo_fix.hours_since",
+    "ev.london_fix.hours_since",
+    "ev.ny_cut.hours_since",
+    "act.p_hit",
+    "ssa.trend_minus_close_pips",
+    "ssa.c2_pips",
+    "ssa.c3_pips",
+    "wv.lc.A4@diff",
+    "wv.lc.D4",
+    "wv.lc.D3",
+    "wv.lc.D2",
+    "wv.lc.D1",
+    "wv.lc.energy_D2@log",
+    "wv.lc.energy_D1@diff",
+    "wv.r1.D4",
+    "wv.r1.D3",
+    "wv.r1.D2",
+    "wv.r1.D1",
+    "wv.r1.energy_D2@log",
+    "wv.r1.energy_D1@diff",
+    "hb.r1.phase_cos",
+    "hb.r1.phase_sin",
+    "hb.r1.inst_freq",
+    "hb.lc_detr.inst_freq",
+    "hb.eur.phase_cos",
+    "hb.eur.phase_sin",
+    "hb.eur.inst_freq",
+    "px.rv_24",
+    "rg.gmm.p0",
+    "rg.gmm.p1",
+    "rg.gmm.p2",
+    "rg.gmm.entropy"
+   ],
+   "tier_B": [
+    "CLOSE@diff",
+    "RAW_BAR_LOG_RETURN",
+    "RAW_CLOSE_LOG_RETURN",
+    "RSI",
+    "Stochastic_D",
+    "WilliamsR",
+    "ROC",
+    "BB_position",
+    "cal.utc_hod_sin",
+    "cal.utc_hod_cos",
+    "cal.utc_dow_sin",
+    "cal.utc_dow_cos",
+    "cal.utc_session_asia",
+    "cal.utc_session_us",
+    "cal.london_hod_sin",
+    "cal.london_hod_cos",
+    "px.logret_4",
+    "px.range_4@log",
+    "px.range_12",
+    "px.close_loc_2",
+    "px.close_loc_4",
+    "px.close_loc_12",
+    "cdl.body_pips",
+    "cdl.range_pips@asinh",
+    "cot.eur.net_z156",
+    "wv.lc.energy_D4@log",
+    "wv.lc.energy_D3@log",
+    "wv.r1.energy_D4@log",
+    "wv.r1.energy_D3@log",
+    "wv.usd.A4",
+    "kf.lc.level_minus_close"
+   ],
+   "reasons": {
+    "CLOSE@diff": "B5_family_redundancy",
+    "RAW_BAR_LOG_RETURN": "B1_near_duplicate",
+    "RAW_CLOSE_LOG_RETURN": "B1_near_duplicate",
+    "RSI": "B5_family_redundancy",
+    "Stochastic_D": "B5_family_redundancy",
+    "WilliamsR": "B5_family_redundancy",
+    "ROC": "B5_family_redundancy",
+    "BB_position": "B1_near_duplicate",
+    "cal.utc_hod_sin": "B1_near_duplicate",
+    "cal.utc_hod_cos": "B1_near_duplicate",
+    "cal.utc_dow_sin": "B1_near_duplicate",
+    "cal.utc_dow_cos": "B1_near_duplicate",
+    "cal.utc_session_asia": "B5_family_redundancy",
+    "cal.utc_session_us": "B5_family_redundancy",
+    "cal.london_hod_sin": "B1_near_duplicate",
+    "cal.london_hod_cos": "B1_near_duplicate",
+    "px.logret_1": "D2_exact_duplicate",
+    "px.logret_4": "B5_family_redundancy",
+    "px.range_1@log": "D2_exact_duplicate",
+    "px.range_4@log": "B5_family_redundancy",
+    "px.range_12": "B5_family_redundancy",
+    "px.close_loc_2": "B5_family_redundancy",
+    "px.close_loc_4": "B5_family_redundancy",
+    "px.close_loc_12": "B5_family_redundancy",
+    "px.er_1": "D1_constant",
+    "cdl.body_pips": "B1_near_duplicate",
+    "cdl.range_pips@asinh": "B1_near_duplicate",
+    "cot.eur.net_z156": "B1_near_duplicate",
+    "ev.tokyo_fix.hours_to": "D2_exact_duplicate",
+    "ev.london_fix.hours_to": "D2_exact_duplicate",
+    "ev.ny_cut.hours_to": "D2_exact_duplicate",
+    "wv.lc.energy_D4@log": "B5_family_redundancy",
+    "wv.lc.energy_D3@log": "B5_family_redundancy",
+    "wv.r1.A4": "D2_exact_duplicate",
+    "wv.r1.energy_D4@log": "B5_family_redundancy",
+    "wv.r1.energy_D3@log": "B5_family_redundancy",
+    "wv.usd.A4": "B3_family_no_evidence",
+    "kf.lc.level_minus_close": "B1_near_duplicate"
+   },
+   "b1_clusters": [
+    {
+     "members": [
+      "CLOSE@diff",
+      "RAW_BAR_LOG_RETURN",
+      "RAW_CLOSE_LOG_RETURN",
+      "cdl.body_pips",
+      "kf.lc.level_minus_close"
+     ],
+     "keep": "CLOSE@diff",
+     "tier_b": [
+      "RAW_BAR_LOG_RETURN",
+      "RAW_CLOSE_LOG_RETURN",
+      "cdl.body_pips",
+      "kf.lc.level_minus_close"
+     ]
+    },
+    {
+     "members": [
+      "RAW_LOG_RANGE@log",
+      "cdl.range_pips@asinh"
+     ],
+     "keep": "RAW_LOG_RANGE@log",
+     "tier_b": [
+      "cdl.range_pips@asinh"
+     ]
+    },
+    {
+     "members": [
+      "CCI",
+      "BB_position"
+     ],
+     "keep": "CCI",
+     "tier_b": [
+      "BB_position"
+     ]
+    },
+    {
+     "members": [
+      "hod_sin",
+      "cal.utc_hod_sin",
+      "cal.london_hod_sin"
+     ],
+     "keep": "hod_sin",
+     "tier_b": [
+      "cal.london_hod_cos",
+      "cal.london_hod_sin",
+      "cal.utc_hod_cos",
+      "cal.utc_hod_sin"
+     ]
+    },
+    {
+     "members": [
+      "hod_cos",
+      "cal.utc_hod_cos",
+      "cal.london_hod_cos"
+     ],
+     "keep": "hod_cos",
+     "tier_b": [
+      "cal.london_hod_cos",
+      "cal.london_hod_sin",
+      "cal.utc_hod_cos",
+      "cal.utc_hod_sin"
+     ]
+    },
+    {
+     "members": [
+      "dow_cos",
+      "cal.utc_dow_cos"
+     ],
+     "keep": "dow_cos",
+     "tier_b": [
+      "cal.utc_dow_cos",
+      "cal.utc_dow_sin"
+     ]
+    },
+    {
+     "members": [
+      "cot.eur.net_long",
+      "cot.eur.net_z156"
+     ],
+     "keep": "cot.eur.net_long",
+     "tier_b": [
+      "cot.eur.net_z156"
+     ]
+    }
+   ],
+   "b5_detail": {
+    "inv.raw": {
+     "kept": [
+      "LOW@diff",
+      "HIGH@diff",
+      "RAW_ELAPSED_HOURS",
+      "RAW_LOG_RANGE@log",
+      "OPEN@diff"
+     ],
+     "tier_b": [
+      "CLOSE@diff"
+     ],
+     "trace": [
+      {
+       "block": "LOW@diff",
+       "explained": 0.305011387356819
+      },
+      {
+       "block": "HIGH@diff",
+       "explained": 0.48503529019905867
+      },
+      {
+       "block": "RAW_ELAPSED_HOURS",
+       "explained": 0.6522706554217805
+      },
+      {
+       "block": "RAW_LOG_RANGE@log",
+       "explained": 0.801758117424047
+      },
+      {
+       "block": "OPEN@diff",
+       "explained": 0.9511389491206257
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "inv.momentum": {
+     "kept": [
+      "Stochastic_K",
+      "price_minus_ema",
+      "CCI"
+     ],
+     "tier_b": [
+      "RSI",
+      "Stochastic_D",
+      "WilliamsR",
+      "ROC"
+     ],
+     "trace": [
+      {
+       "block": "Stochastic_K",
+       "explained": 0.759522867298882
+      },
+      {
+       "block": "price_minus_ema",
+       "explained": 0.8788253359111952
+      },
+      {
+       "block": "CCI",
+       "explained": 0.9169250593005186
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "calendar": {
+     "kept": [
+      "hod_sin",
+      "hod_cos",
+      "dow_sin",
+      "dow_cos",
+      "cal.utc_session_europe"
+     ],
+     "tier_b": [
+      "cal.utc_session_asia",
+      "cal.utc_session_us"
+     ],
+     "trace": [
+      {
+       "block": "hod",
+       "explained": 0.550766865202294
+      },
+      {
+       "block": "dow",
+       "explained": 0.8364973350589434
+      },
+      {
+       "block": "cal.utc_session_europe",
+       "explained": 0.9481883308451855
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.logret": {
+     "kept": [
+      "px.logret_6",
+      "px.logret_24",
+      "px.logret_2",
+      "px.logret_48",
+      "px.logret_12"
+     ],
+     "tier_b": [
+      "px.logret_4"
+     ],
+     "trace": [
+      {
+       "block": "px.logret_6",
+       "explained": 0.47453969024801523
+      },
+      {
+       "block": "px.logret_24",
+       "explained": 0.6920417494216835
+      },
+      {
+       "block": "px.logret_2",
+       "explained": 0.8189696659409595
+      },
+      {
+       "block": "px.logret_48",
+       "explained": 0.8988007735653643
+      },
+      {
+       "block": "px.logret_12",
+       "explained": 0.957450347740267
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.range": {
+     "kept": [
+      "px.range_6@log",
+      "px.range_24",
+      "px.range_2@log",
+      "px.range_48"
+     ],
+     "tier_b": [
+      "px.range_4@log",
+      "px.range_12"
+     ],
+     "trace": [
+      {
+       "block": "px.range_6@log",
+       "explained": 0.577933363907823
+      },
+      {
+       "block": "px.range_24",
+       "explained": 0.7925202809603725
+      },
+      {
+       "block": "px.range_2@log",
+       "explained": 0.8769108144603082
+      },
+      {
+       "block": "px.range_48",
+       "explained": 0.9336558630219097
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.close_loc": {
+     "kept": [
+      "px.close_loc_6",
+      "px.close_loc_24",
+      "px.close_loc_1",
+      "px.close_loc_48"
+     ],
+     "tier_b": [
+      "px.close_loc_2",
+      "px.close_loc_4",
+      "px.close_loc_12"
+     ],
+     "trace": [
+      {
+       "block": "px.close_loc_6",
+       "explained": 0.5528905051906307
+      },
+      {
+       "block": "px.close_loc_24",
+       "explained": 0.7453047673637658
+      },
+      {
+       "block": "px.close_loc_1",
+       "explained": 0.8901737959736739
+      },
+      {
+       "block": "px.close_loc_48",
+       "explained": 0.9271031049893103
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "px.er": {
+     "kept": [
+      "px.er_6",
+      "px.er_24",
+      "px.er_2",
+      "px.er_48",
+      "px.er_12",
+      "px.er_4"
+     ],
+     "tier_b": [],
+     "trace": [
+      {
+       "block": "px.er_6",
+       "explained": 0.2564957994976518
+      },
+      {
+       "block": "px.er_24",
+       "explained": 0.47141025379232115
+      },
+      {
+       "block": "px.er_2",
+       "explained": 0.6397257664830898
+      },
+      {
+       "block": "px.er_48",
+       "explained": 0.7715196616321246
+      },
+      {
+       "block": "px.er_12",
+       "explained": 0.8882618569994626
+      },
+      {
+       "block": "px.er_4",
+       "explained": 1.0
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "wavelet/log_close": {
+     "kept": [
+      "wv.lc.energy_D2@log",
+      "wv.lc.D3",
+      "wv.lc.D1",
+      "wv.lc.energy_D1@diff",
+      "wv.lc.D2",
+      "wv.lc.D4",
+      "wv.lc.A4@diff"
+     ],
+     "tier_b": [
+      "wv.lc.energy_D4@log",
+      "wv.lc.energy_D3@log"
+     ],
+     "trace": [
+      {
+       "block": "wv.lc.energy_D2@log",
+       "explained": 0.2670251368605773
+      },
+      {
+       "block": "wv.lc.D3",
+       "explained": 0.3831077197379549
+      },
+      {
+       "block": "wv.lc.D1",
+       "explained": 0.4945372532957264
+      },
+      {
+       "block": "wv.lc.energy_D1@diff",
+       "explained": 0.6059184298425182
+      },
+      {
+       "block": "wv.lc.D2",
+       "explained": 0.7164780205687373
+      },
+      {
+       "block": "wv.lc.D4",
+       "explained": 0.825859592440616
+      },
+      {
+       "block": "wv.lc.A4@diff",
+       "explained": 0.9339947098644784
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    },
+    "wavelet/logret_1": {
+     "kept": [
+      "wv.r1.energy_D2@log",
+      "wv.r1.D3",
+      "wv.r1.energy_D1@diff",
+      "wv.r1.D1",
+      "wv.r1.D4",
+      "wv.r1.D2"
+     ],
+     "tier_b": [
+      "wv.r1.energy_D4@log",
+      "wv.r1.energy_D3@log"
+     ],
+     "trace": [
+      {
+       "block": "wv.r1.energy_D2@log",
+       "explained": 0.3088635566687348
+      },
+      {
+       "block": "wv.r1.D3",
+       "explained": 0.4346176325578667
+      },
+      {
+       "block": "wv.r1.energy_D1@diff",
+       "explained": 0.5600388147857271
+      },
+      {
+       "block": "wv.r1.D1",
+       "explained": 0.6850940828201757
+      },
+      {
+       "block": "wv.r1.D4",
+       "explained": 0.8098476828949914
+      },
+      {
+       "block": "wv.r1.D2",
+       "explained": 0.934244902535826
+      }
+     ],
+     "note": "variance explained, not trading utility"
+    }
+   },
+   "sha256_tier_A": "e25d50fa2503285145b5a64fcfd888242b2eb5eaf465aefa5764099e428ed659",
+   "sha256_tier_B": "1e494608d1179ee50830ecb8d7036d368bbb99352b1c09c668dd393d5e7d9653"
+  }
+ },
+ "sbfs_start_profile": "strict_v2_budget",
+ "sbfs_start_reason": "search cost grows about quadratically with |tier A|; tier B stays in the floating reinclusion pool, nothing is deleted",
  "recipe_identity": "recipe_5a8f2155318ba7c7",
  "fit_block": [
   "2020-01-01",
@@ -86,55 +1251,43 @@
   "ABSENT": 0,
   "D1_constant": 1,
   "D2_exact_duplicate": 6,
-  "B1_near_duplicate": 4,
+  "B1_near_duplicate": 13,
   "B2_drift_alert_level": 0,
   "B3_family_no_evidence": 1,
-  "B5_family_redundancy": 9,
-  "tier_A": 100,
-  "tier_B": 14,
+  "B5_family_redundancy": 17,
+  "tier_A": 83,
+  "tier_B": 31,
   "universe_after_definitive": 114
  },
  "tier_A": [
   "OPEN@diff",
   "HIGH@diff",
   "LOW@diff",
-  "CLOSE@diff",
   "RAW_LOG_RANGE@log",
   "RAW_ELAPSED_HOURS",
   "ATR",
   "BB_Width",
   "ATR_ratio",
   "rolling_std_24",
-  "RSI",
   "Stochastic_K",
-  "WilliamsR",
-  "ROC",
-  "BB_position",
+  "CCI",
   "price_minus_ema",
   "hod_sin",
   "hod_cos",
-  "cal.utc_dow_sin",
-  "cal.utc_dow_cos",
-  "cal.utc_session_asia",
+  "dow_sin",
+  "dow_cos",
   "cal.utc_session_europe",
-  "cal.utc_session_us",
   "px.logret_2",
-  "px.logret_4",
   "px.logret_6",
   "px.logret_12",
   "px.logret_24",
   "px.logret_48",
   "px.range_2@log",
-  "px.range_4@log",
   "px.range_6@log",
-  "px.range_12",
   "px.range_24",
   "px.range_48",
   "px.close_loc_1",
-  "px.close_loc_2",
-  "px.close_loc_4",
   "px.close_loc_6",
-  "px.close_loc_12",
   "px.close_loc_24",
   "px.close_loc_48",
   "px.er_2",
@@ -154,7 +1307,6 @@
   "cot.eur.net_long",
   "cot.eur.net_change",
   "cot.eur.net_share",
-  "cot.eur.net_z156",
   "fac.fx_f1.ret_1",
   "fac.fx_f1.ret_4",
   "fac.fx_f1.ret_24",
@@ -171,16 +1323,12 @@
   "wv.lc.D3",
   "wv.lc.D2",
   "wv.lc.D1",
-  "wv.lc.energy_D4@log",
-  "wv.lc.energy_D3@log",
   "wv.lc.energy_D2@log",
   "wv.lc.energy_D1@diff",
   "wv.r1.D4",
   "wv.r1.D3",
   "wv.r1.D2",
   "wv.r1.D1",
-  "wv.r1.energy_D4@log",
-  "wv.r1.energy_D3@log",
   "wv.r1.energy_D2@log",
   "wv.r1.energy_D1@diff",
   "hb.r1.phase_cos",
@@ -197,18 +1345,35 @@
   "rg.gmm.entropy"
  ],
  "tier_B": [
+  "CLOSE@diff",
   "RAW_BAR_LOG_RETURN",
   "RAW_CLOSE_LOG_RETURN",
+  "RSI",
   "Stochastic_D",
-  "CCI",
-  "dow_sin",
-  "dow_cos",
+  "WilliamsR",
+  "ROC",
+  "BB_position",
   "cal.utc_hod_sin",
   "cal.utc_hod_cos",
+  "cal.utc_dow_sin",
+  "cal.utc_dow_cos",
+  "cal.utc_session_asia",
+  "cal.utc_session_us",
   "cal.london_hod_sin",
   "cal.london_hod_cos",
+  "px.logret_4",
+  "px.range_4@log",
+  "px.range_12",
+  "px.close_loc_2",
+  "px.close_loc_4",
+  "px.close_loc_12",
   "cdl.body_pips",
   "cdl.range_pips@asinh",
+  "cot.eur.net_z156",
+  "wv.lc.energy_D4@log",
+  "wv.lc.energy_D3@log",
+  "wv.r1.energy_D4@log",
+  "wv.r1.energy_D3@log",
   "wv.usd.A4",
   "kf.lc.level_minus_close"
  ],
@@ -222,25 +1387,42 @@
   "wv.r1.A4": "D2_exact_duplicate"
  },
  "reasons": {
-  "RAW_BAR_LOG_RETURN": "B5_family_redundancy",
+  "CLOSE@diff": "B5_family_redundancy",
+  "RAW_BAR_LOG_RETURN": "B1_near_duplicate",
   "RAW_CLOSE_LOG_RETURN": "B1_near_duplicate",
+  "RSI": "B5_family_redundancy",
   "Stochastic_D": "B5_family_redundancy",
-  "CCI": "B5_family_redundancy",
-  "dow_sin": "B5_family_redundancy",
-  "dow_cos": "B5_family_redundancy",
-  "cal.utc_hod_sin": "B5_family_redundancy",
-  "cal.utc_hod_cos": "B5_family_redundancy",
-  "cal.london_hod_sin": "B5_family_redundancy",
-  "cal.london_hod_cos": "B5_family_redundancy",
+  "WilliamsR": "B5_family_redundancy",
+  "ROC": "B5_family_redundancy",
+  "BB_position": "B1_near_duplicate",
+  "cal.utc_hod_sin": "B1_near_duplicate",
+  "cal.utc_hod_cos": "B1_near_duplicate",
+  "cal.utc_dow_sin": "B1_near_duplicate",
+  "cal.utc_dow_cos": "B1_near_duplicate",
+  "cal.utc_session_asia": "B5_family_redundancy",
+  "cal.utc_session_us": "B5_family_redundancy",
+  "cal.london_hod_sin": "B1_near_duplicate",
+  "cal.london_hod_cos": "B1_near_duplicate",
   "px.logret_1": "D2_exact_duplicate",
+  "px.logret_4": "B5_family_redundancy",
   "px.range_1@log": "D2_exact_duplicate",
+  "px.range_4@log": "B5_family_redundancy",
+  "px.range_12": "B5_family_redundancy",
+  "px.close_loc_2": "B5_family_redundancy",
+  "px.close_loc_4": "B5_family_redundancy",
+  "px.close_loc_12": "B5_family_redundancy",
   "px.er_1": "D1_constant",
   "cdl.body_pips": "B1_near_duplicate",
   "cdl.range_pips@asinh": "B1_near_duplicate",
+  "cot.eur.net_z156": "B1_near_duplicate",
   "ev.tokyo_fix.hours_to": "D2_exact_duplicate",
   "ev.london_fix.hours_to": "D2_exact_duplicate",
   "ev.ny_cut.hours_to": "D2_exact_duplicate",
+  "wv.lc.energy_D4@log": "B5_family_redundancy",
+  "wv.lc.energy_D3@log": "B5_family_redundancy",
   "wv.r1.A4": "D2_exact_duplicate",
+  "wv.r1.energy_D4@log": "B5_family_redundancy",
+  "wv.r1.energy_D3@log": "B5_family_redundancy",
   "wv.usd.A4": "B3_family_no_evidence",
   "kf.lc.level_minus_close": "B1_near_duplicate"
  },
@@ -1077,23 +2259,17 @@
   {
    "members": [
     "CLOSE@diff",
+    "RAW_BAR_LOG_RETURN",
     "RAW_CLOSE_LOG_RETURN",
+    "cdl.body_pips",
     "kf.lc.level_minus_close"
    ],
    "keep": "CLOSE@diff",
    "tier_b": [
-    "RAW_CLOSE_LOG_RETURN",
-    "kf.lc.level_minus_close"
-   ]
-  },
-  {
-   "members": [
     "RAW_BAR_LOG_RETURN",
-    "cdl.body_pips"
-   ],
-   "keep": "RAW_BAR_LOG_RETURN",
-   "tier_b": [
-    "cdl.body_pips"
+    "RAW_CLOSE_LOG_RETURN",
+    "cdl.body_pips",
+    "kf.lc.level_minus_close"
    ]
   },
   {
@@ -1105,9 +2281,79 @@
    "tier_b": [
     "cdl.range_pips@asinh"
    ]
+  },
+  {
+   "members": [
+    "CCI",
+    "BB_position"
+   ],
+   "keep": "CCI",
+   "tier_b": [
+    "BB_position"
+   ]
+  },
+  {
+   "members": [
+    "hod_sin",
+    "cal.utc_hod_sin",
+    "cal.london_hod_sin"
+   ],
+   "keep": "hod_sin",
+   "tier_b": [
+    "cal.london_hod_cos",
+    "cal.london_hod_sin",
+    "cal.utc_hod_cos",
+    "cal.utc_hod_sin"
+   ]
+  },
+  {
+   "members": [
+    "hod_cos",
+    "cal.utc_hod_cos",
+    "cal.london_hod_cos"
+   ],
+   "keep": "hod_cos",
+   "tier_b": [
+    "cal.london_hod_cos",
+    "cal.london_hod_sin",
+    "cal.utc_hod_cos",
+    "cal.utc_hod_sin"
+   ]
+  },
+  {
+   "members": [
+    "dow_cos",
+    "cal.utc_dow_cos"
+   ],
+   "keep": "dow_cos",
+   "tier_b": [
+    "cal.utc_dow_cos",
+    "cal.utc_dow_sin"
+   ]
+  },
+  {
+   "members": [
+    "cot.eur.net_long",
+    "cot.eur.net_z156"
+   ],
+   "keep": "cot.eur.net_long",
+   "tier_b": [
+    "cot.eur.net_z156"
+   ]
   }
  ],
  "b1_pairs": [
+  {
+   "a": "CLOSE@diff",
+   "b": "RAW_BAR_LOG_RETURN",
+   "r2": 0.9765874939191677,
+   "r2_per_period": {
+    "2020": 0.9829649146671376,
+    "2021": 0.9918336268168741,
+    "2022": 0.9687109587675214,
+    "2023H1": 0.9887500783499957
+   }
+  },
   {
    "a": "CLOSE@diff",
    "b": "RAW_CLOSE_LOG_RETURN",
@@ -1117,6 +2363,17 @@
     "2021": 0.9992941441610981,
     "2022": 0.9979337633958215,
     "2023H1": 0.9998341687459916
+   }
+  },
+  {
+   "a": "CLOSE@diff",
+   "b": "cdl.body_pips",
+   "r2": 0.9802830686647582,
+   "r2_per_period": {
+    "2020": 0.9845202994493241,
+    "2021": 0.992478699514252,
+    "2022": 0.9702184227404053,
+    "2023H1": 0.9888811835367631
    }
   },
   {
@@ -1132,6 +2389,17 @@
   },
   {
    "a": "RAW_BAR_LOG_RETURN",
+   "b": "RAW_CLOSE_LOG_RETURN",
+   "r2": 0.9806424166543414,
+   "r2_per_period": {
+    "2020": 0.9847378972706995,
+    "2021": 0.9925714191893481,
+    "2022": 0.9725929615295039,
+    "2023H1": 0.9887335190287188
+   }
+  },
+  {
+   "a": "RAW_BAR_LOG_RETURN",
    "b": "cdl.body_pips",
    "r2": 0.9961003015577401,
    "r2_per_period": {
@@ -1139,6 +2407,17 @@
     "2021": 0.9992936729604447,
     "2022": 0.9979766489738692,
     "2023H1": 0.9998340910962519
+   }
+  },
+  {
+   "a": "RAW_BAR_LOG_RETURN",
+   "b": "kf.lc.level_minus_close",
+   "r2": 0.9800237799744927,
+   "r2_per_period": {
+    "2020": 0.9840359301306452,
+    "2021": 0.9919987965246672,
+    "2022": 0.9720212192439736,
+    "2023H1": 0.9881837539577415
    }
   },
   {
@@ -1154,6 +2433,17 @@
   },
   {
    "a": "RAW_CLOSE_LOG_RETURN",
+   "b": "cdl.body_pips",
+   "r2": 0.9766793553567757,
+   "r2_per_period": {
+    "2020": 0.983430567226017,
+    "2021": 0.991813743913181,
+    "2022": 0.970191018337499,
+    "2023H1": 0.9885362803076706
+   }
+  },
+  {
+   "a": "RAW_CLOSE_LOG_RETURN",
    "b": "kf.lc.level_minus_close",
    "r2": 0.9993251995306637,
    "r2_per_period": {
@@ -1161,6 +2451,94 @@
     "2021": 0.9993964012889236,
     "2022": 0.9994165693556226,
     "2023H1": 0.9994207565923272
+   }
+  },
+  {
+   "a": "CCI",
+   "b": "BB_position",
+   "r2": 0.9516195863632095,
+   "r2_per_period": {
+    "2020": 0.9528704636451927,
+    "2021": 0.9491980118573106,
+    "2022": 0.9528967035866542,
+    "2023H1": 0.9511749247623325
+   }
+  },
+  {
+   "a": "hod_sin",
+   "b": "cal.london_hod_sin",
+   "r2": 0.9719620355715355,
+   "r2_per_period": {
+    "2020": 0.9731708924728565,
+    "2021": 0.9725938299811315,
+    "2022": 0.9716855020828045,
+    "2023H1": 0.9689123880546447
+   }
+  },
+  {
+   "a": "hod_cos",
+   "b": "cal.london_hod_cos",
+   "r2": 0.9718892632556626,
+   "r2_per_period": {
+    "2020": 0.9730533654338379,
+    "2021": 0.9726727798016037,
+    "2022": 0.9715114230663324,
+    "2023H1": 0.9688101092642644
+   }
+  },
+  {
+   "a": "dow_cos",
+   "b": "cal.utc_dow_cos",
+   "r2": 0.9802900650060165,
+   "r2_per_period": {
+    "2020": 0.9806053280062907,
+    "2021": 0.9802955711420444,
+    "2022": 0.9801068041297144,
+    "2023H1": 0.9800245977185463
+   }
+  },
+  {
+   "a": "cal.utc_hod_sin",
+   "b": "cal.london_hod_sin",
+   "r2": 0.9606122266334137,
+   "r2_per_period": {
+    "2020": 0.9594434203729905,
+    "2021": 0.9598123268743041,
+    "2022": 0.9610193649332388,
+    "2023H1": 0.9636783481283651
+   }
+  },
+  {
+   "a": "cal.utc_hod_cos",
+   "b": "cal.london_hod_cos",
+   "r2": 0.960433496996312,
+   "r2_per_period": {
+    "2020": 0.9592451633588784,
+    "2021": 0.9598275364028235,
+    "2022": 0.9606756683956892,
+    "2023H1": 0.9634703880605358
+   }
+  },
+  {
+   "a": "cdl.body_pips",
+   "b": "kf.lc.level_minus_close",
+   "r2": 0.9760960154717003,
+   "r2_per_period": {
+    "2020": 0.9827157043177537,
+    "2021": 0.9912754348320689,
+    "2022": 0.9696676188313204,
+    "2023H1": 0.9879651652715807
+   }
+  },
+  {
+   "a": "cot.eur.net_long",
+   "b": "cot.eur.net_z156",
+   "r2": 0.9735669521651585,
+   "r2_per_period": {
+    "2020": 0.9852976242857112,
+    "2021": 0.9991487517055335,
+    "2022": 0.9831305127459277,
+    "2023H1": 0.9966804412297169
    }
   }
  ],
@@ -2405,81 +3783,63 @@
  "b5_detail": {
   "inv.raw": {
    "kept": [
-    "CLOSE@diff",
-    "OPEN@diff",
-    "RAW_LOG_RANGE@log",
-    "RAW_ELAPSED_HOURS",
+    "LOW@diff",
     "HIGH@diff",
-    "LOW@diff"
+    "RAW_ELAPSED_HOURS",
+    "RAW_LOG_RANGE@log",
+    "OPEN@diff"
    ],
    "tier_b": [
-    "RAW_BAR_LOG_RETURN"
+    "CLOSE@diff"
    ],
    "trace": [
     {
-     "block": "CLOSE@diff",
-     "explained": 0.37460919587534613
-    },
-    {
-     "block": "OPEN@diff",
-     "explained": 0.5947810214049596
-    },
-    {
-     "block": "RAW_LOG_RANGE@log",
-     "explained": 0.7457945455307706
-    },
-    {
-     "block": "RAW_ELAPSED_HOURS",
-     "explained": 0.8881921166722994
+     "block": "LOW@diff",
+     "explained": 0.305011387356819
     },
     {
      "block": "HIGH@diff",
-     "explained": 0.9473923508340569
+     "explained": 0.48503529019905867
     },
     {
-     "block": "LOW@diff",
-     "explained": 0.9967251242077361
+     "block": "RAW_ELAPSED_HOURS",
+     "explained": 0.6522706554217805
+    },
+    {
+     "block": "RAW_LOG_RANGE@log",
+     "explained": 0.801758117424047
+    },
+    {
+     "block": "OPEN@diff",
+     "explained": 0.9511389491206257
     }
    ],
    "note": "variance explained, not trading utility"
   },
   "inv.momentum": {
    "kept": [
-    "BB_position",
     "Stochastic_K",
     "price_minus_ema",
-    "ROC",
-    "WilliamsR",
-    "RSI"
+    "CCI"
    ],
    "tier_b": [
+    "RSI",
     "Stochastic_D",
-    "CCI"
+    "WilliamsR",
+    "ROC"
    ],
    "trace": [
     {
-     "block": "BB_position",
-     "explained": 0.7550639300583262
-    },
-    {
      "block": "Stochastic_K",
-     "explained": 0.8573805189722871
+     "explained": 0.759522867298882
     },
     {
      "block": "price_minus_ema",
-     "explained": 0.9288729325672247
+     "explained": 0.8788253359111952
     },
     {
-     "block": "ROC",
-     "explained": 0.9600508327552666
-    },
-    {
-     "block": "WilliamsR",
-     "explained": 0.9780771572723022
-    },
-    {
-     "block": "RSI",
-     "explained": 0.9904299076625305
+     "block": "CCI",
+     "explained": 0.9169250593005186
     }
    ],
    "note": "variance explained, not trading utility"
@@ -2488,40 +3848,26 @@
    "kept": [
     "hod_sin",
     "hod_cos",
-    "cal.utc_dow_sin",
-    "cal.utc_dow_cos",
-    "cal.utc_session_europe",
-    "cal.utc_session_asia",
-    "cal.utc_session_us"
-   ],
-   "tier_b": [
     "dow_sin",
     "dow_cos",
-    "cal.utc_hod_sin",
-    "cal.utc_hod_cos",
-    "cal.london_hod_sin",
-    "cal.london_hod_cos"
+    "cal.utc_session_europe"
+   ],
+   "tier_b": [
+    "cal.utc_session_asia",
+    "cal.utc_session_us"
    ],
    "trace": [
     {
      "block": "hod",
-     "explained": 0.6020174875955716
+     "explained": 0.550766865202294
     },
     {
-     "block": "cal.utc_dow",
-     "explained": 0.9032000233809965
+     "block": "dow",
+     "explained": 0.8364973350589434
     },
     {
      "block": "cal.utc_session_europe",
-     "explained": 0.9632486013118763
-    },
-    {
-     "block": "cal.utc_session_asia",
-     "explained": 0.9778649370671437
-    },
-    {
-     "block": "cal.utc_session_us",
-     "explained": 0.9911840876924181
+     "explained": 0.9481883308451855
     }
    ],
    "note": "variance explained, not trading utility"
@@ -2532,10 +3878,11 @@
     "px.logret_24",
     "px.logret_2",
     "px.logret_48",
-    "px.logret_12",
+    "px.logret_12"
+   ],
+   "tier_b": [
     "px.logret_4"
    ],
-   "tier_b": [],
    "trace": [
     {
      "block": "px.logret_6",
@@ -2556,10 +3903,6 @@
     {
      "block": "px.logret_12",
      "explained": 0.957450347740267
-    },
-    {
-     "block": "px.logret_4",
-     "explained": 1.0
     }
    ],
    "note": "variance explained, not trading utility"
@@ -2569,11 +3912,12 @@
     "px.range_6@log",
     "px.range_24",
     "px.range_2@log",
-    "px.range_48",
-    "px.range_12",
-    "px.range_4@log"
+    "px.range_48"
    ],
-   "tier_b": [],
+   "tier_b": [
+    "px.range_4@log",
+    "px.range_12"
+   ],
    "trace": [
     {
      "block": "px.range_6@log",
@@ -2590,14 +3934,6 @@
     {
      "block": "px.range_48",
      "explained": 0.9336558630219097
-    },
-    {
-     "block": "px.range_12",
-     "explained": 0.9827195396523806
-    },
-    {
-     "block": "px.range_4@log",
-     "explained": 1.0
     }
    ],
    "note": "variance explained, not trading utility"
@@ -2607,12 +3943,13 @@
     "px.close_loc_6",
     "px.close_loc_24",
     "px.close_loc_1",
-    "px.close_loc_48",
-    "px.close_loc_2",
-    "px.close_loc_12",
-    "px.close_loc_4"
+    "px.close_loc_48"
    ],
-   "tier_b": [],
+   "tier_b": [
+    "px.close_loc_2",
+    "px.close_loc_4",
+    "px.close_loc_12"
+   ],
    "trace": [
     {
      "block": "px.close_loc_6",
@@ -2629,18 +3966,6 @@
     {
      "block": "px.close_loc_48",
      "explained": 0.9271031049893103
-    },
-    {
-     "block": "px.close_loc_2",
-     "explained": 0.9600019820260439
-    },
-    {
-     "block": "px.close_loc_12",
-     "explained": 0.9851516047067448
-    },
-    {
-     "block": "px.close_loc_4",
-     "explained": 1.0
     }
    ],
    "note": "variance explained, not trading utility"
@@ -2691,11 +4016,12 @@
     "wv.lc.energy_D1@diff",
     "wv.lc.D2",
     "wv.lc.D4",
-    "wv.lc.A4@diff",
+    "wv.lc.A4@diff"
+   ],
+   "tier_b": [
     "wv.lc.energy_D4@log",
     "wv.lc.energy_D3@log"
    ],
-   "tier_b": [],
    "trace": [
     {
      "block": "wv.lc.energy_D2@log",
@@ -2724,14 +4050,6 @@
     {
      "block": "wv.lc.A4@diff",
      "explained": 0.9339947098644784
-    },
-    {
-     "block": "wv.lc.energy_D4@log",
-     "explained": 0.9725226466964326
-    },
-    {
-     "block": "wv.lc.energy_D3@log",
-     "explained": 1.0
     }
    ],
    "note": "variance explained, not trading utility"
@@ -2743,11 +4061,12 @@
     "wv.r1.energy_D1@diff",
     "wv.r1.D1",
     "wv.r1.D4",
-    "wv.r1.D2",
+    "wv.r1.D2"
+   ],
+   "tier_b": [
     "wv.r1.energy_D4@log",
     "wv.r1.energy_D3@log"
    ],
-   "tier_b": [],
    "trace": [
     {
      "block": "wv.r1.energy_D2@log",
@@ -2772,14 +4091,6 @@
     {
      "block": "wv.r1.D2",
      "explained": 0.934244902535826
-    },
-    {
-     "block": "wv.r1.energy_D4@log",
-     "explained": 0.9712140031567362
-    },
-    {
-     "block": "wv.r1.energy_D3@log",
-     "explained": 1.0
     }
    ],
    "note": "variance explained, not trading utility"
@@ -2810,6 +4121,10 @@
    "tier_A": 100,
    "tier_B": 14
   },
+  "FAMILY_VAR=0.9": {
+   "tier_A": 83,
+   "tier_B": 31
+  },
   "FAMILY_VAR=0.98": {
    "tier_A": 98,
    "tier_B": 16
@@ -2823,6 +4138,6 @@
    "tier_B": 11
   }
  },
- "sha256_tier_A": "6f547af4bd0f6c1d2169efb249f8c35e852ef37b158bde52697789a80ceaf044",
- "sha256_tier_B": "e235110107f43364d063d6c6619bedd2b52e73c7be59d9b541884e9571c5aa33"
+ "sha256_tier_A": "e25d50fa2503285145b5a64fcfd888242b2eb5eaf465aefa5764099e428ed659",
+ "sha256_tier_B": "1e494608d1179ee50830ecb8d7036d368bbb99352b1c09c668dd393d5e7d9653"
 }

@@ -32,17 +32,34 @@ soporte dentro de TRAIN (2023-01-01). INNER_A y 2024 no se leen.
 | umbral | valor declarado | regla | sensibilidad |
 | --- | --- | --- | --- |
 | residuo afín para duplicado exacto | 1e-9 | D2 | los 6 exactos tienen residuo ≤ 1.8e-13; el siguiente par (R² 0.9993) no es afín: insensible entre 1e-12 y 1e-6 |
-| Pearson² casi-duplicado | 0.99 | B1 | 0.95 → A 99 / B 15; **0.99 → A 100 / B 14**; 0.999 → A 102 / B 12 |
+| Pearson² casi-duplicado | 0.99 (default) / 0.95 (budget) | B1 | 0.95 → A 99 / B 15; **0.99 → A 100 / B 14**; 0.999 → A 102 / B 12 (con B5 0.99) |
 | AUC de deriva (alerta, sólo niveles) | 0.75 | B2 | 0.70 → A 99 / B 15; **0.75 → 100 / 14**; 0.80 → 100 / 14 |
 | ganancia de familia | ≤ 0 en **todas** las tareas → B | B3 | 1 familia (`strength/fx.usd_strength.ret_1`); el resto ordena |
-| varianza explicada intra-familia | 0.99 | B5 | 0.98 → A 98 / B 16; **0.99 → 100 / 14**; 0.995 → A 103 / B 11 |
+| varianza explicada intra-familia | 0.99 (default) / 0.90 (budget) | B5 | 0.90 → A 83 / B 31; 0.98 → A 98 / B 16; **0.99 → 100 / 14**; 0.995 → A 103 / B 11 |
 | mínimo de columnas por familia / tamaño mínimo para B5 | 2 / 5 | B5 | ninguna familia toca el mínimo |
 
-Con la regla declarada: **nivel A = 100, nivel B = 14, definitivos = 7** (universo del SBFS = 114). La guía de ≈ 60
-no se alcanza y no se persigue ajustando umbrales: lo que reduce el conjunto inicial de verdad es la propia búsqueda
-flotante.
+## 2.1 Dos perfiles declarados, uno al lado del otro
 
-## 3. Recuento por regla
+Decisión del propietario (regla de presupuesto, declarada antes de re-ejecutar): la v2 se mantiene exacta y se corre
+con dos juegos de umbrales nombrados. **El perfil `strict_v2_budget` es el que alimenta el conjunto inicial del SBFS**:
+el costo de la búsqueda crece aproximadamente con el cuadrado de |A|, y todo lo que ese perfil mueve va al nivel B,
+que sigue siendo buscable por reinclusión; nada se borra.
+
+| perfil | B1 Pearson² | B5 varianza | definitivos | B1 | B2 | B3 | B5 | **A** | **B** |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `strict_v2_default` | 0.99 | 0.99 | 7 | 4 | 0 | 1 | 9 | **100** | **14** |
+| `strict_v2_budget` (alimenta el SBFS) | 0.95 | 0.90 | 7 | 13 | 0 | 1 | 17 | **83** | **31** |
+
+Lo que el perfil de presupuesto mueve adicionalmente al nivel B: B1 (R² ≥ 0.95): `RAW_BAR_LOG_RETURN`, `BB_position`,
+`cal.utc_hod_sin/cos`, `cal.utc_dow_sin/cos`, `cal.london_hod_sin/cos`, `cot.eur.net_z156` (+ los 4 del perfil por
+defecto); B5 (90 %): `CLOSE@diff`, `RSI`, `Stochastic_D`, `WilliamsR`, `ROC`, `cal.utc_session_asia/us`, `px.logret_4`,
+`px.range_4@log`, `px.range_12`, `px.close_loc_2/4/12`, `wv.lc.energy_D3/D4@log`, `wv.r1.energy_D3/D4@log`. Las listas y
+sus sha por perfil están en `profiles` del JSON (`sbfs_start_profile = strict_v2_budget`).
+
+La guía de ≈ 60 no se alcanza con ninguno de los dos y no se persigue ajustando más umbrales: la reducción real la
+hace la búsqueda flotante.
+
+## 3. Recuento por regla (perfil `strict_v2_default`; el perfil de presupuesto está en §2.1 y en el JSON)
 
 | inicio | ABSENT | D1 constante | D2 exacto | universo | B1 casi-dup | B2 deriva | B3 familia | B5 redundancia | **A** | **B** |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
