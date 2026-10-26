@@ -143,6 +143,79 @@ def sensitivity_table(runs: list) -> str:
     return "\n".join(out)
 
 
+FITNESS_ORDER = ["sharpe_lcb", "sharpe_plus_return", "sharpe_plus_return_plus_activity", "trade_tstat", "calmar", "return_minus_dd", "balanced"]
+FITNESS_LABEL = {"sharpe_lcb": "F0 Sharpe − EE", "sharpe_plus_return": "F1 Sharpe + retorno", "sharpe_plus_return_plus_activity": "F2 Sharpe + retorno + órdenes/día (propietario)",
+                 "trade_tstat": "F3 t por trade", "calmar": "F4 Calmar", "return_minus_dd": "F5 retorno − DD", "balanced": "F6 balanceada"}
+
+
+def fitness_rows(runs: list) -> pd.DataFrame:
+    rows = []
+    for r in runs:
+        for s in r["per_seed"]:
+            for f, v in (s.get("by_fitness") or {}).items():
+                d = v.get("decision") or {}
+                rows.append({"fold": r["fold"], "variant": r["variant"], "gate": r.get("gate", "contract"), "level": r["level"], "seed": s["seed"], "fitness": f,
+                             "valid_choice": bool(v.get("valid")), "dec_sharpe": d.get("sharpe_daily_sqrt365"), "dec_net": d.get("net_profit_usd"),
+                             "dec_exp": d.get("expectancy"), "dec_exp_lo": d.get("expectancy_low"), "dec_opw": d.get("orders_per_week"), "dec_valid": d.get("valid"),
+                             "sel_sharpe": (v.get("selection") or {}).get("sharpe_daily_sqrt365")})
+    return pd.DataFrame(rows)
+
+
+def fitness_table(fr: pd.DataFrame) -> tuple:
+    """Per (scenario, level): the fitness with the best mean decision expectancy / Sharpe / net over seeds and folds, the
+    share of (fold, seed) cells each fitness wins, and the pooled ranking (the production recommendation's evidence)."""
+    if not len(fr):
+        return "(sin evaluación por fitness)", {}
+    fr = fr[fr["valid_choice"]]
+    win = {}
+    lines = ["| escenario | calidad | mejor por expectativa | mejor por Sharpe | mejor por neto | estabilidad: fitness ganadora (expect.) por celda fold×semilla |", "| --- | ---: | --- | --- | --- | --- |"]
+    for (v, lv), g in fr.groupby(["variant", "level"]):
+        m = g.groupby("fitness")[["dec_exp", "dec_sharpe", "dec_net"]].mean()
+        best = {k: (m[k].idxmax() if m[k].notna().any() else None) for k in ("dec_exp", "dec_sharpe", "dec_net")}
+        cells = g.groupby(["fold", "seed"])
+        counts = {}
+        for _, c in cells:
+            c = c.dropna(subset=["dec_exp"])
+            if len(c):
+                w = c.loc[c["dec_exp"].idxmax(), "fitness"]
+                counts[w] = counts.get(w, 0) + 1
+                win[w] = win.get(w, 0) + 1
+        stab = ", ".join(f"{FITNESS_LABEL.get(k, k).split(' ')[0]} {n}" for k, n in sorted(counts.items(), key=lambda x: -x[1]))
+        lines.append(f"| {v} | {lv:.2f} | {FITNESS_LABEL.get(best['dec_exp'], best['dec_exp'])} | {FITNESS_LABEL.get(best['dec_sharpe'], best['dec_sharpe'])} | {FITNESS_LABEL.get(best['dec_net'], best['dec_net'])} | {stab} |")
+    pooled = fr.groupby("fitness")[["dec_exp", "dec_sharpe", "dec_net", "dec_opw"]].mean().reindex(FITNESS_ORDER)
+    val = fr.groupby("fitness")["dec_valid"].mean().reindex(FITNESS_ORDER)
+    lines += ["", "| fitness | expectativa media (decisión) | Sharpe medio | neto medio USD | órdenes/sem | válida fuera de bloque (≥ 2/sem) | celdas ganadas |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for f in FITNESS_ORDER:
+        if f in pooled.index and pd.notna(pooled.loc[f, "dec_exp"]):
+            lines.append(f"| {FITNESS_LABEL[f]} | {pooled.loc[f, 'dec_exp']:.3f} | {pooled.loc[f, 'dec_sharpe']:.2f} | {pooled.loc[f, 'dec_net']:.0f} | {pooled.loc[f, 'dec_opw']:.2f} | {100 * val.loc[f]:.0f} % | {win.get(f, 0)} |")
+    return "\n".join(lines), {"wins": win, "pooled": pooled.reset_index().to_dict("records")}
+
+
+def coverage_table(df: pd.DataFrame) -> str:
+    g = df.groupby(["variant", "gate", "level"]).agg(seeds=("seed", "nunique"), folds=("fold", "nunique"), refused=("refused", lambda x: int(x.notna().sum()))).reset_index()
+    lines = ["| escenario | puerta | calidad | folds | semillas | rechazos |", "| --- | --- | ---: | ---: | ---: | ---: |"]
+    for _, r in g.iterrows():
+        lines.append(f"| {r['variant']} | {r['gate']} | {r['level']:.2f} | {int(r['folds'])} | {int(r['seeds'])} | {int(r['refused'])} |")
+    return "\n".join(lines)
+
+
+def quarter_table(runs: list) -> str:
+    rows = []
+    for r in runs:
+        if r["variant"] != "base" or r.get("gate") != "perbar":
+            continue
+        for s in r["per_seed"]:
+            for q in (s.get("quarters") or []):
+                rows.append({"level": r["level"], "vol": q["vol_tercile"], "trend": q["trend_tercile"], "sharpe": q["sharpe"], "exp": q["expectancy"], "net": q["net_usd"], "opw": q["opw"]})
+    if not rows:
+        return "(sin desglose por régimen)"
+    d = pd.DataFrame(rows)
+    lines = ["| régimen (vol × tendencia) | calidad | Sharpe medio | expectativa media σ | neto medio USD | órdenes/sem | trimestres×semillas |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for (vol, tr, lv), g in d.groupby(["vol", "trend", "level"]):
+        lines.append(f"| vol {vol} / {tr} | {lv:.2f} | {g['sharpe'].mean():.2f} | {g['exp'].mean():.3f} | {g['net'].mean():.0f} | {g['opw'].mean():.2f} | {len(g)} |")
+    return "\n".join(lines)
+
+
 def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
     p = pooled(df)
     p.to_csv(out / "SWEEP_POOLED.csv", index=False)
@@ -168,6 +241,13 @@ def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
         frag.append(f"| {v} | {('—' if b['break_even_level'] is None else f'{b[chr(98)+chr(114)+chr(101)+chr(97)+chr(107)+chr(95)+chr(101)+chr(118)+chr(101)+chr(110)+chr(95)+chr(108)+chr(101)+chr(118)+chr(101)+chr(108)]:.2f}')} | "
                     f"{('—' if b['first_positive_level'] is None else f'{b[chr(102)+chr(105)+chr(114)+chr(115)+chr(116)+chr(95)+chr(112)+chr(111)+chr(115)+chr(105)+chr(116)+chr(105)+chr(118)+chr(101)+chr(95)+chr(108)+chr(101)+chr(118)+chr(101)+chr(108)]:.2f}')} | "
                     f"{g(oc, 'dec_sharpe')} / {g(oc, 'dec_net')} / {g(oc, 'dec_exp')} | {g(cf, 'dec_sharpe')} / {g(cf, 'dec_net')} / {g(cf, 'dec_exp')} |")
+    fr = fitness_rows(runs)
+    fr.to_csv(out / "FITNESS_ROWS.csv", index=False)
+    ft, fsum = fitness_table(fr)
+    (out / "FITNESS_SUMMARY.json").write_text(json.dumps(fsum, indent=1, default=float))
+    frag += ["", "## Qué fitness usar: cada variante optimizada en el bloque de selección y puntuada UNA vez en el bloque de decisión", "", ft, ""]
+    frag += ["## Cobertura del catálogo (escenario × puerta × calidad → folds, semillas, rechazos)", "", coverage_table(df), ""]
+    frag += ["## Régimen de mercado: trimestres del año de decisión por terciles de volatilidad y tendencia (base, puerta por barra)", "", quarter_table(runs), ""]
     frag += ["", "## Genes congelados por configuración", "", gene_table(runs), "", "## Sensibilidad de los genes (±0.1 en el cuantil, bloque de selección)", "", sensitivity_table(runs), ""]
     frag += ["## Figuras", ""] + [f"- [{label} — variantes de calidad]({docs}/{figs[m + ':quality']})" for m, label in METRICS if m + ":quality" in figs] \
          + [f"- [{label} — variantes de ejecución]({docs}/{figs[m + ':execution']})" for m, label in METRICS if m + ":execution" in figs] \
