@@ -1,0 +1,81 @@
+{
+ "status": "DIAGNOSTIC",
+ "unit": "DIAGNOSTIC_cheat_c2",
+ "c2": true,
+ "seeds": {
+  "20261019": {
+   "frozen": {
+    "INNER_A": {
+     "net_profit_usd": 21365.139005932786,
+     "sharpe_daily_sqrt365": 12.528807285303275,
+     "max_drawdown_pct": 2.47270302880957,
+     "trades": 80,
+     "win_rate": 0.925,
+     "profit_factor": 44.43537531825008,
+     "orders_per_week": 2.962962962962963,
+     "n_entries_long": 34,
+     "n_entries_short": 46,
+     "n_close_TP": 22,
+     "n_close_SL": 0,
+     "n_close_FORCED_FLAT": 8,
+     "n_close_AGENT_CLOSE": 50,
+     "n_close_REVERSAL": 0
+    },
+    "INNER_B": {
+     "net_profit_usd": 247457.68983621144,
+     "sharpe_daily_sqrt365": 9.66675748945305,
+     "max_drawdown_pct": 12.339201315658947,
+     "trades": 147,
+     "win_rate": 0.7959183673469388,
+     "profit_factor": 11.560465839863443,
+     "orders_per_week": 2.7735849056603774,
+     "n_entries_long": 68,
+     "n_entries_short": 79,
+     "n_close_TP": 34,
+     "n_close_SL": 0,
+     "n_close_FORCED_FLAT": 27,
+     "n_close_AGENT_CLOSE": 86,
+     "n_close_REVERSAL": 0
+    }
+   },
+   "no_early_close": {
+    "INNER_A": {
+     "net_profit_usd": 9313.951766162238,
+     "sharpe_daily_sqrt365": 5.795473021087682,
+     "max_drawdown_pct": 7.132279377741363,
+     "trades": 46,
+     "win_rate": 0.8260869565217391,
+     "profit_factor": 5.402932858968596,
+     "orders_per_week": 1.7037037037037037,
+     "n_entries_long": 21,
+     "n_entries_short": 25,
+     "n_close_TP": 23,
+     "n_close_SL": 3,
+     "n_close_FORCED_FLAT": 20,
+     "n_close_AGENT_CLOSE": 0,
+     "n_close_REVERSAL": 0
+    },
+    "INNER_B": {
+     "net_profit_usd": 128091.91660879686,
+     "sharpe_daily_sqrt365": 6.807605194259524,
+     "max_drawdown_pct": 16.205423242367452,
+     "trades": 86,
+     "win_rate": 0.8255813953488372,
+     "profit_factor": 11.719432167596562,
+     "orders_per_week": 1.6226415094339623,
+     "n_entries_long": 32,
+     "n_entries_short": 54,
+     "n_close_TP": 44,
+     "n_close_SL": 4,
+     "n_close_FORCED_FLAT": 38,
+     "n_close_AGENT_CLOSE": 0,
+     "n_close_REVERSAL": 0
+    }
+   },
+   "frozen_reproduces_run": {
+    "INNER_A": true,
+    "INNER_B": true
+   }
+  }
+ }
+}

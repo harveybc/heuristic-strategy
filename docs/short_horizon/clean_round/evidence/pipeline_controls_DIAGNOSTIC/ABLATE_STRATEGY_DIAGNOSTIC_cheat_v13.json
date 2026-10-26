@@ -1,0 +1,81 @@
+{
+ "status": "DIAGNOSTIC",
+ "unit": "DIAGNOSTIC_cheat_v13",
+ "c2": false,
+ "seeds": {
+  "20261019": {
+   "frozen": {
+    "INNER_A": {
+     "net_profit_usd": 9618.636013276424,
+     "sharpe_daily_sqrt365": 12.217716969378678,
+     "max_drawdown_pct": 2.266426844856971,
+     "trades": 116,
+     "win_rate": 0.75,
+     "profit_factor": 7.684225471297459,
+     "orders_per_week": 4.296296296296297,
+     "n_entries_long": 40,
+     "n_entries_short": 76,
+     "n_close_TP": 60,
+     "n_close_SL": 0,
+     "n_close_FORCED_FLAT": 8,
+     "n_close_AGENT_CLOSE": 41,
+     "n_close_REVERSAL": 7
+    },
+    "INNER_B": {
+     "net_profit_usd": 85053.98183253754,
+     "sharpe_daily_sqrt365": 8.325553335710904,
+     "max_drawdown_pct": 6.406727087421254,
+     "trades": 205,
+     "win_rate": 0.7219512195121951,
+     "profit_factor": 4.315408818608448,
+     "orders_per_week": 3.8679245283018866,
+     "n_entries_long": 87,
+     "n_entries_short": 118,
+     "n_close_TP": 107,
+     "n_close_SL": 0,
+     "n_close_FORCED_FLAT": 17,
+     "n_close_AGENT_CLOSE": 68,
+     "n_close_REVERSAL": 13
+    }
+   },
+   "no_early_close": {
+    "INNER_A": {
+     "net_profit_usd": 6977.353166374651,
+     "sharpe_daily_sqrt365": 6.267402219456522,
+     "max_drawdown_pct": 7.773334068568414,
+     "trades": 90,
+     "win_rate": 0.8,
+     "profit_factor": 2.968327953554283,
+     "orders_per_week": 3.3333333333333335,
+     "n_entries_long": 30,
+     "n_entries_short": 60,
+     "n_close_TP": 64,
+     "n_close_SL": 5,
+     "n_close_FORCED_FLAT": 21,
+     "n_close_AGENT_CLOSE": 0,
+     "n_close_REVERSAL": 0
+    },
+    "INNER_B": {
+     "net_profit_usd": 35388.447437648916,
+     "sharpe_daily_sqrt365": 4.128532973568675,
+     "max_drawdown_pct": 21.696608850190916,
+     "trades": 165,
+     "win_rate": 0.7878787878787878,
+     "profit_factor": 1.966405844703844,
+     "orders_per_week": 3.1132075471698113,
+     "n_entries_long": 73,
+     "n_entries_short": 92,
+     "n_close_TP": 112,
+     "n_close_SL": 13,
+     "n_close_FORCED_FLAT": 40,
+     "n_close_AGENT_CLOSE": 0,
+     "n_close_REVERSAL": 0
+    }
+   },
+   "frozen_reproduces_run": {
+    "INNER_A": true,
+    "INNER_B": true
+   }
+  }
+ }
+}

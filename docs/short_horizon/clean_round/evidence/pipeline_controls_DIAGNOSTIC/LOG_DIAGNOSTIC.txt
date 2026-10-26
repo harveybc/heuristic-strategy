@@ -1,0 +1,106 @@
+2026-10-26T01:30:24Z start cheat_v13
+2026-10-26T01:41:12Z end cheat_v13 rc=143
+2026-10-26T01:41:37Z cheat_v13 attempt 1 stopped by me after 3 fits (1 thread too slow); rerun with 4 threads
+2026-10-26T01:41:44Z [queue] begin cheat_v13
+2026-10-26T01:41:44Z start cheat_v13
+2026-10-26T02:34:25Z end cheat_v13 rc=0
+2026-10-26T02:34:25Z [queue] done cheat_v13
+2026-10-26T02:34:25Z [queue] begin outc_REALBARS
+2026-10-26T02:35:05Z [queue] done outc_REALBARS
+2026-10-26T02:35:05Z [queue] begin cheat_c2
+2026-10-26T02:35:05Z start cheat_c2
+2026-10-26T02:44:09Z end cheat_c2 rc=0
+2026-10-26T02:44:09Z [queue] done cheat_c2
+2026-10-26T02:44:09Z [queue] begin outc_SYNTHETIC
+2026-10-26T02:44:48Z [queue] done outc_SYNTHETIC
+2026-10-26T02:44:48Z [queue] begin syn_v13
+2026-10-26T02:44:48Z start syn_v13
+2026-10-26T03:29:24Z end syn_v13 rc=0
+2026-10-26T03:29:24Z [queue] done syn_v13
+2026-10-26T03:29:24Z [queue] begin syn_c2
+2026-10-26T03:29:24Z start syn_c2
+2026-10-26T03:34:50Z end syn_c2 rc=0
+2026-10-26T03:34:50Z [queue] done syn_c2
+2026-10-26T03:34:50Z [queue] begin shuf_v13
+2026-10-26T03:34:50Z start shuf_v13
+2026-10-26T04:08:21Z end shuf_v13 rc=0
+2026-10-26T04:08:21Z [queue] done shuf_v13
+2026-10-26T04:08:21Z [queue] begin shuf_c2
+2026-10-26T04:08:21Z start shuf_c2
+2026-10-26T04:17:15Z end shuf_c2 rc=0
+2026-10-26T04:17:15Z [queue] done shuf_c2
+2026-10-26T04:17:15Z [queue] begin noiseinp_v13
+2026-10-26T04:17:15Z start noiseinp_v13
+2026-10-26T04:38:16Z end noiseinp_v13 rc=0
+2026-10-26T04:38:16Z [queue] done noiseinp_v13
+2026-10-26T04:38:16Z [queue] begin noiseinp_c2
+2026-10-26T04:38:16Z start noiseinp_c2
+2026-10-26T04:43:30Z end noiseinp_c2 rc=0
+2026-10-26T04:43:30Z [queue] done noiseinp_c2
+2026-10-26T04:43:30Z [queue] begin n0.5_c2
+2026-10-26T04:43:30Z start cheat_noise0.5_c2
+2026-10-26T04:52:36Z end cheat_noise0.5_c2 rc=0
+2026-10-26T04:52:36Z [queue] done n0.5_c2
+2026-10-26T04:52:36Z [queue] begin n0.5_v13
+2026-10-26T04:52:36Z start cheat_noise0.5_v13
+2026-10-26T05:34:02Z end cheat_noise0.5_v13 rc=0
+2026-10-26T05:34:02Z [queue] done n0.5_v13
+2026-10-26T05:34:02Z [queue] begin n1_c2
+2026-10-26T05:34:02Z start cheat_noise1_c2
+2026-10-26T05:42:13Z end cheat_noise1_c2 rc=0
+2026-10-26T05:42:13Z [queue] done n1_c2
+2026-10-26T05:42:13Z [queue] begin n1_v13
+2026-10-26T05:42:13Z start cheat_noise1_v13
+2026-10-26T06:30:04Z end cheat_noise1_v13 rc=0
+2026-10-26T06:30:04Z [queue] done n1_v13
+2026-10-26T06:30:04Z [queue] begin n2_c2
+2026-10-26T06:30:04Z start cheat_noise2_c2
+2026-10-26T06:37:25Z end cheat_noise2_c2 rc=0
+2026-10-26T06:37:25Z [queue] done n2_c2
+2026-10-26T06:37:25Z [queue] begin n2_v13
+2026-10-26T06:37:25Z start cheat_noise2_v13
+2026-10-26T07:16:15Z end cheat_noise2_v13 rc=0
+2026-10-26T07:16:15Z [queue] done n2_v13
+2026-10-26T07:16:15Z [queue] queue end
+2026-10-26T07:16:53Z [reports] trading DIAGNOSTIC_cheat_c2 done
+2026-10-26T07:16:53Z [reports] summary DIAGNOSTIC_cheat_c2
+2026-10-26T07:17:06Z [reports] trading DIAGNOSTIC_cheat_noise0.5_c2 done
+2026-10-26T07:17:07Z [reports] summary DIAGNOSTIC_cheat_noise0.5_c2
+2026-10-26T07:17:20Z [reports] trading DIAGNOSTIC_cheat_noise0.5_v13 done
+2026-10-26T07:17:20Z [reports] summary DIAGNOSTIC_cheat_noise0.5_v13
+2026-10-26T07:17:34Z [reports] trading DIAGNOSTIC_cheat_noise1_c2 done
+2026-10-26T07:17:34Z [reports] summary DIAGNOSTIC_cheat_noise1_c2
+2026-10-26T07:17:47Z [reports] trading DIAGNOSTIC_cheat_noise1_v13 done
+2026-10-26T07:17:47Z [reports] summary DIAGNOSTIC_cheat_noise1_v13
+2026-10-26T07:18:00Z [reports] trading DIAGNOSTIC_cheat_noise2_c2 done
+2026-10-26T07:18:01Z [reports] summary DIAGNOSTIC_cheat_noise2_c2
+2026-10-26T07:18:13Z [reports] trading DIAGNOSTIC_cheat_noise2_v13 done
+2026-10-26T07:18:14Z [reports] summary DIAGNOSTIC_cheat_noise2_v13
+2026-10-26T07:18:27Z [reports] trading DIAGNOSTIC_cheat_v13 done
+2026-10-26T07:18:27Z [reports] summary DIAGNOSTIC_cheat_v13
+2026-10-26T07:18:41Z [reports] trading DIAGNOSTIC_noiseinp_c2 done
+2026-10-26T07:18:41Z [reports] summary DIAGNOSTIC_noiseinp_c2
+2026-10-26T07:18:54Z [reports] trading DIAGNOSTIC_noiseinp_v13 done
+2026-10-26T07:18:55Z [reports] summary DIAGNOSTIC_noiseinp_v13
+2026-10-26T07:19:07Z [reports] trading DIAGNOSTIC_shuf_c2 done
+2026-10-26T07:19:08Z [reports] summary DIAGNOSTIC_shuf_c2
+2026-10-26T07:19:21Z [reports] trading DIAGNOSTIC_shuf_v13 done
+2026-10-26T07:19:21Z [reports] summary DIAGNOSTIC_shuf_v13
+2026-10-26T07:19:34Z [reports] trading DIAGNOSTIC_syn_c2 done
+2026-10-26T07:19:34Z [reports] summary DIAGNOSTIC_syn_c2
+2026-10-26T07:19:48Z [reports] trading DIAGNOSTIC_syn_v13 done
+2026-10-26T07:19:48Z [reports] summary DIAGNOSTIC_syn_v13
+2026-10-26T07:19:48Z [reports] reports end
+2026-10-26T07:20:16Z [extra] begin syn_clean_c2
+2026-10-26T07:20:16Z start syn_clean_c2
+2026-10-26T07:25:22Z end syn_clean_c2 rc=0
+2026-10-26T07:25:22Z [extra] done syn_clean_c2
+2026-10-26T07:26:13Z [extra2] begin gshuf_c2
+2026-10-26T07:26:13Z start gshuf_c2
+2026-10-26T07:35:31Z end gshuf_c2 rc=0
+2026-10-26T07:35:31Z [extra2] done gshuf_c2
+2026-10-26T07:35:31Z [extra2] begin gshuf_v13
+2026-10-26T07:35:31Z start gshuf_v13
+2026-10-26T08:11:56Z end gshuf_v13 rc=0
+2026-10-26T08:11:56Z [extra2] done gshuf_v13
+2026-10-26T08:11:56Z [extra2] end

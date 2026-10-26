@@ -1,0 +1,81 @@
+{
+ "status": "DIAGNOSTIC",
+ "unit": "DIAGNOSTIC_syn_c2",
+ "c2": true,
+ "seeds": {
+  "20261019": {
+   "frozen": {
+    "INNER_A": {
+     "net_profit_usd": 2319.4939897693803,
+     "sharpe_daily_sqrt365": 2.8267608005986955,
+     "max_drawdown_pct": 6.020154577059772,
+     "trades": 75,
+     "win_rate": 0.5866666666666667,
+     "profit_factor": 2.2321616920605303,
+     "orders_per_week": 2.7777777777777777,
+     "n_entries_long": 59,
+     "n_entries_short": 16,
+     "n_close_TP": 2,
+     "n_close_SL": 0,
+     "n_close_FORCED_FLAT": 0,
+     "n_close_AGENT_CLOSE": 73,
+     "n_close_REVERSAL": 0
+    },
+    "INNER_B": {
+     "net_profit_usd": -1731.0984886776278,
+     "sharpe_daily_sqrt365": -0.8461866714066147,
+     "max_drawdown_pct": 30.907720070339245,
+     "trades": 153,
+     "win_rate": 0.41830065359477125,
+     "profit_factor": 0.8091279254144976,
+     "orders_per_week": 2.8867924528301887,
+     "n_entries_long": 88,
+     "n_entries_short": 65,
+     "n_close_TP": 5,
+     "n_close_SL": 5,
+     "n_close_FORCED_FLAT": 2,
+     "n_close_AGENT_CLOSE": 138,
+     "n_close_REVERSAL": 3
+    }
+   },
+   "no_early_close": {
+    "INNER_A": {
+     "net_profit_usd": -1054.1598851795206,
+     "sharpe_daily_sqrt365": -0.4773376063284678,
+     "max_drawdown_pct": 19.857001667084706,
+     "trades": 35,
+     "win_rate": 0.4857142857142857,
+     "profit_factor": 0.8453551011895498,
+     "orders_per_week": 1.2962962962962963,
+     "n_entries_long": 26,
+     "n_entries_short": 9,
+     "n_close_TP": 9,
+     "n_close_SL": 7,
+     "n_close_FORCED_FLAT": 19,
+     "n_close_AGENT_CLOSE": 0,
+     "n_close_REVERSAL": 0
+    },
+    "INNER_B": {
+     "net_profit_usd": 718.1040928239127,
+     "sharpe_daily_sqrt365": 0.37486826790988914,
+     "max_drawdown_pct": 30.86540649823659,
+     "trades": 77,
+     "win_rate": 0.5844155844155844,
+     "profit_factor": 1.0556353302931754,
+     "orders_per_week": 1.4528301886792452,
+     "n_entries_long": 44,
+     "n_entries_short": 33,
+     "n_close_TP": 28,
+     "n_close_SL": 17,
+     "n_close_FORCED_FLAT": 32,
+     "n_close_AGENT_CLOSE": 0,
+     "n_close_REVERSAL": 0
+    }
+   },
+   "frozen_reproduces_run": {
+    "INNER_A": true,
+    "INNER_B": true
+   }
+  }
+ }
+}

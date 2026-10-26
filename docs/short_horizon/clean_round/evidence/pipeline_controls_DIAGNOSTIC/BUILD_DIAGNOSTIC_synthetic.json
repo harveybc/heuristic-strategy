@@ -1,0 +1,67 @@
+{
+ "status": "DIAGNOSTIC",
+ "kind": "synthetic",
+ "store": "/var/tmp/pipeline-controls-20261026/DIAGNOSTIC_synthetic/store/full_pool_eurusd_h1.parquet",
+ "store_sha256": "baf36b06aad2f932a00c1d2604b287c7c8cef7b3043b6381b76c7419d851f137",
+ "recipe": "/var/tmp/pipeline-controls-20261026/DIAGNOSTIC_synthetic/recipe/CONSUMER_RECIPE_wf2022_DIAGNOSTIC_SYNTHETIC.json",
+ "recipe_sha256": "ac132ba42e3de490a7b841d0c8251f71c0b3b17fbac610411d82c0af9020b814",
+ "identity": "recipe_DIAGNOSTIC_SYNTHETIC_dbc52a0da2d5638a",
+ "columns_with_changed_constants": [
+  "OPEN@diff",
+  "HIGH@diff",
+  "LOW@diff",
+  "CLOSE@diff",
+  "RAW_BAR_LOG_RETURN",
+  "RAW_CLOSE_LOG_RETURN",
+  "px.logret_1",
+  "px.logret_2",
+  "px.logret_4",
+  "px.logret_6",
+  "px.logret_12",
+  "px.logret_24",
+  "px.logret_48",
+  "act.p_hit"
+ ],
+ "note": {
+  "generator": {
+   "sd_hourly": 0.0009938577402047394,
+   "rho": 0.9438743126816935,
+   "garch": [
+    0.019999999999999907,
+    0.05,
+    0.93
+   ],
+   "kappa": 0.1,
+   "half_life_h": 12.0,
+   "substeps": 12,
+   "gap_rows": 262
+  },
+  "seed": 20261026,
+  "planted_column": "act.p_hit",
+  "planted_rule": "E[log r_{b+1} | f_b] = kappa * sigma_h(b+1) * f_b; f AR(1), N(0,1) stationary, observable after bar b",
+  "expected_drift_next_h_bars_per_unit_f": {
+   "6": 0.5218523510498189,
+   "12": 0.8908576872552886,
+   "24": 1.336286530882933
+  },
+  "expected_drift_units": "multiples of the hourly vol sigma_h",
+  "recomputed_columns": [
+   "OPEN@diff",
+   "HIGH@diff",
+   "LOW@diff",
+   "CLOSE@diff",
+   "RAW_BAR_LOG_RETURN",
+   "RAW_CLOSE_LOG_RETURN",
+   "px.logret_1",
+   "px.logret_2",
+   "px.logret_4",
+   "px.logret_6",
+   "px.logret_12",
+   "px.logret_24",
+   "px.logret_48"
+  ],
+  "other_columns": "real values kept: realistic distractors, uninformative about the synthetic path",
+  "admitted_sha256": "6d771a43e3a82b52e77447438620559ad2453af64118d6a33ad3d291d69aa080",
+  "timestamps": "the real admitted bar starts (< 2025-01-01), calendar and closures unchanged"
+ }
+}

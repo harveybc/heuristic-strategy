@@ -1,0 +1,91 @@
+{
+ "status": "DIAGNOSTIC",
+ "unit": "DIAGNOSTIC_syn_c2",
+ "column": "act.p_hit",
+ "seeds": {
+  "20261019": {
+   "open_l": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": 0.17775616044327022,
+     "spearman_best_net_vs_column": 0.17811548253336473
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": 0.1479688543650694,
+     "spearman_best_net_vs_column": 0.14858981033448515
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": 0.04419416776221557,
+     "spearman_best_net_vs_column": 0.04502784807710043
+    }
+   },
+   "open_s": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": -0.18684788022609367,
+     "spearman_best_net_vs_column": -0.1874371630031695
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": -0.11174897339259596,
+     "spearman_best_net_vs_column": -0.1115787236836874
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": -0.08121679575852984,
+     "spearman_best_net_vs_column": -0.08190069187926066
+    }
+   },
+   "nop": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": -0.012970691931885029
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": -0.0217011781923579
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": -0.028823764021119833
+    }
+   },
+   "close_l": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": 0.007294897666886379,
+     "spearman_reg0_vs_column": 0.01749672829606665
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": 0.02418700433150582,
+     "spearman_reg0_vs_column": 0.023642686315683413
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": -0.00783414903837861,
+     "spearman_reg0_vs_column": 0.026739499044647164
+    }
+   },
+   "close_s": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": 0.19943575209530254,
+     "spearman_reg0_vs_column": -0.2035294484579053
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": 0.13749031426962613,
+     "spearman_reg0_vs_column": -0.13895962785750454
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": 0.1162463994779699,
+     "spearman_reg0_vs_column": -0.12107834930500706
+    }
+   }
+  }
+ }
+}
