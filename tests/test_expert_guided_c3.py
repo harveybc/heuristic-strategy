@@ -378,3 +378,13 @@ def test_derive_encoding_recipe_rewrites_columns_groups_and_scaler(monkeypatch, 
     ops = {c["tensor_name"]: c["consumer_ops"] for c in rec["tensor"]["columns"]}
     assert ops["rg.gmm.onehot2"] == [{"op": "onehot_argmax", "sources": ["rg.gmm.p0", "rg.gmm.p1", "rg.gmm.p2"], "index": 2}]
     assert ops["ev.ny_cut.window2h"] == [{"op": "window_hours", "hours": 2.0, "period_hours": 24.0}]
+
+
+def test_head_outputs_block_is_explicit_and_checked():
+    d = C3.default_contract()
+    ho = d["head_outputs"]
+    assert set(ho) >= {"open_l.decision", "open_l.continuous", "nop.decision", "close_l.decision", "close_l.continuous", "gate", "early_close_switch"}
+    assert ho["open_l.continuous"]["outputs"] == len(C3.CELLS) and "[-4, 4]" in ho["open_l.continuous"]["range"]
+    assert ho["open_l.decision"]["classes"] == C3.CLASSES_OPEN
+    bad = ACT.seal(dict(copy.deepcopy(d), identity=None, head_outputs={}))
+    assert any(e.startswith("C3_CONTRACT_HEAD_OUTPUTS") for e in C3.validate(bad))

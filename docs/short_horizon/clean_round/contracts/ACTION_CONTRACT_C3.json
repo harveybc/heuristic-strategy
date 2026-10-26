@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_652cbdd91d03961d",
+ "identity": "action_4752a9d261379258",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -1039,6 +1039,91 @@
   "huber_weight": 1.0,
   "huber_norm": "masked_rows",
   "ce_norm": "class_weighted_mean"
+ },
+ "head_outputs": {
+  "open_l.decision": {
+   "encoding": "softmax_ce",
+   "classes": [
+    "TP_FIRST",
+    "SL_FIRST",
+    "TIME"
+   ],
+   "range": "3 probabilities in [0, 1], sum 1",
+   "calibration": "temperature scaling on INNER_A (argmax-preserving)",
+   "consumed_by": "EV = P(TP)*TP_cell - P(SL)*SL_cell + P(TIME)*E[net|TIME] - cost (probabilities at the reference cell); OPEN_LONG iff EV > open_margin_l (quantile gene) and the gate places it"
+  },
+  "open_s.decision": {
+   "encoding": "softmax_ce",
+   "classes": [
+    "TP_FIRST",
+    "SL_FIRST",
+    "TIME"
+   ],
+   "range": "3 probabilities in [0, 1], sum 1",
+   "calibration": "temperature scaling on INNER_A (argmax-preserving)",
+   "consumed_by": "as open_l for OPEN_SHORT with open_margin_s"
+  },
+  "open_l.continuous": {
+   "encoding": "bounded_sigmoid",
+   "outputs": 25,
+   "range": "each in [-4, 4] sigma (predicted engine net per unit / sigma)",
+   "calibration": "none (Huber-fitted regression; order-preserving)",
+   "consumed_by": "cell choice only: argmax over the ALLOWED cells (TP >= SL, or net > cost + rr_margin; inside the per-bar band); never thresholded into an action by itself"
+  },
+  "open_s.continuous": {
+   "encoding": "bounded_sigmoid",
+   "outputs": 25,
+   "range": "each in [-4, 4] sigma",
+   "calibration": "none",
+   "consumed_by": "as open_l"
+  },
+  "nop.decision": {
+   "encoding": "softmax_ce",
+   "classes": [
+    "TRADE",
+    "NOP"
+   ],
+   "range": "P(NOP) in [0, 1]",
+   "calibration": "Platt on INNER_A",
+   "consumed_by": "veto: no open when P(NOP) > nop_veto (quantile gene); kept only if it improves the selection-block lower bound"
+  },
+  "close_l.decision": {
+   "encoding": "softmax_ce",
+   "classes": [
+    "NOT_SL_FIRST",
+    "SL_FIRST"
+   ],
+   "range": "P(SL first) in [0, 1]",
+   "calibration": "Platt on INNER_A",
+   "consumed_by": "CLOSE when P(SL first) > close_p_l (per-side quantile gene on long positioned visits)"
+  },
+  "close_s.decision": {
+   "encoding": "softmax_ce",
+   "classes": [
+    "NOT_SL_FIRST",
+    "SL_FIRST"
+   ],
+   "range": "P(SL first) in [0, 1]",
+   "calibration": "Platt on INNER_A",
+   "consumed_by": "CLOSE when P(SL first) > close_p_s"
+  },
+  "close_l.continuous": {
+   "encoding": "bounded_sigmoid",
+   "outputs": 1,
+   "range": "[-4, 4] sigma (predicted remaining value of HOLD)",
+   "calibration": "none",
+   "consumed_by": "CLOSE when remaining < -close_margin_l (per-side quantile gene)"
+  },
+  "close_s.continuous": {
+   "encoding": "bounded_sigmoid",
+   "outputs": 1,
+   "range": "[-4, 4] sigma",
+   "calibration": "none",
+   "consumed_by": "CLOSE when remaining < -close_margin_s"
+  },
+  "closer_inputs": "recipe window + the order's own geometry (dist to SL / TP in sigma_entry, hours held / 24, side); openers / NOP: recipe window only",
+  "gate": "the EV of the chosen open is the SCORE of exec_variants.BestOfDayGate (observe 1 signal per business day, then the first EV >= the day's running best)",
+  "early_close_switch": "exec_variants.early_close_ok(agent close share >= 0.05, value lower bound >= 0) on the selection block; on failure the closers are not consulted (flagged)"
  },
  "encoding_decisions": {
   "regime_gmm": "USE_onehot",

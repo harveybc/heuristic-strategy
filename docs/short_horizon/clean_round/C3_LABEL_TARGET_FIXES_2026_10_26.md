@@ -21,6 +21,33 @@ Contratos sellados: `contracts/ACTION_CONTRACT_C3.json` (tronco `u`) y `contract
 | A5 (protocolo v11) | parada temprana en `sc['early_stop']`, calibración y mapas de genes en `sc['calibration']`, búsqueda / fitness / prueba de cierre en `sc['selection']`; el bloque de decisión se lee una vez tras congelar y se anota en `READ_LEDGER.jsonl`; por búsqueda final: Sharpe deflactado y PBO (`search_overfit`); el lanzador rechaza `NESTED_FOLD_STORE_NOT_FOLD_LOCAL` | `test_blocks_fold_to_inner_a…`, `test_launcher_refuses_a_nested_fold_unit…`, `test_search_overfit_fields…` |
 | arquitectura en la identidad | `architecture` {trunco, fusion_units, core_blocks, readout} sellado; `C3_ARCHITECTURE_MISMATCH` si la corrida difiere | `test_two_sealed_variants…`, `test_architecture_mismatch…` |
 
+## Identidades selladas
+
+| contrato | identidad | tronco | variante de ejecución |
+| --- | --- | --- | --- |
+| `ACTION_CONTRACT_C3.json` (**por defecto**) | `action_4752a9d261379258` | `residual_tcn` (TCN: conv causal por grupo, SiLU, fusión 1×1 de 8, dos bloques residuales d1,d2, flatten) | `full_f3` `exec_709f9b1fa3512486` |
+| `ACTION_CONTRACT_C3_U.json` (control declarado) | `action_88ecc1867959d02c` | `u` (conv1d por grupo, el diseño u) | `full_f3` `exec_709f9b1fa3512486` |
+
+Los dos difieren SÓLO en `architecture` (y por tanto en la identidad). Decisiones de codificación A1-11 declaradas en ambos (`encoding_decisions`): la receta de entrada debe traer `encoding_decisions_applied` (receta derivada por `tools/expert_guided_c3_recipe.py derive`: GMM one-hot, ventanas de 2 h de los relojes de eventos, `hours_to` eliminadas) o la corrida se rechaza.
+
+## Salidas por cabeza (bloque `head_outputs`, verificado por el validador; para la reconciliación con F9)
+
+| cabeza | codificación | rango exacto | calibración | cómo la consume la estrategia |
+| --- | --- | --- | --- | --- |
+| `open_l.decision` | softmax_ce | 3 probabilities in [0, 1], sum 1 | temperature scaling on INNER_A (argmax-preserving) | EV = P(TP)*TP_cell - P(SL)*SL_cell + P(TIME)*E[net|TIME] - cost (probabilities at the reference cell); OPEN_LONG iff EV > open_margin_l (quantile gene) and the gate places it |
+| `open_s.decision` | softmax_ce | 3 probabilities in [0, 1], sum 1 | temperature scaling on INNER_A (argmax-preserving) | as open_l for OPEN_SHORT with open_margin_s |
+| `open_l.continuous` | bounded_sigmoid ×25 | each in [-4, 4] sigma (predicted engine net per unit / sigma) | none (Huber-fitted regression; order-preserving) | cell choice only: argmax over the ALLOWED cells (TP >= SL, or net > cost + rr_margin; inside the per-bar band); never thresholded into an action by itself |
+| `open_s.continuous` | bounded_sigmoid ×25 | each in [-4, 4] sigma | none | as open_l |
+| `nop.decision` | softmax_ce | P(NOP) in [0, 1] | Platt on INNER_A | veto: no open when P(NOP) > nop_veto (quantile gene); kept only if it improves the selection-block lower bound |
+| `close_l.decision` | softmax_ce | P(SL first) in [0, 1] | Platt on INNER_A | CLOSE when P(SL first) > close_p_l (per-side quantile gene on long positioned visits) |
+| `close_s.decision` | softmax_ce | P(SL first) in [0, 1] | Platt on INNER_A | CLOSE when P(SL first) > close_p_s |
+| `close_l.continuous` | bounded_sigmoid ×1 | [-4, 4] sigma (predicted remaining value of HOLD) | none | CLOSE when remaining < -close_margin_l (per-side quantile gene) |
+| `close_s.continuous` | bounded_sigmoid ×1 | [-4, 4] sigma | none | CLOSE when remaining < -close_margin_s |
+
+- puerta: the EV of the chosen open is the SCORE of exec_variants.BestOfDayGate (observe 1 signal per business day, then the first EV >= the day's running best)
+- interruptor de cierre temprano: exec_variants.early_close_ok(agent close share >= 0.05, value lower bound >= 0) on the selection block; on failure the closers are not consulted (flagged)
+- entradas de los cerradores: recipe window + the order's own geometry (dist to SL / TP in sigma_entry, hours held / 24, side); openers / NOP: recipe window only
+
 ## Controles (DIAGNOSTIC, wf2022, 1 semilla, CPU, `full_f3`)
 
 Se llena con `PIPELINE_CONTROLS_C3` al terminar la cola (`queue_c3.sh`): trampa y sintético × {u, residual_tcn}, contra C2 v1.3 y el oráculo.

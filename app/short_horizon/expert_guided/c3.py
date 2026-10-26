@@ -627,6 +627,35 @@ def check_architecture(doc: dict, ARCH: dict):
         raise SystemExit(f"C3_ARCHITECTURE_MISMATCH:contract {want} vs run {have}")
 
 
+def head_outputs(cells) -> dict:
+    """Owner order 2026-10-26 (lane F9 reconciles these with the strategy proof on simulated outputs): per head, the
+    encoding, the exact output range, the calibration and HOW the strategy consumes it. Nothing here is a free text
+    only: the validator checks the block against the module constants."""
+    n = len(cells)
+    return {
+        "open_l.decision": {"encoding": "softmax_ce", "classes": list(CLASSES_OPEN), "range": "3 probabilities in [0, 1], sum 1",
+                            "calibration": "temperature scaling on INNER_A (argmax-preserving)",
+                            "consumed_by": "EV = P(TP)*TP_cell - P(SL)*SL_cell + P(TIME)*E[net|TIME] - cost (probabilities at the reference cell); OPEN_LONG iff EV > open_margin_l (quantile gene) and the gate places it"},
+        "open_s.decision": {"encoding": "softmax_ce", "classes": list(CLASSES_OPEN), "range": "3 probabilities in [0, 1], sum 1",
+                            "calibration": "temperature scaling on INNER_A (argmax-preserving)", "consumed_by": "as open_l for OPEN_SHORT with open_margin_s"},
+        "open_l.continuous": {"encoding": "bounded_sigmoid", "outputs": n, "range": f"each in [{NET_BOUND[0]:g}, {NET_BOUND[1]:g}] sigma (predicted engine net per unit / sigma)",
+                              "calibration": "none (Huber-fitted regression; order-preserving)",
+                              "consumed_by": "cell choice only: argmax over the ALLOWED cells (TP >= SL, or net > cost + rr_margin; inside the per-bar band); never thresholded into an action by itself"},
+        "open_s.continuous": {"encoding": "bounded_sigmoid", "outputs": n, "range": f"each in [{NET_BOUND[0]:g}, {NET_BOUND[1]:g}] sigma", "calibration": "none", "consumed_by": "as open_l"},
+        "nop.decision": {"encoding": "softmax_ce", "classes": ["TRADE", "NOP"], "range": "P(NOP) in [0, 1]", "calibration": "Platt on INNER_A",
+                         "consumed_by": "veto: no open when P(NOP) > nop_veto (quantile gene); kept only if it improves the selection-block lower bound"},
+        "close_l.decision": {"encoding": "softmax_ce", "classes": ["NOT_SL_FIRST", "SL_FIRST"], "range": "P(SL first) in [0, 1]", "calibration": "Platt on INNER_A",
+                             "consumed_by": "CLOSE when P(SL first) > close_p_l (per-side quantile gene on long positioned visits)"},
+        "close_s.decision": {"encoding": "softmax_ce", "classes": ["NOT_SL_FIRST", "SL_FIRST"], "range": "P(SL first) in [0, 1]", "calibration": "Platt on INNER_A",
+                             "consumed_by": "CLOSE when P(SL first) > close_p_s"},
+        "close_l.continuous": {"encoding": "bounded_sigmoid", "outputs": 1, "range": f"[{REM_BOUND[0]:g}, {REM_BOUND[1]:g}] sigma (predicted remaining value of HOLD)", "calibration": "none",
+                               "consumed_by": "CLOSE when remaining < -close_margin_l (per-side quantile gene)"},
+        "close_s.continuous": {"encoding": "bounded_sigmoid", "outputs": 1, "range": f"[{REM_BOUND[0]:g}, {REM_BOUND[1]:g}] sigma", "calibration": "none", "consumed_by": "CLOSE when remaining < -close_margin_s"},
+        "closer_inputs": "recipe window + the order's own geometry (dist to SL / TP in sigma_entry, hours held / 24, side); openers / NOP: recipe window only",
+        "gate": "the EV of the chosen open is the SCORE of exec_variants.BestOfDayGate (observe 1 signal per business day, then the first EV >= the day's running best)",
+        "early_close_switch": "exec_variants.early_close_ok(agent close share >= 0.05, value lower bound >= 0) on the selection block; on failure the closers are not consulted (flagged)"}
+
+
 def default_contract(architecture: dict | None = None) -> dict:
     """C3 contract; the DEFAULT trunk is ``residual_tcn`` (owner 2026-10-26: every model of this line uses the TCN trunk);
     the u-design conv1d trunk is a declared CONTROL arm (``ACTION_CONTRACT_C3_U.json``), never the default."""
@@ -686,6 +715,7 @@ def default_contract(architecture: dict | None = None) -> dict:
         "zigzag": "no ZigZag target (A2-11 not applicable); NOP keeps the multires ladder labels",
         "teacher": "none"}
     doc["loss_balance"] = dict(LOSS_BALANCE)
+    doc["head_outputs"] = head_outputs(cells)
     doc["encoding_decisions"] = dict(ENCODING_DECISIONS)
     doc["exec_variant"] = {"name": EXEC_DEFAULT, "identity": FULL_F3.identity, "options": FULL_F3.document(),
                            "legacy_control": {"name": "legacy", "identity": XV.LEGACY.identity, "how": "--exec-variant legacy (declared control)"},
@@ -777,6 +807,8 @@ def validate(doc: dict) -> list:
         errs.append("C3_CONTRACT_LABEL_RULES")
     if (doc.get("encoding_decisions") or {}) != ENCODING_DECISIONS:
         errs.append("C3_CONTRACT_ENCODING_DECISIONS")
+    if (doc.get("head_outputs") or {}) != head_outputs(cells or CELLS):
+        errs.append("C3_CONTRACT_HEAD_OUTPUTS")
     ev_ = doc.get("exec_variant") or {}
     try:
         ok_xv = ev_.get("name") in EXEC_VARIANTS and XV.ExecVariant(**(ev_.get("options") or {})).identity == ev_.get("identity") == EXEC_VARIANTS[ev_["name"]].identity
@@ -815,7 +847,7 @@ def blocks_of(sc: dict) -> dict:
             "selection": sc.get("selection", "INNER_A"), "decision": sc.get("decision", "INNER_B")}
 
 
-def search_overfit(fr: dict, cx, table, SCFG, cells, e_time, cost, sel_period: str) -> dict:
+def search_overfit(fr: dict, cx, table, SCFG, cells, e_time, cost, sel_period: str, gm=None) -> dict:
     """Per final search (v11 hook 3): the deflated Sharpe of the chosen point (n_trials = distinct archived points, T =
     selection-block days) and the PBO over the valid front points' daily returns on the selection block."""
     pts = fr["runs"]["without_veto"]["points"] + fr["runs"]["with_veto"]["points"]
@@ -823,7 +855,8 @@ def search_overfit(fr: dict, cx, table, SCFG, cells, e_time, cost, sel_period: s
     front = [p for p in (fr["runs"]["without_veto"].get("front", []) + fr["runs"]["with_veto"].get("front", [])) if p.get("valid")]
     rets, days = [], None
     for p in front[:48]:
-        st_ = StrategyC3.from_genes(dict(p["genes"], nop_veto=p["genes"].get("nop_veto", 1.0)), bool(p.get("veto")))
+        g = gm.to_absolute(p["genes"]) if gm is not None else dict(p["genes"])      # archived genes are the quantile genes
+        st_ = StrategyC3.from_genes(dict(g, nop_veto=g.get("nop_veto", 1.0)), bool(p.get("veto")))
         m, _ = ACT.rollout_with_trades(cx, sel_period, PolicyC3(table, st_, cells, e_time, cost)(cx), SCFG)
         r = ST.daily_returns(m["daily_equity"], SCFG.capital)
         rets.append(r)
@@ -903,7 +936,8 @@ def run_seed(cx, seed, d):
         comp = PolicyC3(table, st_, cells, e_time, cost) if st_ is not None else None
     fr = freeze(table, d["view_rows"], score_table, AC, seed, "final", primary, closer_src, cells, e_time, cost, d["cal_rows"])
     st_ = C2.strategy_of(fr) or NO_TRADE
-    fr["search_overfit"] = search_overfit(fr, cx, table, SCFG, cells, e_time, cost, SEL)
+    gm = gene_map(C2.restrict(table, d["view_rows"]), d["cal_rows"], closer_reference_sides(table, closer_src), cells, e_time, cost)
+    fr["search_overfit"] = search_overfit(fr, cx, table, SCFG, cells, e_time, cost, SEL, gm)
     benefit = early_close_benefit(cx, table, st_, SCFG, cells, e_time, cost, dict(EARLY_CLOSE_BENEFIT, block=SEL))
     w = benefit["with_early_close"]
     share = float(w["n_close_AGENT_CLOSE"]) / max(int(w["trades"]), 1)
