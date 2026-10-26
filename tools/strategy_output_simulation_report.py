@@ -316,12 +316,14 @@ def freeze_params(runs: list, stage_a: dict | None, family: str, gate: str = "pe
             table.append({"band": [lo, min(hi, 1.0)], "source": "no_run", "n": 0, "genes": None})
             continue
         genes = {}
-        for k in inb[0]["genes"]:
-            vals = np.array([x["genes"][k] for x in inb], float)
-            med = float(np.median(vals))
+        for k in sorted({k for x in inb for k in x["genes"]}):              # the NOP veto gene is absent when the veto was dropped
+            vals = np.array([x["genes"].get(k, np.nan) for x in inb], float)
+            if not np.isfinite(vals).any():
+                continue
+            med = float(np.nanmedian(vals))
             if k in box and not any(x["stage_b"] for x in inb):
                 med = float(min(max(med, box[k][0]), box[k][1]))
-            genes[k] = {"median": med, "min": float(vals.min()), "max": float(vals.max())}
+            genes[k] = {"median": med, "min": float(np.nanmin(vals)), "max": float(np.nanmax(vals)), "n": int(np.isfinite(vals).sum())}
         table.append({"band": [lo, min(hi, 1.0)], "source": src, "n": len(inb), "levels": sorted({x["level"] for x in inb}), "stage_b": bool(all(x["stage_b"] for x in inb)), "genes": genes,
                       "decision_expectancy_mean": float(np.nanmean([x["dec_exp"] for x in inb if x["dec_exp"] is not None])) if any(x["dec_exp"] is not None for x in inb) else None,
                       "decision_sharpe_mean": float(np.nanmean([x["dec_sharpe"] for x in inb if x["dec_sharpe"] is not None])) if any(x["dec_sharpe"] is not None for x in inb) else None,
@@ -456,7 +458,7 @@ def write(df: pd.DataFrame, runs: list, out: Path, docs: str, ints: list | None 
             frag += [f"### familia `{fam}`", "", "| banda AUC | fuente | n | " + " | ".join(keys) + " |", "| --- | --- | ---: | " + " | ".join("---" for _ in keys) + " |"]
             for b in fz["bands"]:
                 if b.get("genes"):
-                    frag.append(f"| [{b['band'][0]:.2f}, {b['band'][1]:.2f}) | {b['source']} | {b['n']} | " + " | ".join(f"{b['genes'][k]['median']:.3f}" for k in keys) + " |")
+                    frag.append(f"| [{b['band'][0]:.2f}, {b['band'][1]:.2f}) | {b['source']} | {b['n']} | " + " | ".join((f"{b['genes'][k]['median']:.3f}" if k in b["genes"] else "—") for k in keys) + " |")
             frag.append("")
     frag += ["## Figuras", ""] + [f"- [{label} — variantes de calidad]({docs}/{figs[m + ':quality']})" for m, label in METRICS if m + ":quality" in figs] \
          + [f"- [{label} — variantes de ejecución]({docs}/{figs[m + ':execution']})" for m, label in METRICS if m + ":execution" in figs] \

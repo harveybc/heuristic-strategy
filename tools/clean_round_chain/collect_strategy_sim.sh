@@ -59,7 +59,13 @@ $PY - "$DOC" "$REQ" "$EV" "$CODE" <<'EOF'
 import json, re, sys
 from pathlib import Path
 doc, req, ev, code = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4])
-frag = (ev / "SWEEP_FRAGMENT.md").read_text().replace("\n## ", "\n### ")
+frag = (ev / "SWEEP_FRAGMENT.md").read_text()
+# the per-configuration gene table (one row per fold x variant x gate x level x seed) stays in the evidence fragment
+a = frag.find("## Genes congelados por configuración")
+b = frag.find("## Sensibilidad de los genes")
+if 0 <= a < b:
+    frag = frag[:a] + "## Genes congelados por configuración\n\nTabla completa (una fila por fold × escenario × puerta × calidad × semilla) en `evidence/strategy_sim/SWEEP_FRAGMENT.md`; los valores por corrida están en `evidence/strategy_sim/runs/RUN_*.json.gz` (`chosen_genes`, `strategy_effective`).\n\n" + frag[b:]
+frag = frag.replace("\n## ", "\n### ")
 if frag.startswith("## "):
     frag = "#" + frag
 t = doc.read_text()
