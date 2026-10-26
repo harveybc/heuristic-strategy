@@ -41,7 +41,19 @@ from app.short_horizon.expert_guided import stats as ST  # noqa: E402
 
 LADDER = (0.50, 0.52, 0.55, 0.58, 0.62, 0.66, 0.70, 0.75, 0.80, 0.90, 1.00)
 HEADS = ("open", "net", "nop", "close")            # the four simulated head families (quality set per family)
-VARIANTS = ("base", "block", "cost2", "cost3", "spike", "missing10", "onesided", "closer_only", "opener_only", "regime")
+VARIANTS = ("base", "block", "cost2", "cost3", "spike", "missing10", "missing30", "onesided", "asym", "closer_only", "opener_only", "nop_only",
+            "regime", "cal08", "cal12", "lag1", "cap2", "cap4", "cutoff12", "risk05", "risk2", "inv_open", "const_net", "sat")
+SCENARIOS = {  # the catalog (owner 2026-10-26), each with what it changes and where
+    "base": "all heads at the level; contract gate and the per-bar-cost gate", "block": "noise shared within the day (rho 0.5)",
+    "cost2": "every cost x2 (truth and replay)", "cost3": "every cost x3", "spike": "rollover-hour and weekly-open spread x2",
+    "missing10": "10 % of observable rows unobservable (HOLD-on-missing)", "missing30": "30 % unobservable",
+    "onesided": "short openers at chance (0.5), long at the level", "asym": "short openers 0.10 below the level",
+    "closer_only": "openers and NOP at chance, closers at the level", "opener_only": "closers at chance", "nop_only": "only the NOP head informative",
+    "regime": "quality drops by 0.10 from the MIDDLE of the decision block (regime shift mid-block)",
+    "cal08": "miscalibration: calibrated logits x0.8 (under-confident)", "cal12": "calibrated logits x1.2 (over-confident)",
+    "lag1": "delayed signal: every output is the previous observable row's", "cap2": "daily cap 2 entries", "cap4": "daily cap 4 entries",
+    "cutoff12": "Friday entry cutoff 12 h before the flat (contract: 24 h)", "risk05": "risk 0.5 % per trade", "risk2": "risk 2 % per trade",
+    "inv_open": "openers with INVERTED sign (AUC 1 - level)", "const_net": "the net head constant (0) everywhere", "sat": "probabilities saturated (clipped to {0.01, 0.99})"}
 EXPLORATION_PRIOR = (0.85, 0.05, 0.05, 0.05)        # HOLD, LONG, SHORT, CLOSE: exploration visits for the closer references (declared)
 SEL_BLOCK, CAL_BLOCK, DEC_BLOCK = "INNER_A", "INNER_A", "INNER_B"   # yearly folds: calibration = selection = the inner semester (declared)
 CONTRACT = ROOT / "docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_C3.json"
@@ -53,10 +65,12 @@ def beta_for_auc(auc: float) -> float:
     """Gaussian latent s = beta*y' + eps (y' in {-1, +1}, eps ~ N(0, 1)): AUC = Phi(beta * 2 / sqrt(2)) / ... exactly
     AUC = Phi(beta / sqrt(2) * 2 / 2 ...); with the +-1 coding the class means differ by 2*beta, so AUC = Phi(2*beta/sqrt(2))
     = Phi(beta*sqrt(2)); beta = inv_Phi(AUC) / sqrt(2). AUC 1.0 -> a large finite beta (separable)."""
-    a = min(max(float(auc), 0.5), 1.0)
+    a = min(max(float(auc), 0.0), 1.0)
     if a >= 1.0:
         return 12.0
-    return _ND.inv_cdf(a) / math.sqrt(2.0)
+    if a <= 0.0:
+        return -12.0
+    return _ND.inv_cdf(a) / math.sqrt(2.0)              # AUC < 0.5 -> a negative beta: an inverted head
 
 
 def sigma_for_rho(rho: float, sd_true: float) -> float:
@@ -215,8 +229,12 @@ class Quality:
     net: float = 1.0        # Spearman of the predicted net per cell with the true net
     nop: float = 1.0        # AUC of the NOP head
     close: float = 1.0      # AUC of the closer's SL-first head; the remaining-value regression uses the same rho
-    open_s: float | None = None      # one-sided variant: the short side's opener quality (None = same as ``open``)
-    decision_drop: float = 0.0       # regime variant: quality on the decision block = quality - drop (AUC / rho units)
+    open_s: float | None = None      # one-sided / asymmetric variants: the short side's opener quality (None = same as ``open``)
+    decision_drop: float = 0.0       # regime variant: quality after the MIDDLE of the decision block = quality - drop
+    logit_scale: float = 1.0         # calibration drift: calibrated logits x scale (0.8 under-, 1.2 over-confident)
+    lag: int = 0                     # delayed signal: outputs shifted by this many observable rows
+    saturate: bool = False           # probabilities clipped to {0.01, 0.99}
+    const_net: bool = False          # the net regression head constant 0
 
     def side(self, si: int) -> float:
         return self.open if si == 0 or self.open_s is None else self.open_s
@@ -247,7 +265,7 @@ class SimCloser:
         q = self._quality(r)
         e = self.noise.draw(("close",) + tuple(key), day, 2)
         z = beta_for_auc(q) * (1.0 if sl_first else -1.0) + e[0]
-        psl = float(ACT.platt(np.array([z]), self.cal["psl"]["a"], self.cal["psl"]["b"])[0])
+        psl = float(_drift(ACT.platt(np.array([z]), self.cal["psl"]["a"], self.cal["psl"]["b"]), self.q)[0])
         rem = float(rem_true + sigma_for_rho(q, self.cal["rem_sd"]) * e[1])
         return rem, psl, z
 
@@ -300,7 +318,11 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
     n, nc = len(truth.period), len(truth.cells)
     rows = truth.rows
     cal = truth.period == CAL_BLOCK
-    dec = truth.period == DEC_BLOCK
+    dec_all = truth.period == DEC_BLOCK
+    dec_rows = rows[dec_all[rows]]
+    dec = np.zeros(n, bool)                     # the regime shift applies from the MIDDLE of the decision block (declared)
+    if len(dec_rows):
+        dec[dec_rows[len(dec_rows) // 2:]] = True
     t = {"net": np.full((n, 2, nc), np.nan), "p3": np.full((n, 2, 3), np.nan), "pn": np.full(n, np.nan), "cap": truth.cap, "lo": truth.lo}
     lat = {"tp": np.full((n, 2), np.nan), "sl": np.full((n, 2), np.nan), "nop": np.full(n, np.nan)}
     sd_net = float(np.nanstd(truth.net[cal])) if np.isfinite(truth.net[cal]).any() else 1.0
@@ -320,7 +342,9 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
             lat["sl"][r, si] = (b * (1.0 if h == OC.HIT_SL else -1.0) if h >= 0 else 0.0) + e[1]
             x = truth.net[r, si]
             en = noise.draw(("net", int(r), si), day, nc + 1)
-            if np.all(np.isfinite(x)):
+            if q.const_net:
+                t["net"][r, si, :] = 0.0                        # a constant net head: the RR rule alone decides the cell
+            elif np.all(np.isfinite(x)):
                 t["net"][r, si, :] = x + sigma_for_rho(qn, sd_net) * (0.5 * en[0] + math.sqrt(0.75) * en[1:])   # shared row + cell noise
             else:
                 t["net"][r, si, :] = -1.0                       # no eligible entry at this row: the strategy must not open here
@@ -338,7 +362,7 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
             z = lat[name][okr, si]
             a, b = ACT.fit_platt(z, y) if len(np.unique(y)) > 1 else (1.0, 0.0)
             cal_doc[f"{name}_{si}"] = {"a": float(a), "b": float(b), "rows": int(len(y)), "auc_cal": auc_of(z, y)}
-            lat[f"p_{name}_{si}"] = ACT.platt(np.nan_to_num(lat[name][:, si]), a, b)
+            lat[f"p_{name}_{si}"] = _drift(ACT.platt(np.nan_to_num(lat[name][:, si]), a, b), q)
         ptp, psl = lat[f"p_tp_{si}"], lat[f"p_sl_{si}"]
         pt = np.clip(1.0 - ptp - psl, 0.02, 1.0)
         p3 = np.stack([ptp, psl, pt], axis=1)
@@ -346,7 +370,7 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
         t["p3"][rows, si, :] = p3[rows]
     yn = truth.nop[cr]
     a, b = ACT.fit_platt(lat["nop"][cr], yn) if len(np.unique(yn)) > 1 else (1.0, 0.0)
-    t["pn"][rows] = ACT.platt(np.nan_to_num(lat["nop"][rows]), a, b)
+    t["pn"][rows] = _drift(ACT.platt(np.nan_to_num(lat["nop"][rows]), a, b), q)
     cal_doc["nop"] = {"a": float(a), "b": float(b), "auc_cal": auc_of(lat["nop"][cr], yn)}
     # achieved qualities per block
     for blk, mask in (("calibration", cal), ("decision", dec)):
@@ -366,9 +390,24 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
             d[f"mae_over_naive_net_side{si}"] = float(err.mean() / naive.mean()) if okn.any() and naive.mean() > 0 else float("nan")
         d["auc_nop"] = auc_of(lat["nop"][br], truth.nop[br])
         qual[blk] = d
+    if q.lag > 0:                               # delayed signal: the outputs at observable row i are those of row i - lag (same side)
+        for k in ("net", "p3", "pn"):
+            arr = t[k][rows]
+            t[k][rows[q.lag:]] = arr[:-q.lag]
     ccal = fit_closer_cal(truth, q, noise)
     t["closer"] = SimCloser(cx, SCFG, truth, q, noise, ccal, dec if q.decision_drop > 0 else None)
     return t, {"calibration_maps": cal_doc, "closer_calibration": ccal, "achieved": qual, "sd_net_cal": sd_net}
+
+
+def _drift(p: np.ndarray, q: Quality) -> np.ndarray:
+    """Calibration drift (logit x scale) and saturation, applied AFTER the Platt map (the strategy consumes these)."""
+    p = np.clip(np.asarray(p, float), 1e-6, 1 - 1e-6)
+    if q.logit_scale != 1.0:
+        z = np.log(p / (1 - p)) * float(q.logit_scale)
+        p = 1.0 / (1.0 + np.exp(-z))
+    if q.saturate:
+        p = np.where(p >= 0.5, 0.99, 0.01)
+    return p
 
 
 # ----------------------------------------------------------------------------- one configuration
@@ -459,7 +498,7 @@ def evaluate(cx, SCFG, table, strat, cells, e_time, cost, period, sig, AC, capit
     tr = ACT.trade_returns_sigma(trades, sig)
     tr = tr[np.isfinite(tr)]
     by_day = {}
-    a, b = cx.ds.meta["periods"][period]
+    a, b = cx.ds.meta["periods"][period] if isinstance(period, str) else period
     for t_ in trades:
         by_day.setdefault(str(t_["exit_time"])[:10], []).append(float(t_["net_usd"]) / max(int(t_["units"]), 1) / float(sig[int(t_["entry_bar_abs"])]))
     v = cx.ds.bars.index.as_unit("ns").asi8
@@ -480,9 +519,51 @@ def evaluate(cx, SCFG, table, strat, cells, e_time, cost, period, sig, AC, capit
         out["correctness"] = {k: {"status": "PASS" if v["failed"] == 0 else "FAIL", "checked": v["checked"], "failed": v["failed"]} for k, v in chk.items()}
         out["correctness_failed"] = int(sum(v["failed"] for v in chk.values()))
         if ledger_rows is not None:
-            ledger_rows.extend(df.assign(period=period).to_dict("records"))
+            ledger_rows.extend(df.assign(period=str(period)).to_dict("records"))
     elif with_checks:
         out["correctness"], out["correctness_failed"] = {}, 0
+    return out
+
+
+def quarter_tags(cx, period: str) -> list:
+    """The decision block split into calendar quarters, each tagged by realized volatility (tercile over the quarters of
+    2021-2023) and by trend efficiency |sum r| / sum |r| (tercile): the market-regime catalog (trending / ranging, high / low vol)."""
+    import pandas as pd
+    idx = cx.ds.bars.index
+    v = idx.as_unit("ns").asi8
+    r = np.r_[np.nan, np.diff(np.log(cx.ds.bars.CLOSE.to_numpy(float)))]
+    allq = []
+    for y in (2021, 2022, 2023):
+        for qn in range(4):
+            a = pd.Timestamp(f"{y}-{3 * qn + 1:02d}-01", tz="UTC")
+            b = a + pd.offsets.QuarterBegin(startingMonth=1)
+            m = (v >= a.value) & (v < b.value)
+            rr = r[m]
+            rr = rr[np.isfinite(rr)]
+            if len(rr) < 100:
+                continue
+            allq.append({"start": str(a)[:10], "end": str(b)[:10], "vol": float(np.std(rr) * math.sqrt(24 * 260)), "trend": float(abs(rr.sum()) / np.abs(rr).sum())})
+    vols = np.array([x["vol"] for x in allq])
+    tr = np.array([x["trend"] for x in allq])
+    tv, tt = np.quantile(vols, [1 / 3, 2 / 3]), np.quantile(tr, [1 / 3, 2 / 3])
+    a0, b0 = cx.ds.meta["periods"][period]
+    out = []
+    for x in allq:
+        if x["start"] >= str(a0) and x["end"] <= str(b0):
+            x = dict(x, vol_tercile=("low" if x["vol"] <= tv[0] else "high" if x["vol"] > tv[1] else "mid"),
+                     trend_tercile=("ranging" if x["trend"] <= tt[0] else "trending" if x["trend"] > tt[1] else "mixed"))
+            out.append(x)
+    return out
+
+
+def evaluate_quarters(cx, SCFG, table, strat, cells, e_time, cost, sig, AC, Pol, qtags) -> list:
+    """The frozen strategy replayed on each quarter of the decision block (sub-periods of the same year; no new choice)."""
+    out = []
+    for x in qtags:
+        d = evaluate(cx, SCFG, table, strat, cells, e_time, cost, (x["start"], x["end"]), sig, AC, SCFG.capital, False, None, Pol)
+        m = d["metrics"]
+        out.append({**x, "sharpe": m.get("sharpe_daily_sqrt365"), "net_usd": m.get("net_profit_usd"), "trades": m.get("trades"), "opw": m.get("orders_per_week"),
+                    "expectancy": d["expectancy_sigma"].get("expectancy"), "max_dd_pct": m.get("max_drawdown_pct")})
     return out
 
 
@@ -501,6 +582,8 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
            "exec_variant": (AC.get("exec_variant") or {}).get("identity"), "blocks": {"calibration": CAL_BLOCK, "selection": SEL_BLOCK, "decision": DEC_BLOCK},
            "cost_sigma": truth.cost, "e_time": truth.e_time, "per_seed": []}
     obs_backup = cx.obs_ok.copy()
+    qtags = quarter_tags(cx, DEC_BLOCK)
+    res["quarter_tags"] = qtags
     try:
         for seed in seeds:
             t0 = time.time()
@@ -529,6 +612,23 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
                 rec["strategy_effective"] = strat.to_dict()
                 if seed == seeds[0]:                                   # one-at-a-time gene sensitivity on the SELECTION block (declared)
                     rec["sensitivity"] = gene_sensitivity(cx, SCFG, table, fr, truth, AC, cells, sig, min_opw, view_rows, cal_rows, Pol=Pol)
+                # (owner) which fitness: every variant's chosen point, scored ONCE on the decision block (and on selection, for the gap)
+                byf = {}
+                for f, v in fr["by_fitness"].items():
+                    if not v.get("strategy"):
+                        byf[f] = {"valid": False, "note": v.get("note")}
+                        continue
+                    stf = C2.strategy_from_dict(v["strategy"])
+                    if rec.get("early_close_disabled"):
+                        stf = stf.no_early_close()
+                    dsel = evaluate(cx, SCFG, table, stf, cells, truth.e_time, truth.cost, SEL_BLOCK, sig, AC, SCFG.capital, False, None, Pol)
+                    ddec = evaluate(cx, SCFG, table, stf, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, False, None, Pol)
+                    byf[f] = {"valid": True, "genes": (v["chosen"] or {}).get("genes"), "nop_veto_kept": v.get("nop_veto_kept"),
+                              "selection": {k: dsel["metrics"].get(k) for k in ("sharpe_daily_sqrt365", "net_profit_usd", "orders_per_week", "trades")} | {"expectancy": dsel["expectancy_sigma"].get("expectancy")},
+                              "decision": {k: ddec["metrics"].get(k) for k in ("sharpe_daily_sqrt365", "net_profit_usd", "orders_per_week", "trades", "max_drawdown_pct", "valid")}
+                                          | {"expectancy": ddec["expectancy_sigma"].get("expectancy"), "expectancy_low": ddec["expectancy_sigma"].get("low"), "lcb": ddec["components"].get("lcb")}}
+                rec["by_fitness"] = byf
+                rec["quarters"] = evaluate_quarters(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, sig, AC, Pol, qtags)
                 rows_led = [] if ledger else None
                 rec["selection"] = evaluate(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, SEL_BLOCK, sig, AC, SCFG.capital, True, None, Pol)
                 rec["decision"] = evaluate(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, True, rows_led, Pol)
@@ -598,16 +698,34 @@ def quality_for(variant: str, level: float) -> Quality:
     q = Quality(level, level, level, level)
     if variant == "onesided":
         q.open_s = 0.5
+    elif variant == "asym":
+        q.open_s = max(0.5, level - 0.10)
     elif variant == "closer_only":
         q.open, q.net, q.nop = 0.5, 0.05, 0.5
     elif variant == "opener_only":
         q.close = 0.5
+    elif variant == "nop_only":
+        q.open, q.net, q.close = 0.5, 0.05, 0.5
     elif variant == "regime":
         q.decision_drop = 0.10
+    elif variant == "cal08":
+        q.logit_scale = 0.8
+    elif variant == "cal12":
+        q.logit_scale = 1.2
+    elif variant == "lag1":
+        q.lag = 1
+    elif variant == "inv_open":
+        q.open = 1.0 - level
+    elif variant == "const_net":
+        q.const_net = True
+    elif variant == "sat":
+        q.saturate = True
     return q
 
 
 def scfg_for(variant: str, SCFG):
+    """The engine configuration of a scenario (cost / spread / cap / cutoff / risk are DECLARED execution variants)."""
+    xv = SCFG.variant if SCFG.variant is not None else C3.FULL_F3
     if variant == "cost2":
         return dataclasses.replace(SCFG, profile=SCFG.profile.scaled(2.0))
     if variant == "cost3":
@@ -615,7 +733,20 @@ def scfg_for(variant: str, SCFG):
     if variant == "spike":                      # rollover-hour spread doubled (the spike the A4 audit measured at hour 0)
         sch = tuple((a, b, (x * 2.0 if a == 0 else x)) for a, b, x in SCFG.profile.spread_schedule)
         return dataclasses.replace(SCFG, profile=dataclasses.replace(SCFG.profile, spread_schedule=sch, weekly_open_spread=SCFG.profile.weekly_open_spread * 2.0))
+    if variant == "cap2":
+        return dataclasses.replace(SCFG, max_entries_per_day=2)
+    if variant == "cap4":
+        return dataclasses.replace(SCFG, max_entries_per_day=4)
+    if variant == "cutoff12":
+        return dataclasses.replace(SCFG, variant=dataclasses.replace(xv, entry_cutoff_hours_before_flat=12.0))
+    if variant == "risk05":
+        return dataclasses.replace(SCFG, variant=dataclasses.replace(xv, risk_pct=0.005))
+    if variant == "risk2":
+        return dataclasses.replace(SCFG, variant=dataclasses.replace(xv, risk_pct=0.02))
     return SCFG
+
+
+TRUTH_OF = {"cost2": "cost2", "cost3": "cost3", "spike": "spike", "cutoff12": "cutoff12"}   # scenarios whose engine truth differs from base
 
 
 # ----------------------------------------------------------------------------- CLI
@@ -635,7 +766,7 @@ def cmd_run(a):
     AC = contract_for_sim(a.contract)
     cx, SCFG = load_fold(a.fold, a.admitted, a.csv_dir)
     SCFG = with_variant(SCFG, C3.FULL_F3)
-    truth_variant = a.variant if a.variant in ("cost2", "cost3", "spike") else "base"
+    truth_variant = TRUTH_OF.get(a.variant, "base")
     truth = load_truth(Path(a.truth_dir) / f"TRUTH_{a.fold}_{truth_variant}.npz")
     S = scfg_for(a.variant, SCFG)
     out = Path(a.out)
@@ -647,7 +778,9 @@ def cmd_run(a):
         if p.exists() and not a.force:
             print(json.dumps({"skip": str(p)}), flush=True)
             continue
-        res = run_config(cx, S, truth, AC, q, seeds, a.variant, out, a.fold, missing_frac=0.10 if a.variant == "missing10" else 0.0, ledger=not a.no_ledger, gate=a.gate)
+        miss = {"missing10": 0.10, "missing30": 0.30}.get(a.variant, 0.0)
+        res = run_config(cx, S, truth, AC, q, seeds, a.variant, out, a.fold, missing_frac=miss, ledger=not a.no_ledger, gate=a.gate)
+        res["scenario"] = SCENARIOS.get(a.variant, "")
         res["level"] = lv
         p.write_text(json.dumps(res, indent=1, default=float))
 
@@ -699,7 +832,7 @@ def main():
         s.add_argument("--csv-dir", required=True)
         s.add_argument("--contract", default=str(CONTRACT))
         s.add_argument("--out", required=True)
-    sub.choices["truth"].add_argument("--variants", default="base,cost2,cost3,spike")
+    sub.choices["truth"].add_argument("--variants", default="base,cost2,cost3,spike,cutoff12")
     r = sub.choices["run"]
     r.add_argument("--truth-dir", required=True)
     r.add_argument("--variant", default="base", choices=VARIANTS)

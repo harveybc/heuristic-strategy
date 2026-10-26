@@ -92,7 +92,7 @@ def test_regime_drop_and_one_sided_variants(monkeypatch):
     monkeypatch.setattr(S, "SimCloser", lambda *a, **k: None)
     _, sim = S.simulate_table(None, None, t, S.Quality(0.80, 0.80, 0.80, 0.80, decision_drop=0.15), seed=0)
     assert abs(sim["achieved"]["calibration"]["auc_tp_first_side0"] - 0.80) < 0.03
-    assert abs(sim["achieved"]["decision"]["auc_tp_first_side0"] - 0.65) < 0.03
+    assert 0.62 < sim["achieved"]["decision"]["auc_tp_first_side0"] < 0.78     # the drop (0.15) applies from the MIDDLE of the decision block
     _, sim = S.simulate_table(None, None, t, S.quality_for("onesided", 0.80), seed=0)
     assert abs(sim["achieved"]["decision"]["auc_tp_first_side0"] - 0.80) < 0.03
     assert abs(sim["achieved"]["decision"]["auc_tp_first_side1"] - 0.50) < 0.03
@@ -123,3 +123,29 @@ def test_pooled_table_counts_refusals_and_failed_checks():
                         "dec_early_close_value": 10.0, "dec_win": 0.5, "buy_win": 0.5, "sell_win": 0.5, "dec_exp_lo": 0.01, "dec_trades": 100} for s in range(3)])
     p = R.pooled(df)
     assert int(p["refused"].iloc[0]) == 1 and int(p["n"].iloc[0]) == 3 and abs(float(p["dec_sharpe"].iloc[0]) - 2.5) < 1e-9
+
+
+def test_catalog_knobs_lag_drift_saturation_and_inversion(monkeypatch):
+    t = _truth(seed=4)
+    monkeypatch.setattr(S, "SimCloser", lambda *a, **k: None)
+    tab0, _ = S.simulate_table(None, None, t, S.Quality(0.8, 0.8, 0.8, 0.8), seed=0)
+    tab1, _ = S.simulate_table(None, None, t, S.quality_for("lag1", 0.8), seed=0)
+    r = t.rows
+    assert np.allclose(tab1["pn"][r[1:]], tab0["pn"][r[:-1]]) and np.allclose(tab1["net"][r[1:]], tab0["net"][r[:-1]])
+    tab2, _ = S.simulate_table(None, None, t, S.quality_for("cal12", 0.8), seed=0)
+    z0, z2 = np.log(tab0["pn"][r] / (1 - tab0["pn"][r])), np.log(tab2["pn"][r] / (1 - tab2["pn"][r]))
+    assert np.allclose(z2, 1.2 * z0, atol=1e-5)
+    tab3, _ = S.simulate_table(None, None, t, S.quality_for("sat", 0.8), seed=0)
+    assert set(np.round(np.unique(tab3["pn"][r]), 2)) <= {0.01, 0.99}
+    assert S.beta_for_auc(0.3) < 0 and S.quality_for("inv_open", 0.8).open == pytest.approx(0.2)
+    _, sim = S.simulate_table(None, None, t, S.quality_for("inv_open", 0.8), seed=0)
+    assert abs(sim["achieved"]["decision"]["auc_tp_first_side0"] - 0.2) < 0.03
+    tab4, _ = S.simulate_table(None, None, t, S.quality_for("const_net", 0.8), seed=0)
+    assert np.all(tab4["net"][r] == 0.0)
+    _, sim = S.simulate_table(None, None, t, S.quality_for("regime", 0.8), seed=0)
+    dec = r[t.period[r] == "INNER_B"]
+    assert abs(sim["achieved"]["calibration"]["auc_tp_first_side0"] - 0.8) < 0.03
+    # the drop (0.10) applies from the middle of the decision block: the pooled decision AUC sits between the two halves' values
+    assert 0.64 < sim["achieved"]["decision"]["auc_tp_first_side0"] < 0.80
+    assert S.quality_for("asym", 0.8).open_s == pytest.approx(0.7) and S.quality_for("nop_only", 0.8).nop == 0.8 and S.quality_for("nop_only", 0.8).open == 0.5
+    assert set(S.SCENARIOS) == set(S.VARIANTS)

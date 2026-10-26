@@ -17,15 +17,18 @@ LEVELS_FULL=${LEVELS_FULL:-"0.5,0.52,0.55,0.58,0.62,0.66,0.7,0.75,0.8,0.9,1.0"}
 SEEDS=${SEEDS:-"0,1,2"}
 log "start folds=[$FOLDS] jobs=$JOBS"
 for f in $FOLDS; do
-  [ -f $ROOT/truth/TRUTH_${f}_spike.npz ] || $CR -q -m 4G -t 3600s -n sim-truth-$f -- $PY tools/strategy_output_simulation.py truth --fold $f --admitted $ADM --csv-dir $CSV --variants base,cost2,cost3,spike --out $ROOT/truth > $ROOT/logs/truth_$f.log 2>&1 && log "truth $f DONE" || log "truth $f FAILED"
+  [ -f $ROOT/truth/TRUTH_${f}_cutoff12.npz ] || $CR -q -m 4G -t 3600s -n sim-truth-$f -- $PY tools/strategy_output_simulation.py truth --fold $f --admitted $ADM --csv-dir $CSV --variants base,cost2,cost3,spike,cutoff12 --out $ROOT/truth > $ROOT/logs/truth_$f.log 2>&1 && log "truth $f DONE" || log "truth $f FAILED"
 done
 # job list: (fold, variant, levels)
 JOBLIST=$ROOT/JOBS.txt; : > $JOBLIST
-GATES=${GATES:-"contract perbar"}
-for g in $GATES; do for f in $FOLDS; do
-  echo "$f base $g $LEVELS_FULL" >> $JOBLIST
-  for v in block regime onesided closer_only opener_only cost2 cost3 spike missing10; do echo "$f $v $g $LEVELS" >> $JOBLIST; done
-done; done
+# catalog (owner 2026-10-26): base on both gates over the full ladder; every other scenario on the per-bar-cost gate over
+# the 5-level ladder; the head-shape scenarios (inverted / constant / saturated) at one level
+for f in $FOLDS; do
+  echo "$f base contract $LEVELS_FULL" >> $JOBLIST
+  echo "$f base perbar $LEVELS_FULL" >> $JOBLIST
+  for v in block regime onesided asym closer_only opener_only nop_only cal08 cal12 lag1 cost2 cost3 spike missing10 missing30 cap2 cap4 cutoff12 risk05 risk2; do echo "$f $v perbar $LEVELS" >> $JOBLIST; done
+  for v in inv_open const_net sat; do echo "$f $v perbar ${LEVEL_SHAPE:-0.8}" >> $JOBLIST; done
+done
 run_job(){ f=$1; v=$2; g=$3; lv=$4
   $CR -q -m ${MEM:-4G} -t 43200s -n sim-$f-$v-$g -- $PY tools/strategy_output_simulation.py run --fold $f --admitted $ADM --csv-dir $CSV --truth-dir $ROOT/truth --variant $v --gate $g --levels $lv --seeds $SEEDS --out $ROOT/runs > $ROOT/logs/run_${f}_${v}_${g}.log 2>&1 && log "run $f $v $g DONE" || log "run $f $v $g FAILED (see logs/run_${f}_${v}_${g}.log)"
 }
