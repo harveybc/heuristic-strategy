@@ -246,10 +246,11 @@ def rollout_with_volume(cx, period, act, cfg):
                 if v <= 0.0:
                     action = E.HOLD
                 else:
+                    # the order's fraction stays in force until the next entry: the trade record (written at the close)
+                    # then carries the fraction the order was sized with, as the correctness check re-derives it
                     env.cfg = dataclasses.replace(cfg, percentual_order_size=f_full * v)
         else:
             action, tp, sl = E.HOLD, 1.5, 2.0
         env.step(bar, action, tp, sl)
-        env.cfg = cfg
     m = env.result()
     return m, list(env.trades)
