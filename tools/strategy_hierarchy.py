@@ -336,7 +336,7 @@ def stage_a(worlds: list, bounds: dict, family: str, AC, seed: int, population: 
         pool.close()
     valid = [r for r in archive if r["valid"] and math.isfinite(r["mean"]) and math.isfinite(r["cvar10"])]
     pareto = _pareto(valid)
-    region = robust_region(valid, worlds, names)
+    region = robust_region_escalated(valid, worlds, names)
     doc = {"family": family, "genes": names, "bounds": bounds, "population": population, "generations": generations, "seed": seed, "scales": scales,
            "leaves": len(worlds), "leaves_excluded": excluded, "evaluations": len(archive), "valid_points": len(valid), "pareto": pareto, "robust_region": region,
            "best_mean": max(valid, key=lambda r: r["mean"]) if valid else None, "best_cvar": max(valid, key=lambda r: r["cvar10"]) if valid else None}
@@ -371,11 +371,32 @@ def _pareto(points: list) -> list:
     return sorted(front, key=lambda r: -r["mean"])
 
 
+TOLERANCES = (0.05, 0.10, 0.20, 0.30, 0.50)
+MIN_ROBUST_POINTS = 4
+
+
+def robust_region_escalated(valid: list, worlds: list, names: list) -> dict:
+    """The owner's 5 % rule first; when it admits fewer than MIN_ROBUST_POINTS points (regimes trade off against each
+    other: no point is near-best in trend-up AND trend-down AND range at once) the tolerance is widened along
+    TOLERANCES until the region holds at least that many points. The tolerance used and the 5 % result are recorded."""
+    first = robust_region(valid, worlds, names, TOLERANCES[0])
+    for tol in TOLERANCES:
+        r = robust_region(valid, worlds, names, tol)
+        if r["points"] >= MIN_ROBUST_POINTS:
+            r["tolerance_used"] = tol
+            r["at_5pct"] = {"points": first["points"], "box": first["box"]}
+            return r
+    r = robust_region(valid, worlds, names, TOLERANCES[-1])
+    r["tolerance_used"] = TOLERANCES[-1]
+    r["at_5pct"] = {"points": first["points"], "box": first["box"]}
+    return r
+
+
 def robust_region(valid: list, worlds: list, names: list, tol: float = 0.05) -> dict:
-    """Points within 5 % of the best mean fitness overall AND within 5 % of the best per-L1-regime mean fitness in every
+    """Points within tol of the best mean fitness overall AND within tol of the best per-L1-regime mean fitness in every
     regime -> the box (min / max per gene) they span, with the count."""
     if not valid:
-        return {"points": 0, "box": {}, "rule": "within 5 % of the best mean overall and in every L1 regime"}
+        return {"points": 0, "box": {}, "tolerance": tol, "rule": "within tol of the best mean overall and in every L1 regime"}
     regimes = {}
     for i, w in enumerate(worlds):
         regimes.setdefault(w["leaf"]["regime"], []).append(i)
@@ -396,8 +417,8 @@ def robust_region(valid: list, worlds: list, names: list, tol: float = 0.05) -> 
         if ok:
             keep.append(r)
     box = {g: [min(r["genes"][g] for r in keep), max(r["genes"][g] for r in keep)] for g in names} if keep else {}
-    return {"points": len(keep), "box": box, "per_regime_best": per_reg_best, "best_mean": best,
-            "rule": "within 5 % of the best mean overall and within 5 % of the best mean in every L1 regime", "members": [r["genes"] for r in keep[:50]]}
+    return {"points": len(keep), "box": box, "per_regime_best": per_reg_best, "best_mean": best, "tolerance": tol,
+            "rule": f"within {tol:.0%} of the best mean overall and within {tol:.0%} of the best mean in every L1 regime", "members": [r["genes"] for r in keep[:50]]}
 
 
 _SCALES = {"sharpe": 1.0, "r_ann": 0.2, "opd": 0.6}
@@ -444,6 +465,24 @@ def cmd_stage_a(a):
                       "robust_points": doc["robust_region"]["points"], "best_mean": (doc["best_mean"] or {}).get("mean")}))
 
 
+def cmd_robust_region(a):
+    """Recompute the robust region of a finished Stage A from its archive (per-leaf components) and the catalog."""
+    import gzip
+    out = Path(a.out)
+    doc = json.loads((out / f"STAGE_A_{a.family}.json").read_text())
+    pts = json.loads(gzip.open(out / f"STAGE_A_{a.family}_archive.json.gz", "rt").read())
+    pts = pts if isinstance(pts, list) else pts.get("archive", pts)
+    leaves = json.loads((out / f"STAGE_A_{a.family}_leaves.json").read_text())
+    cat = {x["id"]: x for x in json.loads(Path(a.catalog).read_text())}
+    worlds = [{"leaf": cat[x["id"]]} for x in leaves if not x.get("excluded")]
+    valid = [p for p in pts if p.get("valid") and p["mean"] is not None and np.isfinite(p["mean"])]
+    region = robust_region_escalated(valid, worlds, doc["genes"])
+    doc["robust_region_previous"] = doc.get("robust_region")
+    doc["robust_region"] = region
+    (out / f"STAGE_A_{a.family}.json").write_text(json.dumps(doc, indent=1, default=float))
+    print(json.dumps({"family": a.family, "points": region["points"], "tolerance_used": region.get("tolerance_used"), "at_5pct": region.get("at_5pct", {}).get("points"), "box": region["box"]}))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -464,8 +503,12 @@ def main():
     s.add_argument("--generations", type=int, default=16)
     s.add_argument("--seed", type=int, default=0)
     s.add_argument("--out", required=True)
+    r = sub.add_parser("robust-region", help="recompute the robust region of a finished Stage A from its archive")
+    r.add_argument("--family", default="c3", choices=list(S.FAMILIES))
+    r.add_argument("--catalog", required=True)
+    r.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"catalog": cmd_catalog, "stage-a": cmd_stage_a}[a.cmd](a)
+    {"catalog": cmd_catalog, "stage-a": cmd_stage_a, "robust-region": cmd_robust_region}[a.cmd](a)
 
 
 if __name__ == "__main__":

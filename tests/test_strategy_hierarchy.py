@@ -63,3 +63,16 @@ def test_composite_cvar_pareto_and_robust_region():
     valid = [mk(0.1, 2.0, 2.0), mk(0.2, 1.98, 1.99), mk(0.9, 2.0, 1.0)]
     reg = H.robust_region(valid, worlds, ["g"])
     assert reg["points"] == 2 and reg["box"]["g"] == [0.1, 0.2]
+
+
+def test_robust_region_escalates_the_tolerance_when_regimes_trade_off():
+    """Owner rule 5 % first; when no point is near-best in every L1 regime at once, the tolerance widens along
+    TOLERANCES until MIN_ROBUST_POINTS points qualify, and both the tolerance used and the 5 % result are recorded."""
+    worlds = [{"leaf": {"regime": r}} for r in ("trend_up", "trend_down")]
+    mk = lambda g, s1, s2: {"genes": {"g": g}, "mean": (s1 + s2) / 2, "cvar10": min(s1, s2), "valid": True,  # noqa: E731
+                            "per_leaf": [{"sharpe": s1, "r_ann": 0.0, "opd": 0.0, "trades": 5}, {"sharpe": s2, "r_ann": 0.0, "opd": 0.0, "trades": 5}]}
+    valid = [mk(0.1, 10.0, 2.0), mk(0.2, 2.0, 10.0), mk(0.3, 7.0, 7.0), mk(0.4, 6.5, 6.5), mk(0.5, 6.0, 6.0), mk(0.6, 5.5, 5.5)]
+    reg = H.robust_region_escalated(valid, worlds, ["g"])
+    assert reg["at_5pct"]["points"] == 0
+    assert reg["points"] >= H.MIN_ROBUST_POINTS and reg["tolerance_used"] > 0.05
+    assert reg["box"]["g"][0] <= 0.3 and reg["box"]["g"][1] >= 0.3
