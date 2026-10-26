@@ -27,8 +27,9 @@ de entrada `feature_selector.evaluators`, que entrena **mis especialistas reales
 TCN de §1.
 
 Reglas del recorrido (idénticas a las de Musashi, `rl_subset.py` / `80_NATIVE_SUBSET_EXECUTION.md`):
-- Punto de partida: el candidato = unión de las 121 de la receta v2 (todo lo que sobrevivió a las etapas previas),
-  **no** las 19; las 19 son una cota de referencia que el SBFS debe superar o confirmar.
+- Punto de partida: las 121 de la receta v2 (todo lo que sobrevivió a las etapas previas). **La lista de 19 queda
+  retirada**: no fue una selección sino un corte mío por métricas existentes, y por orden del propietario (2026-10-26)
+  ningún experimento corre con una lista reducida antes de que el SBFS la produzca.
 - Eliminación hacia atrás: quitar cada característica, reentrenar **desde cero** (semillas fijas, soporte pareado,
   escalador reajustado sólo en TRAIN del fold), puntuar; quitar la de menor pérdida.
 - **Grupos y extractores**: la característica se quita de su grupo; cuando sale la última de un grupo, **se elimina
@@ -44,8 +45,8 @@ Reglas del recorrido (idénticas a las de Musashi, `rl_subset.py` / `80_NATIVE_S
   profit, Sharpe, DD y brecha TRAIN–interno por semilla. Un score indefinido no es 0.
 - **Objetivo**: el resultado del motor (C3), nunca "la barra es pivote" (defecto A1-2 que coló las 121).
 - Por fold anidado (F2/F7); la lista final = intersección estable entre folds, con la frecuencia de cada columna.
-- Confirmación: el subconjunto ganador contra las 19 y contra las 121, en los bloques de decisión, con la puerta de
-  control sintético antes.
+- Confirmación: el subconjunto ganador contra las 121 (y contra el incumbente de cada cardinalidad), en los bloques de
+  decisión, con la puerta de control sintético antes.
 
 ## 3. Cómo se entrena con el ZigZag multi-resolución (definición operativa)
 
@@ -70,7 +71,9 @@ selección interno de cada fold con la regla de actividad con IC; nunca en el a�
 
 1. F1 (C3, dos variantes: conv1d y TCN) → control sintético debe superar a C2.
 2. F4: evaluador `expert_guided_model` + driver SBFS (construido ya; corre cuando C3 exista).
-3. F7: stores por fold anidado (corriendo).
+3. F7: stores por fold anidado para las **121** (productores aprendidos por fold; los de 19 quedan SUPERSEDED).
 4. Puerta: control sintético a 5 semillas con el tronco TCN.
 5. SBFS por fold en el 4090 (128 × 3 semillas por fold, primera pasada; BUDGET si se agota).
 6. Confirmación en bloques de decisión; selección final y receta nueva (identidad nueva), comunicada a Musashi.
+
+**Orden inamovible (propietario, 2026-10-26): el SBFS va ANTES de cualquier experimento con una lista reducida.**
