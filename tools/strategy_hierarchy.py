@@ -198,6 +198,29 @@ def cvar(x: np.ndarray, alpha: float = 0.10) -> float:
     return float(x[:k].mean())
 
 
+def _leaf_scorer(w, fam, bounds, cells, AC):
+    """The per-leaf scoring closure (gene map frozen on the leaf's calibration block, per-bar cost, selection-block score)."""
+    cx, SCFG, truth, table = w["cx"], w["scfg"], w["truth"], w["table"]
+
+    cal_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == S.CAL_BLOCK))
+    sel_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == S.SEL_BLOCK))
+    view_rows = np.union1d(cal_rows, sel_rows)
+    table["cost_row"] = S.row_costs(cx, SCFG, truth.cost - C3.cost_sigma_of(cx, SCFG, 0.0, cal_rows))   # per-bar cost BEFORE the view (the perbar gate)
+    view = C2.restrict(table, view_rows)
+    ref = C3.closer_reference_sides(table, S.closer_src_of(truth))
+    sig = np.asarray(cx.ds.sigma, float)
+    min_opw = float(AC["strategy"]["calibration_min_trades_per_week"])
+    if fam is None:
+        gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
+        make = lambda g, _gm=gm: C3.StrategyC3.from_genes(_gm.to_absolute(g), "nop_veto_rate" in g)  # noqa: E731
+        Pol, roll = S.PolicyC3PerBar, ACT.rollout_with_trades
+    else:
+        gm = SF.gene_map_full(view, cal_rows, ref, cells, truth.e_time, truth.cost, bounds)
+        make = lambda g, _gm=gm: SF.StrategyFull.from_genes(_gm.to_absolute(g), "nop_veto_rate" in g, fam[0], fam[1])  # noqa: E731
+        Pol, roll = S.policy_factory(S.PolicyFullPerBar, SCFG), SF.rollout_with_volume
+    score = S.score_fn(cx, SCFG, cells, truth.e_time, truth.cost, AC, S.SEL_BLOCK, sig, min_opw, Pol, roll)
+    return (score, view, make)
+
 def stage_a(worlds: list, bounds: dict, family: str, AC, seed: int, population: int, generations: int, out: Path) -> dict:
     """NSGA-II over every gene with two objectives: the MEAN composite over the leaves and its CVaR-10 % (worst decile),
     under Deb's constraint domination on the leaf-average activity (CI lower bound >= 2/wk) and side share (<= 0.90);
@@ -211,27 +234,18 @@ def stage_a(worlds: list, bounds: dict, family: str, AC, seed: int, population: 
     cells = [tuple(c) for c in AC["outcomes"]["cells"]]
     # per-leaf scoring closures (gene maps frozen on each leaf's calibration block)
     scorers = []
+    kept, excluded = [], []
     for w in worlds:
-        cx, SCFG, truth, table = w["cx"], w["scfg"], w["truth"], w["table"]
-        cal_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == S.CAL_BLOCK))
-        sel_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == S.SEL_BLOCK))
-        view_rows = np.union1d(cal_rows, sel_rows)
-        table["cost_row"] = S.row_costs(cx, SCFG, truth.cost - C3.cost_sigma_of(cx, SCFG, 0.0, cal_rows))   # per-bar cost BEFORE the view (the perbar gate)
-        view = C2.restrict(table, view_rows)
-        ref = C3.closer_reference_sides(table, S.closer_src_of(truth))
-        sig = np.asarray(cx.ds.sigma, float)
-        min_opw = float(AC["strategy"]["calibration_min_trades_per_week"])
-        if fam is None:
-            gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
-            make = lambda g, _gm=gm: C3.StrategyC3.from_genes(_gm.to_absolute(g), "nop_veto_rate" in g)  # noqa: E731
-            Pol, roll = S.PolicyC3PerBar, ACT.rollout_with_trades
-        else:
-            gm = SF.gene_map_full(view, cal_rows, ref, cells, truth.e_time, truth.cost, bounds)
-            make = lambda g, _gm=gm: SF.StrategyFull.from_genes(_gm.to_absolute(g), "nop_veto_rate" in g, fam[0], fam[1])  # noqa: E731
-            Pol, roll = S.policy_factory(S.PolicyFullPerBar, SCFG), SF.rollout_with_volume
-        score = S.score_fn(cx, SCFG, cells, truth.e_time, truth.cost, AC, S.SEL_BLOCK, sig, min_opw, Pol, roll)
-        scorers.append((score, view, make))
+        try:
+            scorers.append(_leaf_scorer(w, fam, bounds, cells, AC))
+            kept.append(w)
+        except (SystemExit, ValueError, KeyError) as e:          # a leaf whose calibration block cannot freeze the gene map (e.g. no short-side
+            w["excluded"] = str(e)                                # reference visits in a one-sided synthetic world) is excluded and recorded
+            excluded.append({"id": w.get("leaf", {}).get("id"), "reason": str(e)})
         w.pop("truth", None); w.pop("table", None); w.pop("sim", None)      # memory: the scorer holds the restricted view only (78 leaves OOM-killed a 3G cap)
+    worlds = kept
+    if not scorers:
+        raise SystemExit("STAGE_A_NO_FEASIBLE_LEAF")
     import gc
     gc.collect()
     archive = []
@@ -324,7 +338,7 @@ def stage_a(worlds: list, bounds: dict, family: str, AC, seed: int, population: 
     pareto = _pareto(valid)
     region = robust_region(valid, worlds, names)
     doc = {"family": family, "genes": names, "bounds": bounds, "population": population, "generations": generations, "seed": seed, "scales": scales,
-           "leaves": len(worlds), "evaluations": len(archive), "valid_points": len(valid), "pareto": pareto, "robust_region": region,
+           "leaves": len(worlds), "leaves_excluded": excluded, "evaluations": len(archive), "valid_points": len(valid), "pareto": pareto, "robust_region": region,
            "best_mean": max(valid, key=lambda r: r["mean"]) if valid else None, "best_cvar": max(valid, key=lambda r: r["cvar10"]) if valid else None}
     out.mkdir(parents=True, exist_ok=True)
     (out / f"STAGE_A_{family}.json").write_text(json.dumps(doc, indent=1, default=float))
@@ -424,7 +438,7 @@ def cmd_stage_a(a):
     fam = S.FAMILIES[a.family]
     bounds = SF.gene_bounds(*fam) if fam else {k: list(v) for k, v in C3.Q_BOUNDS.items()}
     doc = stage_a(worlds, bounds, a.family, AC, a.seed, a.population, a.generations, Path(a.out))
-    doc_leaves = [{"id": w["leaf"]["id"], "witness": w["witness"], "achieved": w["achieved"]} for w in worlds]
+    doc_leaves = [{"id": w["leaf"]["id"], "witness": w["witness"], "achieved": w["achieved"], "excluded": w.get("excluded")} for w in worlds]
     (Path(a.out) / f"STAGE_A_{a.family}_leaves.json").write_text(json.dumps(doc_leaves, indent=1, default=float))
     print(json.dumps({"family": a.family, "leaves": len(worlds), "evaluations": doc["evaluations"], "valid": doc["valid_points"], "pareto": len(doc["pareto"]),
                       "robust_points": doc["robust_region"]["points"], "best_mean": (doc["best_mean"] or {}).get("mean")}))
