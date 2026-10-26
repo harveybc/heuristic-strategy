@@ -598,14 +598,12 @@ def quarter_tags(cx, period: str) -> list:
     vols = np.array([x["vol"] for x in allq])
     tr = np.array([x["trend"] for x in allq])
     tv, tt = np.quantile(vols, [1 / 3, 2 / 3]), np.quantile(tr, [1 / 3, 2 / 3])
+    tagged = [dict(x, vol_tercile=("low" if x["vol"] <= tv[0] else "high" if x["vol"] > tv[1] else "mid"),
+                   trend_tercile=("ranging" if x["trend"] <= tt[0] else "trending" if x["trend"] > tt[1] else "mixed")) for x in allq]
+    if period is None:
+        return tagged                                   # every quarter of 2021-2023 (donors for the regime splice)
     a0, b0 = cx.ds.meta["periods"][period]
-    out = []
-    for x in allq:
-        if x["start"] >= str(a0) and x["end"] <= str(b0):
-            x = dict(x, vol_tercile=("low" if x["vol"] <= tv[0] else "high" if x["vol"] > tv[1] else "mid"),
-                     trend_tercile=("ranging" if x["trend"] <= tt[0] else "trending" if x["trend"] > tt[1] else "mixed"))
-            out.append(x)
-    return out
+    return [x for x in tagged if x["start"] >= str(a0) and x["end"] <= str(b0)]
 
 
 def evaluate_quarters(cx, SCFG, table, strat, cells, e_time, cost, sig, AC, Pol, qtags, roll=ACT.rollout_with_trades) -> list:

@@ -260,10 +260,11 @@ def battery(run: dict, cx, SCFG, truth: S.Truth, AC, draws: int = 6, seed0: int 
             table2["cost_row"] = table["cost_row"]
         run_all("vol_x2_in_heads", cx, SCFG, table2)
         # (b) regime flips: trend -> range -> trend spliced from the decision year's own quarters
-        tr_q = [x for x in qt if x["trend_tercile"] == "trending"]
-        rg_q = [x for x in qt if x["trend_tercile"] == "ranging"]
+        allq = S.quarter_tags(cx, None)                 # donors = real quarters of 2021-2023 by trend tercile
+        tr_q = [x for x in allq if x["trend_tercile"] == "trending"]
+        rg_q = [x for x in allq if x["trend_tercile"] == "ranging"]
         if tr_q and rg_q and len(qt) >= 3:
-            donors = [tr_q[0], rg_q[0], tr_q[-1]]
+            donors = [tr_q[0], rg_q[0], tr_q[-1] if len(tr_q) > 1 else tr_q[0]]
             segs = [(qt[i]["start"], qt[i]["end"], donors[i]["start"], donors[i]["end"]) for i in range(3)]
             bars_s = spliced_bars(cx.ds.bars, segs)
             cx_s = _ctx(cx, dataset_with_bars(cx.ds, bars_s))
