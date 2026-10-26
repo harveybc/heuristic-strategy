@@ -89,6 +89,7 @@ class EnvConfig:
     rules: X.OrderRules = field(default_factory=X.OrderRules)
     same_direction: str = "IGNORE"
     reverse: str = "CLOSE_AND_OPEN"
+    variant: object = None                   # exec_variants.ExecVariant; None = audited behaviour, byte-identical
 
 
 @dataclass
@@ -139,7 +140,7 @@ class BarEnv:
                                       "refused_ENTRY_CUTOFF", "refused_DAILY_CAP", "refused_UNITS",
                                       "refused_LEVELS", "refused_GAP_BEYOND_LEVEL", "refused_NO_SIGMA",
                                       "refused_SESSION_END", "refused_RUIN", "ignored_same_direction",
-                                      "levels_clipped", "decisions")}
+                                      "levels_clipped", "decisions", "reversal_cap_waived", "refused_VARIANT_CUTOFF")}
         self.decisions = []
         return self.first
 
@@ -159,6 +160,10 @@ class BarEnv:
             return False, "BEFORE_OPERATIONAL_START"
         if self.v[k] >= self.ec[si] or self.v[k] + H_NS >= self.ff[si]:
             return False, "ENTRY_CUTOFF"
+        var = self.cfg.variant
+        if var is not None and var.entry_cutoff_hours_before_flat is not None \
+                and self.v[k] + var.entry_cutoff_hours_before_flat * H_NS > self.ff[si]:
+            return False, "VARIANT_CUTOFF"                                            # A4-9 (declared variant)
         if self.entries_day.get(self.business_day(k), 0) >= self.cfg.max_entries_per_day:
             return False, "DAILY_CAP"
         if self.balance <= 0:
@@ -277,10 +282,20 @@ class BarEnv:
             else:
                 want_entry = d
                 want_close = p is not None
+        var = self.cfg.variant
         # 1) the close fills at the open of b + 1
+        waived = None
         if want_close:
+            closed_day = self.business_day(self.pos.entry_bar)
             self._close(k, float(self.o[k]), True, "REVERSAL" if want_entry else "AGENT_CLOSE")
             info["close"] = "REVERSAL" if want_entry else "AGENT_CLOSE"
+            # A4-1 (declared variant): a close-and-reverse is ONE entry decision; the slot of the position it closes
+            # is re-used when that position was opened in the same business day
+            if want_entry and var is not None and var.reverse_counts_as_one_entry \
+                    and int(self.seg_of[k]) == int(self.seg_of[b]) and closed_day == self.business_day(k) \
+                    and self.entries_day.get(closed_day, 0) > 0:
+                self.entries_day[closed_day] -= 1
+                waived = closed_day
         # 2) the entry fills at the open of b + 1 when every rule allows it
         if want_entry:
             ok, why = self.entry_gate(b)
@@ -289,7 +304,12 @@ class BarEnv:
                 ok, why = False, "LEVELS"
             units = None
             if ok:
-                units = self.cfg.sizing.order_units(self.balance, float(self.c[b]), self.cfg.percentual_order_size)
+                if var is not None and var.sizing_mode == "risk":                   # A4-4 (declared variant)
+                    from .exec_variants import risk_units
+                    units = risk_units(self.balance, float(self.c[b]), abs(float(self.c[b]) - lv[1]), var.risk_pct,
+                                       self.cfg.sizing)
+                else:
+                    units = self.cfg.sizing.order_units(self.balance, float(self.c[b]), self.cfg.percentual_order_size)
                 if units is None:
                     ok, why = False, "UNITS"
             if ok:
@@ -300,7 +320,11 @@ class BarEnv:
             if not ok:
                 self.counts["refused_" + why] += 1
                 info["refused"] = why
+                if waived is not None:                                              # the slot is not re-used after all
+                    self.entries_day[waived] += 1
             else:
+                if waived is not None:
+                    self.counts["reversal_cap_waived"] += 1
                 self.counts["levels_clipped"] += int(clipped)
                 self.pos = Position(want_entry, int(units), k, float(self.o[k]), sl, tp, self.decision_sigma(b),
                                     int(self.seg_of[k]), self._fill_cost(units, k, "MARKET"))
@@ -312,7 +336,18 @@ class BarEnv:
         # 3) protections on bar b + 1 (open gap first, stop before take-profit)
         if self.pos is not None:
             p = self.pos
-            hit = X._protect(p.direction, p.tp, p.sl, self.o[k], self.h[k], self.l[k], self.cfg.profile.limit_through)
+            if var is not None and var.short_trigger_on_ask and p.direction < 0:
+                # A4-12 (declared variant): bid bars; a short's buy stop triggers at ASK >= SL and its buy limit at
+                # ASK <= TP; ask = bid + spread, so the tests shift by the bar's spread; fills stay at the levels
+                si = int(self.seg_of[k])
+                sp = self.cfg.profile.spread_at(int(self.v[k]), int(self.mo[si]))
+                hit = X._protect(p.direction, p.tp - sp, p.sl - sp, self.o[k], self.h[k], self.l[k], self.cfg.profile.limit_through)
+                if hit is not None:
+                    reason, price, at_open, amb = hit
+                    price = float(price) + (sp if not at_open else 0.0)
+                    hit = (reason, price, at_open, amb)
+            else:
+                hit = X._protect(p.direction, p.tp, p.sl, self.o[k], self.h[k], self.l[k], self.cfg.profile.limit_through)
             if hit is not None:
                 reason, price, at_open, amb = hit
                 self._close(k, float(price), bool(at_open), reason, amb)
