@@ -386,3 +386,96 @@ del 4090 (`<root>/out/<unidad>/`) y una copia parcial en el coordinador (`<root>
   selección.
 - Todo resultado anterior a C3 (línea base WF, V13, C2, C2G) es negativo en los años congelados y, por el control
   sintético, fue medido **por debajo del suelo de la tubería**: no prueba ausencia de señal ni presencia.
+
+## §10. La jerarquía del ZigZag como predictores de corto y largo plazo
+
+Modelo mental del propietario: la estrategia original usaba un **predictor de largo plazo** para la dirección y un
+**predictor de corto plazo** para cerrar temprano cuando el SL iba a llegar antes que el TP, tolerante a eventos
+imprevistos. La escalera se mapea exactamente a eso.
+
+### 10.1 Mapa
+
+| papel | resoluciones | cantidad por tick (hindsight, sólo entrenamiento; disponibilidad por confirmación) | función en el testigo |
+| --- | --- | --- | --- |
+| **oráculo de largo plazo** | gruesas: opt, rev20 | dirección del tramo grueso (signo de f_open^opt); **espacio restante** g_coarse(t,d) = max_{r∈gruesas} d·(L_e^r − close_t)/σ_t (en σ, negativo contra el tramo); **tiempo al pivote** τ_coarse = e_opt(t) − t barras | `coarse_oracle` |
+| **oráculo de corto plazo** | finas: rev10, rev8, rev5 | **P(pivote fino CONTRA d en ≤ h barras)** = 1[un tramo fino a favor de d termina en ≤ h]; **tiempo al próximo pivote fino** τ_fine = min_r (e_r − t); espacio fino restante; **pivote fino a favor reciente** = 1[un tramo fino a favor de d empezó hace ≤ h] (señal de timing de entrada) | `fine_oracle` (h = 6) |
+
+Lecturas: un pivote fino contra la posición mientras el espacio grueso se debilita es la **alarma "SL antes que TP"**;
+un pivote fino a favor al inicio de un tramo grueso es la **señal de timing**.
+
+### 10.2 Cabezas como estimadores causales de esas cantidades
+
+| cabeza | estima | codificación | objetivo (hindsight, disponible por confirmación) |
+| --- | --- | --- | --- |
+| largo plazo, por lado | g_coarse(t,d) y P(dirección gruesa = d) | regresión acotada + softmax 2 | `coarse_oracle` → en producción `multires.leg_tables["remaining"]` de opt/rev20 |
+| corto plazo, por lado | P(pivote fino contra d en ≤ h) y τ_fine | softmax 2 + regresión | `fine_oracle` → en producción tramos de rev10/rev8/rev5 (`leg_end`, `leg_start`) |
+| NOP | ninguna resolución ofrece espacio ≥ TP con costo | softmax 2 | NOP-duro/graduado (§1) |
+| realidad | Q(t,a) y arrepentimiento | tablas de resultados del motor | §2; el objetivo de la política sigue siendo el arrepentimiento ponderado (§3c) |
+
+Estas cabezas se añaden a las de C3 (§4) como objetivos auxiliares de regresión/clasificación sobre el mismo tronco TCN;
+no sustituyen a las cabezas de resultado (TP/SL/TIME, neto por celda), que siguen siendo las que deciden.
+
+### 10.3 Consumo en la estrategia (regla explícita)
+
+- **Abrir** lado d cuando: ĝ_coarse(t,d) ≥ TP_d + costo (el espacio grueso paga el TP) **y** P̂(pivote fino contra d en ≤ h)
+  es bajo (timing: no hay contrapivote inminente) **y** el veto NOP está apagado (P̂_NOP ≤ `nop_veto`); orden con el
+  TP/SL de la celda elegida, tamaño por riesgo, puerta mejor-del-día (§9a).
+- **Cerrar temprano** cuando la **alarma corta** dispara **y** (ĝ_coarse(t,d) < θ **o** P̂(SL primero) > `close_p`);
+  mantener en otro caso; SL/TP del motor siempre en vigor.
+- **Revertir** sólo cuando la dirección gruesa cambia **con un pivote fino confirmado** (y `allow_reverse`).
+
+### 10.4 Tolerancia a eventos imprevistos: por qué
+
+La alarma corta **no es un pronóstico**: en ejecución se calcula sobre el **camino realizado** —un retroceso confirmado
+de `alarm_thr`·σ desde el extremo favorable alcanzado desde la entrada (`causal_alarm`, sólo barras ≤ t), que es
+exactamente la confirmación causal de un pivote fino. Un evento imprevisto (salto, cambio de régimen, spread) no
+necesita haber sido predicho: en cuanto el camino se mueve contra la posición, la alarma dispara y, si además el
+espacio grueso ya no paga o la operación está bajo el agua por `loss_close`·σ, se cierra antes del SL. El SL del
+motor sigue siendo la última defensa. La tolerancia es por tanto **reactiva y acotada por la velocidad del evento**:
+sólo puede mejorar al SL si el movimiento adverso es más lento que la distancia al SL por barra (medido en 10.5).
+
+### 10.5 Batería de intervenciones (testigos W8–W10, `W8_W10`, bloque de decisión [1800, 3000) del mercado sintético)
+
+Choques inyectados en el **mismo camino** y comparados con contrafactuales de la **misma** estrategia (con/sin cierre
+temprano, con/sin alarma, con/sin veto NOP): (i) seis movimientos adversos de 3σ **condicionados a posición** (empiezan
+2 barras tras cada una de las primeras seis entradas), rápidos (3 barras, 1σ/barra) y lentos (6 barras, 0.5σ/barra);
+(ii) cambio de régimen tendencia → rango (deriva plantada eliminada en [2100, 2500)) → tendencia; (iii) spread ×6 en
+[2700, 2800); (iv) 60 ticks sin observación en [2200, 2260) (precios presentes, características ausentes).
+
+Neto en la ventana de choque (σ, suma de los trades que tocan las ventanas), cuatro semillas:
+
+| semilla | choque | alarmas | cierres propios | con cierre temprano | sin cierre temprano | sin alarma (sólo espacio) | ratio pérdida (con/sin) |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | rápido 3 barras | 13 | 7 | −0.73 | −2.17 | −0.16 | 0.34 |
+| 1 | rápido | 12 | 7 | −11.09 | −11.18 | −11.18 | 0.99 |
+| 2 | rápido | 12 | 11 | −3.30 | −3.15 | −3.57 | 1.05 |
+| 3 | rápido | 13 | 9 | −6.52 | −6.15 | −6.15 | 1.06 |
+| 0 | lento 6 barras | 9 | 6 | +2.39 | +3.83 | +3.34 | n/d (ventana positiva) |
+| 1 | lento | 10 | 8 | −1.83 | −4.20 | −4.20 | **0.44** |
+| 2 | lento | 13 | 11 | −0.54 | −3.15 | −3.57 | **0.17** |
+| 3 | lento | 14 | 9 | −3.20 | −2.17 | −2.17 | 1.47 |
+
+Agrupado sobre las cuatro semillas: choque lento, pérdida en ventana −3.18σ con cierre temprano frente a −5.69σ sin
+él (**ratio 0.56**); choque rápido −21.6 frente a −22.65 (ratio 0.95: sin tolerancia posible, el SL de 2σ llega antes
+de que el agente pueda actuar en la apertura siguiente). Neto total del bloque de decisión: el cierre temprano **reduce**
+el neto en tres de cuatro semillas de choque rápido (5.9 vs 9.5; 2.6 vs 15.2; −3.0 vs −0.6) y lo mejora en una (0.7
+vs −0.7): en un mercado con tendencia plantada el cerrador también corta ganadores. Regla de la prueba: la alarma
+**debe** disparar bajo los choques en toda semilla (si no, el testigo falla) y el ratio agrupado del choque lento debe ser
+< 1; el ratio por semilla se reporta, no se exige.
+
+Cambio de régimen: con el veto NOP causal (fuerza de tendencia 24 barras < 0.5σ-unidades), trades en el rango 4/6/6/3
+frente a 10/12/13/6 sin veto (semillas 0–3); neto en el rango +2.38/−4.41/−5.98/+0.60 frente a −0.23/−4.30/−14.54/−0.17.
+Spread ×6: neto de la ventana −1.17/0.00/+1.70 frente a −1.05/0.00/+1.95 sin choque (el costo por tick entra en el
+motor; menos trades no se fuerzan). Sin observación: **0 entradas** durante el hueco en todas las semillas y las
+protecciones (SL/TP/forzoso/cierre propio) siguen corriendo.
+
+### 10.6 Lo que esta batería prueba y lo que no
+
+Prueba: que las definiciones de los dos oráculos son computables y consistentes con los tramos (prueba
+`test_hierarchy_oracles_are_consistent_with_the_leg_tables`); que la alarma corta reacciona al camino realizado bajo
+eventos no previstos (dispara en 12–14 ocasiones por semilla); que el cierre temprano limita la pérdida de ventana para
+choques más lentos que el SL por barra (ratio agrupado 0.56) y no la empeora para choques rápidos (0.95); que el veto
+NOP reduce la actividad en rango; que sin observación no se abre nada y las protecciones siguen. No prueba: que las
+cabezas aprendidas estimen bien g_coarse / P(contrapivote) (eso lo mide el libro por tick de C3 con datos reales,
+§5); ni que el cerrador mejore el neto total (en el juguete lo reduce en tendencia: §8.4 y la auditoría de cierre
+temprano); ni la tolerancia a saltos de apertura (gaps) mayores que el SL, que ninguna regla causal puede evitar.

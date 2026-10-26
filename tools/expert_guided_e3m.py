@@ -1091,7 +1091,7 @@ def run(a):
         _ctx = {"cx": cx, "ds": ds, "a": a, "AC": AC, "res": res, "out": out, "SCFG": SCFG, "ECFG": ECFG, "MUSASHI_CFG": MUSASHI_CFG,
                 "NS": NS, "led": led, "ledger": ledger, "summary": summary, "DEV": DEV, "SEEDS": SEEDS, "prior": prior,
                 "fit_module": fit_module, "probe": probe, "ROUNDS": ROUNDS, "EXPERT": DG.EXPERT, "fit_extra": FIT_EXTRA, "sc": sc,
-                "ARCH": ARCH, "split_name": a.split_contract}
+                "ARCH": ARCH, "split_name": a.split_contract, "RECIPE": RECIPE}
         res = C3.run_e3m(_ctx) if C3MODE else C2.run_e3m(_ctx)
         res["wall_seconds"] = time.time() - t0
         (out / "E3M.json").write_text(json.dumps(jsonable(res), indent=1))

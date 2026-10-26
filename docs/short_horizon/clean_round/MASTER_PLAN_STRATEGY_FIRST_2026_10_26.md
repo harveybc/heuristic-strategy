@@ -51,3 +51,31 @@ mismo contrato.
 
 Experimentos con listas reducidas inventadas; etiquetas de pivote como entrada; cabeza SL constante; anular entradas
 en lugar de reentrenar; elegir nada sobre el bloque de decisión; avanzar con un defecto conocido.
+
+## Fase 0, detalle (propietario, 2026-10-26): jerarquía de escenarios y optimización en dos etapas
+
+**Jerarquía de escenarios** (cada hoja = configuración del generador + comportamiento esperado + testigo):
+
+| nivel | dimensión | valores |
+| --- | --- | --- |
+| L1 | régimen grueso × volatilidad | tendencia alcista / bajista / rango × vol baja / alta (sintético y subperiodos reales por terciles de vol y ADX) |
+| L2 | estructura fina dentro del tramo grueso | amplitud y densidad de pivotes de los ZigZag finos: baja / media / alta |
+| L3 | eventos | choques 2/3/4σ en contra, cambio de régimen a mitad de bloque, spread ×5 por 24 h, rachas sin observación 6–24 h, volatilidad duplicada |
+| L4 | calidad de las cabezas | escalera AUC/MAE por cabeza, descalibración ×0.8/×1.2, retardo 1 barra, asimetría por lado, sólo abridores / sólo cerradores / sólo NOP |
+| L5 | ejecución | tope diario 1/2/4, corte 12/24 h, riesgo 0.5/1/2 %, costo ×1/2/3 |
+
+Muestreo: hipercubo latino sobre las hojas + factorial completo L1 × L4 en la calidad de operación; tabla de cobertura
+publicada (hoja × semillas).
+
+**Optimización en dos etapas:**
+- **Etapa A, sintética**: todos los coeficientes y parámetros (TP/SL por lado, volumen, márgenes, veto NOP, umbrales
+  de cierre por lado, ventana de mejor señal, corte) con DEAP/NSGA-II y el fitness del propietario, agregando entre
+  escenarios por **media y CVaR-10 %** (peor decil) → una **región robusta** de parámetros (los que quedan a ≤ 5 % del
+  mejor en todos los regímenes L1), no un punto.
+- **Etapa B, datos reales de TRAIN**: re-optimización partiendo del óptimo de A y **acotada a su región robusta**, con
+  barras reales y salidas simuladas a la calidad que el modelo real alcanza (medida fuera de pliegue en el bloque de
+  ajuste cuando exista el modelo; antes, la escalera), sólo en el bloque de selección; una lectura en los bloques de
+  decisión; se reporta el desplazamiento A→B de cada parámetro y la ganancia/pérdida fuera de bloque con IC.
+- Respuesta a la pregunta del propietario: sí, los datos reales de TRAIN se usan para la optimización, pero **después**
+  de la sintética y **dentro** de su región robusta, para que el ajuste real no pueda sobreajustar un periodo; el año
+  de decisión nunca se toca.

@@ -60,7 +60,7 @@ def synth_market(n=3000, seed=0, kappa=0.25, rho=0.95, vol=1.0, n_noise=6):
     lo24 = np.array([np.min(l[max(0, t - 23):t + 1]) for t in range(n)]); hi24 = np.array([np.max(h[max(0, t - 23):t + 1]) for t in range(n)])
     up_room, dn_room = (hi24 - c) / sig, (c - lo24) / sig
     X = np.c_[z, up_room, dn_room, rng.standard_normal((n, n_noise))]
-    return dict(o=o, h=h, l=l, c=c, sigma=sig, X=X, z=z, r=r)
+    return dict(o=o, h=h, l=l, c=c, sigma=sig, X=X, z=z, r=r, cost=np.full(n, COST))
 
 
 # ----------------------------------------------------------------------------------------------- ZigZag with confirmation
@@ -93,13 +93,13 @@ def leg_tables(m, pivots):
     pivot. The leg containing t is [s, e) between consecutive pivots; counter-leg quantities are negative."""
     n = len(m["c"]); o, h, l, c, sig = m["o"], m["h"], m["l"], m["c"], m["sigma"]
     out = {k: {1: np.full(n, np.nan), -1: np.full(n, np.nan)} for k in ("f_open", "f_close", "remaining", "mae")}
-    leg_sigma, leg_end, conf = np.full(n, np.nan), np.full(n, -1), np.full(n, -1)
+    leg_sigma, leg_end, conf, leg_start = np.full(n, np.nan), np.full(n, -1), np.full(n, -1), np.full(n, -1)
     for (sb, sk, sv, _), (eb, ek, ev, ec) in zip(pivots[:-1], pivots[1:]):
         leg = abs(ev - sv)
         if leg <= 0:
             continue
         for t in range(sb, min(eb, n - 1)):
-            leg_sigma[t], leg_end[t], conf[t] = leg / sig[t], eb, ec
+            leg_sigma[t], leg_end[t], conf[t], leg_start[t] = leg / sig[t], eb, ec, sb
             for d in (1, -1):
                 out["f_open"][d][t] = d * (ev - o[t + 1]) / leg
                 out["f_close"][d][t] = d * (c[t] - sv) / leg
@@ -107,7 +107,7 @@ def leg_tables(m, pivots):
                 path = h[t + 1:eb + 1] if d < 0 else l[t + 1:eb + 1]
                 adverse = (np.max(path) - o[t + 1]) if d < 0 else (o[t + 1] - np.min(path))
                 out["mae"][d][t] = max(0.0, adverse) / leg
-    return dict(out, leg_sigma=leg_sigma, leg_end=leg_end, conf=conf)
+    return dict(out, leg_sigma=leg_sigma, leg_end=leg_end, conf=conf, leg_start=leg_start)
 
 
 def ladder_tables(m, mults=LADDER_MULT):
@@ -182,19 +182,23 @@ COST = 0.05          # round-trip cost in sigma
 HORIZON = 48         # forced flat after this many bars (toy)
 
 
+def _cost(m, t):
+    return float(m["cost"][t]) if "cost" in m else COST
+
+
 def q_open(m, t, d, tp, sl):
     """Exact outcome of opening side d at open[t+1] with levels tp/sl (sigma multiples): (net_sigma, hit, exit_bar).
-    Conservative intrabar order: SL before TP."""
-    n = len(m["c"]); e = m["o"][t + 1]; s = m["sigma"][t]
+    Conservative intrabar order: SL before TP. Cost = the tick's round-trip cost (spread blow-ups are per tick)."""
+    n = len(m["c"]); e = m["o"][t + 1]; s = m["sigma"][t]; COST_T = _cost(m, t)
     up, dn = e + d * tp * s, e - d * sl * s
     for j in range(t + 1, min(n, t + 1 + HORIZON)):
         hi, lo = m["h"][j], m["l"][j]
         if (d > 0 and lo <= dn) or (d < 0 and hi >= dn):
-            return -sl - COST, "SL", j
+            return -sl - COST_T, "SL", j
         if (d > 0 and hi >= up) or (d < 0 and lo <= up):
-            return tp - COST, "TP", j
+            return tp - COST_T, "TP", j
     j = min(n - 1, t + HORIZON)
-    return d * (m["c"][j] - e) / s - COST, "TIME", j
+    return d * (m["c"][j] - e) / s - COST_T, "TIME", j
 
 
 def q_table(m, t, cells=((1.0, 1.0), (1.5, 1.5))):
@@ -207,15 +211,15 @@ def q_table(m, t, cells=((1.0, 1.0), (1.5, 1.5))):
 
 def q_positioned(m, t, d, entry, tp_lvl, sl_lvl, entry_sig):
     """Q for a position: HOLD = continue to TP/SL/time from t+1 with the SAME levels; CLOSE = exit at open[t+1]."""
-    n = len(m["c"]); close_now = d * (m["o"][t + 1] - entry) / entry_sig - COST / 2
+    n = len(m["c"]); COST_T = _cost(m, t); close_now = d * (m["o"][t + 1] - entry) / entry_sig - COST_T / 2
     for j in range(t + 1, min(n, t + 1 + HORIZON)):
         hi, lo = m["h"][j], m["l"][j]
         if (d > 0 and lo <= sl_lvl) or (d < 0 and hi >= sl_lvl):
-            return {HOLD: d * (sl_lvl - entry) / entry_sig - COST / 2, CLOSE: close_now}
+            return {HOLD: d * (sl_lvl - entry) / entry_sig - COST_T / 2, CLOSE: close_now}
         if (d > 0 and hi >= tp_lvl) or (d < 0 and lo <= tp_lvl):
-            return {HOLD: d * (tp_lvl - entry) / entry_sig - COST / 2, CLOSE: close_now}
+            return {HOLD: d * (tp_lvl - entry) / entry_sig - COST_T / 2, CLOSE: close_now}
     j = min(n - 1, t + HORIZON)
-    return {HOLD: d * (m["c"][j] - entry) / entry_sig - COST / 2, CLOSE: close_now}
+    return {HOLD: d * (m["c"][j] - entry) / entry_sig - COST_T / 2, CLOSE: close_now}
 
 
 def regret(q, a):
@@ -223,8 +227,9 @@ def regret(q, a):
 
 
 # ----------------------------------------------------------------------------------------------- policies, ledger (§5, W7)
-def simulate(m, policy, t0, t1, cell=(1.0, 1.0)):
+def simulate(m, policy, t0, t1, cell=None):
     """Sequential replay with ONE position at a time; policy(t, state) -> action. Returns trades and per-tick ledger."""
+    cell = cell or getattr(policy, "cell", (1.0, 1.0))
     trades, ledger, pos = [], [], None
     for t in range(t0, t1 - 1):
         if pos is None:
@@ -241,12 +246,13 @@ def simulate(m, policy, t0, t1, cell=(1.0, 1.0)):
                 trades.append(dict(t_open=pos["t_open"], t_close=t + 1, net=q[CLOSE], reason="AGENT")); pos = None
             else:
                 hi, lo = m["h"][t + 1], m["l"][t + 1]; d = pos["d"]
+                ct = _cost(m, t)
                 if (d > 0 and lo <= pos["sl"]) or (d < 0 and hi >= pos["sl"]):
-                    trades.append(dict(t_open=pos["t_open"], t_close=t + 1, net=d * (pos["sl"] - pos["entry"]) / pos["sig"] - COST / 2, reason="SL")); pos = None
+                    trades.append(dict(t_open=pos["t_open"], t_close=t + 1, net=d * (pos["sl"] - pos["entry"]) / pos["sig"] - ct / 2, reason="SL")); pos = None
                 elif (d > 0 and hi >= pos["tp"]) or (d < 0 and lo <= pos["tp"]):
-                    trades.append(dict(t_open=pos["t_open"], t_close=t + 1, net=d * (pos["tp"] - pos["entry"]) / pos["sig"] - COST / 2, reason="TP")); pos = None
+                    trades.append(dict(t_open=pos["t_open"], t_close=t + 1, net=d * (pos["tp"] - pos["entry"]) / pos["sig"] - ct / 2, reason="TP")); pos = None
                 elif t + 1 - pos["t_open"] >= HORIZON:
-                    trades.append(dict(t_open=pos["t_open"], t_close=t + 1, net=d * (m["c"][t + 1] - pos["entry"]) / pos["sig"] - COST / 2, reason="TIME")); pos = None
+                    trades.append(dict(t_open=pos["t_open"], t_close=t + 1, net=d * (m["c"][t + 1] - pos["entry"]) / pos["sig"] - ct / 2, reason="TIME")); pos = None
     return trades, ledger
 
 
@@ -418,6 +424,175 @@ def worked_example():
     return rows
 
 
+# ----------------------------------------------------------------------------------------------- §10 hierarchy: coarse = long horizon, fine = short horizon
+COARSE, FINE = ("opt", "rev20"), ("rev10", "rev8", "rev5")
+
+
+def coarse_oracle(tabs, t, d):
+    """Long-horizon hindsight oracle (training-only): remaining room to the next COARSE pivot in sigma (signed: < 0
+    against the coarse leg), coarse direction (+1/-1/0), bars to the coarse pivot."""
+    rooms = [tabs[r]["remaining"][d][t] for r in COARSE if np.isfinite(tabs[r]["remaining"][d][t])]
+    if not rooms:
+        return dict(room=np.nan, direction=0, tau=np.nan)
+    room = float(max(rooms)); e = tabs["opt"]["leg_end"][t]
+    f = tabs["opt"]["f_open"][d][t]
+    return dict(room=room, direction=int(np.sign(f)) if np.isfinite(f) else 0, tau=float(e - t) if e >= 0 else np.nan)
+
+
+def fine_oracle(tabs, t, d, h=6):
+    """Short-horizon hindsight oracle: P(a FINE pivot AGAINST side d within h bars) = 1 iff a fine leg in favour of d
+    ends within h bars; bars to that pivot; fine remaining room; and whether a fine leg in favour of d started within
+    the last `h` bars (entry-timing signal)."""
+    counter, tau, room, fresh = 0, np.inf, np.nan, 0
+    for r in FINE:
+        f = tabs[r]["f_open"][d][t]; e = tabs[r]["leg_end"][t]; s0 = tabs[r]["leg_start"][t]
+        if not np.isfinite(f) or e < 0:
+            continue
+        if f >= 0:                                   # fine leg in favour of d: its END is a counter-pivot
+            if 0 < e - t <= h:
+                counter = 1
+            tau = min(tau, e - t)
+            room = np.nanmax([room, tabs[r]["remaining"][d][t]])
+            if 0 <= t - s0 <= h:
+                fresh = 1
+    return dict(counter_within_h=counter, tau=tau, room=room, fresh_favour=fresh)
+
+
+def causal_alarm(m, t, d, entry_bar, thr_sigma=1.0):
+    """The SHORT alarm as the strategy uses it: a fine reversal CONFIRMED on the realized path (price retraced
+    thr_sigma*sigma from the favourable extreme reached since entry). Reads only bars <= t: no forecast."""
+    if t <= entry_bar:
+        return False
+    seg_h, seg_l = m["h"][entry_bar + 1:t + 1], m["l"][entry_bar + 1:t + 1]
+    ext = seg_h.max() if d > 0 else seg_l.min()
+    retrace = (ext - m["c"][t]) if d > 0 else (m["c"][t] - ext)
+    return bool(retrace >= thr_sigma * m["sigma"][entry_bar])
+
+
+def causal_room(m, t, d, win=24):
+    """Causal proxy of coarse room: distance from the close to the trailing `win`-bar extreme in the direction d."""
+    hi = m["h"][max(0, t - win + 1):t + 1].max(); lo = m["l"][max(0, t - win + 1):t + 1].min()
+    return float(((hi - m["c"][t]) if d > 0 else (m["c"][t] - lo)) / m["sigma"][t])
+
+
+def make_strategy(m, tp=1.0, sl=2.0, z_open=0.6, trend_nop=0.5, room_min=0.6, alarm_thr=0.8, room_close=0.4, loss_close=0.5,
+                  early_close=True, nop_veto=True, alarm=True, timing=True, obs_ok=None):
+    """Toy causal strategy with the hierarchy consumption rule (§10): direction from the long-horizon proxy (z),
+    timing from a fresh favourable move (causal), NOP veto on weak signal, early close when the causal fine alarm fires
+    AND the causal coarse room is small; engine SL/TP always in force; HOLD on missing observations."""
+    state = {}
+
+    def act(t, pos):
+        if obs_ok is not None and not obs_ok[t]:
+            return HOLD
+        z = m["z"][t]
+        if pos is None:
+            d = 1 if z > 0 else -1
+            # NOP veto = causal "no room at any scale": realized 24-bar trend strength below trend_nop sigma-units
+            trend = abs(m["c"][t] - m["c"][max(0, t - 24)]) / (m["sigma"][t] * np.sqrt(24.0))
+            if nop_veto and trend < trend_nop:
+                return HOLD
+            if abs(z) < z_open:
+                return HOLD
+            if timing:
+                fresh = (m["c"][t] > m["h"][max(0, t - 6):t].max()) if d > 0 else (m["c"][t] < m["l"][max(0, t - 6):t].min())
+                if not fresh:
+                    return HOLD
+            if causal_room(m, t, d) < room_min:                  # the coarse room must still pay the TP
+                return HOLD
+            return OPEN_L if d > 0 else OPEN_S
+        d = pos["d"]
+        if early_close:
+            fired = alarm and causal_alarm(m, t, d, pos["t_open"], alarm_thr)
+            state["alarms"] = state.get("alarms", 0) + int(fired)
+            # "SL before TP" on the realized path: the alarm fired AND (the trade is already under water by
+            # loss_close sigma OR the coarse room no longer pays the TP)
+            under = d * (m["c"][t] - pos["entry"]) / pos["sig"]
+            if fired and (under <= -loss_close or causal_room(m, t, d) < room_close):
+                return CLOSE
+            if (not alarm) and causal_room(m, t, d) < room_close * 0.5:   # counterfactual "no alarm": room only
+                return CLOSE
+        return HOLD
+    act.state = state; act.cell = (tp, sl)
+    return act
+
+
+def inject_jumps(m, ticks, size_sigma, seed=0, against_position=None, ramp_bars=3):
+    """Unforeseen shock: a persistent level move of `size_sigma` AGAINST the position side (or the prevailing
+    z-direction) ramped over the 3 bars after each tick."""
+    m2 = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in m.items()}; n = len(m2["c"])
+    side = dict(against_position or [])
+    for t in ticks:
+        d = side.get(t, 1 if m2["z"][t] > 0 else -1)
+        total = -d * size_sigma * m2["sigma"][t]
+        for j in range(ramp_bars):                            # an adverse ramp over ramp_bars bars (not a single gap)
+            b = t + 1 + j
+            if b >= n:
+                break
+            for k in ("o", "h", "l", "c"):
+                m2[k][b:] += total / ramp_bars
+        for b in range(t + 1, min(n, t + 1 + ramp_bars)):
+            m2["h"][b] = max(m2["h"][b], m2["o"][b], m2["c"][b]); m2["l"][b] = min(m2["l"][b], m2["o"][b], m2["c"][b])
+    return m2
+
+
+def inject_regime_flip(m, t0, t1, seed=0):
+    """Trend -> range -> trend: inside [t0, t1) the planted drift is removed (returns re-drawn with kappa = 0)."""
+    rng = np.random.default_rng(seed + 11); m2 = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in m.items()}
+    r = m2["r"].copy(); r[t0:t1] = rng.standard_normal(t1 - t0) * np.std(m["r"])
+    c = 100.0 + np.cumsum(r); shift_o = m2["o"] - m2["c"]; wick_h = m2["h"] - np.maximum(m2["o"], m2["c"]); wick_l = np.minimum(m2["o"], m2["c"]) - m2["l"]
+    m2["c"] = c; m2["o"] = np.r_[100.0, c[:-1]]; m2["h"] = np.maximum(m2["o"], m2["c"]) + wick_h; m2["l"] = np.minimum(m2["o"], m2["c"]) - wick_l; m2["r"] = r
+    return m2
+
+
+def inject_spread(m, t0, t1, factor=6.0):
+    m2 = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in m.items()}; m2["cost"][t0:t1] *= factor; return m2
+
+
+def shock_window_net(trades, windows):
+    return float(sum(x["net"] for x in trades if any(a <= x["t_close"] <= b or a <= x["t_open"] <= b for a, b in windows)))
+
+
+def W8_W10(seed=0, n=3000):
+    """Intervention battery on the decision block [1800, 3000): shocks on the SAME path, counterfactual strategies."""
+    m = synth_market(n=n, seed=seed, kappa=0.35); t0 = 1800
+    # position-conditional shocks: the first 6 entries of the base strategy on the CLEAN path receive a 3-sigma adverse
+    # ramp starting 2 bars after the fill (an unforeseen event while positioned); every counterfactual runs on the SAME
+    # shocked path
+    base0 = make_strategy(m); tr0, _ = simulate(m, base0, t0, n)
+    jump_ticks = sorted(x["t_open"] + 1 for x in tr0[:6])
+    sides = [(x["t_open"] + 1, 1 if m["z"][x["t_open"]] > 0 else -1) for x in tr0[:6]]
+    windows = [(t, t + 24) for t in jump_ticks]
+    out = {}
+    for name, ramp in (("jumps_fast_3bars", 3), ("jumps_slow_6bars", 6)):
+        mj = inject_jumps(m, jump_ticks, size_sigma=3.0, against_position=sides, ramp_bars=ramp)
+        full = make_strategy(mj); tr_full, _ = simulate(mj, full, t0, n)
+        noec = make_strategy(mj, early_close=False); tr_noec, _ = simulate(mj, noec, t0, n)
+        noal = make_strategy(mj, alarm=False); tr_noal, _ = simulate(mj, noal, t0, n)
+        loss_full, loss_noec, loss_noal = (shock_window_net(x, windows) for x in (tr_full, tr_noec, tr_noal))
+        out[name] = dict(ticks=jump_ticks, ramp_bars=ramp, sigma_per_bar=3.0 / ramp, alarms_fired=int(full.state.get("alarms", 0)),
+                         net_full=float(sum(x["net"] for x in tr_full)), net_no_early_close=float(sum(x["net"] for x in tr_noec)),
+                         shock_net_full=loss_full, shock_net_no_early_close=loss_noec, shock_net_no_alarm=loss_noal,
+                         loss_ratio_full_vs_no_early_close=(loss_full / loss_noec if loss_noec < 0 else np.nan),
+                         agent_closes_full=sum(1 for x in tr_full if x["reason"] == "AGENT"))
+    mr = inject_regime_flip(m, t0 + 300, t0 + 700, seed=seed); rw = [(t0 + 300, t0 + 700)]
+    v = make_strategy(mr); tr_v, _ = simulate(mr, v, t0, n); nv = make_strategy(mr, nop_veto=False); tr_nv, _ = simulate(mr, nv, t0, n)
+    inr = lambda tr: [x for x in tr if rw[0][0] <= x["t_open"] < rw[0][1]]
+    out["regime_flip"] = dict(window=rw[0], trades_in_range_with_veto=len(inr(tr_v)), trades_in_range_without_veto=len(inr(tr_nv)),
+                              net_in_range_with_veto=float(sum(x["net"] for x in inr(tr_v))), net_in_range_without_veto=float(sum(x["net"] for x in inr(tr_nv))),
+                              net_full_with_veto=float(sum(x["net"] for x in tr_v)), net_full_without_veto=float(sum(x["net"] for x in tr_nv)))
+    ms = inject_spread(m, t0 + 900, t0 + 1000, 6.0); sp = make_strategy(ms); tr_sp, _ = simulate(ms, sp, t0, n); base = make_strategy(m); tr_b, _ = simulate(m, base, t0, n)
+    w = [(t0 + 900, t0 + 1000)]
+    out["spread_blowup"] = dict(window=w[0], net_window_shocked=shock_window_net(tr_sp, w), net_window_base=shock_window_net(tr_b, w),
+                                trades_window_shocked=sum(1 for x in tr_sp if w[0][0] <= x["t_open"] <= w[0][1]))
+    obs_ok = np.ones(n, bool); obs_ok[t0 + 400:t0 + 460] = False
+    mo = make_strategy(m, obs_ok=obs_ok); tr_o, L_o = simulate(m, mo, t0, n)
+    opened_in_gap = sum(1 for x in tr_o if t0 + 400 <= x["t_open"] < t0 + 460)
+    out["missing_observations"] = dict(window=(t0 + 400, t0 + 460), entries_during_gap=opened_in_gap, trades=len(tr_o),
+                                       protections_still_run=all(x["reason"] in ("SL", "TP", "TIME", "AGENT") for x in tr_o))
+    return out
+
+
 if __name__ == "__main__":
-    out = dict(W1=W1_W2(), W2=W1_W2(shuffle=True), W3=W3(), W4=W4(), W5=W5(), W6=W6(), W7=W7(), example=worked_example())
+    out = dict(W1=W1_W2(), W2=W1_W2(shuffle=True), W3=W3(), W4=W4(), W5=W5(), W6=W6(), W7=W7(), W8_W10=W8_W10(), example=worked_example())
     json.dump(out, sys.stdout, indent=1, default=float)

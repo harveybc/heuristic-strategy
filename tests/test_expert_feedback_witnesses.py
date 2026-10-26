@@ -61,3 +61,45 @@ def test_desired_and_undesired_sets_are_disjoint_everywhere():
         for d in (1, -1):
             c = W.expert_close(tabs, t, d, th)
             assert not (c["D"] & c["U"]) and c["D"]
+
+
+# ---------------------------------------------------------------------------------------------- §10 hierarchy + interventions
+def test_w8_short_alarm_fires_under_injected_shocks_on_every_seed():
+    for seed in (0, 1, 2, 3):
+        r = W.W8_W10(seed=seed)
+        for k in ("jumps_fast_3bars", "jumps_slow_6bars"):
+            assert r[k]["alarms_fired"] >= 1, (seed, k)               # the witness FAILS if the alarm never fires
+            assert r[k]["agent_closes_full"] >= 1, (seed, k)
+
+
+def test_w9_early_close_limits_the_loss_pooled_over_seeds_for_shocks_slower_than_the_stop():
+    full, noec, fast_full, fast_noec = 0.0, 0.0, 0.0, 0.0
+    for seed in (0, 1, 2, 3):
+        r = W.W8_W10(seed=seed)
+        full += r["jumps_slow_6bars"]["shock_net_full"]; noec += r["jumps_slow_6bars"]["shock_net_no_early_close"]
+        fast_full += r["jumps_fast_3bars"]["shock_net_full"]; fast_noec += r["jumps_fast_3bars"]["shock_net_no_early_close"]
+    assert noec < 0 and full > noec                                   # pooled shock-window loss is smaller with early close
+    assert fast_full > fast_noec - 1e-9                               # fast shocks: no worse than the stop alone (≈ equal)
+
+
+def test_w10_nop_veto_reduces_trading_in_the_range_regime_and_missing_observations_block_entries():
+    for seed in (0, 1, 2, 3):
+        r = W.W8_W10(seed=seed)
+        g = r["regime_flip"]
+        assert g["trades_in_range_with_veto"] < g["trades_in_range_without_veto"]
+        assert r["missing_observations"]["entries_during_gap"] == 0 and r["missing_observations"]["protections_still_run"]
+        assert r["spread_blowup"]["trades_window_shocked"] >= 0
+
+
+def test_hierarchy_oracles_are_consistent_with_the_leg_tables():
+    m = W.synth_market(n=1200, seed=4); tabs = W.ladder_tables(m)
+    seen_counter = seen_fresh = 0
+    for t in range(60, 1100):
+        for d in (1, -1):
+            co, fi = W.coarse_oracle(tabs, t, d), W.fine_oracle(tabs, t, d)
+            if np.isfinite(co["room"]):
+                assert co["direction"] in (-1, 0, 1)
+            seen_counter += fi["counter_within_h"]; seen_fresh += fi["fresh_favour"]
+            assert fi["counter_within_h"] in (0, 1) and fi["fresh_favour"] in (0, 1)
+            assert W.causal_alarm(m, t, d, t) is False                # no alarm at the entry bar itself
+    assert seen_counter > 0 and seen_fresh > 0
