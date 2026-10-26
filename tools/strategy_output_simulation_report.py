@@ -11,8 +11,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-PALETTE = {"base": "#2a78d6", "block": "#d1730a", "regime": "#1f8f4e", "onesided": "#7a4ecf", "closer_only": "#b4206b", "opener_only": "#5f6b73",
-           "cost2": "#d1730a", "cost3": "#b4206b", "spike": "#1f8f4e", "missing10": "#7a4ecf"}
+# the validated default categorical palette (dataviz skill, light surface), fixed order; <= 6 series per figure
+SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
+GROUPS = {"quality": ["base", "block", "regime", "onesided", "closer_only", "opener_only"],
+          "execution": ["base", "cost2", "cost3", "spike", "missing10"]}
+PALETTE = {v: SLOTS[i] for g in GROUPS.values() for i, v in enumerate(g) if v != "base"}
+PALETTE["base"] = SLOTS[0]
 ORDER = ["base", "block", "regime", "onesided", "closer_only", "opener_only", "cost2", "cost3", "spike", "missing10"]
 METRICS = [("dec_sharpe", "Sharpe anualizado (año de decisión)"), ("dec_net", "Neto USD (año de decisión, 10 000 iniciales)"),
            ("dec_exp", "Expectativa neta por trade (σ)"), ("dec_opw", "Órdenes por semana"), ("dec_dd", "Drawdown máximo %"),
@@ -59,7 +63,7 @@ def break_even(p: pd.DataFrame, variant: str, col: str = "dec_exp_lo_mean") -> d
             "chance_floor": {k: (None if not math.isfinite(float(g[k].iloc[0])) else float(g[k].iloc[0])) for k in ("dec_sharpe", "dec_net", "dec_exp")} if len(g) else {}}
 
 
-def plot_curves(p: pd.DataFrame, out: Path, variants: list, metric: str, label: str, xcol: str = "level", xlabel: str = "AUC de las cabezas binarias (= Spearman de las regresiones)"):
+def plot_curves(p: pd.DataFrame, out: Path, variants: list, metric: str, label: str, xcol: str = "level", xlabel: str = "AUC de las cabezas binarias (= Spearman de las regresiones)", tag: str = ""):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -87,7 +91,7 @@ def plot_curves(p: pd.DataFrame, out: Path, variants: list, metric: str, label: 
         ax.spines[s].set_visible(False)
     ax.legend(fontsize=8, frameon=False, ncol=2)
     fig.tight_layout()
-    name = f"{metric}_vs_{xcol}.png"
+    name = f"{metric}_vs_{xcol}{tag}.png"
     fig.savefig(out / name)
     plt.close(fig)
     return name
@@ -145,7 +149,10 @@ def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
     variants = [v for v in ORDER if v in set(p["variant"])]
     figs = {}
     for metric, label in METRICS:
-        figs[metric] = plot_curves(p, out, variants, metric, label)
+        for gname, gvars in GROUPS.items():
+            vs = [v for v in gvars if v in set(p["variant"])]
+            if vs:
+                figs[f"{metric}:{gname}"] = plot_curves(p, out, vs, metric, label, tag=f"_{gname}")
     figs["mae"] = plot_curves(p, out, ["base"], "dec_sharpe", "Sharpe (año de decisión)", xcol="mae_over_naive_dec", xlabel="MAE / MAE naive de la regresión del neto (año de decisión)")
     figs["mae_net"] = plot_curves(p, out, ["base"], "dec_net", "Neto USD (año de decisión)", xcol="mae_over_naive_dec", xlabel="MAE / MAE naive de la regresión del neto (año de decisión)")
     be = {v: break_even(p, v) for v in variants}
@@ -162,6 +169,8 @@ def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
                     f"{('—' if b['first_positive_level'] is None else f'{b[chr(102)+chr(105)+chr(114)+chr(115)+chr(116)+chr(95)+chr(112)+chr(111)+chr(115)+chr(105)+chr(116)+chr(105)+chr(118)+chr(101)+chr(95)+chr(108)+chr(101)+chr(118)+chr(101)+chr(108)]:.2f}')} | "
                     f"{g(oc, 'dec_sharpe')} / {g(oc, 'dec_net')} / {g(oc, 'dec_exp')} | {g(cf, 'dec_sharpe')} / {g(cf, 'dec_net')} / {g(cf, 'dec_exp')} |")
     frag += ["", "## Genes congelados por configuración", "", gene_table(runs), "", "## Sensibilidad de los genes (±0.1 en el cuantil, bloque de selección)", "", sensitivity_table(runs), ""]
-    frag += ["## Figuras", ""] + [f"- [{label}]({docs}/{figs[m]})" for m, label in METRICS] + [f"- [Sharpe vs MAE/naive]({docs}/{figs['mae']})", f"- [Neto vs MAE/naive]({docs}/{figs['mae_net']})", ""]
+    frag += ["## Figuras", ""] + [f"- [{label} — variantes de calidad]({docs}/{figs[m + ':quality']})" for m, label in METRICS if m + ":quality" in figs] \
+         + [f"- [{label} — variantes de ejecución]({docs}/{figs[m + ':execution']})" for m, label in METRICS if m + ":execution" in figs] \
+         + [f"- [Sharpe vs MAE/naive]({docs}/{figs['mae']})", f"- [Neto vs MAE/naive]({docs}/{figs['mae_net']})", ""]
     (out / "SWEEP_FRAGMENT.md").write_text("\n".join(frag))
     return p, be, figs
