@@ -1,101 +1,111 @@
-# Prefiltro estricto antes de la selección flotante (2026-10-26)
+# Prefiltro antes de la selección flotante, v2 (2026-10-26; las ocho correcciones de Musashi aplicadas)
 
-Orden del propietario: endurecer el filtro **existente** por métricas e inferencia causal para que la selección flotante
-(SBFS, que reentrena el modelo por subconjunto) arranque desde aproximadamente la mitad de los 121 candidatos de la
-receta v2, sin ajustar ningún modelo nuevo ni repetir la selección. Herramienta: `tools/expert_guided_prefilter.py`;
-evidencia: `evidence/prefilter/CANDIDATES_STRICT.json`; pruebas: `tests/test_expert_guided_prefilter.py` (7).
+Orden del propietario: endurecer el filtro **existente** (métricas e inferencia causal de la selección v5) antes de la
+selección flotante, sin ajustar modelos ni repetir trabajo. Correcciones del auditor: dos clases de descarte, nada
+automático por deriva, ganancias de familia y contrastes padre/componente sólo para **ordenar**, redundancia como
+selección de columnas, todo medido en el bloque de ajuste sobre un soporte común fijado, autopruebas del selector,
+tabla única de umbrales; **60 es una guía de presupuesto, nunca un objetivo alcanzado ajustando umbrales.**
 
-## 1. Reglas, declaradas antes de aplicarlas (umbrales en `RULES`)
+Herramienta: `tools/expert_guided_prefilter.py` (esquema `expert_guided_prefilter.v2`). Evidencia:
+`evidence/prefilter/CANDIDATES_STRICT.json` (niveles A y B con sha, registros por regla, sensibilidad). Pruebas:
+`tests/test_expert_guided_prefilter.py` (9, incluidas las autopruebas del auditor).
 
-| regla | definición | umbral declarado |
+## 1. Dos clases de descarte
+
+| clase | efecto en el SBFS | reglas |
 | --- | --- | --- |
-| R1 | desviación estándar en TRAIN (2020-01-01 → 2023-07-01) igual a 0 o no finita → fuera | — |
-| R2 | R² ≥ umbral entre dos columnas (filas completas de TRAIN) forma un clúster; se conserva **una** representante por clúster: la de la familia con mayor ganancia media `opener3` (RANKING.csv, hgb); empate → la primera en el orden de la receta; los bloques coherentes (pares seno/coseno, `rg.gmm.p0/p1/p2`) se mueven juntos | 0.99 |
-| R3 | AUC adversaria de una sola característica, TRAIN 2020–2022 contra 2023-S1 (ambos **dentro** de TRAIN; 2024 no se usa) ≥ umbral → fuera, salvo las codificaciones de calendario declaradas (`hod_*`, `dow_*`, `cal.*`), que se conservan por diseño | 0.75 |
-| R4 | familias cuya ganancia media `delta_loss` (hgb, RANKING.csv) es ≤ 0 en **todas** las tareas → fuera todas sus columnas; las familias `RESCUED_INTERACTION` se conservan | — |
-| R5 | etapa registrada de contrastes padre-contra-componentes (`CONTRASTS_PARENT_COMPONENTS.csv`): un componente cuya ganancia pareada sobre la línea base `none` de su familia (misma tarea/familia/contexto/fold, hgb) es ≤ 0 en **ambas** tareas informativas (`opener3`, `hit`) → fuera; un bloque coherente sale sólo si todos sus miembros están ≤ 0 en ambas | — |
-| R6 | dentro de cada familia superviviente con k > 4 columnas se conservan tantas columnas como componentes principales explican la varianza declarada en TRAIN, elegidas por carga cuadrática ponderada por varianza (bloques como unidad); nunca menos de 2 | 0.99 |
+| **DEFINITIVO** (sólo defectos demostrados) | fuera del universo de búsqueda | D1 constantes (std 0 entre valores finitos; se registra conteo finito, cuota de faltantes y constancia por periodo; una columna sin valor finito es **ABSENT**, otra clase); D2 duplicados **exactos** (max \|x−y\| = 0 o identidad afín y = a·x + b con residuo máximo < 1e-9); se conserva una representante por clúster |
+| **REVERSIBLE** = nivel B | fuera del conjunto inicial hacia atrás, **dentro del pool de reinclusión flotante** | B1 casi-duplicados (Pearson² ≥ 0.99 en el soporte común; R² por periodo registrado); B2 **alerta** de deriva (AUC 2020–22 vs 2023-S1 ≥ 0.75 **y** la columna es un NIVEL crudo; nunca codificaciones de calendario ni ratios de volatilidad); B3 familias sin ganancia positiva en ninguna tarea (el resto de familias sólo se **ordena**); B5 redundancia intra-familia por selección hacia adelante de columnas (bloques coherentes juntos) hasta explicar el 99 % de la varianza **estandarizada** de la familia en TRAIN |
+| nivel A | conjunto inicial del SBFS | todo lo demás |
 
-**Sobre R5 (lo que existe y lo que no).** La selección v5 **no** registra ningún veredicto causal ni de dependencia
-retardada **por columna**: sus decisiones por familia usan tres clases de evidencia (`block_permutation`,
-`interaction`, `retrained_contrast`), todas a nivel de familia. La única evidencia de etapa a nivel de columna que
-existe es el contraste padre-contra-componentes para las familias de descomposición (wavelet, hilbert, SSA, Kalman,
-GMM, fuerza EUR/USD); R5 usa exactamente esa tabla, con el emparejamiento por clave `tarea|familia|contexto|fold`,
-brazo `C:<componente>` contra brazo `none`. No se inventó ningún veredicto causal.
+B4 (contraste padre-contra-componentes, `CONTRASTS_PARENT_COMPONENTS.csv`): **no excluye nada**; sus ganancias
+pareadas (brazo `C:<componente>` / `P_*` / `Cgroup` contra `none`, misma tarea|familia|contexto|fold) quedan registradas
+como orden dentro de la familia (`b4_component_order_not_applied`). La v5 **no** tiene veredicto por columna de la etapa
+de relaciones con supuestos de potencia/retardo registrados, así que no existe descarte por "sin dependencia".
 
-## 2. Resultado con la regla declarada
+Soporte común fijado: filas de TRAIN (2020-01-01 → 2023-07-01) completas en las 121 columnas: **21 155** de 21 809;
+hash `65e998ec58ed3850`. Todas las estadísticas (D2, B1, B2, B5) se calculan sobre esas mismas filas; B2 parte el
+soporte dentro de TRAIN (2023-01-01). INNER_A y 2024 no se leen.
 
-Filas TRAIN 21 809 (completas para R2/R6: ver JSON). Recuento tras cada regla:
+## 2. Tabla única de umbrales y su sensibilidad (A = nivel A, B = nivel B)
 
-| inicio | R1 | R2 | R3 | R4 | R5 | R6 |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 121 | 120 | 110 | 110 | 109 | 92 | **82** |
+| umbral | valor declarado | regla | sensibilidad |
+| --- | --- | --- | --- |
+| residuo afín para duplicado exacto | 1e-9 | D2 | los 6 exactos tienen residuo ≤ 1.8e-13; el siguiente par (R² 0.9993) no es afín: insensible entre 1e-12 y 1e-6 |
+| Pearson² casi-duplicado | 0.99 | B1 | 0.95 → A 99 / B 15; **0.99 → A 100 / B 14**; 0.999 → A 102 / B 12 |
+| AUC de deriva (alerta, sólo niveles) | 0.75 | B2 | 0.70 → A 99 / B 15; **0.75 → 100 / 14**; 0.80 → 100 / 14 |
+| ganancia de familia | ≤ 0 en **todas** las tareas → B | B3 | 1 familia (`strength/fx.usd_strength.ret_1`); el resto ordena |
+| varianza explicada intra-familia | 0.99 | B5 | 0.98 → A 98 / B 16; **0.99 → 100 / 14**; 0.995 → A 103 / B 11 |
+| mínimo de columnas por familia / tamaño mínimo para B5 | 2 / 5 | B5 | ninguna familia toca el mínimo |
 
-**La regla declarada deja 82 columnas, no ≈ 60.** No se retocó ningún umbral mirando qué columna caía; la sección 4
-da los conjuntos de umbrales que llegarían a ≈ 60 y lo que cada uno implica.
+Con la regla declarada: **nivel A = 100, nivel B = 14, definitivos = 7** (universo del SBFS = 114). La guía de ≈ 60
+no se alcanza y no se persigue ajustando umbrales: lo que reduce el conjunto inicial de verdad es la propia búsqueda
+flotante.
 
-### 2.1 Columnas eliminadas, con su razón
+## 3. Recuento por regla
 
-| regla | n | columnas |
-| --- | ---: | --- |
-| R1 constante | 1 | `px.er_1` (std 0: |r₁|/|r₁|) |
-| R2 duplicado | 10 | `RAW_CLOSE_LOG_RETURN`, `px.logret_1`, `kf.lc.level_minus_close` (clúster con `CLOSE@diff`, R² ≥ 0.999); `cdl.body_pips` (≡ `RAW_BAR_LOG_RETURN`); `px.range_1@log`, `cdl.range_pips@asinh` (≡ `RAW_LOG_RANGE@log`); `ev.tokyo_fix.hours_to`, `ev.london_fix.hours_to`, `ev.ny_cut.hours_to` (= 24 − `hours_since`); `wv.r1.A4` (≡ `wv.lc.A4@diff`) |
-| R3 proxy de fecha | 0 | ninguna ≥ 0.75; la mayor es `cot.eur.net_share` 0.715 (la AUC 0.84 de la auditoría A1-5 era contra 2024, que aquí no se usa) |
-| R4 familia sin evidencia | 1 | `wv.usd.A4` (familia `strength/fx.usd_strength.ret_1`: ≤ 0 en las 7 tareas) |
-| R5 componente sin ganancia | 17 | `wv.lc.D2`, `wv.lc.D3`, `wv.lc.D4`, `wv.lc.energy_D1@diff`, `wv.lc.energy_D2@log`, `wv.lc.energy_D3@log`, `wv.lc.energy_D4@log`; `wv.r1.D1`, `wv.r1.D2`, `wv.r1.D3`, `wv.r1.D4`, `wv.r1.energy_D1@diff`, `wv.r1.energy_D3@log`, `wv.r1.energy_D4@log`; `ssa.trend_minus_close_pips`, `ssa.c2_pips`; `hb.eur.inst_freq` |
-| R6 redundancia intra-familia | 10 | `inv.raw` (k=6): `RAW_BAR_LOG_RETURN`; `inv.momentum` (k=5): `Stochastic_K`, `Stochastic_D`, `WilliamsR`; `calendar` (k=7): `dow_sin`, `dow_cos`, `cal.utc_session_asia/europe/us`; `px.close_loc` (k=6): `px.close_loc_1`; `px.logret`, `px.range`, `px.er` (k=6 de 6): ninguna |
+| inicio | ABSENT | D1 constante | D2 exacto | universo | B1 casi-dup | B2 deriva | B3 familia | B5 redundancia | **A** | **B** |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 121 | 0 | 1 | 6 | 114 | 4 | 0 | 1 | 9 | **100** | **14** |
 
-### 2.2 Candidatos (82, en el orden de la receta)
+### 3.1 Definitivos (7)
 
-`OPEN@diff`, `HIGH@diff`, `LOW@diff`, `CLOSE@diff`, `RAW_LOG_RANGE@log`, `RAW_ELAPSED_HOURS`, `ATR`, `BB_Width`,
-`ATR_ratio`, `rolling_std_24`, `RSI`, `CCI`, `ROC`, `BB_position`, `price_minus_ema`, `hod_sin`, `hod_cos`,
-`cal.utc_hod_sin`, `cal.utc_hod_cos`, `cal.utc_dow_sin`, `cal.utc_dow_cos`, `cal.london_hod_sin`, `cal.london_hod_cos`,
-`px.logret_2/4/6/12/24/48`, `px.range_2@log/4@log/6@log/12/24/48`, `px.close_loc_2/4/6/12/24/48`,
-`px.er_2/4/6/12/24/48`, `px.hours_since_session_open`, `cdl.upper_wick_pips@asinh`, `cdl.lower_wick_pips@asinh`,
-`cdl.close_minus_low_pips@asinh`, `cdl.high_minus_close_pips@asinh`, `dly.us10y.level@diff`, `dly.us10y.chg_1d`,
-`dly.us10y.chg_5d`, `cot.eur.net_long`, `cot.eur.net_change`, `cot.eur.net_share`, `cot.eur.net_z156`,
-`fac.fx_f1.ret_1/ret_4/ret_24/kalman_slope`, `ev.tokyo_fix.hours_since`, `ev.london_fix.hours_since`,
-`ev.ny_cut.hours_since`, `act.p_hit`, `ssa.c3_pips`, `wv.lc.A4@diff`, `wv.lc.D1`, `wv.r1.energy_D2@log`,
-`hb.r1.phase_cos`, `hb.r1.phase_sin`, `hb.r1.inst_freq`, `hb.lc_detr.inst_freq`, `hb.eur.phase_cos`,
-`hb.eur.phase_sin`, `px.rv_24`, `rg.gmm.p0`, `rg.gmm.p1`, `rg.gmm.p2`, `rg.gmm.entropy`.
-Lista exacta y sha en `evidence/prefilter/CANDIDATES_STRICT.json` (`sha256_candidates`).
+- D1: `px.er_1` (std 0: |r₁|/|r₁|; 217 faltantes).
+- D2: `px.logret_1` ≡ `RAW_CLOSE_LOG_RETURN` (idéntica, diff 0); `px.range_1@log` ≡ `RAW_LOG_RANGE@log` (idéntica);
+  `ev.tokyo_fix.hours_to`, `ev.london_fix.hours_to`, `ev.ny_cut.hours_to` = 24 − `hours_since` (afín, residuo ≤ 1.8e-13);
+  `wv.r1.A4` = `wv.lc.A4@diff` (afín a = 1, residuo 7.9e-16). Representante = la columna de la familia mejor ordenada
+  por B3; empate → primera en el orden de la receta.
 
-## 3. Sensibilidad a los dos umbrales ajustables (cuenta final)
+### 3.2 Nivel B (14, en el pool de reinclusión)
 
-| R3 \\ R6 | 0.98 | 0.99 | 0.995 |
-| --- | ---: | ---: | ---: |
-| 0.70 | 78 | 81 | 83 |
-| 0.75 | 79 | **82** | 84 |
-| 0.80 | 79 | 82 | 84 |
+| regla | columnas | registro |
+| --- | --- | --- |
+| B1 | `RAW_CLOSE_LOG_RETURN` (R² 0.996 con `CLOSE@diff`), `kf.lc.level_minus_close` (0.9955 con `CLOSE@diff`, 0.9993 con `RAW_CLOSE_LOG_RETURN`), `cdl.body_pips` (0.996 con `RAW_BAR_LOG_RETURN`), `cdl.range_pips@asinh` (0.993 con `RAW_LOG_RANGE@log`) | R² por periodo 2020/2021/2022/2023-S1 entre 0.995 y 1.000: estables |
+| B2 | ninguna | mayores AUC: `cot.eur.net_share` 0.711 y `cot.eur.net_long` 0.669 (niveles, bajo 0.75); `wv.lc.energy_D4@log` 0.610 (no nivel). AUC año a año por columna en el JSON. La AUC 0.84 de la auditoría A1-5 era contra 2024, que aquí no se usa |
+| B3 | `wv.usd.A4` | familia ≤ 0 en las 7 tareas; evidencia débil (A1-2) |
+| B5 | `RAW_BAR_LOG_RETURN` (inv.raw); `Stochastic_D`, `CCI` (inv.momentum); `dow_sin`, `dow_cos`, `cal.utc_hod_sin`, `cal.utc_hod_cos`, `cal.london_hod_sin`, `cal.london_hod_cos` (calendar: `hod_*` y `cal.utc_hod_*` son una rotación exacta, A1-4, por eso una de las dos queda en B) | varianza estandarizada explicada, **no** utilidad de trading; traza de la selección hacia adelante en el JSON |
 
-Los dos umbrales declarados como ajustables sólo mueven la cuenta entre 78 y 84: la masa que queda está en familias
-de ≤ 4 columnas (R6 no las toca) y en columnas sin duplicado ni proxy de fecha.
+### 3.3 Nivel A (100, en el orden de la receta)
 
-## 4. Qué haría falta para llegar a ≈ 60 (reportado, **no aplicado**)
+`OPEN@diff`, `HIGH@diff`, `LOW@diff`, `CLOSE@diff`, `RAW_LOG_RANGE@log`, `RAW_ELAPSED_HOURS`, `ATR`, `BB_Width`, `ATR_ratio`,
+`rolling_std_24`, `RSI`, `Stochastic_K`, `WilliamsR`, `ROC`, `BB_position`, `price_minus_ema`, `hod_sin`, `hod_cos`,
+`cal.utc_dow_sin`, `cal.utc_dow_cos`, `cal.utc_session_asia/europe/us`, `px.logret_2/4/6/12/24/48`,
+`px.range_2@log/4@log/6@log/12/24/48`, `px.close_loc_1/2/4/6/12/24/48`, `px.er_2/4/6/12/24/48`,
+`px.hours_since_session_open`, `cdl.upper_wick_pips@asinh`, `cdl.lower_wick_pips@asinh`, `cdl.close_minus_low_pips@asinh`,
+`cdl.high_minus_close_pips@asinh`, `dly.us10y.level@diff`, `dly.us10y.chg_1d`, `dly.us10y.chg_5d`, `cot.eur.net_long`,
+`cot.eur.net_change`, `cot.eur.net_share`, `cot.eur.net_z156`, `fac.fx_f1.ret_1/ret_4/ret_24/kalman_slope`,
+`ev.tokyo_fix.hours_since`, `ev.london_fix.hours_since`, `ev.ny_cut.hours_since`, `act.p_hit`, `ssa.trend_minus_close_pips`,
+`ssa.c2_pips`, `ssa.c3_pips`, `wv.lc.A4@diff`, `wv.lc.D1..D4`, `wv.lc.energy_D1@diff/D2@log/D3@log/D4@log`, `wv.r1.D1..D4`,
+`wv.r1.energy_D1@diff/D2@log/D3@log/D4@log`, `hb.r1.phase_cos`, `hb.r1.phase_sin`, `hb.r1.inst_freq`, `hb.lc_detr.inst_freq`,
+`hb.eur.phase_cos`, `hb.eur.phase_sin`, `hb.eur.inst_freq`, `px.rv_24`, `rg.gmm.p0`, `rg.gmm.p1`, `rg.gmm.p2`, `rg.gmm.entropy`.
+Lista exacta y sha: `sha256_tier_A` / `sha256_tier_B` en el JSON.
 
-| palanca alternativa | cuenta | qué implica |
-| --- | ---: | --- |
-| R6 varianza 0.95 | 73 | se pierde 1–5 % de la varianza intra-familia en las familias grandes |
-| R6 varianza 0.90 | 65 | se pierde hasta 10 %; cuestionable para `px.logret`/`px.range` (escalas de horizonte) |
-| R2 0.95 + R6 0.90 | 63 | además trata como duplicados pares con R² 0.95–0.99 (15 pares) |
-| R5 "≤ 0 en **cualquiera** de las dos tareas" + R6 0.99 | 74 | más agresivo con componentes que ganan en una sola tarea |
-| R5 "cualquiera" + R6 0.95 | 65 | combinación de las dos anteriores |
+## 4. Orden (información que no excluye)
 
-El conjunto más cercano a 60 con palancas interpretables es **R2 0.95 + R6 0.90 → 63** o **R5-cualquiera + R6 0.95 →
-65**. Decisión del propietario: aplicar una de ellas (se declara y se re-ejecuta con el mismo script) o aceptar 82.
+- B3 ordena las familias por su mejor ganancia media (hgb): `inv.raw` 0.695 ≫ `px.close_loc` 0.068 > `px.logret` 0.017
+  > `wavelet/log_close` 0.011 > `cdl` 0.010 > … (tabla `b3_best_gain`).
+- B4 ordena componentes dentro de las familias de descomposición (ganancia pareada C:componente vs `none`), p. ej.
+  `wavelet/log_close`: A4 +0.0035, D1 +0.0023 > D2…D4 y energías ≤ 0; `gmm`: p0 +0.0032 > p1 > p2 > entropía
+  (`b4_component_order_not_applied`). Estas ganancias se midieron sobre `opener3` ("la barra es pivote", A1-2) y
+  `hit`: ordenan, no certifican valor direccional.
 
-## 5. Limitaciones (para la auditoría)
+## 5. Autopruebas del selector (sintéticas, en la suite)
 
-- Las ganancias por familia (R4) y por componente (R5) se midieron en la selección v5 sobre `opener3` ("la barra que
-  acaba de cerrar es pivote", resoluble con tres barras, auditoría A1-2) y `hit`: son evidencia **débil** sobre valor
-  direccional a 12–72 h. Por eso R4 sólo elimina familias ≤ 0 en **todas** las tareas (1 columna) y R5 exige ≤ 0 en
-  **ambas** tareas informativas.
-- R3 dentro de TRAIN (2020–22 vs 2023-S1) es menos sensible que contra 2024 (A1-5: `cot.eur.net_share` 0.84 allí,
-  0.715 aquí); los niveles semanales COT y los niveles de volatilidad en unidades de precio **siguen dentro** de los 82
-  y deben codificarse como cambios/ratios (A1-5/A1-6) en la receta derivada, no aquí.
-- R6 elige por carga en componentes principales de TRAIN, no por utilidad predictiva: es una regla de redundancia,
-  declarada como tal.
-- `hod_sin/cos` y `cal.utc_hod_sin/cos` son una rotación exacta (A1-4) pero R2 no las une (el R² es por pares); R6
-  las conserva ambas en `calendar` (k = 7). Queda señalado.
-- Las decisiones de codificación de `ENCODING.csv` que la receta no aplicó (A1-11: régimen GMM one-hot, relojes de
-  evento ventana 2 h) se aplican al derivar la receta, no en este filtro.
+| prueba | resultado |
+| --- | --- |
+| señal sólo por interacción (dos columnas inútiles solas, útiles juntas) | sobrevive: su familia va a B por falta de evidencia, nunca definitivo |
+| componente útil de un padre débil | sobrevive (B4 ordena, no excluye) |
+| duplicados exactos (idéntico y afín) | definitivos; el casi-duplicado no |
+| deriva legítima (nivel de volatilidad con tendencia real) | nivel B, no borrado; ratios y calendario nunca marcados |
+| constante vs ausente | clases distintas con registro |
+| B5 | selección de columnas por bloques, mínimo 2, nota "varianza ≠ utilidad" |
+
+## 6. Limitaciones
+
+- Las ganancias de familia y de componente (B3/B4) provienen de tareas de geometría presente (A1-2): sirven para
+  ordenar la eliminación hacia atrás, no como evidencia de valor a 12–72 h.
+- B2 dentro de TRAIN es menos sensible que contra 2024; los niveles COT y de volatilidad quedan en A y deben
+  codificarse como cambios/ratios en la receta derivada (A1-5/A1-6), igual que las decisiones de `ENCODING.csv` no
+  aplicadas (A1-11).
+- B5 mide varianza explicada; una columna de poca varianza puede ser la útil. Por eso es reversible.
+- El soporte común (21 155 filas) excluye 654 filas de TRAIN con algún faltante; registradas por columna en `d1_record`.

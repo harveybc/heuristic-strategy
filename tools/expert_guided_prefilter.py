@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
-"""Strict pre-filter before the floating selection (owner 2026-10-26): tighten the EXISTING metric + causal-stage
-evidence of selection v5 so the SBFS starts from roughly half of the 121 recipe-v2 candidates. Only existing
-artifacts and TRAIN-row measurements are used; no model is fitted here. Every threshold is declared in RULES before
-the data is read, and the sensitivity grid reports the count under the alternative thresholds.
+"""Strict pre-filter before the floating selection, v2 (owner 2026-10-26; Musashi's eight corrections applied).
 
-Rules (applied in this order, each on the survivors of the previous one):
-  R1 constants: TRAIN std == 0 (or not finite)                                 -> drop
-  R2 duplicates: R^2 >= R2_T between two columns (TRAIN, complete rows) joins a cluster; one representative per
-     cluster is kept: the column whose v5 family has the larger mean opener3 gain (RANKING.csv, hgb); tie -> the
-     column that comes first in the recipe order; coherent blocks (sin/cos pairs, rg.gmm.p0/p1/p2) move together
-  R3 date/regime proxies: single-feature adversarial AUC (TRAIN 2020-2022 vs 2023-H1, both inside TRAIN) >= R3_T
-     -> drop, except declared calendar encodings (hod/dow/cal.* sin-cos and session dummies), kept by design
-  R4 family evidence: families whose mean delta_loss (hgb, RANKING.csv) is <= 0 on EVERY task -> drop all columns;
-     families RESCUED_INTERACTION are kept whatever their gains
-  R5 recorded parent-vs-component contrast stage (CONTRASTS_PARENT_COMPONENTS.csv): a component column whose paired
-     gain over the family's 'none' baseline (same task/family/ctx/fold, hgb) is <= 0 on BOTH informative tasks
-     (opener3 and hit) -> drop; a coherent block is dropped only when every member is <= 0 on both tasks. v5 has NO
-     per-column causal or lagged-dependence verdict (its decision evidence kinds are block_permutation, interaction,
-     retrained_contrast at family level), so this is the only column-level stage evidence that exists; stated as such
-  R6 within-family redundancy: inside a surviving family with k > 4 columns, keep the number of columns equal to the
-     PCA component count explaining R6_V of the family's TRAIN variance, chosen by variance-weighted squared loading
-     (blocks as units), never below 2 columns
+Two classes of discard:
+  DEFINITIVE (removed from the SBFS universe) only for demonstrated defects:
+    D1 constants: TRAIN std == 0 among finite values (finite count, missing share and per-block constancy recorded);
+       a column with no finite value is ABSENT (its own class), not constant
+    D2 exact duplicates: max |x - y| == 0, or an affine identity y = a*x + b with max residual < EXACT_RESIDUAL;
+       one representative per exact cluster (ordering rule below), the others are DEFINITIVE
+  REVERSIBLE (tier B = excluded from the initial backward set, INCLUDED in the floating reinclusion pool):
+    B1 near duplicates: Pearson^2 >= NEAR_R2 on the common support (per-period stability of the R^2 recorded)
+    B2 temporal drift ALERT: single-column AUC(2020-2022 vs 2023-H1, both inside TRAIN) >= DRIFT_AUC AND the column
+       is a raw LEVEL (not a change / ratio / oscillator / calendar encoding, see LEVEL_EXCLUDE_TOKENS); per-year
+       origin/stability recorded; never automatic for calendar encodings or volatility ratios
+    B3 family evidence: families with no positive mean delta_loss on any task (RANKING.csv, hgb) are ordered last and
+       go to tier B; otherwise family gains ORDER the columns, they never exclude
+    B4 (not applied): the parent-vs-component contrast (CONTRASTS_PARENT_COMPONENTS.csv) ORDERS components inside
+       their family; it excludes nothing. v5 has no per-column relationships verdict with power/lag assumptions,
+       so no "no dependence" discard exists
+    B5 within-family redundancy: greedy FORWARD selection of original columns (coherent blocks as units) until
+       FAMILY_VAR of the family's STANDARDIZED TRAIN variance (each column z-scored on the common support, so price
+       units cannot dominate) is explained by projection on the selected columns; the unselected columns are tier B;
+       variance != trading utility, stated
+Every statistic is computed on the FIT block only (TRAIN 2020-01-01 -> 2023-07-01; the drift split is inside it) on
+one frozen common support (rows complete in every candidate column; its hash is recorded). 60 is a budget guidance,
+never a target reached by tuning: every threshold is enumerated with its sensitivity.
 """
 from __future__ import annotations
 
@@ -33,33 +36,22 @@ from pathlib import Path
 
 import numpy as np
 
-RULES = {"R2_T": 0.99, "R3_T": 0.75, "R6_V": 0.99, "informative_tasks": ("opener3", "hit"), "model": "hgb",
-         "train_end": "2023-07-01", "r3_split": "2023-01-01", "r3_calendar_prefixes": ("hod_", "dow_", "cal.")}
-GRID = {"R3_T": (0.70, 0.75, 0.80), "R6_V": (0.98, 0.99, 0.995)}
-# component arm name -> recipe column, per decomposition family (only columns present in the recipe are mapped)
-COMPONENT_MAP = {
-    "wavelet/log_close": {"C:A4": "wv.lc.A4@diff", "C:D1": "wv.lc.D1", "C:D2": "wv.lc.D2", "C:D3": "wv.lc.D3", "C:D4": "wv.lc.D4",
-                          "C:energy_D1": "wv.lc.energy_D1@diff", "C:energy_D2": "wv.lc.energy_D2@log", "C:energy_D3": "wv.lc.energy_D3@log", "C:energy_D4": "wv.lc.energy_D4@log"},
-    "wavelet/logret_1": {"C:A4": "wv.r1.A4", "C:D1": "wv.r1.D1", "C:D2": "wv.r1.D2", "C:D3": "wv.r1.D3", "C:D4": "wv.r1.D4",
-                         "C:energy_D1": "wv.r1.energy_D1@diff", "C:energy_D2": "wv.r1.energy_D2@log", "C:energy_D3": "wv.r1.energy_D3@log", "C:energy_D4": "wv.r1.energy_D4@log"},
-    "hilbert/logret_1": {"C:phase_cos": "hb.r1.phase_cos", "C:phase_sin": "hb.r1.phase_sin", "C:inst_freq": "hb.r1.inst_freq"},
-    "hilbert/log_close": {"C:inst_freq": "hb.lc_detr.inst_freq"},
-    "strength/fx.eur_strength.ret_1": {"C:phase_cos": "hb.eur.phase_cos", "C:phase_sin": "hb.eur.phase_sin", "C:inst_freq": "hb.eur.inst_freq"},
-    "strength/fx.usd_strength.ret_1": {"C:A4": "wv.usd.A4"},
-    "kalman/log_close": {"C:filtered_level_minus_observation": "kf.lc.level_minus_close"},
-    "ssa/BidClose": {"C:ssa.trend_minus_close_pips": "ssa.trend_minus_close_pips", "C:ssa.c2_pips": "ssa.c2_pips", "C:ssa.c3_pips": "ssa.c3_pips"},
-    "gmm/logret_1+rv_24+log_range": {"C:posterior_state_0_(vol_rank_0)": "rg.gmm.p0", "C:posterior_state_1_(vol_rank_1)": "rg.gmm.p1",
-                                     "C:posterior_state_2_(vol_rank_2)": "rg.gmm.p2", "C:posterior_entropy": "rg.gmm.entropy"},
-}
+RULES = {"EXACT_RESIDUAL": 1e-9, "NEAR_R2": 0.99, "DRIFT_AUC": 0.75, "FAMILY_VAR": 0.99, "FAMILY_MIN_COLS": 2, "FAMILY_B5_MIN_SIZE": 5,
+         "informative_tasks": ("opener3", "hit"), "model": "hgb", "train_end": "2023-07-01", "drift_split": "2023-01-01",
+         "periods": (("2020", "2020-01-01", "2021-01-01"), ("2021", "2021-01-01", "2022-01-01"), ("2022", "2022-01-01", "2023-01-01"), ("2023H1", "2023-01-01", "2023-07-01"))}
+GRID = {"NEAR_R2": (0.95, 0.99, 0.999), "DRIFT_AUC": (0.70, 0.75, 0.80), "FAMILY_VAR": (0.98, 0.99, 0.995)}
+# a column is a raw LEVEL unless its name carries one of these tokens (changes, ratios, oscillators, encodings, bounded)
+LEVEL_EXCLUDE_TOKENS = ("@diff", "ret", "chg", "change", "ratio", "logret", "z156", "_sin", "_cos", "session", "hours_", "energy", "phase", "inst_freq",
+                        "slope", "entropy", "rg.gmm.p", "p_hit", "close_loc", "px.er_", "rv_", "position", ".D1", ".D2", ".D3", ".D4", "@asinh",
+                        "RSI", "CCI", "ROC", "Stochastic", "WilliamsR", "price_minus_ema", "minus_close")
+CALENDAR_PREFIXES = ("hod_", "dow_", "cal.")
 
 
-# ----------------------------------------------------------------------------------------------- structure helpers
 def family_of(group: str) -> str:
     return group.split("/")[0] if group.startswith("px.close_loc/") else group
 
 
 def coherent_blocks(cols) -> dict:
-    """column -> block id; sin/cos pairs and the rg.gmm.p0/p1/p2 triplet are one block; everything else is alone."""
     blocks = {}
     for c in cols:
         if c.endswith("_sin") or c.endswith("_cos"):
@@ -71,18 +63,46 @@ def coherent_blocks(cols) -> dict:
     return blocks
 
 
-def expand_blocks(drop: set, blocks: dict, cols) -> set:
-    ids = {blocks[c] for c in drop}
-    return {c for c in cols if blocks[c] in ids}
+def is_level(col: str) -> bool:
+    return not any(t in col for t in LEVEL_EXCLUDE_TOKENS) and not col.startswith(CALENDAR_PREFIXES)
 
 
-# ----------------------------------------------------------------------------------------------- rules (pure)
-def r1_constants(std: dict) -> set:
-    return {c for c, s in std.items() if s is None or not np.isfinite(s) or s == 0}
+# ----------------------------------------------------------------------------------------------- definitive rules
+def d1_constants(X: dict, blocks_per_col: dict | None = None):
+    """X: column -> raw TRAIN vector (NaN allowed). Returns (constant set, absent set, record)."""
+    const, absent, rec = set(), set(), {}
+    for c, v in X.items():
+        v = np.asarray(v, float)
+        fin = np.isfinite(v)
+        n = int(fin.sum())
+        rec[c] = {"finite": n, "missing_share": float(1 - n / len(v)) if len(v) else 1.0}
+        if n == 0:
+            absent.add(c)
+            rec[c]["class"] = "ABSENT"
+            continue
+        s = float(np.std(v[fin]))
+        rec[c]["std"] = s
+        if blocks_per_col is not None:
+            rec[c]["constant_blocks"] = int(sum(1 for b in blocks_per_col[c] if np.isfinite(b).sum() and np.std(b[np.isfinite(b)]) == 0))
+        if s == 0:
+            const.add(c)
+            rec[c]["class"] = "CONSTANT"
+    return const, absent, rec
 
 
-def r2_duplicates(cols, r2: np.ndarray, fam: dict, fam_gain: dict, blocks: dict, threshold: float):
-    """Union-find clusters at r2 >= threshold; keep one representative per cluster. Returns (dropped, clusters)."""
+def affine_residual(x, y):
+    A = np.column_stack([x, np.ones_like(x)])
+    coef, *_ = np.linalg.lstsq(A, y, rcond=None)
+    return float(np.max(np.abs(A @ coef - y))), [float(coef[0]), float(coef[1])]
+
+
+def representative(members, cols, fam, fam_rank):
+    """ordering rule: the column of the family ranked first by family gain; tie -> first in the recipe order."""
+    return sorted(members, key=lambda c: (fam_rank.get(fam[c], 1e9), cols.index(c)))[0]
+
+
+def d2_exact_duplicates(cols, Z: dict, fam, fam_rank, blocks, residual):
+    """Z: column -> vector on the common support. Exact = max|diff| == 0 or affine residual < residual."""
     n = len(cols)
     parent = list(range(n))
 
@@ -92,70 +112,125 @@ def r2_duplicates(cols, r2: np.ndarray, fam: dict, fam_gain: dict, blocks: dict,
             i = parent[i]
         return i
 
+    pairs = []
     for i in range(n):
         for j in range(i + 1, n):
-            if r2[i, j] >= threshold:
+            x, y = Z[cols[i]], Z[cols[j]]
+            if np.max(np.abs(x - y)) == 0:
+                pairs.append((cols[i], cols[j], "identical", 0.0))
                 parent[find(i)] = find(j)
+                continue
+            if np.std(x) > 0:
+                r, coef = affine_residual(x, y)
+                if r < residual:
+                    pairs.append((cols[i], cols[j], f"affine y={coef[0]:.6g}x+{coef[1]:.6g}", r))
+                    parent[find(i)] = find(j)
     clusters = defaultdict(list)
     for i, c in enumerate(cols):
         clusters[find(i)].append(c)
     dropped, out = set(), []
-    for members in clusters.values():
-        if len(members) < 2:
+    for m in clusters.values():
+        if len(m) < 2:
             continue
-        keep = sorted(members, key=lambda c: (-fam_gain.get(fam[c], 0.0), cols.index(c)))[0]
-        drop = {c for c in members if c != keep}
-        out.append({"members": members, "keep": keep, "drop": sorted(drop)})
-        dropped |= drop
-    return expand_blocks(dropped, blocks, cols) - {m["keep"] for m in out}, out
+        keep = representative(m, cols, fam, fam_rank)
+        out.append({"members": m, "keep": keep, "definitive": sorted(set(m) - {keep})})
+        dropped |= set(m) - {keep}
+    return dropped, out, pairs
 
 
-def r3_proxies(auc: dict, threshold: float, calendar_prefixes) -> set:
-    return {c for c, a in auc.items() if a is not None and a >= threshold and not c.startswith(tuple(calendar_prefixes))}
+# ----------------------------------------------------------------------------------------------- reversible rules
+def b1_near_duplicates(cols, Z: dict, Zp: dict, fam, fam_rank, blocks, threshold):
+    """Pearson^2 on the common support; the representative stays in tier A, the others go to tier B; the per-period
+    R^2 is recorded for stability. Blocks move together."""
+    n = len(cols)
+    M = np.column_stack([Z[c] for c in cols])
+    C = np.corrcoef(M.T)
+    R2 = np.nan_to_num(C ** 2)
+    np.fill_diagonal(R2, 0.0)
+    parent = list(range(n))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    pairs = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            if R2[i, j] >= threshold:
+                per = {p: float(np.corrcoef(Zp[p][cols[i]], Zp[p][cols[j]])[0, 1] ** 2) for p in Zp}
+                pairs.append({"a": cols[i], "b": cols[j], "r2": float(R2[i, j]), "r2_per_period": per})
+                parent[find(i)] = find(j)
+    clusters = defaultdict(list)
+    for i, c in enumerate(cols):
+        clusters[find(i)].append(c)
+    tier_b, out = set(), []
+    for m in clusters.values():
+        if len(m) < 2:
+            continue
+        keep = representative(m, cols, fam, fam_rank)
+        ids = {blocks[c] for c in m if c != keep}
+        b = {c for c in cols if blocks[c] in ids and c != keep}
+        out.append({"members": m, "keep": keep, "tier_b": sorted(b)})
+        tier_b |= b
+    return tier_b, out, pairs
 
 
-def r4_family_evidence(fam: dict, task_gain: dict, status: dict) -> set:
-    """task_gain: family -> {task: mean delta_loss}; drop families <= 0 on every task unless RESCUED_INTERACTION."""
-    dead = {f for f, g in task_gain.items() if g and all(v <= 0 for v in g.values()) and status.get(f) != "RESCUED_INTERACTION"}
-    return {c for c, f in fam.items() if f in dead}
+def b2_drift_alert(auc: dict, auc_per_year: dict, threshold):
+    """auc: column -> AUC(2020-22 vs 2023-H1); only raw LEVEL columns at/above the threshold go to tier B."""
+    flagged, rec = set(), {}
+    for c, a in auc.items():
+        rec[c] = {"auc": a, "level": is_level(c), "per_year": auc_per_year.get(c)}
+        if a is not None and a >= threshold and is_level(c):
+            flagged.add(c)
+            rec[c]["tier_b"] = True
+    return flagged, rec
 
 
-def r5_components(comp_gain: dict, blocks: dict, cols, tasks) -> set:
-    """comp_gain: column -> {task: mean paired gain}; drop when <= 0 on every informative task; blocks need every
-    member dead."""
-    dead = {c for c, g in comp_gain.items() if all(g.get(t, 0.0) <= 0 for t in tasks)}
-    out = set()
-    for c in dead:
-        members = [m for m in cols if blocks[m] == blocks[c]]
-        if all(m in dead for m in members):
-            out |= set(members)
-    return out
+def b3_family_order(fam: dict, task_gain: dict, status: dict):
+    """families ordered by their best task gain; families with no positive gain on any task go to tier B."""
+    best = {f: max(g.values()) if g else float("-inf") for f, g in task_gain.items()}
+    order = sorted(set(fam.values()), key=lambda f: -best.get(f, float("-inf")))
+    rank = {f: i for i, f in enumerate(order)}
+    dead = {f for f in set(fam.values()) if best.get(f, float("-inf")) <= 0 and status.get(f) != "RESCUED_INTERACTION"}
+    return rank, {c for c, f in fam.items() if f in dead}, best
 
 
-def r6_pca(fam_cols: dict, Z: dict, blocks: dict, variance: float) -> tuple:
-    """fam_cols: family -> surviving columns (recipe order); Z: column -> standardized TRAIN vector (same rows).
-    Keeps, per family with > 4 columns, k = #components for `variance`, chosen by block importance; floor 2."""
-    dropped, detail = set(), {}
+def b5_forward_variance(fam_cols: dict, Z: dict, blocks: dict, target, min_cols, min_size):
+    """Greedy forward selection of original columns (blocks as units) until the family's TRAIN variance explained by
+    projection on the selected columns reaches `target`. Returns (tier_b set, detail)."""
+    tier_b, detail = set(), {}
     for f, cs in fam_cols.items():
-        if len(cs) <= 4:
+        if len(cs) < min_size:
             continue
         M = np.column_stack([Z[c] for c in cs])
         M = M - M.mean(0)
-        _, s, Vt = np.linalg.svd(M, full_matrices=False)
-        var = s ** 2 / np.sum(s ** 2)
-        k = int(np.searchsorted(np.cumsum(var), variance) + 1)
-        k = max(2, min(k, len(cs)))
-        imp = {c: float(np.sum((Vt[:, i] ** 2) * var)) for i, c in enumerate(cs)}
-        ids = sorted({blocks[c] for c in cs}, key=lambda b: -sum(imp[c] for c in cs if blocks[c] == b))
-        keep = []
-        for b in ids:
-            if len(keep) >= k:
+        total = float(np.sum(M ** 2))
+        ids = []
+        for c in cs:
+            if blocks[c] not in ids:
+                ids.append(blocks[c])
+        chosen, trace = [], []
+        while ids:
+            best = None
+            for b in ids:
+                cand = chosen + [c for c in cs if blocks[c] == b]
+                S = M[:, [cs.index(c) for c in cand]]
+                coef, *_ = np.linalg.lstsq(S, M, rcond=None)
+                ev = 1 - float(np.sum((M - S @ coef) ** 2)) / total
+                if best is None or ev > best[0]:
+                    best = (ev, b)
+            ev, b = best
+            chosen += [c for c in cs if blocks[c] == b]
+            ids.remove(b)
+            trace.append({"block": b, "explained": ev})
+            if ev >= target and len(chosen) >= min_cols:
                 break
-            keep += [c for c in cs if blocks[c] == b]
-        drop = [c for c in cs if c not in keep]
-        dropped |= set(drop)
-        detail[f] = {"k": k, "kept": keep, "dropped": drop, "importance": imp, "cum_var": [float(x) for x in np.cumsum(var)]}
-    return dropped, detail
+        drop = [c for c in cs if c not in chosen]
+        tier_b |= set(drop)
+        detail[f] = {"kept": chosen, "tier_b": drop, "trace": trace, "note": "variance explained, not trading utility"}
+    return tier_b, detail
 
 
 # ----------------------------------------------------------------------------------------------- artifact readers
@@ -164,89 +239,102 @@ def read_ranking(path, model):
     for r in csv.DictReader(open(path)):
         if r["model"] == model:
             agg[(r["family"], r["task"])].append(float(r["delta_loss"]))
-    task_gain = defaultdict(dict)
+    out = defaultdict(dict)
     for (f, t), v in agg.items():
-        task_gain[f][t] = float(np.mean(v))
-    return dict(task_gain)
+        out[f][t] = float(np.mean(v))
+    return dict(out)
 
 
-def read_component_gains(path, model, tasks):
+def read_component_order(path, model, tasks):
+    """component arm gains over the paired 'none' baseline: ORDERING information only."""
     rows = [r for r in csv.DictReader(open(path)) if r["model"] == model and r["task"] in tasks]
     base = {(r["task"], r["family"], r["ctx"], r["fold"]): float(r["val_loss"]) for r in rows if r["arm"] == "none"}
     g = defaultdict(list)
     for r in rows:
-        if r["arm"].startswith("C:") and (r["task"], r["family"], r["ctx"], r["fold"]) in base:
-            g[(r["family"], r["arm"], r["task"])].append(base[(r["task"], r["family"], r["ctx"], r["fold"])] - float(r["val_loss"]))
-    out = defaultdict(dict)
-    for (f, arm, t), v in g.items():
-        col = COMPONENT_MAP.get(f, {}).get(arm)
-        if col:
-            out[col][t] = float(np.mean(v))
-    return dict(out)
+        k = (r["task"], r["family"], r["ctx"], r["fold"])
+        if (r["arm"].startswith("C:") or r["arm"].startswith("P_") or r["arm"] == "Cgroup") and k in base:
+            g[(r["family"], r["arm"])].append(base[k] - float(r["val_loss"]))
+    return {f"{f}|{a}": float(np.mean(v)) for (f, a), v in g.items()}
 
 
-def measure_train(store, cols, train_end, r3_split):
+def measure(store, cols, rules):
     import pandas as pd
     from sklearn.metrics import roc_auc_score
     df = pd.read_parquet(store, columns=cols + ["timestamp"])
     ts = pd.to_datetime(df.pop("timestamp"), utc=True)
-    m = ts < pd.Timestamp(train_end, tz="UTC")
-    X, ts = df[m], ts[m]
-    std = {c: float(X[c].std(skipna=True)) for c in cols}
-    full = X.dropna()
-    Zf = (full - full.mean()) / full.std().replace(0, np.nan)
-    Zf = Zf.fillna(0.0)
-    C = np.corrcoef(Zf.to_numpy().T)
-    r2 = np.nan_to_num(C ** 2)
-    np.fill_diagonal(r2, 0.0)
-    y = (ts >= pd.Timestamp(r3_split, tz="UTC")).to_numpy().astype(int)
-    auc = {}
+    m = ts < pd.Timestamp(rules["train_end"], tz="UTC")
+    X, ts = df[m].reset_index(drop=True), ts[m].reset_index(drop=True)
+    raw = {c: X[c].to_numpy(float) for c in cols}
+    blocks_per_col = {c: [X[c][(ts >= pd.Timestamp(a, tz="UTC")) & (ts < pd.Timestamp(b, tz="UTC"))].to_numpy(float) for _, a, b in rules["periods"]] for c in cols}
+    ok = np.isfinite(X.to_numpy(float)).all(axis=1)
+    common = X[ok]
+    ts_c = ts[ok]
+    support_hash = hashlib.sha256(np.ascontiguousarray(ts_c.astype("int64").to_numpy()).tobytes()).hexdigest()[:16]
+    Z = {c: common[c].to_numpy(float) for c in cols}
+    Zp = {}
+    for name, a, b in rules["periods"]:
+        mm = (ts_c >= pd.Timestamp(a, tz="UTC")) & (ts_c < pd.Timestamp(b, tz="UTC"))
+        Zp[name] = {c: common[c][mm].to_numpy(float) for c in cols}
+    y = (ts_c >= pd.Timestamp(rules["drift_split"], tz="UTC")).to_numpy().astype(int)
+    auc, auc_year = {}, {}
     for c in cols:
-        v = X[c].to_numpy()
-        ok = np.isfinite(v)
-        if ok.sum() < 100 or len(set(y[ok])) < 2 or np.nanstd(v) == 0:
+        v = Z[c]
+        if np.std(v) == 0 or len(set(y)) < 2:
             auc[c] = None
             continue
-        a = roc_auc_score(y[ok], v[ok])
+        a = roc_auc_score(y, v)
         auc[c] = float(max(a, 1 - a))
-    Z = {c: Zf[c].to_numpy() for c in cols}
-    return {"rows_train": int(len(X)), "rows_complete": int(len(full)), "std": std, "r2": r2, "auc": auc, "Z": Z}
+        per = {}
+        names = [p[0] for p in rules["periods"]]
+        for i in range(len(names) - 1):
+            xa, xb = Zp[names[i]][c], Zp[names[i + 1]][c]
+            if len(xa) and len(xb) and (np.std(xa) > 0 or np.std(xb) > 0):
+                aa = roc_auc_score(np.r_[np.zeros(len(xa)), np.ones(len(xb))], np.r_[xa, xb])
+                per[f"{names[i]}->{names[i+1]}"] = float(max(aa, 1 - aa))
+        auc_year[c] = per
+    return {"rows_train": int(len(X)), "rows_common": int(ok.sum()), "support_hash": support_hash, "raw": raw, "blocks_per_col": blocks_per_col,
+            "Z": Z, "Zp": Zp, "auc": auc, "auc_year": auc_year}
 
 
 # ----------------------------------------------------------------------------------------------- pipeline
-def run(cols, fam, status, task_gain, comp_gain, meas, r2_t, r3_t, r6_v, tasks, calendar_prefixes):
+def run(cols, fam, status, task_gain, meas, near_r2, drift_auc, family_var, exact_residual, min_cols, min_size):
     blocks = coherent_blocks(cols)
-    fam_gain = {f: g.get("opener3", 0.0) for f, g in task_gain.items()}
-    reasons, surv = {}, list(cols)
-
-    def apply(name, drop):
-        nonlocal surv
-        for c in surv:
-            if c in drop:
-                reasons[c] = name
-        surv = [c for c in surv if c not in drop]
-        return len(surv)
-
-    counts = {"start": len(surv)}
-    counts["R1"] = apply("R1_constant", r1_constants({c: meas["std"][c] for c in surv}))
-    idx = [cols.index(c) for c in surv]
-    r2d, clusters = r2_duplicates(surv, meas["r2"][np.ix_(idx, idx)], fam, fam_gain, blocks, r2_t)
-    counts["R2"] = apply("R2_duplicate", r2d)
-    counts["R3"] = apply("R3_date_proxy", r3_proxies({c: meas["auc"][c] for c in surv}, r3_t, calendar_prefixes))
-    counts["R4"] = apply("R4_family_no_evidence", r4_family_evidence({c: fam[c] for c in surv}, task_gain, status))
-    counts["R5"] = apply("R5_component_no_gain", r5_components({c: g for c, g in comp_gain.items() if c in surv}, blocks, surv, tasks))
+    fam_rank, b3_cols, best_gain = b3_family_order(fam, task_gain, status)
+    const, absent, d1rec = d1_constants({c: meas["raw"][c] for c in cols}, meas["blocks_per_col"])
+    universe = [c for c in cols if c not in const | absent]
+    d2drop, d2clusters, d2pairs = d2_exact_duplicates(universe, meas["Z"], fam, fam_rank, blocks, exact_residual)
+    universe = [c for c in universe if c not in d2drop]
+    b1, b1clusters, b1pairs = b1_near_duplicates(universe, meas["Z"], meas["Zp"], fam, fam_rank, blocks, near_r2)
+    b2, b2rec = b2_drift_alert({c: meas["auc"][c] for c in universe}, meas["auc_year"], drift_auc)
+    b3 = {c for c in universe if c in b3_cols}
+    tier_a_pre = [c for c in universe if c not in b1 | b2 | b3]
     fam_cols = defaultdict(list)
-    for c in surv:
+    for c in tier_a_pre:
         fam_cols[fam[c]].append(c)
-    r6d, r6detail = r6_pca(dict(fam_cols), {c: meas["Z"][c] for c in surv}, blocks, r6_v)
-    counts["R6"] = apply("R6_family_redundancy", r6d)
-    return {"counts": counts, "survivors": surv, "reasons": reasons, "r2_clusters": clusters, "r6": r6detail}
+    Zs = {c: (meas["Z"][c] - meas["Z"][c].mean()) / (meas["Z"][c].std() or 1.0) for c in tier_a_pre}
+    b5, b5detail = b5_forward_variance(dict(fam_cols), Zs, blocks, family_var, min_cols, min_size)
+    tier_a = [c for c in tier_a_pre if c not in b5]
+    tier_b = [c for c in universe if c not in tier_a]
+    reasons = {}
+    for c in cols:
+        if c in absent: reasons[c] = "ABSENT"
+        elif c in const: reasons[c] = "D1_constant"
+        elif c in d2drop: reasons[c] = "D2_exact_duplicate"
+        elif c in b1: reasons[c] = "B1_near_duplicate"
+        elif c in b2: reasons[c] = "B2_drift_alert_level"
+        elif c in b3: reasons[c] = "B3_family_no_evidence"
+        elif c in b5: reasons[c] = "B5_family_redundancy"
+    counts = {"start": len(cols), "ABSENT": len(absent), "D1_constant": len(const), "D2_exact_duplicate": len(d2drop),
+              "B1_near_duplicate": len(b1), "B2_drift_alert_level": len(b2), "B3_family_no_evidence": len(b3), "B5_family_redundancy": len(b5),
+              "tier_A": len(tier_a), "tier_B": len(tier_b), "universe_after_definitive": len(universe)}
+    return {"counts": counts, "tier_a": tier_a, "tier_b": tier_b, "reasons": reasons, "d1": d1rec, "d2_clusters": d2clusters, "d2_pairs": d2pairs,
+            "b1_clusters": b1clusters, "b1_pairs": b1pairs, "b2": b2rec, "b3_family_rank": fam_rank, "b3_best_gain": best_gain, "b5": b5detail}
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--recipe", required=True)
-    ap.add_argument("--selection", required=True, help="selection_v5 directory")
+    ap.add_argument("--selection", required=True)
     ap.add_argument("--store", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
@@ -257,24 +345,29 @@ def main():
     dec = json.load(open(Path(a.selection) / "SHORTLIST.json"))["decisions"]
     status = {f: v["status"] for f, v in dec.items()}
     task_gain = read_ranking(Path(a.selection) / "RANKING.csv", RULES["model"])
-    comp_gain = read_component_gains(Path(a.selection) / "CONTRASTS_PARENT_COMPONENTS.csv", RULES["model"], RULES["informative_tasks"])
-    meas = measure_train(a.store, cols, RULES["train_end"], RULES["r3_split"])
-    res = run(cols, fam, status, task_gain, comp_gain, meas, RULES["R2_T"], RULES["R3_T"], RULES["R6_V"], RULES["informative_tasks"], RULES["r3_calendar_prefixes"])
-    grid = {}
-    for r3t in GRID["R3_T"]:
-        for r6v in GRID["R6_V"]:
-            grid[f"R3_T={r3t}|R6_V={r6v}"] = run(cols, fam, status, task_gain, comp_gain, meas, RULES["R2_T"], r3t, r6v, RULES["informative_tasks"], RULES["r3_calendar_prefixes"])["counts"]["R6"]
+    comp_order = read_component_order(Path(a.selection) / "CONTRASTS_PARENT_COMPONENTS.csv", RULES["model"], RULES["informative_tasks"])
+    meas = measure(a.store, cols, RULES)
+    R = RULES
+    res = run(cols, fam, status, task_gain, meas, R["NEAR_R2"], R["DRIFT_AUC"], R["FAMILY_VAR"], R["EXACT_RESIDUAL"], R["FAMILY_MIN_COLS"], R["FAMILY_B5_MIN_SIZE"])
+    sens = {}
+    for k, vals in GRID.items():
+        for v in vals:
+            kw = {"near_r2": R["NEAR_R2"], "drift_auc": R["DRIFT_AUC"], "family_var": R["FAMILY_VAR"]}
+            kw[{"NEAR_R2": "near_r2", "DRIFT_AUC": "drift_auc", "FAMILY_VAR": "family_var"}[k]] = v
+            r = run(cols, fam, status, task_gain, meas, kw["near_r2"], kw["drift_auc"], kw["family_var"], R["EXACT_RESIDUAL"], R["FAMILY_MIN_COLS"], R["FAMILY_B5_MIN_SIZE"])
+            sens[f"{k}={v}"] = {"tier_A": r["counts"]["tier_A"], "tier_B": r["counts"]["tier_B"]}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    doc = {"rule": RULES, "recipe_identity": rec.get("identity"), "rows_train": meas["rows_train"], "rows_complete": meas["rows_complete"],
-           "counts": res["counts"], "candidates": res["survivors"], "n": len(res["survivors"]),
-           "dropped": {c: {"reason": res["reasons"][c], "family": fam[c], "adv_auc": meas["auc"][c], "train_std": meas["std"][c], "component_gain": comp_gain.get(c)} for c in cols if c not in res["survivors"]},
-           "r2_clusters": res["r2_clusters"], "r6_detail": {f: {k: v for k, v in d.items() if k != "importance"} for f, d in res["r6"].items()},
-           "adv_auc_top": sorted([(c, a) for c, a in meas["auc"].items() if a], key=lambda t: -t[1])[:10],
-           "component_gains": comp_gain, "family_task_gain": task_gain, "family_status": status, "sensitivity": grid}
-    doc["sha256_candidates"] = hashlib.sha256(json.dumps(res["survivors"]).encode()).hexdigest()
+    doc = {"schema": "expert_guided_prefilter.v2", "rules": {k: v for k, v in R.items() if k != "periods"}, "periods": R["periods"], "level_exclude_tokens": LEVEL_EXCLUDE_TOKENS,
+           "recipe_identity": rec.get("identity"), "fit_block": ["2020-01-01", R["train_end"]], "rows_train": meas["rows_train"], "rows_common_support": meas["rows_common"], "support_hash": meas["support_hash"],
+           "counts": res["counts"], "tier_A": res["tier_a"], "tier_B": res["tier_b"],
+           "definitive": {c: res["reasons"][c] for c in cols if res["reasons"].get(c, "").startswith(("D", "ABSENT"))},
+           "reasons": res["reasons"], "d1_record": res["d1"], "d2_clusters": res["d2_clusters"], "d2_pairs": res["d2_pairs"],
+           "b1_clusters": res["b1_clusters"], "b1_pairs": res["b1_pairs"], "b2_drift": res["b2"], "b3_family_rank": res["b3_family_rank"], "b3_best_gain": res["b3_best_gain"],
+           "b4_component_order_not_applied": comp_order, "b5_detail": res["b5"], "sensitivity": sens,
+           "sha256_tier_A": hashlib.sha256(json.dumps(res["tier_a"]).encode()).hexdigest(), "sha256_tier_B": hashlib.sha256(json.dumps(res["tier_b"]).encode()).hexdigest()}
     (out / "CANDIDATES_STRICT.json").write_text(json.dumps(doc, indent=1))
-    print(json.dumps({"counts": res["counts"], "n": len(res["survivors"]), "sensitivity": grid}, indent=1))
+    print(json.dumps({"counts": res["counts"], "sensitivity": sens}, indent=1))
 
 
 if __name__ == "__main__":
