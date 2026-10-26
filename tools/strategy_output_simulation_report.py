@@ -280,6 +280,57 @@ def intervention_table(ints: list) -> str:
     return "\n".join(lines)
 
 
+BANDS = [(0.50, 0.55), (0.55, 0.60), (0.60, 0.65), (0.65, 0.70), (0.70, 0.75), (0.75, 0.80), (0.80, 0.90), (0.90, 1.001)]
+BAND_RULE = ("the SBFS evaluator measures, per subset, the OUT-OF-FOLD AUC of the TP-first opener heads on the CALIBRATION block (mean of the two "
+             "sides) and picks the band containing it; the SL-first closer AUC and the NOP AUC are reported next to it; the decision block is never read; "
+             "a measured AUC below 0.50 maps to the lowest band and the strategy is flagged NOT_SELECTABLE_BELOW_CHANCE")
+
+
+def freeze_params(runs: list, stage_a: dict | None, family: str, gate: str = "perbar", variant: str = "base") -> dict:
+    """The frozen parameter table by quality band: for each band, the Stage-B optimum = the median over seeds and folds of
+    the chosen genes of the runs whose ACHIEVED calibration-block opener AUC falls in the band (Stage-A robust box applied
+    as the gene bounds when present); bands without a run take the nearest run level and say so."""
+    rows = []
+    for r in runs:
+        if r.get("family", "c3") != family or r.get("gate") != gate or r["variant"] != variant:
+            continue
+        for s in r["per_seed"]:
+            g = s.get("chosen_genes")
+            ach = ((s.get("simulation") or {}).get("achieved") or {}).get("calibration") or {}
+            auc = np.nanmean([ach.get("auc_tp_first_side0", np.nan), ach.get("auc_tp_first_side1", np.nan)])
+            if g and np.isfinite(auc):
+                rows.append({"level": r["level"], "fold": r["fold"], "seed": s["seed"], "auc_cal": float(auc), "genes": g, "strategy": s.get("strategy_effective"),
+                             "dec_exp": ((s.get("decision") or {}).get("expectancy_sigma") or {}).get("expectancy"),
+                             "dec_sharpe": ((s.get("decision") or {}).get("metrics") or {}).get("sharpe_daily_sqrt365")})
+    table = []
+    box = (stage_a or {}).get("robust_region", {}).get("box") or {}
+    for lo, hi in BANDS:
+        inb = [x for x in rows if lo <= x["auc_cal"] < hi]
+        src = "runs_in_band"
+        if not inb and rows:
+            mid = (lo + hi) / 2
+            nearest = min(rows, key=lambda x: abs(x["auc_cal"] - mid))["level"]
+            inb = [x for x in rows if x["level"] == nearest]
+            src = f"nearest_level_{nearest:.2f}"
+        if not inb:
+            table.append({"band": [lo, min(hi, 1.0)], "source": "no_run", "n": 0, "genes": None})
+            continue
+        genes = {}
+        for k in inb[0]["genes"]:
+            vals = np.array([x["genes"][k] for x in inb], float)
+            med = float(np.median(vals))
+            if k in box:
+                med = float(min(max(med, box[k][0]), box[k][1]))
+            genes[k] = {"median": med, "min": float(vals.min()), "max": float(vals.max())}
+        table.append({"band": [lo, min(hi, 1.0)], "source": src, "n": len(inb), "levels": sorted({x["level"] for x in inb}), "genes": genes,
+                      "decision_expectancy_mean": float(np.nanmean([x["dec_exp"] for x in inb if x["dec_exp"] is not None])) if any(x["dec_exp"] is not None for x in inb) else None,
+                      "decision_sharpe_mean": float(np.nanmean([x["dec_sharpe"] for x in inb if x["dec_sharpe"] is not None])) if any(x["dec_sharpe"] is not None for x in inb) else None,
+                      "absolute_strategy_example": inb[0]["strategy"]})
+    return {"schema": "strategy_params_frozen.v1", "family": family, "gate": gate, "scenario_source": variant, "band_rule": BAND_RULE, "bands": table,
+            "stage_a_robust_box": box, "note": "quantile genes are mapped to absolute thresholds on each subset's own calibration block by the frozen gene map; "
+                                              "the coefficients (tp/sl/volume) and observe_bars are used as they are; the cutoff is the execution contract's (24 h)"}
+
+
 def write(df: pd.DataFrame, runs: list, out: Path, docs: str, ints: list | None = None):
     if "family" not in df:
         df = df.assign(family="c3")

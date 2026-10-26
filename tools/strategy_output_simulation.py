@@ -161,9 +161,14 @@ def pos_key(pos, bar: int) -> tuple:
     return (int(bar), int(pos.direction), int(pos.entry_bar), round(float(pos.tp), 7), round(float(pos.sl), 7))
 
 
-def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 0, progress=None) -> Truth:
+def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 0, progress=None, only_periods=None) -> Truth:
+    """``only_periods``: restrict the entry table to the rows of these periods (Stage A synthetic worlds score the
+    selection block only); the exploration visits and the NOP truth follow the same restriction."""
     cells = [tuple(c) for c in cells]
-    et = OC.entry_table(cx, SCFG, cells=cells, progress=progress)
+    rows_sel = None
+    if only_periods:
+        rows_sel = np.flatnonzero(cx.obs_ok & np.isin(cx.ds.period, list(only_periods)))
+    et = OC.entry_table(cx, SCFG, cells=cells, progress=progress, rows=rows_sel)
     n = len(cx.ds.row_bar)
     ref = C3.cell_index(tuple(contract["outcomes"]["ref_cell"]), cells)
     rows = np.flatnonzero(cx.obs_ok)
@@ -176,7 +181,7 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
     net = et["net_sigma"].astype(float)
     # reality-based NOP: no allowed cell on either side has a true net above the cost (A2-8: open only with positive EV)
     nop = np.ones(n, np.int64)
-    for r in rows:
+    for r in (rows if rows_sel is None else rows_sel):
         best = -np.inf
         for si in (0, 1):
             x = net[r, si]
@@ -192,7 +197,7 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
     day[okb] = (v[rb[okb]] // (24 * 3600 * 10 ** 9)).astype(np.int64)
     xvis = {}
     for p in (CAL_BLOCK, SEL_BLOCK, DEC_BLOCK):
-        if p in xvis:
+        if p in xvis or (only_periods and p not in only_periods):
             continue
         vis = OC.visit_positions(cx, p, C3.prior_random_cells(cx, list(EXPLORATION_PRIOR), explore_seed, cells), SCFG)
         xt = OC.exit_table(cx, SCFG, vis)
