@@ -1,0 +1,105 @@
+{
+ "schema": "expert_guided_selection.v1 (mirror of agent-multi tools/rl_selection_run.py @e18d00d4; only the evaluator differs)",
+ "prepare": {
+  "recipe": "<package-root>/recipe/CONSUMER_RECIPE.json (recipe_5a8f2155318ba7c7, 121 columns)",
+  "store": "<package-root>/data/store/full_pool_eurusd_h1.parquet (cd0eb8d2...)",
+  "manifest": "<package-root>/data/store/MANIFEST.json",
+  "admitted": "<package-root>/data/admitted",
+  "csv_dir": "<package-root>/data/sel15",
+  "action_contract": "<package-root>/contracts/ACTION_CONTRACT_C3.json",
+  "selector_root": "<package-root>/feature_selector (Musashi's checkout, src pinned by file hashes)",
+  "contract": "consolidated",
+  "labels": "zigzag",
+  "python": "trading-stack interpreter",
+  "crispdm_run": "crispdm-run",
+  "memory": "10G"
+ },
+ "RECIPE.json": {
+  "derivation": "subset_recipe(parent, all 121) + refit_train_scaler on TRAIN 2020-01-01..2023-07-01 (bar start + 1 h); cost_mode configured; labels declared",
+  "provenance.internal_selection_bias": "candidate pool used 2023; INNER_A is development, not independent confirmation"
+ },
+ "dataset": {
+  "schema": "feature_selector.dataset.v1",
+  "scope": "development",
+  "features": "121 columns of recipe v2 in order",
+  "groups": "groups_for_selector(recipe): 25 groups -> extractor kinds/units",
+  "blocks": "coherent_blocks: x_sin/x_cos pairs and rg.gmm.p0/p1/p2 together",
+  "splits": {
+   "train": [
+    "2020-01-01",
+    "2023-07-01"
+   ],
+   "selection": [
+    "2023-07-01",
+    "2024-01-01"
+   ],
+   "test_start": "2025-01-01"
+  },
+  "constraints": {
+   "agent_state": "none",
+   "scaling": "fixed_train",
+   "clipping": false,
+   "fit_scope": "train_only",
+   "test_access": false
+  }
+ },
+ "seeds": [
+  7,
+  19,
+  43
+ ],
+ "max_attempts": 2,
+ "task_timeout_seconds": 43200,
+ "budget": {
+  "max_epochs": 1000,
+  "patience": 10,
+  "trunk": "residual_tcn",
+  "fusion_units": 8,
+  "core_blocks": 2,
+  "readout": "flatten",
+  "dropout_wd": "recipe",
+  "agent_state": "none"
+ },
+ "search": {
+  "min_features": 20,
+  "max_evaluations": 128,
+  "tolerance": 0.0,
+  "selector": "feature_selector.search.FloatingBackward"
+ },
+ "controls_first": [
+  [
+   "tcn",
+   "configured"
+  ],
+  [
+   "tcn",
+   "zero_cost (DIAGNOSTIC replay of the configured-cost policy under a zero-charge profile; E3-M has no zero-cost training)"
+  ],
+  [
+   "u",
+   "configured"
+  ]
+ ],
+ "controls_feeding_wrapper": [
+  "tcn_configured"
+ ],
+ "evaluator": {
+  "entry_point": "feature_selector.evaluators/expert_guided_model",
+  "class": "app.short_horizon.expert_guided.fs_evaluator:ExpertGuidedModelEvaluator",
+  "per_task": "subset recipe (empty group -> branch removed, fusion width recomputed, TRAIN-only scaler refit) -> fresh E3-M run (--recipe --action-contract C3 --trunk residual_tcn|u --seeds <seed> --split-contract consolidated --agent-state none) -> replay of the frozen policy on TRAIN and INNER_A through the engine",
+  "score": "pooled per-trade net expectancy in sigma on INNER_A with day-block bootstrap CI (stats.day_block_bootstrap_expectancy); undefined -> None with reason, never 0",
+  "eligible": "score defined AND INNER_A orders/week >= 2.0 AND early closes > 0 AND the replay reproduces the run",
+  "reported_per_seed": "profit, sharpe, max_drawdown, orders, orders_per_week, win_rate, buy/sell orders and win rates, early_closes, costs (+ components), TRAIN-INNER gap, parameter_count, fits"
+ },
+ "outputs": [
+  "SPEC.private.json",
+  "IDENTITY.json",
+  "STATUS.json",
+  "CONTROLS.json",
+  "tasks/<sha>.json + -attempt-N/RESULT.json + ledgers",
+  "subsets/<sha>.json",
+  "SEARCH.json",
+  "CLOSE.json"
+ ],
+ "launch": "NOT launched; tools/clean_round_chain/queue_sbfs.sh under the gate LAUNCH_EXPERT_GUIDED.json"
+}
