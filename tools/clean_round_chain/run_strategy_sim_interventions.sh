@@ -19,8 +19,8 @@ for f in ${FOLDS:-wf2022 wf2023}; do for lv in ${LEVELS:-0.62 0.70 0.80 1.00}; d
 done; done
 run_job(){ r=$1; n=$(basename $r .json)
   [ -f $ROOT/interventions/INT_${n#RUN_}.json ] && return
-  $CR -q -m ${MEM:-3G} -t 43200s -n simint-${n#RUN_} -- $PY tools/strategy_intervention.py --run $r --truth-dir $ROOT/truth --admitted $ADM --csv-dir $CSV --draws $DRAWS --out $ROOT/interventions/INT_${n#RUN_}.json > $ROOT/logs/int_${n#RUN_}.log 2>&1 && log "int ${n#RUN_} DONE" || log "int ${n#RUN_} FAILED (see logs/int_${n#RUN_}.log)"
+  $CR -q -W ${MAXWAIT:-43200} -m ${MEM:-3G} -t 43200s -n simint-${n#RUN_} -- $PY tools/strategy_intervention.py --run $r --truth-dir $ROOT/truth --admitted $ADM --csv-dir $CSV --draws $DRAWS --out $ROOT/interventions/INT_${n#RUN_}.json > $ROOT/logs/int_${n#RUN_}.log 2>&1 && log "int ${n#RUN_} DONE" || log "int ${n#RUN_} FAILED (see logs/int_${n#RUN_}.log)"
 }
-export -f run_job log; export ROOT CODE PY CR ADM CSV DRAWS MEM
+export -f run_job log; export ROOT CODE PY CR ADM CSV DRAWS MEM MAXWAIT
 cat $JOBLIST | xargs -P $JOBS -L 1 bash -c 'run_job $0'
 log "interventions end"

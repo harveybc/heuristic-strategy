@@ -20,8 +20,8 @@ for f in $FOLDS; do
 done
 log "start FULL families folds=[$FOLDS] jobs=$JOBS"
 run_job(){ f=$1; v=$2; fam=$3; lv=$4
-  $CR -q -m ${MEM:-3G} -t 43200s -n simfull-$f-$v-$fam -- $PY tools/strategy_output_simulation.py run --fold $f --admitted $ADM --csv-dir $CSV --truth-dir $ROOT/truth --variant $v --gate perbar --family $fam --levels $lv --seeds $SEEDS --out $ROOT/runs > $ROOT/logs/full_${f}_${v}_${fam}.log 2>&1 && log "full $f $v $fam DONE" || log "full $f $v $fam FAILED (see logs/full_${f}_${v}_${fam}.log)"
+  $CR -q -W ${MAXWAIT:-43200} -m ${MEM:-3G} -t 43200s -n simfull-$f-$v-$fam -- $PY tools/strategy_output_simulation.py run --fold $f --admitted $ADM --csv-dir $CSV --truth-dir $ROOT/truth --variant $v --gate perbar --family $fam --levels $lv --seeds $SEEDS --out $ROOT/runs > $ROOT/logs/full_${f}_${v}_${fam}.log 2>&1 && log "full $f $v $fam DONE" || log "full $f $v $fam FAILED (see logs/full_${f}_${v}_${fam}.log)"
 }
-export -f run_job log; export ROOT CODE PY CR ADM CSV SEEDS MEM
+export -f run_job log; export ROOT CODE PY CR ADM CSV SEEDS MEM MAXWAIT
 cat $JOBLIST | xargs -P $JOBS -L 1 bash -c 'run_job $0 $1 $2 $3'
 log "FULL sweeps end"
