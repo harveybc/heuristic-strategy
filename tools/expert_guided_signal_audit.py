@@ -529,7 +529,7 @@ def cmd_run(a):
             yv = np.concatenate([per[p][1] for p in ("TRAIN", "INNER_A")])
             base_names = []
             for fname, _c in rec["linear_coef_top"]:
-                bn = fname.split("@")[0]
+                bn = fname.rsplit("@", 1)[0]
                 if bn not in base_names:
                     base_names.append(bn)
                 if len(base_names) == 15:
