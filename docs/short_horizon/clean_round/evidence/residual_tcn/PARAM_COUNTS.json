@@ -1,0 +1,16 @@
+{
+ "recipe_v2_121": {
+  "u_design_opener": 1382,
+  "residual_tcn_flatten_opener": 3916,
+  "residual_tcn_last_opener": 2380,
+  "n_feat": 121,
+  "n_groups": 31
+ },
+ "core19": {
+  "u_design_opener": 404,
+  "residual_tcn_flatten_opener": 2830,
+  "residual_tcn_last_opener": 1294,
+  "n_feat": 19,
+  "n_groups": 4
+ }
+}

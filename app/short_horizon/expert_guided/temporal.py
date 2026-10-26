@@ -12,6 +12,13 @@ per component (the ladder starts at u = 2):
 Weights are shared over time (the same filters slide over the window) and every convolution is padded on
 the past side only, so position t never sees a later slot. Agent state, if any, is concatenated AFTER the
 trunk, never mixed into the window. No BatchNorm.
+
+Declared variant ``trunk="residual_tcn"`` (owner 2026-10-26: adopt Musashi's minimal grouped TCN; agent-multi
+``agent_plugins/grouped_tcn_orders.py`` @e18d00d4): the same per-group branches -> SiLU -> a 1x1 causal fusion to
+``fusion_units`` (8) -> ``core_blocks`` (2) residual causal blocks, each two kernel-3 convolutions at dilations 1, 2
+(``silu(x + conv2(silu(conv1(x))))``, receptive field 13 = the window) -> readout ``flatten`` (every slot, Musashi's
+choice) or ``last``. Defaults keep the u-design byte-identical (state_dict names and outputs); the variant only
+adds modules when selected.
 """
 from __future__ import annotations
 
@@ -37,6 +44,18 @@ class CausalConv1d(nn.Conv1d):
         return super().forward(F.pad(x, (self.left, 0)))
 
 
+class ResidualCausalBlock(nn.Module):
+    """Two causal kernel-3 convolutions at one dilation with a residual skip: silu(x + c2(silu(c1(x))))."""
+
+    def __init__(self, width: int, dilation: int):
+        super().__init__()
+        self.first = CausalConv1d(width, width, KERNEL, dilation)
+        self.second = CausalConv1d(width, width, KERNEL, dilation)
+
+    def forward(self, x):
+        return F.silu(x + self.second(F.silu(self.first(x))))
+
+
 class TemporalTrunk(nn.Module):
     """``units`` sets every width (the registered u-design). Coordinate-ladder overrides (Musashi's order: core ->
     heads -> branches -> depth): ``branch`` filters per feature branch, ``core`` width of the fusion and core convs,
@@ -44,14 +63,22 @@ class TemporalTrunk(nn.Module):
     dilation: 8, 16, ...). Defaults reproduce the u-design exactly, including the state_dict names."""
 
     GROUP_KINDS = ("conv", "pointwise")
+    TRUNKS = ("u", "residual_tcn")
+    READOUTS = ("flatten", "last")
 
     def __init__(self, n_feat: int, units: int = 2, dropout: float = 0.1, branch: int | None = None,
                  core: int | None = None, depth: int = 1, groups: list | None = None, group_units: list | None = None,
-                 group_kinds: list | None = None):
+                 group_kinds: list | None = None, trunk: str = "u", fusion_units: int = 8, core_blocks: int = 2,
+                 readout: str = "flatten", win: int | None = None):
         super().__init__()
+        if trunk not in self.TRUNKS:
+            raise ValueError("TRUNK_VARIANT_UNKNOWN")
+        if readout not in self.READOUTS:
+            raise ValueError("TRUNK_READOUT_UNKNOWN")
         b = units if branch is None else branch
         c = units if core is None else core
         self.n_feat, self.units, self.b, self.c, self.depth = n_feat, units, b, c, depth
+        self.trunk_kind, self.readout, self.win = trunk, readout, win
         self.groups = None
         if groups is None:
             self.branch = CausalConv1d(n_feat, n_feat * b, KERNEL, DILATIONS[0], groups=n_feat)
@@ -79,13 +106,42 @@ class TemporalTrunk(nn.Module):
             self.group_units, self.group_kinds = gu, gk
             fused_in = sum(gu)
         self.drop = nn.Dropout(dropout)
+        if trunk == "residual_tcn":
+            if int(fusion_units) < 1 or int(core_blocks) < 1:
+                raise ValueError("TRUNK_RESIDUAL_TCN_WIDTHS_INVALID")
+            if readout == "flatten" and not win:
+                raise ValueError("TRUNK_FLATTEN_NEEDS_WINDOW")
+            self.fusion_units, self.core_blocks = int(fusion_units), int(core_blocks)
+            self.fuse = CausalConv1d(fused_in, self.fusion_units, 1, 1)                 # 1x1 causal fusion (Musashi)
+            self.blocks = nn.ModuleList([ResidualCausalBlock(self.fusion_units, 2 ** j) for j in range(self.core_blocks)])
+            self.out_dim = self.fusion_units * (int(win) if readout == "flatten" else 1)
+            return
         self.fuse = CausalConv1d(fused_in, c, KERNEL, DILATIONS[1])
         self.core = CausalConv1d(c, c, KERNEL, DILATIONS[2])
         for k in range(2, depth + 1):           # core2 (dilation 8), core3 (16), ...
             setattr(self, f"core{k}", CausalConv1d(c, c, KERNEL, DILATIONS[2] * 2 ** (k - 1)))
         self.out_dim = c
 
+    def sequence(self, w):                      # residual_tcn only: (B, T, n_feat) -> (B, fusion_units, T)
+        x = w.transpose(1, 2)
+        if self.groups is None:
+            x = self.branch(x)
+        else:
+            x = torch.cat([conv(x.index_select(1, getattr(self, f"gidx{k}"))) for k, conv in enumerate(self.branch)], 1)
+        x = self.drop(F.silu(x))
+        x = self.drop(F.silu(self.fuse(x)))
+        for blk in self.blocks:
+            x = blk(x)
+        return x
+
     def forward(self, w):                       # w: (B, T, n_feat)
+        if self.trunk_kind == "residual_tcn":
+            x = self.sequence(w)
+            if self.readout == "flatten":
+                if x.shape[-1] != self.win:
+                    raise ValueError("TRUNK_WINDOW_MISMATCH")
+                return x.flatten(1)
+            return x[:, :, -1]
         x = w.transpose(1, 2)
         if self.groups is None:
             x = self.drop(F.gelu(self.branch(x)))
@@ -106,12 +162,15 @@ class TemporalPolicyNet(nn.Module):
     def __init__(self, n_feat: int, win: int, n_cls: int, n_reg: int = 0, n_state: int = 0, units: int = 2,
                  dropout: float = 0.1, reg_bounds=((0.25, 3.0), (0.5, 3.0)), branch: int | None = None,
                  core: int | None = None, depth: int = 1, head: int = 0, groups: list | None = None,
-                 group_units: list | None = None, group_names: list | None = None, group_kinds: list | None = None):
+                 group_units: list | None = None, group_names: list | None = None, group_kinds: list | None = None,
+                 trunk: str = "u", fusion_units: int = 8, core_blocks: int = 2, readout: str = "flatten"):
         super().__init__()
         self.n_feat, self.win, self.n_state = n_feat, win, n_state
         self.group_names = group_names                # documentation only (which family each extractor reads)
+        self.trunk_kind = trunk                       # part of the declared architecture identity
         self.trunk = TemporalTrunk(n_feat, units, dropout, branch=branch, core=core, depth=depth, groups=groups,
-                                   group_units=group_units, group_kinds=group_kinds)
+                                   group_units=group_units, group_kinds=group_kinds, trunk=trunk,
+                                   fusion_units=fusion_units, core_blocks=core_blocks, readout=readout, win=win)
         d = self.trunk.out_dim + n_state
         self.head = head
         if head:                                 # optional hidden head layer (ladder stage "heads"); 0 = registered
