@@ -388,3 +388,106 @@ def test_head_outputs_block_is_explicit_and_checked():
     assert ho["open_l.decision"]["classes"] == C3.CLASSES_OPEN
     bad = ACT.seal(dict(copy.deepcopy(d), identity=None, head_outputs={}))
     assert any(e.startswith("C3_CONTRACT_HEAD_OUTPUTS") for e in C3.validate(bad))
+
+
+def test_derived_encoding_recipe_partitions_the_real_recipe_v2_tensor(monkeypatch):
+    """derive -> resolve as e3m does (group columns matched to TENSOR names) -> every tensor index covered exactly once."""
+    from tools import expert_guided_wf_recipe as WR
+    base = json.loads((ROOT / "docs/short_horizon/clean_round/evidence/a1/RECIPE_v2_a1.json").read_text())
+    monkeypatch.setattr(WR, "fold_constants", lambda store, rec, fold: {"fit_period": ["a", "b"], "fit_rows": 1, "mean": [0.0] * len(rec["tensor"]["columns"]),
+                                                                        "std": [1.0] * len(rec["tensor"]["columns"]), "std_raw": [], "variance": [], "rule": [], "fit_rows_per_feature": [], "nan_share_train": []})
+    rec = C3.derive_encoding_recipe(base, "sha", "x.parquet", "wf2022")
+    tensor = [c["tensor_name"].split("@")[0] for c in rec["tensor"]["columns"]]
+    idx = []
+    for g, cols in rec["representation"]["groups"]["groups"].items():
+        ii = [tensor.index(c.split("@")[0]) for c in cols if c.split("@")[0] in tensor]
+        assert len(ii) == len(cols), (g, cols)
+        idx += ii
+    assert sorted(idx) == list(range(len(tensor))) and len(tensor) == 118
+    g = rec["representation"]["groups"]["groups"]
+    assert set(g["ev"]) == {"ev.tokyo_fix.window2h", "ev.london_fix.window2h", "ev.ny_cut.window2h"}
+    assert set(g["gmm/logret_1+rv_24+log_range"]) == {"rg.gmm.onehot0", "rg.gmm.onehot1", "rg.gmm.onehot2", "rg.gmm.entropy"}
+    assert rec["representation"]["resolved"]["indices"] and sorted(i for ii in rec["representation"]["resolved"]["indices"] for i in ii) == list(range(118))
+
+
+def test_both_cutoffs_are_declared_exec_variants_with_the_measured_eligibility():
+    d = C3.default_contract()
+    assert C3.FULL_F3_12H.entry_cutoff_hours_before_flat == 12.0 and C3.FULL_F3.entry_cutoff_hours_before_flat == 24.0
+    assert d["exec_variant"]["alternatives"]["full_f3_12h"]["identity"] == C3.FULL_F3_12H.identity != C3.FULL_F3.identity
+    assert d["exec_variant"]["cutoff_eligibility"]["eligible_days_per_week"] == {"legacy_12h_cutoff": 5.02, "full_f3_24h_cutoff": 3.98}
+    assert set(C3.EXEC_VARIANTS) == {"legacy", "full_f3", "full_f3_12h"}
+
+
+# ----------------------------------------------------------------------------- C3-awareness of the downstream tools
+def _fake_e3m(tmp_path, schema=C3.SCHEMA):
+    d = {"action_contract": {"contract": {"schema": schema, "identity": "x"}, "identity": "x", "sha256": "y"}, "trials": {"FULL": {"1": {}}},
+         "c3": {"cells": [list(c) for c in C3.CELLS], "ev_rule": {"e_time_by_side": [-0.1, -0.2], "cost_sigma": 0.07}, "exec_variant": {"name": "full_f3"}},
+         "arch": {"units": 2, "depth": 2, "head": 16, "trunk": "residual_tcn", "fusion_units": 8, "core_blocks": 2, "readout": "flatten"}}
+    (tmp_path / "E3M.json").write_text(json.dumps(d))
+    return d
+
+
+def test_seed_ensemble_dispatches_c3_runs_to_the_c3_evaluator(tmp_path, monkeypatch):
+    from tools import expert_guided_seed_ensemble as SE
+    d = _fake_e3m(tmp_path)
+    called = {}
+    monkeypatch.setattr(SE, "evaluate_c3", lambda out_dir, e3m, ds, periods, seeds, cfg=None: called.update(seeds=seeds, schema=e3m["action_contract"]["contract"]["schema"]) or {"ok": True})
+    monkeypatch.setattr(SE, "evaluate_c2", lambda *a, **k: (_ for _ in ()).throw(AssertionError("C2 evaluator must not run for C3")))
+    assert SE.evaluate(tmp_path, None, ["INNER_A"]) == {"ok": True} and called == {"seeds": ["1"], "schema": C3.SCHEMA}
+
+
+def test_run_params_cfg_for_and_policy_builder_read_the_run_document(tmp_path):
+    from tools.expert_guided_e3m import effective_contracts
+    d = _fake_e3m(tmp_path)
+    rp = C3.run_params(d)
+    assert rp["cells"] == list(C3.CELLS) and rp["e_time"] == (-0.1, -0.2) and rp["cost"] == 0.07 and rp["exec_variant"] == "full_f3"
+    S0, _ = effective_contracts("sac", 2.0)
+    assert C3.cfg_for(d, S0).variant == C3.FULL_F3
+    d["c3"]["exec_variant"]["name"] = "legacy"
+    assert C3.cfg_for(d, S0).variant is None
+    t = _table(cells=list(C3.CELLS))
+    pol = C3.policy(t, C3.NO_TRADE.to_dict(), d)
+    assert isinstance(pol, C3.PolicyC3) and pol.cost == 0.07 and pol.e_time == (-0.1, -0.2)
+
+
+def test_load_module_forwards_the_trunk_kwargs_from_the_run_architecture(tmp_path, monkeypatch):
+    pytest.importorskip("torch")
+    import torch
+    from tools import expert_guided_seed_ensemble as SE
+    from app.short_horizon.expert_guided import temporal as T
+    nf, win = 6, 13
+    net = T.TemporalPolicyNet(nf, win, 3, n_reg=2, n_state=9, units=2, depth=2, head=16, trunk="residual_tcn", fusion_units=8, core_blocks=2, readout="flatten")
+    torch.save(net.state_dict(), tmp_path / "FULL_open_l_1.pt")
+    d = _fake_e3m(tmp_path)
+    d["n_state_by_module"] = {"open_l": 9}
+    pol = SE.load_module(tmp_path, d, "open_l", "1", nf, win)
+    assert pol.m.trunk.__class__.__name__ == net.trunk.__class__.__name__
+    for a, b in zip(pol.m.state_dict().values(), net.state_dict().values()):
+        assert torch.equal(a, b)
+
+
+def test_mean_tables_to_raw_and_calibrate_round_trip():
+    class _Cl:
+        members = []
+
+        @staticmethod
+        def merge(cgs):
+            return _Cl()
+
+        def with_ens_cal(self, cal):
+            return self
+    import app.short_horizon.expert_guided.c2 as C2m
+    n, k = 5, len(C3.CELLS)
+    t1 = {"net": np.full((n, 2, k), 0.2), "p3": np.tile([0.5, 0.3, 0.2], (n, 2, 1)), "pn": np.full(n, 0.4), "closer": _Cl(), "cap": np.full(n, 2.0), "lo": np.full(n, 0.1)}
+    t2 = {"net": np.full((n, 2, k), 0.4), "p3": np.tile([0.7, 0.2, 0.1], (n, 2, 1)), "pn": np.full(n, 0.6), "closer": _Cl(), "cap": np.full(n, 2.0), "lo": np.full(n, 0.1)}
+    orig = C2m.CloserGeo.merge
+    C2m.CloserGeo.merge = staticmethod(lambda cgs: _Cl())
+    try:
+        m = C3.mean_tables([t1, t2])
+    finally:
+        C2m.CloserGeo.merge = orig
+    assert np.allclose(m["net"], 0.3) and np.allclose(m["p3"][0, 0], [0.6, 0.25, 0.15]) and np.allclose(m["pn"], 0.5) and "cap" in m
+    raw = C3.to_raw(m)
+    cal = {"open_l": {"T": 1.0}, "open_s": {"T": 1.0}, "nop": {"a": 1.0, "b": 0.0}}
+    back = C3.calibrate_table(raw, cal)
+    assert np.allclose(back["p3"], m["p3"]) and np.allclose(back["pn"], m["pn"]) and "cap" in back

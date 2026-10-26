@@ -67,6 +67,9 @@ def load_module(out_dir: Path, e3m: dict, module: str, seed: str, n_feat: int, w
     kw = dict(units=arch["units"], branch=arch.get("branch"), core=arch.get("core"), depth=arch["depth"], head=arch["head"])
     if arch.get("groups") is not None:
         kw.update(groups=arch["groups"], group_units=arch["group_units"], group_names=arch["group_names"], group_kinds=arch["group_kinds"])
+    for k in ("trunk", "fusion_units", "core_blocks", "readout"):      # residual_tcn runs record their trunk in ARCH (default u: absent)
+        if k in arch:
+            kw[k] = arch[k]
     sd = torch.load(out_dir / f"FULL_{module}_{seed}.pt", map_location="cpu", weights_only=True)
     nc = int(sd["cls.weight"].shape[0])                # classes and regression heads come from the checkpoint itself
     nr = 0
@@ -288,9 +291,106 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
     return doc
 
 
+def evaluate_c3(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=None) -> dict:
+    """Seed ensemble of a C3 arm: per seed its calibrated table (3-class openers, nets, NOP, closers with geometry) and
+    its own frozen strategy are replayed again under the run's exec variant (verification); the ENSEMBLE averages the
+    seeds' calibrated probabilities / nets, refits ONE calibration per specialist on the saved calibration-block rows
+    (C3_SETS.npz) and re-optimises the strategy on the selection block only, for every fitness variant."""
+    from app.short_horizon.expert_guided import c3 as C3
+    ac = e3m["action_contract"]
+    AC = ac["contract"]
+    B = e3m.get("blocks_used") or {}
+    cb, sel = B.get("calibration", "INNER_A"), B.get("selection", "INNER_A")
+    cx = Ctx(ds)
+    cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("HIGH", "LOW", "CLOSE"))
+    n_feat, win, NS = ds.windows.shape[2], ds.windows.shape[1], len(E.STATE_NAMES)
+    SCFG0, _ = effective_contracts(e3m.get("exec_contract", "sac"), e3m.get("min_orders_per_week"))
+    SCFG = C3.cfg_for(e3m, SCFG0)
+    cfg = cfg or SCFG
+    trials = e3m["trials"]["FULL"]
+    rp = C3.run_params(e3m)
+    caps = C3.cap_arrays(cx, SCFG)
+    cal_rows = np.flatnonzero(cx.obs_ok & (ds.period == cb))
+    view_rows = np.union1d(cal_rows, np.flatnonzero(cx.obs_ok & (ds.period == sel)))
+    doc = {"arm_dir": str(out_dir), "recipe": e3m.get("recipe"), "split_contract": ds.meta["split_contract"], "seeds": seeds, "periods": periods,
+           "support_hash": ds.meta["support_hash"], "action_contract": {"identity": ac["identity"], "sha256": ac["sha256"], "schema": AC["schema"]},
+           "exec_variant": e3m["c3"].get("exec_variant"), "blocks": dict(B), "per_seed": {}, "ensemble": {}, "verification": {"per_seed_replay_equals_run": {}}}
+    tables = []
+    for s in seeds:
+        pols = {m: load_module(out_dir, e3m, m, s, n_feat, win) for m in C3.SPECIALISTS}
+        doc.setdefault("head_shapes", {})[s] = ACT.check_head_shapes(AC, {m: p.m for m, p in pols.items()})
+        t = C3.seed_table(pols, cx, NS, trials[s]["action_contract"]["calibration"], rp["cells"], caps)
+        tables.append(t)
+        st_s = C3.strategy_from_dict(trials[s]["action_contract"]["strategy"]["strategy"]) if trials[s]["action_contract"]["strategy"].get("strategy") else C3.NO_TRADE
+        doc["per_seed"][s] = {}
+        for p in periods:
+            m = cx.rollout(p, C3.policy(t, st_s, e3m)(cx), cfg)[0]
+            doc["per_seed"][s][p] = window_stats(m, cfg)
+            run_v = trials[s]["trading"].get(p, {}).get("sharpe_daily_sqrt365")
+            if run_v is not None:
+                doc["verification"]["per_seed_replay_equals_run"][f"{s}/{p}"] = bool(abs(run_v - m["sharpe_daily_sqrt365"]) < 1e-9)
+    saved = C2.load_sets(out_dir / "C3_SETS.npz")
+    ens_t, cal_e = C3.ensemble_calibration(C3.mean_tables(tables), cx, saved[cb])
+    min_opw = float(AC["strategy"]["calibration_min_trades_per_week"])
+    sig = np.asarray(ds.sigma, float)
+
+    def score_table(view, strat):
+        m, trades = ACT.rollout_with_trades(cx, sel, C3.PolicyC3(view, strat, rp["cells"], rp["e_time"], rp["cost"])(cx), SCFG)
+        return ACT.window_components(m, trades, sig, SCFG.capital, min_opw, **ACT.score_kwargs(AC))
+
+    primary = ac.get("primary_fitness") or ACT.DEFAULT_FITNESS
+    closer_src = {m: {"rows": saved[cb][m]["rows"], "G": saved[cb][m].get("G")} for m in C3.CLOSERS if m in saved[cb]}
+    fr = C3.freeze(ens_t, view_rows, score_table, AC, min(int(x) for x in seeds), "final", primary, closer_src, rp["cells"], rp["e_time"], rp["cost"], cal_rows)
+    st_e = C3.strategy_from_dict(fr["strategy"]) if fr.get("strategy") else C3.NO_TRADE
+    benefit = C3.early_close_benefit(cx, ens_t, st_e, SCFG, rp["cells"], rp["e_time"], rp["cost"], dict(C3.EARLY_CLOSE_BENEFIT, block=sel))
+    w_ = benefit["with_early_close"]
+    from app.short_horizon.expert_guided import exec_variants as XV
+    ok, reason = XV.early_close_ok(float(w_["n_close_AGENT_CLOSE"]) / max(int(w_["trades"]), 1), benefit["lower_bound"], C3.EARLY_CLOSE_MIN_SHARE)
+    benefit.update({"early_close_ok": ok, "reason": reason, "beneficial": ok})
+    if not ok and fr.get("strategy"):
+        fr["strategy"] = st_e.no_early_close().to_dict()
+        for bf in fr["by_fitness"].values():
+            if bf.get("strategy"):
+                bf["strategy"] = C3.strategy_from_dict(bf["strategy"]).no_early_close().to_dict()
+    doc["arbiter"] = {"arbiter": "action_contract_c3", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": fr["chosen"],
+                      "early_close_disabled": not ok, "early_close_benefit": benefit,
+                      "rule": "mean of the seeds' calibrated probabilities and nets -> one calibration per specialist on the calibration block -> strategy re-optimised on the selection block"}
+    doc["ensemble_calibration"] = cal_e
+    doc["ensemble_strategy"] = fr
+    doc["by_fitness"] = {}
+    for f, bf in fr["by_fitness"].items():
+        st_f = C3.strategy_from_dict(bf["strategy"]) if bf["strategy"] is not None else C3.NO_TRADE
+        w = {}
+        for p in periods:
+            if p == "OBS_2024" and f != primary:
+                continue
+            w[p] = window_stats(cx.rollout(p, C3.policy(ens_t, st_f, e3m)(cx), cfg)[0], cfg)
+        ib = w.get("INNER_B", {}).get("metrics")
+        av = bf["archive_view"]
+        bu = av["best_unconstrained_by_fitness"]
+        if bu is not None:
+            cu = C3.policy(ens_t, bu["strategy"], e3m)
+            bu["windows_not_selectable"] = {p: window_stats(cx.rollout(p, cu(cx), cfg)[0], cfg) for p in periods if p != "OBS_2024"}
+        doc["by_fitness"][f] = {"strategy": bf["strategy"], "valid_on_calibration": bf["valid"], "nop_veto_kept": bf["nop_veto_kept"],
+                                "chosen_components": bf["chosen"], "windows": w, "archive_view": av, "note": bf.get("note"),
+                                "out_of_sample_activity": None if ib is None else {"INNER_B_trades_per_week": ib["orders_per_week"], "valid": bool(ib["valid"] and ib["orders_per_week"] >= 2.0)}}
+    doc["ensemble"] = doc["by_fitness"][primary]["windows"]
+    if "INNER_B" in doc["ensemble"]:
+        ib = doc["ensemble"]["INNER_B"]["metrics"]
+        doc["out_of_sample_activity"] = {"INNER_B_trades_per_week": ib["orders_per_week"], "valid": ib["valid"], "owner_rule": "below 2 trades/week on INNER_B = INVALID"}
+    doc["verification"]["all_per_seed_replays_equal_run"] = all(doc["verification"]["per_seed_replay_equals_run"].values())
+    doc["verification"]["recomputed_sharpe_equals_engine"] = all(v["recomputed_equals_engine"] for s in doc["per_seed"].values() for v in s.values()) and \
+        all(v["recomputed_equals_engine"] for v in doc["ensemble"].values())
+    return doc
+
+
 def evaluate(out_dir: Path, ds, periods: list, seeds: list | None = None, cfg=None, selection: str = "INNER_A", from_members: bool = False) -> dict:
     e3m = json.loads((out_dir / "E3M.json").read_text())
     from app.short_horizon.expert_guided import c2 as C2
+    from app.short_horizon.expert_guided import c3 as C3
+    if C3.is_c3((e3m.get("action_contract") or {}).get("contract", {})):            # C3 (2026-10-26)
+        tr = e3m["trials"]["FULL"]
+        return evaluate_c3(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg)
     if C2.is_c2((e3m.get("action_contract") or {}).get("contract", {})):            # C2 and C2G
         tr = e3m["trials"]["FULL"]
         return evaluate_c2(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg, from_members=from_members)

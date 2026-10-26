@@ -1262,7 +1262,7 @@ def build_parser():
     ap.add_argument("--out", required=True)
     ap.add_argument("--features", choices=["v4", "core15"], default="core15")
     ap.add_argument("--variants", default=",".join(VARIANTS))
-    ap.add_argument("--exec-variant", choices=["contract", "legacy"], default="contract",
+    ap.add_argument("--exec-variant", choices=["contract", "legacy", "full_f3_12h"], default="contract",
                     help="C3 only: the contract's declared execution variant (full_f3) or the audited legacy engine as a declared control")
     ap.add_argument("--trunk", choices=["u", "residual_tcn"], default="u", help="trunk variant (residual_tcn = Musashi's minimal grouped TCN, declared)")
     ap.add_argument("--fusion-units", type=int, default=8)

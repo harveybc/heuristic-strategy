@@ -356,12 +356,16 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None, on_run
     cx.h, cx.l, cx.c = (ds.bars[k].to_numpy(float) for k in ("HIGH", "LOW", "CLOSE"))
     n_feat, win, NS = ds.windows.shape[2], ds.windows.shape[1], len(E.STATE_NAMES)
     SCFG, _ = effective_contracts(e0.get("exec_contract", "sac"), e0.get("min_orders_per_week"))
-    capital = float(SCFG.capital)
     from app.short_horizon.expert_guided import c2 as C2
+    from app.short_horizon.expert_guided import c3 as C3
+    c3 = C3.is_c3((e0.get("action_contract") or {}).get("contract", {}))     # stage C3 (2026-10-26): the run's exec variant applies
+    if c3:
+        SCFG = C3.cfg_for(e0, SCFG)
+    capital = float(SCFG.capital)
     c2 = C2.is_c2((e0.get("action_contract") or {}).get("contract", {}))     # stage C2 / C2G (consequence learning)
     c2g = C2.is_c2g((e0.get("action_contract") or {}).get("contract", {}))   # C2G: closers also read their order's geometry
-    v1 = bool(e0.get("action_contract")) and not c2
-    doc = {"dirs": [str(d) for d in dirs], "v1": v1, "c2": c2, **({"c2g": True} if c2g else {}), "split_contract": ds.meta["split_contract"], "periods": periods,
+    v1 = bool(e0.get("action_contract")) and not c2 and not c3
+    doc = {"dirs": [str(d) for d in dirs], "v1": v1, "c2": c2, "c3": c3, **({"c2g": True} if c2g else {}), "split_contract": ds.meta["split_contract"], "periods": periods,
            "recipe": e0.get("recipe"), "rule": RULE, "per_seed": {}, "ensemble": {}, "verification": {}}
 
     def run(policy_fn, exit_prob, p, ref, what):
@@ -386,7 +390,18 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None, on_run
         for s, tr in e3m["trials"]["FULL"].items():
             seeds.append(s)
             doc["per_seed"][s] = {}
-            if c2:
+            if c3:
+                pols = {m: SE.load_module(d, e3m, m, s, n_feat, win) for m in C3.SPECIALISTS}
+                rp = C3.run_params(e3m)
+                t = C3.seed_table(pols, cx, NS, tr["action_contract"]["calibration"], rp["cells"], C3.cap_arrays(cx, SCFG))
+                tables.append(t)
+                sd = tr["action_contract"]["strategy"].get("strategy")
+                if not sd:
+                    doc["per_seed"][s] = {"note": "NO_FROZEN_STRATEGY (the run froze no valid strategy): nothing to replay"}
+                    continue
+                pf, ep = C3.policy(t, sd, e3m)(cx), C3.exit_prob(cx, t)
+                doc["per_seed"][s]["strategy"] = sd
+            elif c2:
                 pols = {m: SE.load_module(d, e3m, m, s, n_feat, win) for m in C2.SPECIALISTS}
                 t = C2.seed_table(pols, cx, NS, tr["action_contract"]["calibration"], geo=c2g)
                 tables.append(t)
@@ -422,6 +437,22 @@ def audit_unit(dirs: list, ds, periods: list, ensemble_path: Path | None, on_run
         en = json.loads(ensemble_path.read_text())
         if [str(x) for x in en["seeds"]] != seeds:
             doc["ensemble_note"] = f"ENSEMBLE_SEEDS_DIFFER:{en['seeds']} vs {seeds}: ensemble not audited"
+        elif c3:
+            ens_t = C3.calibrate_table(C3.to_raw(C3.mean_tables(tables)), en["ensemble_calibration"])
+            primary = en["arbiter"]["primary_fitness"]
+            for fname, bf in en["by_fitness"].items():
+                if only_primary and fname != primary:
+                    continue
+                if bf["strategy"] is None:
+                    doc["ensemble"][fname] = {"note": "NO_VALID_STRATEGY on the calibration block: nothing to replay"}
+                    continue
+                pf, ep = C3.policy(ens_t, bf["strategy"], e0)(cx), C3.exit_prob(cx, ens_t)
+                doc["ensemble"][fname] = {"strategy": bf["strategy"], "primary": fname == primary}
+                for p in periods:
+                    w = bf["windows"].get(p)
+                    if w is None:
+                        continue
+                    doc["ensemble"][fname][p] = run(pf, ep, p, w["metrics"], f"ensemble/{fname}/{p}")
         elif c2:
             ens_t = C2.calibrate_table(C2.to_raw(C2.mean_tables(tables)), en["ensemble_calibration"])
             primary = en["arbiter"]["primary_fitness"]

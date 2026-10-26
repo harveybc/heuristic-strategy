@@ -332,8 +332,11 @@ def run_unit(dirs: list, ds, periods: list, ensemble_path, csv_dir: Path, unit: 
     from tools.expert_guided_e3m import effective_contracts
     e0 = json.loads((Path(dirs[0]) / "E3M.json").read_text())
     SCFG, _ = effective_contracts(e0.get("exec_contract", "sac"), e0.get("min_orders_per_week"))
+    from app.short_horizon.expert_guided import c3 as C3
+    if C3.is_c3((e0.get("action_contract") or {}).get("contract", {})):       # C3: replay under the run's declared exec variant
+        SCFG = C3.cfg_for(e0, SCFG)
     capital = float(SCFG.capital)
-    out = {"unit": unit, "config": {"capital": capital, "max_entries_per_day": SCFG.max_entries_per_day,
+    out = {"unit": unit, "config": {"capital": capital, "max_entries_per_day": SCFG.max_entries_per_day, "exec_variant": (getattr(SCFG, "variant", None).identity if getattr(SCFG, "variant", None) else "legacy"),
                                     "rel_volume": SCFG.sizing.rel_volume, "leverage": SCFG.sizing.leverage,
                                     "level_policy": SCFG.level_policy, "min_orders_per_week": SCFG.min_orders_per_week},
            "policies": {}}

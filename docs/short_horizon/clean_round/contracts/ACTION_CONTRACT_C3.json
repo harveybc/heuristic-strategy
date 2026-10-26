@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_4752a9d261379258",
+ "identity": "action_f628a8259aabd89f",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -1147,7 +1147,40 @@
    "identity": "exec_5d80473b21dc61a0",
    "how": "--exec-variant legacy (declared control)"
   },
-  "fixes": "A4-1 reversal = one entry decision; A4-4 risk 1 % sizing; A4-9 entry cutoff 24 h before the forced flat; A4-12 ask-side short triggers"
+  "fixes": "A4-1 reversal = one entry decision; A4-4 risk 1 % sizing; A4-9 entry cutoff 24 h before the forced flat; A4-12 ask-side short triggers",
+  "alternatives": {
+   "full_f3_12h": {
+    "identity": "exec_9cf1de5089847597",
+    "options": {
+     "reverse_counts_as_one_entry": true,
+     "sizing_mode": "risk",
+     "risk_pct": 0.01,
+     "entry_cutoff_hours_before_flat": 12.0,
+     "short_trigger_on_ask": true
+    }
+   },
+   "legacy": "exec_5d80473b21dc61a0"
+  },
+  "cutoff_eligibility": {
+   "measured_on": "wf2022 INNER_A (2021-07..2022-01), cheat DIAGNOSTIC store, 2026-10-26 (slots.py)",
+   "eligible_days_per_week": {
+    "legacy_12h_cutoff": 5.02,
+    "full_f3_24h_cutoff": 3.98
+   },
+   "eligible_bars_per_day_p10_p50_p90": {
+    "legacy_12h_cutoff": [
+     11,
+     20,
+     24
+    ],
+    "full_f3_24h_cutoff": [
+     10.3,
+     13,
+     24
+    ]
+   },
+   "consequence": "under the 1 entry/day cap the 24 h cutoff leaves ~4 slots/week, so the activity rule (CI90 lower bound >= 2.0) needs entries on most eligible days; both cutoffs stay declared variants and Phase 0's simulation decides which one the frozen parameters use (--exec-variant full_f3 | full_f3_12h | legacy)"
+  }
  },
  "best_of_day": {
   "observe_bars": 1,

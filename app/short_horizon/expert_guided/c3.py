@@ -64,7 +64,14 @@ EARLY_CLOSE_BENEFIT = {"block": "INNER_A", "statistic": "mean daily P&L differen
                                "flagged early_close_disabled (reported, never hidden)"}
 FULL_F3 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk", risk_pct=0.01, entry_cutoff_hours_before_flat=24.0,
                          short_trigger_on_ask=True, note="full_f3 (lane F3: A4-1 / A4-4 / A4-9 / A4-12)")
-EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3}
+FULL_F3_12H = dataclasses.replace(FULL_F3, entry_cutoff_hours_before_flat=12.0, note="full_f3 with the legacy 12 h entry cutoff (declared alternative)")
+EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3, "full_f3_12h": FULL_F3_12H}
+CUTOFF_ELIGIBILITY = {"measured_on": "wf2022 INNER_A (2021-07..2022-01), cheat DIAGNOSTIC store, 2026-10-26 (slots.py)",
+                      "eligible_days_per_week": {"legacy_12h_cutoff": 5.02, "full_f3_24h_cutoff": 3.98},
+                      "eligible_bars_per_day_p10_p50_p90": {"legacy_12h_cutoff": [11, 20, 24], "full_f3_24h_cutoff": [10.3, 13, 24]},
+                      "consequence": "under the 1 entry/day cap the 24 h cutoff leaves ~4 slots/week, so the activity rule (CI90 lower bound >= 2.0) "
+                                     "needs entries on most eligible days; both cutoffs stay declared variants and Phase 0's simulation decides "
+                                     "which one the frozen parameters use (--exec-variant full_f3 | full_f3_12h | legacy)"}
 EXEC_DEFAULT = "full_f3"                       # the C3 default (lane F3); legacy stays a declared control (--exec-variant legacy)
 BEST_OF_DAY = {"observe_bars": 1, "rule": "A4-2: causal secretary rule per business day (exec_variants.BestOfDayGate): the first eligible open "
                                             "signal of the day is observed only; then the first open whose EV >= the day's running best is placed "
@@ -364,6 +371,74 @@ def seed_table(pols, cx, NS, calibration, cells=CELLS, caps=None) -> dict:
     return t
 
 
+# ----------------------------------------------------------------------------- ensemble helpers (seed ensemble / audits)
+FIELDS = ("net", "p3", "pn")
+
+
+def mean_tables(tables: list) -> dict:
+    out = {f: np.mean([t[f] for t in tables], axis=0) for f in FIELDS}
+    out["closer"] = C2.CloserGeo.merge([t["closer"] for t in tables])
+    for k in ("cap", "lo"):
+        if k in tables[0]:
+            out[k] = tables[0][k]
+    return out
+
+
+def to_raw(table: dict) -> dict:
+    """Ensemble: mean probabilities back to logits (openers: log p, a valid 3-class logit; NOP: logit), nets unchanged."""
+    r = {"net": table["net"].copy(), "closer": table["closer"]}
+    p3 = table["p3"]
+    r["lg_open"] = np.where(np.isfinite(p3), np.log(np.clip(np.nan_to_num(p3, nan=1.0), 1e-12, 1.0)), np.nan)
+    pn = table["pn"]
+    r["z_pn"] = np.where(np.isfinite(pn), ACT.logit(np.nan_to_num(pn, nan=0.5)), np.nan)
+    for k in ("cap", "lo"):
+        if k in table:
+            r[k] = table[k]
+    return r
+
+
+def ensemble_calibration(ens_table: dict, cx, saved_cal: dict) -> tuple:
+    """ONE calibration per specialist refitted on the ensemble over the saved calibration-block label rows: temperature
+    for the 3-class openers, Platt for NOP and the closers (on the members' mean closer logits)."""
+    raw = to_raw(ens_table)
+    cal = {}
+    for m in SPECIALISTS:
+        r, y = np.asarray(saved_cal[m]["rows"], np.int64), np.asarray(saved_cal[m]["y"], int)
+        if m in OPENERS:
+            lg = raw["lg_open"][r, SIDE_OF[m], :]
+            T = fit_temperature(lg, y)
+            cal[m] = {"method": "temperature", "T": T, "rows": int(len(y)), "before": multiclass_metrics(softmax(lg, 1.0), y), "after": multiclass_metrics(softmax(lg, T), y)}
+            continue
+        z = raw["closer"].raw_logit_rows(m, r, saved_cal[m]["G"]) if m in CLOSERS else raw["z_pn"][r]
+        a_, b_ = ACT.fit_platt(z, y)
+        cal[m] = {"a": a_, "b": b_, "rows": int(len(y)), "before": ACT.head_metrics(ACT.sigmoid(z), y), "after": ACT.head_metrics(ACT.platt(z, a_, b_), y)}
+    return calibrate_table(raw, cal), cal
+
+
+def run_params(e3m: dict) -> dict:
+    """The C3 run's declared policy parameters (cells, E[net|TIME], cost, exec variant) from its E3M.json."""
+    c = e3m["c3"]
+    return {"cells": [tuple(x) for x in c["cells"]], "e_time": tuple(c["ev_rule"]["e_time_by_side"]), "cost": float(c["ev_rule"]["cost_sigma"]),
+            "exec_variant": (c.get("exec_variant") or {}).get("name", EXEC_DEFAULT)}
+
+
+def cfg_for(e3m: dict, base_cfg):
+    """The replay contract the run used: the base contract with the run's declared execution variant."""
+    xv = EXEC_VARIANTS[run_params(e3m)["exec_variant"]]
+    return dataclasses.replace(base_cfg, variant=None if xv.is_legacy() else xv)
+
+
+def policy(table: dict, strategy, e3m: dict) -> "PolicyC3":
+    """A C3 policy over ``table`` with the run's parameters; ``strategy`` is a StrategyC3 or its dict."""
+    rp = run_params(e3m)
+    st_ = strategy if isinstance(strategy, StrategyC3) else strategy_from_dict(strategy)
+    return PolicyC3(table, st_, rp["cells"], rp["e_time"], rp["cost"])
+
+
+def exit_prob(cx, table):
+    return C2.exit_prob(cx, table)
+
+
 # ----------------------------------------------------------------------------- label sets
 def entry_sets3(cx, t: dict, period: str, side_index: int, ref=REF, cells=CELLS):
     """(rows, y in {TP_FIRST, SL_FIRST, TIME} at the reference cell, R = net grid) of one side in ``period``, every
@@ -592,15 +667,23 @@ def derive_encoding_recipe(base: dict, base_sha: str, store_parquet, fold: str) 
         out.append(c)
     rec["tensor"]["columns"] = out
     names = [c["store_column"] for c in out]
+    tnames = [c["tensor_name"] for c in out]
+    rename = {c["store_column"]: c["tensor_name"] for c in out}            # the group map names TENSOR columns (as e3m resolves them)
     rec["list"] = dict(rec["list"], n=len(names), columns=names, derived="C3 encoding decisions applied; hours_to clocks dropped")
     g = rec["representation"]["groups"]
-    g["groups"] = {k: [x for x in v if x in names] for k, v in g["groups"].items()}
+    g["groups"] = {k: [rename[x] for x in v if x in rename] for k, v in g["groups"].items()}
     g["groups"] = {k: v for k, v in g["groups"].items() if v}
+    for key in ("units", "kinds"):
+        if isinstance(g.get(key), dict):
+            g[key] = {k: v for k, v in g[key].items() if k in g["groups"]}
     res = rec["representation"]["resolved"]
     keep = [i for i, nm in enumerate(res["names"]) if nm in g["groups"]]
     res["names"] = [res["names"][i] for i in keep]
     res["units"], res["kinds"] = [res["units"][i] for i in keep], [res["kinds"][i] for i in keep]
-    res["indices"] = [[names.index(x) for x in g["groups"][nm]] for nm in res["names"]]
+    res["indices"] = [[tnames.index(x) for x in g["groups"][nm]] for nm in res["names"]]
+    covered = sorted(i for ii in res["indices"] for i in ii)
+    if covered != list(range(len(tnames))):
+        raise ValueError(f"C3_DERIVED_GROUPS_DO_NOT_PARTITION:{len(covered)}/{len(tnames)}")
     scl = dict(rec["scaler"])
     scl.update(WR.fold_constants(Path(store_parquet), rec, fold))
     scl["features"], scl["n_features"] = [c["tensor_name"] for c in out], len(out)
@@ -719,7 +802,9 @@ def default_contract(architecture: dict | None = None) -> dict:
     doc["encoding_decisions"] = dict(ENCODING_DECISIONS)
     doc["exec_variant"] = {"name": EXEC_DEFAULT, "identity": FULL_F3.identity, "options": FULL_F3.document(),
                            "legacy_control": {"name": "legacy", "identity": XV.LEGACY.identity, "how": "--exec-variant legacy (declared control)"},
-                           "fixes": "A4-1 reversal = one entry decision; A4-4 risk 1 % sizing; A4-9 entry cutoff 24 h before the forced flat; A4-12 ask-side short triggers"}
+                           "fixes": "A4-1 reversal = one entry decision; A4-4 risk 1 % sizing; A4-9 entry cutoff 24 h before the forced flat; A4-12 ask-side short triggers",
+                           "alternatives": {"full_f3_12h": {"identity": FULL_F3_12H.identity, "options": FULL_F3_12H.document()}, "legacy": XV.LEGACY.identity},
+                           "cutoff_eligibility": dict(CUTOFF_ELIGIBILITY)}
     doc["best_of_day"] = dict(BEST_OF_DAY)
     doc["outcomes"]["per_bar_band"] = "cells outside the engine's per-bar effective band [min_multiple, effective_cap] are not selectable at that bar (exec_variants.effective_cap / min_multiple)"
     doc["architecture"] = {k: architecture[k] for k in ARCH_KEYS}
@@ -999,7 +1084,8 @@ def run_e3m(ctx: dict) -> dict:
     if xv_name not in EXEC_VARIANTS:
         raise SystemExit(f"C3_EXEC_VARIANT_UNKNOWN:{xv_name}")
     xv = EXEC_VARIANTS[xv_name]
-    if xv_name == EXEC_DEFAULT and (AC.get("exec_variant") or {}).get("identity") != xv.identity:
+    declared = {(AC.get("exec_variant") or {}).get("identity")} | {v.get("identity") for v in ((AC.get("exec_variant") or {}).get("alternatives") or {}).values() if isinstance(v, dict)} | {XV.LEGACY.identity}
+    if xv.identity not in declared:
         raise SystemExit("C3_EXEC_VARIANT_MISMATCH: the contract's declared execution variant differs from the module's")
     SCFG = dataclasses.replace(SCFG, variant=None if xv.is_legacy() else xv)
     MCFG = dataclasses.replace(MCFG, variant=None if xv.is_legacy() else xv)
