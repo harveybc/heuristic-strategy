@@ -1,0 +1,820 @@
+{
+ "fold": "wf2022",
+ "variant": "base",
+ "gate": "perbar",
+ "quality": {
+  "open": 0.7,
+  "net": 0.7,
+  "nop": 0.7,
+  "close": 0.7,
+  "open_s": null,
+  "decision_drop": 0.0
+ },
+ "seeds": [
+  0
+ ],
+ "contract": "action_652cbdd91d03961d",
+ "exec_variant": "exec_709f9b1fa3512486",
+ "blocks": {
+  "calibration": "INNER_A",
+  "selection": "INNER_A",
+  "decision": "INNER_B"
+ },
+ "cost_sigma": 0.14757978660780635,
+ "e_time": [
+  -0.0012645399628443419,
+  -0.05675971342426775
+ ],
+ "per_seed": [
+  {
+   "seed": 0,
+   "simulation": {
+    "calibration_maps": {
+     "tp_0": {
+      "a": 0.7527088267205733,
+      "b": -0.5296833698216761,
+      "rows": 1903,
+      "auc_cal": 0.704259589122432
+     },
+     "sl_0": {
+      "a": 0.7399532848471788,
+      "b": -0.0595181973216582,
+      "rows": 1903,
+      "auc_cal": 0.6965673073946823
+     },
+     "tp_1": {
+      "a": 0.7801930530257909,
+      "b": -0.24385530437812183,
+      "rows": 1903,
+      "auc_cal": 0.709390275276563
+     },
+     "sl_1": {
+      "a": 0.7134116060711206,
+      "b": -0.3832290845962248,
+      "rows": 1903,
+      "auc_cal": 0.6911819480148529
+     },
+     "nop": {
+      "a": 0.7416624240393583,
+      "b": -0.39634994361108977,
+      "auc_cal": 0.6977427689299662
+     }
+    },
+    "closer_calibration": {
+     "psl": {
+      "a": 0.8581090926552417,
+      "b": 0.16507336000461648
+     },
+     "rem_sd": 0.7991131900078668,
+     "rows": 781,
+     "auc_latent": 0.7275359438150136
+    },
+    "achieved": {
+     "calibration": {
+      "auc_tp_first_side0": 0.704259589122432,
+      "auc_sl_first_side0": 0.6965673073946823,
+      "spearman_net_side0": 0.6856487624648487,
+      "mae_net_side0": 0.7743423109662089,
+      "mae_over_naive_net_side0": 0.9419414454681477,
+      "auc_tp_first_side1": 0.709390275276563,
+      "auc_sl_first_side1": 0.6911819480148529,
+      "spearman_net_side1": 0.6828552735556515,
+      "mae_net_side1": 0.7807681379397883,
+      "mae_over_naive_net_side1": 0.9419734119629867,
+      "auc_nop": 0.6977427689299662
+     },
+     "decision": {
+      "auc_tp_first_side0": 0.699402988790198,
+      "auc_sl_first_side0": 0.7026495556044183,
+      "spearman_net_side0": 0.7118089139252519,
+      "mae_net_side0": 0.7719535421149155,
+      "mae_over_naive_net_side0": 0.8894129145606553,
+      "auc_tp_first_side1": 0.6973420047018545,
+      "auc_sl_first_side1": 0.7046343317194009,
+      "spearman_net_side1": 0.7157779664754531,
+      "mae_net_side1": 0.7702116469437683,
+      "mae_over_naive_net_side1": 0.8873307559928757,
+      "auc_nop": 0.695059137939595
+     }
+    },
+    "sd_net_cal": 0.9496538823835678
+   },
+   "strategy": {
+    "open_margin_l": 0.23361849822792086,
+    "open_margin_s": 0.3188881059491563,
+    "close_margin_l": 1.0632919344730734,
+    "close_margin_s": 1.7422359377307755,
+    "close_p_l": 0.8900817126806996,
+    "close_p_s": 0.8623928559250177,
+    "allow_reverse": false,
+    "nop_veto": 0.7731448478003944,
+    "early_close": true
+   },
+   "chosen_calibration": {
+    "sharpe": 10.229284673375838,
+    "lcb": 8.723283755914657,
+    "opw": 2.6666666666666665,
+    "opw_ci_lb": 2.3703703703703702,
+    "side_max_share": 0.6111111111111112,
+    "agent_closes": 32,
+    "dd": 1.7853210483980773,
+    "trades": 72
+   },
+   "gene_map": {
+    "rules": {
+     "open_margin_l": {
+      "gene": "open_rate_l",
+      "reference": "open_score_l",
+      "kind": "upper_rate"
+     },
+     "open_margin_s": {
+      "gene": "open_rate_s",
+      "reference": "open_score_s",
+      "kind": "upper_rate"
+     },
+     "close_margin_l": {
+      "gene": "close_rem_rate_l",
+      "reference": "rem_ref_l",
+      "kind": "neg_lower_rate"
+     },
+     "close_margin_s": {
+      "gene": "close_rem_rate_s",
+      "reference": "rem_ref_s",
+      "kind": "neg_lower_rate"
+     },
+     "close_p_l": {
+      "gene": "close_p_rate_l",
+      "reference": "psl_ref_l",
+      "kind": "upper_rate"
+     },
+     "close_p_s": {
+      "gene": "close_p_rate_s",
+      "reference": "psl_ref_s",
+      "kind": "upper_rate"
+     },
+     "allow_reverse": {
+      "gene": "allow_reverse",
+      "reference": null,
+      "kind": "copy"
+     },
+     "nop_veto": {
+      "gene": "nop_veto_rate",
+      "reference": "nop_score",
+      "kind": "upper_rate"
+     }
+    },
+    "note": "C3: per-side EV references on calibration flat rows; per-side closer references on the exploration visits of that side",
+    "grid": [
+     0.0,
+     0.01,
+     0.02,
+     0.03,
+     0.04,
+     0.05,
+     0.06,
+     0.07,
+     0.08,
+     0.09,
+     0.1,
+     0.11,
+     0.12,
+     0.13,
+     0.14,
+     0.15,
+     0.16,
+     0.17,
+     0.18,
+     0.19,
+     0.2,
+     0.21,
+     0.22,
+     0.23,
+     0.24,
+     0.25,
+     0.26,
+     0.27,
+     0.28,
+     0.29,
+     0.3,
+     0.31,
+     0.32,
+     0.33,
+     0.34,
+     0.35,
+     0.36,
+     0.37,
+     0.38,
+     0.39,
+     0.4,
+     0.41,
+     0.42,
+     0.43,
+     0.44,
+     0.45,
+     0.46,
+     0.47,
+     0.48,
+     0.49,
+     0.5,
+     0.51,
+     0.52,
+     0.53,
+     0.54,
+     0.55,
+     0.56,
+     0.57,
+     0.58,
+     0.59,
+     0.6,
+     0.61,
+     0.62,
+     0.63,
+     0.64,
+     0.65,
+     0.66,
+     0.67,
+     0.68,
+     0.69,
+     0.7,
+     0.71,
+     0.72,
+     0.73,
+     0.74,
+     0.75,
+     0.76,
+     0.77,
+     0.78,
+     0.79,
+     0.8,
+     0.81,
+     0.82,
+     0.83,
+     0.84,
+     0.85,
+     0.86,
+     0.87,
+     0.88,
+     0.89,
+     0.9,
+     0.91,
+     0.92,
+     0.93,
+     0.94,
+     0.95,
+     0.96,
+     0.97,
+     0.98,
+     0.99,
+     1.0
+    ],
+    "frozen_on": "the calibration block (restricted view), before the search"
+   },
+   "front_points": 20,
+   "by_fitness_chosen_genes": {
+    "sharpe_lcb": {
+     "open_rate_l": 0.067941,
+     "open_rate_s": 0.102787,
+     "close_rem_rate_l": 0.217686,
+     "close_rem_rate_s": 0.066929,
+     "close_p_rate_l": 0.018871,
+     "close_p_rate_s": 0.021618,
+     "allow_reverse": 0.102258,
+     "nop_veto_rate": 0.020076
+    },
+    "sharpe_plus_return": {
+     "open_rate_l": 0.067941,
+     "open_rate_s": 0.102787,
+     "close_rem_rate_l": 0.217686,
+     "close_rem_rate_s": 0.066929,
+     "close_p_rate_l": 0.018871,
+     "close_p_rate_s": 0.021618,
+     "allow_reverse": 0.102258,
+     "nop_veto_rate": 0.020076
+    },
+    "sharpe_plus_return_plus_activity": {
+     "open_rate_l": 0.067941,
+     "open_rate_s": 0.102787,
+     "close_rem_rate_l": 0.217686,
+     "close_rem_rate_s": 0.066929,
+     "close_p_rate_l": 0.018871,
+     "close_p_rate_s": 0.021618,
+     "allow_reverse": 0.102258,
+     "nop_veto_rate": 0.020076
+    },
+    "trade_tstat": {
+     "open_rate_l": 0.072339,
+     "open_rate_s": 0.090313,
+     "close_rem_rate_l": 0.21674,
+     "close_rem_rate_s": 0.069052,
+     "close_p_rate_l": 0.009228,
+     "close_p_rate_s": 0.021702,
+     "allow_reverse": 0.122597,
+     "nop_veto_rate": 0.13926
+    },
+    "calmar": {
+     "open_rate_l": 0.067941,
+     "open_rate_s": 0.102787,
+     "close_rem_rate_l": 0.217686,
+     "close_rem_rate_s": 0.066929,
+     "close_p_rate_l": 0.018871,
+     "close_p_rate_s": 0.021618,
+     "allow_reverse": 0.102258,
+     "nop_veto_rate": 0.020076
+    },
+    "return_minus_dd": {
+     "open_rate_l": 0.067941,
+     "open_rate_s": 0.102787,
+     "close_rem_rate_l": 0.217686,
+     "close_rem_rate_s": 0.066929,
+     "close_p_rate_l": 0.018871,
+     "close_p_rate_s": 0.021618,
+     "allow_reverse": 0.102258,
+     "nop_veto_rate": 0.020076
+    },
+    "balanced": {
+     "open_rate_l": 0.067941,
+     "open_rate_s": 0.102787,
+     "close_rem_rate_l": 0.217686,
+     "close_rem_rate_s": 0.066929,
+     "close_p_rate_l": 0.018871,
+     "close_p_rate_s": 0.021618,
+     "allow_reverse": 0.102258,
+     "nop_veto_rate": 0.020076
+    }
+   },
+   "early_close_benefit_calibration": {
+    "mean_daily_diff_usd": 37.11109357709055,
+    "lower_bound": 16.208994136792615,
+    "beneficial": true
+   },
+   "strategy_effective": {
+    "open_margin_l": 0.23361849822792086,
+    "open_margin_s": 0.3188881059491563,
+    "close_margin_l": 1.0632919344730734,
+    "close_margin_s": 1.7422359377307755,
+    "close_p_l": 0.8900817126806996,
+    "close_p_s": 0.8623928559250177,
+    "allow_reverse": false,
+    "nop_veto": 0.7731448478003944,
+    "early_close": true
+   },
+   "sensitivity": [
+    {
+     "gene": "open_rate_l",
+     "value": 0.067941,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": -3.1115681133411632,
+     "opw_minus_delta": 0.11111111111111116,
+     "valid_minus": false,
+     "sharpe_plus_delta": -0.8982241726712221,
+     "opw_plus_delta": 0.2962962962962963,
+     "valid_plus": true
+    },
+    {
+     "gene": "open_rate_s",
+     "value": 0.102787,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": -4.331775294729117,
+     "opw_minus_delta": -0.6296296296296293,
+     "valid_minus": false,
+     "sharpe_plus_delta": -2.5327607762453788,
+     "opw_plus_delta": 0.14814814814814836,
+     "valid_plus": true
+    },
+    {
+     "gene": "close_rem_rate_l",
+     "value": 0.217686,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": -0.08175468948046927,
+     "opw_minus_delta": -0.14814814814814792,
+     "valid_minus": true,
+     "sharpe_plus_delta": 0.5028383927810847,
+     "opw_plus_delta": 0.0740740740740744,
+     "valid_plus": true
+    },
+    {
+     "gene": "close_rem_rate_s",
+     "value": 0.066929,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": -1.2409275017290557,
+     "opw_minus_delta": -0.07407407407407396,
+     "valid_minus": true,
+     "sharpe_plus_delta": -0.4206007325523089,
+     "opw_plus_delta": 0.0370370370370372,
+     "valid_plus": true
+    },
+    {
+     "gene": "close_p_rate_l",
+     "value": 0.018871,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": -0.6481455051661928,
+     "opw_minus_delta": -0.03703703703703676,
+     "valid_minus": true,
+     "sharpe_plus_delta": -1.4860381799057656,
+     "opw_plus_delta": 0.48148148148148184,
+     "valid_plus": true
+    },
+    {
+     "gene": "close_p_rate_s",
+     "value": 0.021618,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": -1.143498573832261,
+     "opw_minus_delta": -0.37037037037037024,
+     "valid_minus": true,
+     "sharpe_plus_delta": -2.2735674694672,
+     "opw_plus_delta": 0.3333333333333335,
+     "valid_plus": true
+    },
+    {
+     "gene": "allow_reverse",
+     "value": 0.102258,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": 0.0,
+     "opw_minus_delta": 0.0,
+     "valid_minus": true,
+     "sharpe_plus_delta": 0.0,
+     "opw_plus_delta": 0.0,
+     "valid_plus": true
+    },
+    {
+     "gene": "nop_veto_rate",
+     "value": 0.020076,
+     "sharpe_base": 10.229284673375838,
+     "opw_base": 2.6666666666666665,
+     "sharpe_minus_delta": 0.0,
+     "opw_minus_delta": 0.0,
+     "valid_minus": true,
+     "sharpe_plus_delta": -0.41098838732792586,
+     "opw_plus_delta": -0.11111111111111116,
+     "valid_plus": true
+    }
+   ],
+   "selection": {
+    "metrics": {
+     "net_profit_usd": 10048.305055404431,
+     "sharpe_daily_sqrt365": 10.229284673375838,
+     "max_drawdown_pct": 1.7853210483980773,
+     "trades": 72,
+     "win_rate": 0.875,
+     "profit_factor": 16.188172418530154,
+     "orders_per_week": 2.6666666666666665,
+     "n_entries_long": 28,
+     "n_entries_short": 44,
+     "n_close_TP": 23,
+     "n_close_SL": 5,
+     "n_close_FORCED_FLAT": 12,
+     "n_close_AGENT_CLOSE": 32,
+     "n_close_REVERSAL": 0,
+     "valid": true
+    },
+    "components": {
+     "opw_ci_mean": 2.6666666666666665,
+     "opw_ci_lb": 2.3703703703703702,
+     "opw_ci_ub": 2.962962962962963,
+     "opw_ci_weeks": 27,
+     "long": 28,
+     "short": 44,
+     "side_max_share": 0.6111111111111112,
+     "sharpe": 10.229284673375838,
+     "se_lo": 1.5060009174611808,
+     "lcb": 8.723283755914657,
+     "dd": 1.7853210483980773,
+     "opw": 2.6666666666666665,
+     "opd": 0.5333333333333333,
+     "r_ann": 1.993277905012292,
+     "trade_t": 10.286366784450873,
+     "trade_mean_sigma": 0.9119015091028135,
+     "trade_tstat_reused": 10.358552700136116,
+     "calmar": 111.64814904304238,
+     "return_minus_dd": 1.9754246945283112,
+     "trades": 72,
+     "days": 184,
+     "weeks_below_2": 4,
+     "weeks_below_2_share": 0.14814814814814814,
+     "agent_closes": 32,
+     "valid": true,
+     "violation": 0.0,
+     "reasons": []
+    },
+    "sanity": {
+     "trades": 72,
+     "long": 28,
+     "short": 44,
+     "agent_closes": 32,
+     "opw": 2.667,
+     "exits": {
+      "TP": 23,
+      "SL": 5,
+      "FORCED_FLAT": 12,
+      "AGENT_CLOSE": 32,
+      "REVERSAL": 0
+     }
+    },
+    "best_of_day": {
+     "days": 110,
+     "placed": 72,
+     "deferred_observing": 0,
+     "deferred_below_best": 0,
+     "below_threshold": 0
+    },
+    "no_early_close": {
+     "net_profit_usd": 7413.417411430997,
+     "sharpe_daily_sqrt365": 7.463626958157843,
+     "max_drawdown_pct": 2.6974313840789126,
+     "trades": 55
+    },
+    "early_close_value_usd": 2634.887643973434,
+    "expectancy_sigma": {
+     "expectancy": 0.9119015091028135,
+     "low": 0.7487603262963985,
+     "high": 1.0733767810390642,
+     "n_trades": 72.0,
+     "n_days": 158.0,
+     "block": 5.0,
+     "n": 2000.0,
+     "seed": 20261026.0,
+     "alpha": 0.05,
+     "sd_per_trade": 0.7522326446716548
+    },
+    "sides": {
+     "buy": {
+      "n": 28,
+      "win_rate": 0.8928571428571429,
+      "net_usd": 4608.3385802917355
+     },
+     "sell": {
+      "n": 44,
+      "win_rate": 0.8636363636363636,
+      "net_usd": 5439.96647511269
+     }
+    },
+    "correctness": {
+     "sl_and_tp_on_every_order": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "sl_tp_on_the_correct_side": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "units_follow_the_sizing_rule": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "rel_volume_in_0.10_0.20": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "leverage_at_most_1_50": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "integer_positive_units": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "at_most_max_entries_per_day": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "no_overlapping_positions": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "entry_fill_at_next_open": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "exit_fill_price_matches_reason": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "entry_inside_operational_window": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "closed_before_the_forced_flat": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "costs_positive_on_every_trade": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "protection_rederived_matches_engine": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     },
+     "net_equals_gross_minus_costs": {
+      "status": "PASS",
+      "checked": 72,
+      "failed": 0
+     }
+    },
+    "correctness_failed": 0
+   },
+   "decision": {
+    "metrics": {
+     "net_profit_usd": 34136.42093754912,
+     "sharpe_daily_sqrt365": 9.113729451994075,
+     "max_drawdown_pct": 2.755874774421915,
+     "trades": 136,
+     "win_rate": 0.8161764705882353,
+     "profit_factor": 11.386232113537723,
+     "orders_per_week": 2.5660377358490565,
+     "n_entries_long": 66,
+     "n_entries_short": 70,
+     "n_close_TP": 61,
+     "n_close_SL": 8,
+     "n_close_FORCED_FLAT": 9,
+     "n_close_AGENT_CLOSE": 58,
+     "n_close_REVERSAL": 0,
+     "valid": true
+    },
+    "components": {
+     "opw_ci_mean": 2.5660377358490565,
+     "opw_ci_lb": 2.339622641509434,
+     "opw_ci_ub": 2.792452830188679,
+     "opw_ci_weeks": 53,
+     "long": 66,
+     "short": 70,
+     "side_max_share": 0.5147058823529411,
+     "sharpe": 9.113729451994075,
+     "se_lo": 1.0582615197804994,
+     "lcb": 8.055467932213576,
+     "dd": 2.755874774421915,
+     "opw": 2.5660377358490565,
+     "opd": 0.5132075471698113,
+     "r_ann": 3.4324500391750496,
+     "trade_t": 12.902687408249506,
+     "trade_mean_sigma": 0.9582553705183969,
+     "trade_tstat_reused": 12.950386969845383,
+     "calmar": 124.55029056590774,
+     "return_minus_dd": 3.4048912914308307,
+     "trades": 136,
+     "days": 363,
+     "weeks_below_2": 6,
+     "weeks_below_2_share": 0.11320754716981132,
+     "agent_closes": 58,
+     "valid": true,
+     "violation": 0.0,
+     "reasons": []
+    },
+    "sanity": {
+     "trades": 136,
+     "long": 66,
+     "short": 70,
+     "agent_closes": 58,
+     "opw": 2.566,
+     "exits": {
+      "TP": 61,
+      "SL": 8,
+      "FORCED_FLAT": 9,
+      "AGENT_CLOSE": 58,
+      "REVERSAL": 0
+     }
+    },
+    "best_of_day": {
+     "days": 208,
+     "placed": 136,
+     "deferred_observing": 0,
+     "deferred_below_best": 0,
+     "below_threshold": 0
+    },
+    "no_early_close": {
+     "net_profit_usd": 28944.01832636784,
+     "sharpe_daily_sqrt365": 8.35973028215161,
+     "max_drawdown_pct": 3.6768515456457185,
+     "trades": 101
+    },
+    "early_close_value_usd": 5192.402611181278,
+    "expectancy_sigma": {
+     "expectancy": 0.9582553705183969,
+     "low": 0.7934595720622456,
+     "high": 1.1273248732052972,
+     "n_trades": 136.0,
+     "n_days": 311.0,
+     "block": 5.0,
+     "n": 2000.0,
+     "seed": 20261026.0,
+     "alpha": 0.05,
+     "sd_per_trade": 0.8661049890889341
+    },
+    "sides": {
+     "buy": {
+      "n": 66,
+      "win_rate": 0.7727272727272727,
+      "net_usd": 15100.108938209583
+     },
+     "sell": {
+      "n": 70,
+      "win_rate": 0.8571428571428571,
+      "net_usd": 19036.311999339552
+     }
+    },
+    "correctness": {
+     "sl_and_tp_on_every_order": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "sl_tp_on_the_correct_side": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "units_follow_the_sizing_rule": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "rel_volume_in_0.10_0.20": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "leverage_at_most_1_50": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "integer_positive_units": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "at_most_max_entries_per_day": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "no_overlapping_positions": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "entry_fill_at_next_open": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "exit_fill_price_matches_reason": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "entry_inside_operational_window": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "closed_before_the_forced_flat": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "costs_positive_on_every_trade": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "protection_rederived_matches_engine": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     },
+     "net_equals_gross_minus_costs": {
+      "status": "PASS",
+      "checked": 136,
+      "failed": 0
+     }
+    },
+    "correctness_failed": 0
+   },
+   "ledger": "ledger/wf2022_base_perbar_q0.70_s0.csv.gz",
+   "seconds": 150.1
+  }
+ ],
+ "level": 0.7
+}

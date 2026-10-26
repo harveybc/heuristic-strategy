@@ -251,8 +251,13 @@ def correctness(df: pd.DataFrame, ev, cfg, capital: float) -> dict:
         chk("sl_and_tp_on_every_order", math.isfinite(t.stop_loss) and math.isfinite(t.take_profit) and t.stop_loss > 0 and t.take_profit > 0, i)
         chk("sl_tp_on_the_correct_side", (t.stop_loss < t.entry_price < t.take_profit) if d > 0 else (t.take_profit < t.entry_price < t.stop_loss), i,
             f"sl={t.stop_loss} entry={t.entry_price} tp={t.take_profit}")
-        exp_u = sz.units(balance, float(ev.c[k - 1]), float(t.percentual_order_size))
-        chk("units_follow_the_sizing_rule", int(t.units) == int(exp_u), i, f"units={t.units} expected={exp_u} balance={balance:.2f}")
+        var = getattr(cfg, "variant", None)
+        if var is not None and getattr(var, "sizing_mode", "notional_share") == "risk":      # declared exec variant (A4-4): risk sizing
+            from app.short_horizon.expert_guided.exec_variants import risk_units
+            exp_u = risk_units(balance, float(ev.c[k - 1]), abs(float(ev.c[k - 1]) - float(t.stop_loss)), float(var.risk_pct), sz)
+        else:
+            exp_u = sz.units(balance, float(ev.c[k - 1]), float(t.percentual_order_size))
+        chk("units_follow_the_sizing_rule", exp_u is not None and int(t.units) == int(exp_u), i, f"units={t.units} expected={exp_u} balance={balance:.2f}")
         chk("rel_volume_in_0.10_0.20", 0.10 - 1e-12 <= t.rel_volume <= 0.20 + 1e-12, i, f"rel_volume={t.rel_volume}")
         chk("leverage_at_most_1_50", float(sz.leverage) <= 50.0 + 1e-12, i, f"leverage={sz.leverage}")
         chk("integer_positive_units", float(t.units) == int(t.units) and int(t.units) >= 1, i)
@@ -280,8 +285,15 @@ def correctness(df: pd.DataFrame, ev, cfg, capital: float) -> dict:
         # the engine's own protection, re-derived bar by bar from the fill to the exit
         ok, why = True, ""
         stop_at = x if t.close_reason in ("TP", "SL") else (x - 1 if t.close_reason in ("AGENT_CLOSE", "REVERSAL") else x)
+        ask_shift = var is not None and getattr(var, "short_trigger_on_ask", False) and d < 0   # declared exec variant (A4-12)
         for j in range(k, stop_at + 1):
-            hit = X._protect(d, t.take_profit, t.stop_loss, ev.o[j], ev.h[j], ev.l[j], through)
+            if ask_shift:                       # bid bars: a short's buy stop / limit trigger at ASK = bid + the bar's spread; fills at the levels
+                sp = float(cfg.profile.spread_at(int(ev.v[j]), int(ev.mo[int(ev.seg_of[j])])))
+                hit = X._protect(d, t.take_profit - sp, t.stop_loss - sp, ev.o[j], ev.h[j], ev.l[j], through)
+                if hit is not None:
+                    hit = (hit[0], float(hit[1]) + (sp if not hit[2] else 0.0), hit[2], hit[3])
+            else:
+                hit = X._protect(d, t.take_profit, t.stop_loss, ev.o[j], ev.h[j], ev.l[j], through)
             if j < x or t.close_reason not in ("TP", "SL"):
                 if hit is not None:
                     ok, why = False, f"protection {hit[0]} on bar {j} before the recorded exit {t.close_reason} at {x}"
