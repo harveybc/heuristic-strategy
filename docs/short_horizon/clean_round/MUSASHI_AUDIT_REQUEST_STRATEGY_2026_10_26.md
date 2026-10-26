@@ -50,4 +50,15 @@ python -m pytest tests/test_strategy_output_simulation.py tests/test_strategy_fu
 Los drivers de los barridos (`tools/clean_round_chain/run_strategy_sim_sweeps.sh`, `run_strategy_sim_full.sh`,
 `run_strategy_sim_interventions.sh`, `run_strategy_two_stage.sh`) listan exactamente qué corrió y con qué semillas.
 
+## 4. Registro del proceso (lo que falló por el camino y cómo se resolvió; todo está en el `LOG` del directorio de trabajo)
+
+| cuándo (UTC) | qué pasó | resolución |
+| --- | --- | --- |
+| 2026-10-26 13:30–14:19 | los primeros barridos (tope de memoria 3 GB por trabajo, Etapa A 10 GB) agotaron la **reserva** del slice de lotes del host (20 GB; la admisión reserva por tope declarado, no por uso: un trabajo C3 usa ~300 MB) y dejaron en cola a la capa FULL y a la Etapa A | drivers reiniciados con topes medidos (1.5 GB C3, 2 GB FULL, 6–10 GB Etapa A) y cola de admisión de 12 h; seis lanzamientos rechazados por la guarda `CAP_LOWERED_AFTER_REFUSAL` (nunca se baja un tope rechazado) se reemitieron con sus topes originales |
+| 14:09 y 22:15 | la Etapa A `param_param` murió por OOM con tope 3 GB (pico 3 GB en 55/78 hojas) y después fue detenida por el monitor de presión (PSI > 37.5) con tope 6 GB | las tablas por hoja se liberan tras construir los evaluadores; Etapa A relanzada con 10 GB y nombre nuevo |
+| 19:09 | una hoja sintética unilateral (`LHS_22`) sin visitas de referencia del lado corto abortó la Etapa A | la hoja se excluye y se registra con su razón (`leaves_excluded`) |
+| 21:26 | la región robusta de la Etapa A (c3) con la regla del 5 % quedó **vacía**: los regímenes se contraponen (mejor compuesta por régimen 32.8 / −6.2 / 18.6) | tolerancia escalonada 5/10/20/30/50 % hasta ≥ 4 puntos, registrando la usada y el resultado al 5 % |
+| 22:30 | **ronda 1 descartada**: el chequeo oráculo/azar mostró abridores al azar ganando (Sharpe 3.4) porque la regresión del neto recibía ρ = nivel (Spearman 0.48 a nivel 0.50) | ρ = sen(π·(nivel − ½)) y salida = media condicional; ronda 2 completa en un directorio propio; la ronda 1 queda en el directorio de trabajo (`round1_rho_level/`, en el manifiesto) como evidencia del defecto |
+| 23:12 | el propietario detuvo los trabajos de la ronda 1 y reinició el host | ronda 2 relanzada 23:25 conservando los archivos completos (verificados) |
+
 <!-- ARTIFACTS -->
