@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_da91b91e7a182dd8",
+ "identity": "action_652cbdd91d03961d",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -850,11 +850,11 @@
   "genes": {
    "open_rate_l": [
     0.002,
-    0.3
+    0.5
    ],
    "open_rate_s": [
     0.002,
-    0.3
+    0.5
    ],
    "close_rem_rate_l": [
     0.0,
@@ -1040,6 +1040,13 @@
   "huber_norm": "masked_rows",
   "ce_norm": "class_weighted_mean"
  },
+ "encoding_decisions": {
+  "regime_gmm": "USE_onehot",
+  "event_clock": "USE_window2h",
+  "source": "selection_v5/ENCODING.csv (audit A1-11: decided, never applied)",
+  "regime_gmm_rule": "rg.gmm.p0/p1/p2 -> one-hot of the row's argmax regime (3 binary columns, entropy kept)",
+  "event_clock_rule": "ev.<x>.hours_since -> 1 within 2 h after the event or 2 h before the next (period 24 h); ev.<x>.hours_to dropped (= 24 - hours_since, A1-4 duplicate)"
+ },
  "exec_variant": {
   "name": "full_f3",
   "identity": "exec_709f9b1fa3512486",
@@ -1058,15 +1065,15 @@
   "fixes": "A4-1 reversal = one entry decision; A4-4 risk 1 % sizing; A4-9 entry cutoff 24 h before the forced flat; A4-12 ask-side short triggers"
  },
  "best_of_day": {
-  "observe_bars": 3,
-  "rule": "A4-2: causal secretary rule per business day (exec_variants.BestOfDayGate): the first 3 eligible flat decisions of the day are observed only; then the first open whose EV >= the day's running best is placed"
+  "observe_bars": 1,
+  "rule": "A4-2: causal secretary rule per business day (exec_variants.BestOfDayGate): the first eligible open signal of the day is observed only; then the first open whose EV >= the day's running best is placed (observe 3 was infeasible under full_f3's 24 h cutoff: the 1 entry/day cap leaves ~4 slots/week and the secretary rule loses the day whenever the best signal fell inside the window; smoke 2026-10-26: best 1.26/wk)"
  },
  "architecture": {
-  "trunk": "u",
+  "trunk": "residual_tcn",
   "fusion_units": 8,
   "core_blocks": 2,
   "readout": "flatten",
-  "note": "inside the sealed identity (2026-10-26): u = the sealed u-design (per-group causal conv branches); residual_tcn = per-group branches -> 1x1 fusion -> residual causal blocks -> readout (temporal.py, parity-tested)"
+  "note": "inside the sealed identity (2026-10-26): residual_tcn (DEFAULT, owner order: every model of this line) = per-group single causal conv, SiLU, 1x1 fusion 8, two residual causal blocks (dilations 1, 2), flatten readout (temporal.py, parity-tested against Musashi's GroupedTCNExtractor); u = the sealed u-design conv1d trunk, a declared CONTROL arm only"
  },
  "protocol_v11": {
   "blocks": "early stopping on sc['early_stop'], calibration + gene maps on sc['calibration'], the strategy search / fitness choice on sc['selection'], the decision block read once after the freeze and ledgered (READ_LEDGER.jsonl)",

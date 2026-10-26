@@ -1031,7 +1031,10 @@ def freeze_strategy(table: dict, cal_rows, score_table, contract: dict, seed: in
             if budget == "final":
                 raise SystemExit(f"STRATEGY_SPACE_INFEASIBLE:{json.dumps({k: v for k, v in probe.items() if k != 'points'})}:"
                                  f"best opw {max((r['opw'] for r in probe['points']), default=0):.2f}, max agent closes "
-                                 f"{max((r['agent_closes'] for r in probe['points']), default=0)}")
+                                 f"{max((r['agent_closes'] for r in probe['points']), default=0)}, best opw_ci_lb "
+                                 f"{max((r.get('opw_ci_lb') or 0 for r in probe['points']), default=0):.2f}, min side_max_share "
+                                 f"{min((r.get('side_max_share') or 1 for r in probe['points']), default=1):.2f}, reasons "
+                                 f"{sorted({x for r in probe['points'] for x in (r.get('reasons') or [])})}")
             nf = {"chosen": None, "strategy": None, "nop_veto_kept": False, "valid": False, "archive_view": None, "note": "STRATEGY_SPACE_INFEASIBLE"}
             return {"budget": budget, "runs": {"without_veto": {"points": [], "front": []}, "with_veto": {"points": [], "front": []}},
                     "primary_fitness": primary, "by_fitness": {f: dict(nf) for f in FITNESS}, "term_scales": {}, "chosen": None, "strategy": None,

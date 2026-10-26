@@ -66,16 +66,24 @@ FULL_F3 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk", r
                          short_trigger_on_ask=True, note="full_f3 (lane F3: A4-1 / A4-4 / A4-9 / A4-12)")
 EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3}
 EXEC_DEFAULT = "full_f3"                       # the C3 default (lane F3); legacy stays a declared control (--exec-variant legacy)
-BEST_OF_DAY = {"observe_bars": 3, "rule": "A4-2: causal secretary rule per business day (exec_variants.BestOfDayGate): the first 3 eligible flat "
-                                            "decisions of the day are observed only; then the first open whose EV >= the day's running best is placed"}
+BEST_OF_DAY = {"observe_bars": 1, "rule": "A4-2: causal secretary rule per business day (exec_variants.BestOfDayGate): the first eligible open "
+                                            "signal of the day is observed only; then the first open whose EV >= the day's running best is placed "
+                                            "(observe 3 was infeasible under full_f3's 24 h cutoff: the 1 entry/day cap leaves ~4 slots/week and the "
+                                            "secretary rule loses the day whenever the best signal fell inside the window; smoke 2026-10-26: best 1.26/wk)"}
 EARLY_CLOSE_MIN_SHARE = 0.05                   # A4-7 (exec_variants.early_close_ok): agent closes >= 5 % of exits AND value LCB >= 0
 GENES_Q = ("open_rate_l", "open_rate_s", "close_rem_rate_l", "close_rem_rate_s", "close_p_rate_l", "close_p_rate_s", "allow_reverse", "nop_veto_rate")
-Q_BOUNDS = {"open_rate_l": [0.002, 0.30], "open_rate_s": [0.002, 0.30], "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60],
+# open rates up to 0.50 (2026-10-26): under the 1 entry/day cap + the best-of-day gate the open rate governs how many
+# DAYS carry a qualifying signal, not the trade count; with full_f3's 24 h cutoff (~4 eligible days/week) a 0.30 ceiling
+# left no probe point with an activity lower bound >= 2.0 (smoke: best 2.67/week mean, bound below 2.0)
+Q_BOUNDS = {"open_rate_l": [0.002, 0.50], "open_rate_s": [0.002, 0.50], "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60],
             "close_p_rate_l": [0.0, 0.60], "close_p_rate_s": [0.0, 0.60], "allow_reverse": [0.0, 1.0], "nop_veto_rate": [0.0, 0.50]}
 GENES = ("open_margin_l", "open_margin_s", "close_margin_l", "close_margin_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto")
 SPECIALISTS, OPENERS, CLOSERS, SIDE_OF = C2.SPECIALISTS, C2.OPENERS, C2.CLOSERS, C2.SIDE_OF
 NET_BOUND, REM_BOUND, GEOMETRY, N_GEO = C2.NET_BOUND, C2.REM_BOUND, C2.GEOMETRY, C2.N_GEO
 CALIBRATION_METHOD = "temperature_multiclass_openers+platt_binary"
+ENCODING_DECISIONS = {"regime_gmm": "USE_onehot", "event_clock": "USE_window2h", "source": "selection_v5/ENCODING.csv (audit A1-11: decided, never applied)",
+                      "regime_gmm_rule": "rg.gmm.p0/p1/p2 -> one-hot of the row's argmax regime (3 binary columns, entropy kept)",
+                      "event_clock_rule": "ev.<x>.hours_since -> 1 within 2 h after the event or 2 h before the next (period 24 h); ev.<x>.hours_to dropped (= 24 - hours_since, A1-4 duplicate)"}
 ARCH_U = {"trunk": "u", "fusion_units": 8, "core_blocks": 2, "readout": "flatten"}            # the sealed u-design (default)
 ARCH_TCN = {"trunk": "residual_tcn", "fusion_units": 8, "core_blocks": 2, "readout": "flatten"}  # Musashi's minimal grouped TCN
 ARCH_KEYS = ("trunk", "fusion_units", "core_blocks", "readout")
@@ -550,6 +558,62 @@ def early_close_benefit(cx, table, strat: StrategyC3, SCFG, cells, e_time, cost,
 
 
 # ----------------------------------------------------------------------------- contract
+def check_recipe_encoding(doc: dict, rec: dict):
+    """A1-11: the C3 tensor must come from a recipe that APPLIED the selection's encoding decisions (derived by
+    ``derive_encoding_recipe``); a recipe without them is refused."""
+    got = rec.get("encoding_decisions_applied") or {}
+    want = doc.get("encoding_decisions") or {}
+    if {k: got.get(k) for k in ("regime_gmm", "event_clock")} != {k: want.get(k) for k in ("regime_gmm", "event_clock")}:
+        raise SystemExit(f"C3_RECIPE_ENCODING_NOT_APPLIED:{got}")
+
+
+def derive_encoding_recipe(base: dict, base_sha: str, store_parquet, fold: str) -> dict:
+    """The C3 recipe derived from a (fold) recipe: the ENCODING.csv decisions applied as consumer ops (regime one-hot;
+    event-clock 2 h windows; the duplicate hours_to clocks dropped), groups re-resolved, scaler constants re-fitted on
+    the fold's fit block with the loader's rules; a new identity declaring ``encoding_decisions_applied``."""
+    import copy
+    from tools import expert_guided_wf_recipe as WR
+    rec = copy.deepcopy(base)
+    cols, out = rec["tensor"]["columns"], []
+    gmm = [c["store_column"] for c in cols if c["store_column"] in ("rg.gmm.p0", "rg.gmm.p1", "rg.gmm.p2")]
+    for c in cols:
+        n = c["store_column"]
+        if n.startswith("ev.") and n.endswith(".hours_to"):
+            continue                                                   # A1-4: hours_to = 24 - hours_since
+        c = dict(c)
+        if n in gmm:
+            c["consumer_ops"] = [{"op": "onehot_argmax", "sources": list(gmm), "index": gmm.index(n)}]
+            c["tensor_name"] = f"rg.gmm.onehot{gmm.index(n)}"
+            c["then"] = "one-hot of the argmax regime (ENCODING.csv USE_onehot), then fixed z with this recipe's constants"
+        elif n.startswith("ev.") and n.endswith(".hours_since"):
+            c["consumer_ops"] = [{"op": "window_hours", "hours": 2.0, "period_hours": 24.0}]
+            c["tensor_name"] = n[:-len(".hours_since")] + ".window2h"
+            c["then"] = "2 h event window (ENCODING.csv USE_window2h), then fixed z with this recipe's constants"
+        out.append(c)
+    rec["tensor"]["columns"] = out
+    names = [c["store_column"] for c in out]
+    rec["list"] = dict(rec["list"], n=len(names), columns=names, derived="C3 encoding decisions applied; hours_to clocks dropped")
+    g = rec["representation"]["groups"]
+    g["groups"] = {k: [x for x in v if x in names] for k, v in g["groups"].items()}
+    g["groups"] = {k: v for k, v in g["groups"].items() if v}
+    res = rec["representation"]["resolved"]
+    keep = [i for i, nm in enumerate(res["names"]) if nm in g["groups"]]
+    res["names"] = [res["names"][i] for i in keep]
+    res["units"], res["kinds"] = [res["units"][i] for i in keep], [res["kinds"][i] for i in keep]
+    res["indices"] = [[names.index(x) for x in g["groups"][nm]] for nm in res["names"]]
+    scl = dict(rec["scaler"])
+    scl.update(WR.fold_constants(Path(store_parquet), rec, fold))
+    scl["features"], scl["n_features"] = [c["tensor_name"] for c in out], len(out)
+    scl.pop("artifact_sha256", None)
+    scl["derived"] = f"constants re-fitted on the {fold} fit block after the encoding ops (loader rules)"
+    rec["scaler"] = scl
+    rec["encoding_decisions_applied"] = dict(ENCODING_DECISIONS)
+    rec["identity"] = WR.identity(rec)
+    rec["derived_from"] = {"identity": base.get("identity"), "sha256": base_sha, "deviation": ["encoding_decisions", "list", "tensor.columns", "representation", "scaler"], "fold": fold}
+    rec["provenance"] = {"base_provenance": copy.deepcopy(base.get("provenance")), "derived_by": "app/short_horizon/expert_guided/c3.py derive_encoding_recipe"}
+    return rec
+
+
 def architecture_of_arch(ARCH: dict) -> dict:
     """The declared trunk architecture of an E3-M run (``ARCH`` of e3m), with the u-design defaults filled in."""
     return {"trunk": str(ARCH.get("trunk", "u")), "fusion_units": int(ARCH.get("fusion_units", 8)), "core_blocks": int(ARCH.get("core_blocks", 2)),
@@ -564,8 +628,10 @@ def check_architecture(doc: dict, ARCH: dict):
 
 
 def default_contract(architecture: dict | None = None) -> dict:
+    """C3 contract; the DEFAULT trunk is ``residual_tcn`` (owner 2026-10-26: every model of this line uses the TCN trunk);
+    the u-design conv1d trunk is a declared CONTROL arm (``ACTION_CONTRACT_C3_U.json``), never the default."""
     base = C2.default_contract_geometry()
-    architecture = dict(ARCH_U if architecture is None else architecture)
+    architecture = dict(ARCH_TCN if architecture is None else architecture)
     doc = json.loads(json.dumps(base))
     doc["schema"], doc["identity"] = SCHEMA, None
     doc["design"] = ("docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target "
@@ -620,14 +686,17 @@ def default_contract(architecture: dict | None = None) -> dict:
         "zigzag": "no ZigZag target (A2-11 not applicable); NOP keeps the multires ladder labels",
         "teacher": "none"}
     doc["loss_balance"] = dict(LOSS_BALANCE)
+    doc["encoding_decisions"] = dict(ENCODING_DECISIONS)
     doc["exec_variant"] = {"name": EXEC_DEFAULT, "identity": FULL_F3.identity, "options": FULL_F3.document(),
                            "legacy_control": {"name": "legacy", "identity": XV.LEGACY.identity, "how": "--exec-variant legacy (declared control)"},
                            "fixes": "A4-1 reversal = one entry decision; A4-4 risk 1 % sizing; A4-9 entry cutoff 24 h before the forced flat; A4-12 ask-side short triggers"}
     doc["best_of_day"] = dict(BEST_OF_DAY)
     doc["outcomes"]["per_bar_band"] = "cells outside the engine's per-bar effective band [min_multiple, effective_cap] are not selectable at that bar (exec_variants.effective_cap / min_multiple)"
     doc["architecture"] = {k: architecture[k] for k in ARCH_KEYS}
-    doc["architecture"]["note"] = ("inside the sealed identity (2026-10-26): u = the sealed u-design (per-group causal conv branches); residual_tcn = "
-                                   "per-group branches -> 1x1 fusion -> residual causal blocks -> readout (temporal.py, parity-tested)")
+    doc["architecture"]["note"] = ("inside the sealed identity (2026-10-26): residual_tcn (DEFAULT, owner order: every model of this line) = per-group "
+                                   "single causal conv, SiLU, 1x1 fusion 8, two residual causal blocks (dilations 1, 2), flatten readout "
+                                   "(temporal.py, parity-tested against Musashi's GroupedTCNExtractor); u = the sealed u-design conv1d trunk, "
+                                   "a declared CONTROL arm only")
     doc["protocol_v11"] = {"blocks": "early stopping on sc['early_stop'], calibration + gene maps on sc['calibration'], the strategy search / fitness "
                                      "choice on sc['selection'], the decision block read once after the freeze and ledgered (READ_LEDGER.jsonl)",
                            "search_overfit": "per final search: deflated Sharpe of the chosen point (n_trials = distinct archived points, T = "
@@ -706,6 +775,8 @@ def validate(doc: dict) -> list:
     lr = doc.get("label_rules") or {}
     if lr.get("teacher") != "none" or not str(lr.get("closers")).startswith("exploration visits only") or "env only" not in str(lr.get("openers")):
         errs.append("C3_CONTRACT_LABEL_RULES")
+    if (doc.get("encoding_decisions") or {}) != ENCODING_DECISIONS:
+        errs.append("C3_CONTRACT_ENCODING_DECISIONS")
     ev_ = doc.get("exec_variant") or {}
     try:
         ok_xv = ev_.get("name") in EXEC_VARIANTS and XV.ExecVariant(**(ev_.get("options") or {})).identity == ev_.get("identity") == EXEC_VARIANTS[ev_["name"]].identity
@@ -889,6 +960,7 @@ def run_e3m(ctx: dict) -> dict:
     SCFG, MCFG, NS, led, ledger, summary = ctx["SCFG"], ctx["MUSASHI_CFG"], ctx["NS"], ctx["led"], ctx["ledger"], ctx["summary"]
     DEV, SEEDS = ctx["DEV"], ctx["SEEDS"]
     check_architecture(AC, ctx.get("ARCH") or {})
+    check_recipe_encoding(AC, ctx.get("RECIPE") or {})
     xv_name = EXEC_DEFAULT if getattr(a, "exec_variant", "contract") in ("", "contract") else a.exec_variant
     if xv_name not in EXEC_VARIANTS:
         raise SystemExit(f"C3_EXEC_VARIANT_UNKNOWN:{xv_name}")

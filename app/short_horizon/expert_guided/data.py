@@ -410,6 +410,36 @@ def fixed_train_windows(X: np.ndarray, ts_ns: np.ndarray, features: list, stride
                                       "rows_excluded_nan_windows": int((ok_idx & ~fin_w).sum())}
 
 
+CONSUMER_OPS = ("DIFF", "onehot_argmax", "window_hours")
+
+
+def apply_consumer_ops(X: np.ndarray, cols: list, features: list) -> np.ndarray:
+    """The consumer-applied operations of a pinned recipe, column by column, nothing measured: ``DIFF`` (first
+    difference); ``{"op": "onehot_argmax", "sources": [...], "index": k}`` = 1.0 where source k is the row's argmax over
+    the sources (regime GMM one-hot, selection-v5 ENCODING decision USE_onehot; NaN when any source is NaN);
+    ``{"op": "window_hours", "hours": h, "period_hours": P}`` = 1.0 within h hours after the event (source <= h) or
+    before the next one (source >= P - h) (event clocks, decision USE_window2h). Unknown ops are refused."""
+    X2 = X.astype(float).copy()
+    pos = {f: i for i, f in enumerate(features)}
+    for j, c in enumerate(cols):
+        for op in list(c.get("consumer_ops", [])):
+            if op == "DIFF":
+                X2[:, j] = np.r_[np.nan, np.diff(X[:, j])]
+            elif isinstance(op, dict) and op.get("op") == "onehot_argmax":
+                src = [pos[s_] for s_ in op["sources"]]
+                S = X[:, src]
+                fin = np.isfinite(S).all(1)
+                am = np.argmax(np.where(np.isfinite(S), S, -np.inf), axis=1)
+                X2[:, j] = np.where(fin, (am == int(op["index"])).astype(float), np.nan)
+            elif isinstance(op, dict) and op.get("op") == "window_hours":
+                h, P = float(op["hours"]), float(op.get("period_hours", 24.0))
+                x = X[:, j]
+                X2[:, j] = np.where(np.isfinite(x), ((x <= h) | (x >= P - h)).astype(float), np.nan)
+            else:
+                raise ValueError(f"RECIPE_CONSUMER_OP_UNKNOWN:{c['store_column']}:{op}")
+    return X2
+
+
 def recipe_windows(X: np.ndarray, features: list, rec: dict, stride: int, win: int):
     """Apply a PINNED consumer recipe (heuristic-strategy tools/expert_guided_consumer_recipe.py, Musashi's audit A3
     2026-10-23) without measuring or fitting anything: the consumer-applied operations of each column (``DIFF`` or
@@ -424,15 +454,8 @@ def recipe_windows(X: np.ndarray, features: list, rec: dict, stride: int, win: i
     mean, std = np.asarray(sc["mean"], float), np.asarray(sc["std"], float)
     if len(mean) != len(cols) or len(std) != len(cols) or not (np.isfinite(mean).all() and np.isfinite(std).all() and (std > 0).all()):
         raise ValueError("RECIPE_SCALER_INVALID")
-    X2 = X.astype(float).copy()
-    tensor = []
-    for j, c in enumerate(cols):
-        ops = list(c.get("consumer_ops", []))
-        if ops not in ([], ["DIFF"]):
-            raise ValueError(f"RECIPE_CONSUMER_OP_UNKNOWN:{c['store_column']}:{ops}")
-        if ops == ["DIFF"]:
-            X2[:, j] = np.r_[np.nan, np.diff(X[:, j])]
-        tensor.append(c["tensor_name"])
+    X2 = apply_consumer_ops(X, cols, list(features))
+    tensor = [c["tensor_name"] for c in cols]
     if tensor != list(sc["features"]):
         raise ValueError("RECIPE_TENSOR_ORDER_MISMATCH")
     Z = (X2 - mean) / std

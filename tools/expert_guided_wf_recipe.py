@@ -47,13 +47,7 @@ def fold_constants(store_parquet: Path, base: dict, fold: str) -> dict:
     fin = np.isfinite(X).all(1)
     first = int(np.argmax(fin))                       # the loader drops the leading rows before the first all-finite row
     X, ts = X[first:], ts[first:]
-    X2 = X.copy()
-    for j, c in enumerate(cols):
-        ops = list(c.get("consumer_ops", []))
-        if ops == ["DIFF"]:
-            X2[:, j] = np.r_[np.nan, np.diff(X[:, j])]
-        elif ops:
-            raise ValueError(f"RECIPE_CONSUMER_OP_UNKNOWN:{c['store_column']}:{ops}")
+    X2 = DG.apply_consumer_ops(X, cols, names)        # DIFF / onehot_argmax / window_hours, as the loader applies them
     t0, t1 = DG._utc_ns(sc["scaler_fit"][0]), DG._utc_ns(sc["scaler_fit"][1])
     tr = (ts >= t0) & (ts < t1)
     if not tr.any():

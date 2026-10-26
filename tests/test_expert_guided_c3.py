@@ -24,7 +24,7 @@ CONTRACTS = ROOT / "docs/short_horizon/clean_round/contracts"
 # ----------------------------------------------------------------------------- contract
 def test_committed_c3_contract_is_the_sealed_default_and_passes_every_check():
     d = json.loads((CONTRACTS / "ACTION_CONTRACT_C3.json").read_text())
-    assert d == C3.default_contract() and C3.validate(d) == [] and C2.encoding_audit(d)["verdict"] == "PASS"
+    assert d == C3.default_contract() and d["architecture"]["trunk"] == "residual_tcn" and C3.validate(d) == [] and C2.encoding_audit(d)["verdict"] == "PASS"
     assert C3.is_c3(d) and not C2.is_c2(d) and d["identity"] == ACT.identity_of(d)
     for m in C3.OPENERS:
         assert d["specialists"][m]["decision"]["classes"] == ["TP_FIRST", "SL_FIRST", "TIME"]
@@ -230,9 +230,9 @@ def test_modules_and_bounds_for_c3():
 
 # ----------------------------------------------------------------------------- architecture inside the identity, protocol v11 hooks
 def test_two_sealed_variants_carry_the_architecture_and_differ_only_by_it():
-    u = json.loads((CONTRACTS / "ACTION_CONTRACT_C3.json").read_text())
-    t = json.loads((CONTRACTS / "ACTION_CONTRACT_C3_TCN.json").read_text())
-    assert u == C3.default_contract(C3.ARCH_U) and t == C3.default_contract(C3.ARCH_TCN)
+    t = json.loads((CONTRACTS / "ACTION_CONTRACT_C3.json").read_text())          # DEFAULT = residual_tcn (owner order)
+    u = json.loads((CONTRACTS / "ACTION_CONTRACT_C3_U.json").read_text())        # the u-trunk control arm
+    assert t == C3.default_contract() == C3.default_contract(C3.ARCH_TCN) and u == C3.default_contract(C3.ARCH_U)
     assert C3.validate(u) == [] and C3.validate(t) == [] and u["identity"] != t["identity"]
     assert u["architecture"]["trunk"] == "u" and t["architecture"]["trunk"] == "residual_tcn"
     diff = {k for k in u if u[k] != t[k]}
@@ -302,7 +302,7 @@ def test_policy_call_returns_a_best_of_day_gate_over_the_scored_policy():
     s = C3.StrategyC3(-9, -9, 0.0, 0.0, 1.0, 1.0, False, None)
     pol = C3.PolicyC3(t, s, cells, (-0.2, -0.2), 0.05)
     g = pol(None)
-    assert isinstance(g, XV.BestOfDayGate) and g.observe_bars == 3 and pol.last_gate is g
+    assert isinstance(g, XV.BestOfDayGate) and g.observe_bars == 1 and pol.last_gate is g
     a, tp, sl, score = pol.scored(None)(0, 0, np.zeros(9), None)
     assert a == E.LONG and (tp, sl) == (1.0, 1.0) and np.isfinite(score)
     assert pol.open_decision(0, with_score=True)[3] == score
@@ -328,3 +328,53 @@ def test_early_close_rule_uses_share_and_lower_bound():
     assert XV.early_close_ok(0.10, 5.0, C3.EARLY_CLOSE_MIN_SHARE)[0]
     assert not XV.early_close_ok(0.01, 5.0, C3.EARLY_CLOSE_MIN_SHARE)[0]
     assert not XV.early_close_ok(0.10, -1.0, C3.EARLY_CLOSE_MIN_SHARE)[0]
+
+
+# ----------------------------------------------------------------------------- A1-11: the encoding decisions applied
+def test_consumer_ops_onehot_and_window_known_answers_and_unknown_refused():
+    from app.short_horizon.expert_guided import data as DG
+    feats = ["p0", "p1", "p2", "hs"]
+    X = np.array([[0.2, 0.7, 0.1, 1.0], [0.6, 0.3, 0.1, 5.0], [np.nan, 0.5, 0.5, 23.0], [0.1, 0.1, 0.8, 22.0]])
+    cols = [{"store_column": "p0", "consumer_ops": [{"op": "onehot_argmax", "sources": ["p0", "p1", "p2"], "index": 0}]},
+            {"store_column": "p1", "consumer_ops": [{"op": "onehot_argmax", "sources": ["p0", "p1", "p2"], "index": 1}]},
+            {"store_column": "p2", "consumer_ops": [{"op": "onehot_argmax", "sources": ["p0", "p1", "p2"], "index": 2}]},
+            {"store_column": "hs", "consumer_ops": [{"op": "window_hours", "hours": 2.0, "period_hours": 24.0}]}]
+    Y = DG.apply_consumer_ops(X, cols, feats)
+    assert Y[0, :3].tolist() == [0.0, 1.0, 0.0] and Y[1, :3].tolist() == [1.0, 0.0, 0.0] and Y[3, :3].tolist() == [0.0, 0.0, 1.0]
+    assert np.isnan(Y[2, :3]).all()
+    assert Y[:, 3].tolist() == [1.0, 0.0, 1.0, 1.0]
+    with pytest.raises(ValueError, match="RECIPE_CONSUMER_OP_UNKNOWN"):
+        DG.apply_consumer_ops(X, [{"store_column": "p0", "consumer_ops": [{"op": "bin"}]}], feats)
+    assert np.array_equal(DG.apply_consumer_ops(X, [{"store_column": "p0", "consumer_ops": ["DIFF"]}], feats)[1:, 0], np.diff(X[:, 0]), equal_nan=True)
+
+
+def test_c3_refuses_a_recipe_without_the_encoding_decisions():
+    d = C3.default_contract()
+    with pytest.raises(SystemExit, match="C3_RECIPE_ENCODING_NOT_APPLIED"):
+        C3.check_recipe_encoding(d, {"identity": "x"})
+    C3.check_recipe_encoding(d, {"encoding_decisions_applied": dict(C3.ENCODING_DECISIONS)})
+    bad = ACT.seal(dict(copy.deepcopy(d), identity=None, encoding_decisions={"regime_gmm": "NONE"}))
+    assert any(e.startswith("C3_CONTRACT_ENCODING_DECISIONS") for e in C3.validate(bad))
+
+
+def test_derive_encoding_recipe_rewrites_columns_groups_and_scaler(monkeypatch, tmp_path):
+    from tools import expert_guided_wf_recipe as WR
+    base = {"identity": "recipe_base", "tensor": {"columns": [
+        {"store_column": "rg.gmm.p0", "tensor_name": "rg.gmm.p0", "consumer_ops": []}, {"store_column": "rg.gmm.p1", "tensor_name": "rg.gmm.p1", "consumer_ops": []},
+        {"store_column": "rg.gmm.p2", "tensor_name": "rg.gmm.p2", "consumer_ops": []}, {"store_column": "rg.gmm.entropy", "tensor_name": "rg.gmm.entropy", "consumer_ops": []},
+        {"store_column": "ev.ny_cut.hours_since", "tensor_name": "ev.ny_cut.hours_since", "consumer_ops": []},
+        {"store_column": "ev.ny_cut.hours_to", "tensor_name": "ev.ny_cut.hours_to", "consumer_ops": []}, {"store_column": "ATR", "tensor_name": "ATR", "consumer_ops": []}]},
+        "list": {"n": 7, "columns": []}, "representation": {"groups": {"groups": {"gmm": ["rg.gmm.p0", "rg.gmm.p1", "rg.gmm.p2", "rg.gmm.entropy"],
+                                                                                   "ev": ["ev.ny_cut.hours_since", "ev.ny_cut.hours_to"], "atr": ["ATR"]}},
+                                                      "resolved": {"names": ["gmm", "ev", "atr"], "indices": [[0, 1, 2, 3], [4, 5], [6]], "units": [2, 2, 2], "kinds": ["conv", "pointwise", "conv"]}},
+        "scaler": {"features": [], "n_features": 7, "mean": [0] * 7, "std": [1] * 7}, "store": {}, "regularization": {}, "split": {}, "business": {}, "labels": {}}
+    monkeypatch.setattr(WR, "fold_constants", lambda store, rec, fold: {"fit_period": ["a", "b"], "fit_rows": 1, "mean": [0.0] * len(rec["tensor"]["columns"]),
+                                                                        "std": [1.0] * len(rec["tensor"]["columns"]), "std_raw": [], "variance": [], "rule": [], "fit_rows_per_feature": [], "nan_share_train": []})
+    rec = C3.derive_encoding_recipe(base, "sha", tmp_path / "x.parquet", "wf2022")
+    names = [c["tensor_name"] for c in rec["tensor"]["columns"]]
+    assert names == ["rg.gmm.onehot0", "rg.gmm.onehot1", "rg.gmm.onehot2", "rg.gmm.entropy", "ev.ny_cut.window2h", "ATR"]
+    assert rec["list"]["n"] == 6 and rec["representation"]["resolved"]["indices"] == [[0, 1, 2, 3], [4], [5]]
+    assert rec["encoding_decisions_applied"] == C3.ENCODING_DECISIONS and rec["identity"] != "recipe_base" and rec["derived_from"]["identity"] == "recipe_base"
+    ops = {c["tensor_name"]: c["consumer_ops"] for c in rec["tensor"]["columns"]}
+    assert ops["rg.gmm.onehot2"] == [{"op": "onehot_argmax", "sources": ["rg.gmm.p0", "rg.gmm.p1", "rg.gmm.p2"], "index": 2}]
+    assert ops["ev.ny_cut.window2h"] == [{"op": "window_hours", "hours": 2.0, "period_hours": 24.0}]
