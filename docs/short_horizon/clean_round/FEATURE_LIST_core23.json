@@ -1,0 +1,30 @@
+{
+ "name": "core23",
+ "n": 15,
+ "features": [
+  "HIGH@diff",
+  "RAW_LOG_RANGE@log",
+  "RAW_CLOSE_LOG_RETURN",
+  "RAW_ELAPSED_HOURS",
+  "ATR",
+  "RSI",
+  "MACD_Histogram",
+  "ADX",
+  "DI_minus",
+  "Stochastic_D",
+  "WilliamsR",
+  "rolling_std_24",
+  "hod_sin",
+  "hod_cos",
+  "dow_cos"
+ ],
+ "rule": "cut from EXISTING selection-v5 metrics only (no new test): core15 + the single family with a material mean delta_loss gain in RANKING.csv (inv.raw +0.0992; the next family px.close_loc adds +0.0097 and would exceed 25 columns)",
+ "source": {
+  "core15": "selection_v5/FEATURE_LIST_core15.json",
+  "ranking": "selection_v5/RANKING.csv (hgb, mean delta_loss over tasks x folds)",
+  "family_decisions": "selection_v5/FAMILY_DECISIONS.csv"
+ },
+ "owner_rule": "2026-10-26: fewer than 25 inputs; selection decided from existing metrics, never repeat work",
+ "note": "a recipe built on this list is a NEW identity (recipe v2 = 121 columns stays as accepted by Musashi); nothing retrained yet",
+ "sha256_features": "889168dc5a439df8c1800d0afa0fbd2c61383ff019b0ac05eaad510a64a8da90"
+}
