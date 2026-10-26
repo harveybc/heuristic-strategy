@@ -154,7 +154,7 @@ def fitness_rows(runs: list) -> pd.DataFrame:
         for s in r["per_seed"]:
             for f, v in (s.get("by_fitness") or {}).items():
                 d = v.get("decision") or {}
-                rows.append({"fold": r["fold"], "variant": r["variant"], "gate": r.get("gate", "contract"), "level": r["level"], "seed": s["seed"], "fitness": f,
+                rows.append({"fold": r["fold"], "variant": r["variant"], "gate": r.get("gate", "contract"), "family": r.get("family", "c3"), "level": r["level"], "seed": s["seed"], "fitness": f,
                              "valid_choice": bool(v.get("valid")), "dec_sharpe": d.get("sharpe_daily_sqrt365"), "dec_net": d.get("net_profit_usd"),
                              "dec_exp": d.get("expectancy"), "dec_exp_lo": d.get("expectancy_low"), "dec_opw": d.get("orders_per_week"), "dec_valid": d.get("valid"),
                              "sel_sharpe": (v.get("selection") or {}).get("sharpe_daily_sqrt365")})
@@ -168,8 +168,8 @@ def fitness_table(fr: pd.DataFrame) -> tuple:
         return "(sin evaluación por fitness)", {}
     fr = fr[fr["valid_choice"]]
     win = {}
-    lines = ["| escenario | calidad | mejor por expectativa | mejor por Sharpe | mejor por neto | estabilidad: fitness ganadora (expect.) por celda fold×semilla |", "| --- | ---: | --- | --- | --- | --- |"]
-    for (v, lv), g in fr.groupby(["variant", "level"]):
+    lines = ["| familia | escenario | calidad | mejor por expectativa | mejor por Sharpe | mejor por neto | estabilidad: fitness ganadora (expect.) por celda fold×semilla |", "| --- | --- | ---: | --- | --- | --- | --- |"]
+    for (fam, v, lv), g in fr.groupby(["family", "variant", "level"]):
         m = g.groupby("fitness")[["dec_exp", "dec_sharpe", "dec_net"]].mean()
         best = {k: (m[k].idxmax() if m[k].notna().any() else None) for k in ("dec_exp", "dec_sharpe", "dec_net")}
         cells = g.groupby(["fold", "seed"])
@@ -181,7 +181,7 @@ def fitness_table(fr: pd.DataFrame) -> tuple:
                 counts[w] = counts.get(w, 0) + 1
                 win[w] = win.get(w, 0) + 1
         stab = ", ".join(f"{FITNESS_LABEL.get(k, k).split(' ')[0]} {n}" for k, n in sorted(counts.items(), key=lambda x: -x[1]))
-        lines.append(f"| {v} | {lv:.2f} | {FITNESS_LABEL.get(best['dec_exp'], best['dec_exp'])} | {FITNESS_LABEL.get(best['dec_sharpe'], best['dec_sharpe'])} | {FITNESS_LABEL.get(best['dec_net'], best['dec_net'])} | {stab} |")
+        lines.append(f"| {fam} | {v} | {lv:.2f} | {FITNESS_LABEL.get(best['dec_exp'], best['dec_exp'])} | {FITNESS_LABEL.get(best['dec_sharpe'], best['dec_sharpe'])} | {FITNESS_LABEL.get(best['dec_net'], best['dec_net'])} | {stab} |")
     pooled = fr.groupby("fitness")[["dec_exp", "dec_sharpe", "dec_net", "dec_opw"]].mean().reindex(FITNESS_ORDER)
     val = fr.groupby("fitness")["dec_valid"].mean().reindex(FITNESS_ORDER)
     lines += ["", "| fitness | expectativa media (decisión) | Sharpe medio | neto medio USD | órdenes/sem | válida fuera de bloque (≥ 2/sem) | celdas ganadas |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
@@ -192,10 +192,12 @@ def fitness_table(fr: pd.DataFrame) -> tuple:
 
 
 def coverage_table(df: pd.DataFrame) -> str:
-    g = df.groupby(["variant", "gate", "level"]).agg(seeds=("seed", "nunique"), folds=("fold", "nunique"), refused=("refused", lambda x: int(x.notna().sum()))).reset_index()
-    lines = ["| escenario | puerta | calidad | folds | semillas | rechazos |", "| --- | --- | ---: | ---: | ---: | ---: |"]
+    if "family" not in df:
+        df = df.assign(family="c3")
+    g = df.groupby(["variant", "gate", "family", "level"]).agg(seeds=("seed", "nunique"), folds=("fold", "nunique"), refused=("refused", lambda x: int(x.notna().sum()))).reset_index()
+    lines = ["| escenario | puerta | familia | calidad | folds | semillas | rechazos |", "| --- | --- | --- | ---: | ---: | ---: | ---: |"]
     for _, r in g.iterrows():
-        lines.append(f"| {r['variant']} | {r['gate']} | {r['level']:.2f} | {int(r['folds'])} | {int(r['seeds'])} | {int(r['refused'])} |")
+        lines.append(f"| {r['variant']} | {r['gate']} | {r['family']} | {r['level']:.2f} | {int(r['folds'])} | {int(r['seeds'])} | {int(r['refused'])} |")
     return "\n".join(lines)
 
 
@@ -216,8 +218,47 @@ def quarter_table(runs: list) -> str:
     return "\n".join(lines)
 
 
+def family_table(df: pd.DataFrame) -> str:
+    """The TP/SL x volume families compared on the decision block (base scenario, perbar gate): pooled over seeds and folds."""
+    d = df[(df["variant"] == "base") & (df["gate"] == "perbar")]
+    if not len(d) or "family" not in d:
+        return "(sin comparación de familias)"
+    lines = ["| familia (TP/SL, volumen) | calidad | Sharpe | neto USD | expect. σ [IC inf. medio] | órdenes/sem | DD % | cierre temprano USD | rechazos | n |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for (fam, lv), g in d.groupby(["family", "level"]):
+        ok = g[g["refused"].isna()]
+        f = lambda c, k=2: ("—" if not len(ok) or ok[c].isna().all() else f"{ok[c].mean():.{k}f}")  # noqa: E731
+        lines.append(f"| {fam} | {lv:.2f} | {f('dec_sharpe')} | {f('dec_net', 0)} | {f('dec_exp', 3)} [{f('dec_exp_lo', 3)}] | {f('dec_opw')} | {f('dec_dd', 1)} | {f('dec_early_close_value', 0)} | {int(g['refused'].notna().sum())} | {len(g)} |")
+    return "\n".join(lines)
+
+
+def coefficient_table(runs: list) -> str:
+    """Optimised coefficient values of the FULL families per scenario x quality: mean, min and max over seeds and folds
+    (the stability across seeds), with the frozen quantile thresholds."""
+    rows = []
+    for r in runs:
+        if r.get("family", "c3") == "c3":
+            continue
+        for s in r["per_seed"]:
+            g = s.get("chosen_genes")
+            if not g:
+                continue
+            rows.append({"family": r["family"], "variant": r["variant"], "level": r["level"], "fold": r["fold"], "seed": s["seed"], **{k: float(v) for k, v in g.items()}})
+    if not rows:
+        return "(sin coeficientes optimizados)"
+    d = pd.DataFrame(rows)
+    genes = [c for c in d.columns if c not in ("family", "variant", "level", "fold", "seed")]
+    lines = ["| familia | escenario | calidad | n | " + " | ".join(genes) + " |", "| --- | --- | ---: | ---: | " + " | ".join("---" for _ in genes) + " |"]
+    for (fam, v, lv), g in d.groupby(["family", "variant", "level"]):
+        cells = [f"{g[k].mean():.2f} [{g[k].min():.2f}, {g[k].max():.2f}]" for k in genes]
+        lines.append(f"| {fam} | {v} | {lv:.2f} | {len(g)} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
 def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
-    p = pooled(df)
+    if "family" not in df:
+        df = df.assign(family="c3")
+    df_c3 = df[df["family"] == "c3"]
+    p = pooled(df_c3)
     p.to_csv(out / "SWEEP_POOLED.csv", index=False)
     variants = [v for v in ORDER if v in set(p["variant"])]
     figs = {}
@@ -246,7 +287,7 @@ def write(df: pd.DataFrame, runs: list, out: Path, docs: str):
     ft, fsum = fitness_table(fr)
     (out / "FITNESS_SUMMARY.json").write_text(json.dumps(fsum, indent=1, default=float))
     frag += ["", "## Qué fitness usar: cada variante optimizada en el bloque de selección y puntuada UNA vez en el bloque de decisión", "", ft, ""]
-    frag += ["## Cobertura del catálogo (escenario × puerta × calidad → folds, semillas, rechazos)", "", coverage_table(df), ""]
+    frag += ["## Cobertura del catálogo (escenario × puerta × familia × calidad → folds, semillas, rechazos)", "", coverage_table(df), ""]
     frag += ["## Régimen de mercado: trimestres del año de decisión por terciles de volatilidad y tendencia (base, puerta por barra)", "", quarter_table(runs), ""]
     frag += ["", "## Genes congelados por configuración", "", gene_table(runs), "", "## Sensibilidad de los genes (±0.1 en el cuantil, bloque de selección)", "", sensitivity_table(runs), ""]
     frag += ["## Figuras", ""] + [f"- [{label} — variantes de calidad]({docs}/{figs[m + ':quality']})" for m, label in METRICS if m + ":quality" in figs] \

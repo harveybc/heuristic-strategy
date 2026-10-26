@@ -38,6 +38,7 @@ from app.short_horizon.expert_guided import data as DG  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
 from app.short_horizon.expert_guided import outcomes as OC  # noqa: E402
 from app.short_horizon.expert_guided import stats as ST  # noqa: E402
+from app.short_horizon.expert_guided import strategy_full as SF  # noqa: E402
 
 LADDER = (0.50, 0.52, 0.55, 0.58, 0.62, 0.66, 0.70, 0.75, 0.80, 0.90, 1.00)
 HEADS = ("open", "net", "nop", "close")            # the four simulated head families (quality set per family)
@@ -439,6 +440,51 @@ class PolicyC3PerBar(C3.PolicyC3):
 
 
 POLICIES = {"contract": C3.PolicyC3, "perbar": PolicyC3PerBar}
+FAMILIES = {"c3": None, "cell_param": ("cell", "param"), "param_param": ("param", "param"), "param_risk": ("param", "risk"), "cell_risk": ("cell", "risk")}
+FULL_OPTIMIZER = {"population": 48, "generations": 24}      # declared budget of the FULL parametric layer (more genes than C3's 8)
+FULL_PRIMARY = "sharpe_plus_return_plus_activity"             # the owner's composite (normalised coefficients) is the FULL layer's primary fitness
+
+
+class PolicyFullPerBar(SF.PolicyFull):
+    """PolicyFull with the per-bar cost in the EV (the ``perbar`` gate's cost rule)."""
+
+    def levels(self, r, si, bar, env):
+        c = self.t.get("cost_row")
+        if c is not None and np.isfinite(c[r]):
+            saved, self.cost = self.cost, float(c[r])
+            try:
+                return super().levels(r, si, bar, env)
+            finally:
+                self.cost = saved
+        return super().levels(r, si, bar, env)
+
+
+def contract_full(AC: dict, tp_family: str, vol_family: str) -> dict:
+    """The C3 contract with the FULL gene space: coefficient genes added, the optimiser budget and the primary fitness
+    declared; the activity-CI and side rules unchanged (still a v1.3-style block)."""
+    ac = copy.deepcopy(AC)
+    st = ac["strategy"]
+    st["genes"] = SF.gene_bounds(tp_family, vol_family)
+    st["gene_space"] = SF.GENE_SPACE_FULL
+    st["optimizer"]["final"] = dict(FULL_OPTIMIZER)
+    st["optimizer"]["final_escalated"] = dict(FULL_OPTIMIZER)
+    st["fitness"]["default"] = FULL_PRIMARY
+    st["tp_family"], st["vol_family"] = tp_family, vol_family
+    st["formulas"] = {"tp_cell": "TP_d, SL_d = argmax_cell predicted_net_d within the band [lo_t, cap_t]; TP<SL only if net > cost + 0.10 sigma",
+                      "tp_param": "TP_d = sigma_t (a_d + b_d q_d), SL_d = sigma_t (c_d + e_d r_d); q_d = P(TP first|d), r_d = P(SL first|d); bounded to [lo_t, cap_t] and env tp/sl bounds",
+                      "vol_risk": "v_d = min(1, risk_pct balance / (SL distance units_full)) (engine risk sizing)",
+                      "vol_param": "v_d = clip(alpha_d + beta_d P(TP first|d) - gamma_d P(NOP) - delta_d P(SL first|d), 0, 1); v < v_min -> no order",
+                      "units": "units = v f balance rel_volume leverage / price (integer, leverage <= 1:50; rel_volume 0.10)"}
+    ac["identity"] = ac["identity"] + f"_full_{tp_family}_{vol_family}"
+    return ac
+
+
+def scfg_full(SCFG, vol_family: str):
+    """The engine config of a volume family: risk -> the engine's risk sizing (full_f3); param -> notional sizing scaled by v."""
+    xv = SCFG.variant if SCFG.variant is not None else C3.FULL_F3
+    if vol_family == "param":
+        return dataclasses.replace(SCFG, variant=dataclasses.replace(xv, sizing_mode="notional_share"))
+    return dataclasses.replace(SCFG, variant=dataclasses.replace(xv, sizing_mode="risk"))
 
 
 def policy_cls(gate: str):
@@ -465,11 +511,16 @@ def row_costs(cx, SCFG, allowance: float) -> np.ndarray:
     return out
 
 
-def score_fn(cx, SCFG, cells, e_time, cost, AC, period, sig, min_opw, Pol=C3.PolicyC3):
+def score_fn(cx, SCFG, cells, e_time, cost, AC, period, sig, min_opw, Pol=C3.PolicyC3, roll=ACT.rollout_with_trades):
     def score_table(view, strat):
-        m, trades = ACT.rollout_with_trades(cx, period, Pol(view, strat, cells, e_time, cost)(cx), SCFG)
+        m, trades = roll(cx, period, Pol(view, strat, cells, e_time, cost)(cx), SCFG)
         return ACT.window_components(m, trades, sig, SCFG.capital, min_opw, **ACT.score_kwargs(AC))
     return score_table
+
+
+def policy_factory(Pol, scfg):
+    """A PolicyFull factory bound to the engine config (the risk family needs the sizing rule)."""
+    return lambda view, strat, cells, e_time, cost: Pol(view, strat, cells, e_time, cost, scfg=scfg)
 
 
 def closer_src_of(truth: Truth) -> dict:
@@ -482,13 +533,14 @@ def closer_src_of(truth: Truth) -> dict:
     return out
 
 
-def evaluate(cx, SCFG, table, strat, cells, e_time, cost, period, sig, AC, capital, with_checks=True, ledger_rows=None, Pol=C3.PolicyC3) -> dict:
+def evaluate(cx, SCFG, table, strat, cells, e_time, cost, period, sig, AC, capital, with_checks=True, ledger_rows=None, Pol=C3.PolicyC3,
+             roll=ACT.rollout_with_trades) -> dict:
     from tools import expert_guided_trading_report as TR
     pol = Pol(table, strat, cells, e_time, cost)
-    m, trades = ACT.rollout_with_trades(cx, period, pol(cx), SCFG)
+    m, trades = roll(cx, period, pol(cx), SCFG)
     comp = ACT.window_components(m, trades, sig, capital, float(AC["strategy"]["calibration_min_trades_per_week"]), **ACT.score_kwargs(AC))
     gate = pol.last_gate.stats if pol.last_gate is not None else {}
-    m0, t0 = ACT.rollout_with_trades(cx, period, Pol(table, strat.no_early_close(), cells, e_time, cost)(cx), SCFG)
+    m0, t0 = roll(cx, period, Pol(table, strat.no_early_close(), cells, e_time, cost)(cx), SCFG)
     out = {"metrics": {k: m[k] for k in ("net_profit_usd", "sharpe_daily_sqrt365", "max_drawdown_pct", "trades", "win_rate", "profit_factor",
                                         "orders_per_week", "n_entries_long", "n_entries_short", "n_close_TP", "n_close_SL", "n_close_FORCED_FLAT",
                                         "n_close_AGENT_CLOSE", "n_close_REVERSAL", "valid") if k in m},
@@ -556,11 +608,11 @@ def quarter_tags(cx, period: str) -> list:
     return out
 
 
-def evaluate_quarters(cx, SCFG, table, strat, cells, e_time, cost, sig, AC, Pol, qtags) -> list:
+def evaluate_quarters(cx, SCFG, table, strat, cells, e_time, cost, sig, AC, Pol, qtags, roll=ACT.rollout_with_trades) -> list:
     """The frozen strategy replayed on each quarter of the decision block (sub-periods of the same year; no new choice)."""
     out = []
     for x in qtags:
-        d = evaluate(cx, SCFG, table, strat, cells, e_time, cost, (x["start"], x["end"]), sig, AC, SCFG.capital, False, None, Pol)
+        d = evaluate(cx, SCFG, table, strat, cells, e_time, cost, (x["start"], x["end"]), sig, AC, SCFG.capital, False, None, Pol, roll)
         m = d["metrics"]
         out.append({**x, "sharpe": m.get("sharpe_daily_sqrt365"), "net_usd": m.get("net_profit_usd"), "trades": m.get("trades"), "opw": m.get("orders_per_week"),
                     "expectancy": d["expectancy_sigma"].get("expectancy"), "max_dd_pct": m.get("max_drawdown_pct")})
@@ -568,8 +620,16 @@ def evaluate_quarters(cx, SCFG, table, strat, cells, e_time, cost, sig, AC, Pol,
 
 
 def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_dir: Path, fold: str, freeze_per_seed: bool = True,
-               missing_frac: float = 0.0, ledger: bool = True, gate: str = "contract") -> dict:
-    Pol = policy_cls(gate)
+               missing_frac: float = 0.0, ledger: bool = True, gate: str = "contract", family: str = "c3") -> dict:
+    fam = FAMILIES[family]
+    if fam is None:
+        Pol, roll, freeze_fn = policy_cls(gate), ACT.rollout_with_trades, None
+    else:
+        tpf, vf = fam
+        SCFG = scfg_full(SCFG, vf)
+        AC = contract_full(AC, tpf, vf)
+        Pol = policy_factory(PolicyFullPerBar if gate == "perbar" else SF.PolicyFull, SCFG)
+        roll = SF.rollout_with_volume
     cost_row = row_costs(cx, SCFG, truth.cost - C3.cost_sigma_of(cx, SCFG, 0.0, np.flatnonzero(cx.obs_ok & (cx.ds.period == CAL_BLOCK)))) if gate == "perbar" else None
     cells = [tuple(c) for c in truth.cells]
     sig = np.asarray(cx.ds.sigma, float)
@@ -578,7 +638,10 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
     sel_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == SEL_BLOCK))
     view_rows = np.union1d(cal_rows, sel_rows)
     rho_day = 0.5 if variant == "block" else 0.0
-    res = {"fold": fold, "variant": variant, "gate": gate, "quality": dataclasses.asdict(q), "seeds": list(seeds), "contract": AC["identity"],
+    res = {"fold": fold, "variant": variant, "gate": gate, "family": family, "quality": dataclasses.asdict(q), "seeds": list(seeds), "contract": AC["identity"],
+           "exec_config": {"max_entries_per_day": SCFG.max_entries_per_day, "sizing_mode": getattr(SCFG.variant, "sizing_mode", None), "risk_pct": getattr(SCFG.variant, "risk_pct", None),
+                           "cutoff_h": getattr(SCFG.variant, "entry_cutoff_hours_before_flat", None), "percentual_order_size": SCFG.percentual_order_size, "rel_volume": SCFG.sizing.rel_volume},
+           "formulas": (AC["strategy"].get("formulas") if fam else None), "genes_bounds": AC["strategy"]["genes"], "primary_fitness": AC["strategy"]["fitness"]["default"],
            "exec_variant": (AC.get("exec_variant") or {}).get("identity"), "blocks": {"calibration": CAL_BLOCK, "selection": SEL_BLOCK, "decision": DEC_BLOCK},
            "cost_sigma": truth.cost, "e_time": truth.e_time, "per_seed": []}
     obs_backup = cx.obs_ok.copy()
@@ -593,48 +656,63 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
             table, sim = simulate_table(cx, SCFG, truth, q, int(seed), rho_day)
             if cost_row is not None:
                 table["cost_row"] = cost_row
-            score_table = score_fn(cx, SCFG, cells, truth.e_time, truth.cost, AC, SEL_BLOCK, sig, min_opw, Pol)
+            score_table = score_fn(cx, SCFG, cells, truth.e_time, truth.cost, AC, SEL_BLOCK, sig, min_opw, Pol, roll)
             rec = {"seed": int(seed), "simulation": sim}
             try:
-                fr = C3.freeze(table, view_rows, score_table, AC, int(seed), "final", AC["strategy"]["fitness"]["default"], closer_src_of(truth),
-                               cells, truth.e_time, truth.cost, cal_rows)
-                strat = C2.strategy_of(fr)
+                if fam is None:
+                    fr = C3.freeze(table, view_rows, score_table, AC, int(seed), "final", AC["strategy"]["fitness"]["default"], closer_src_of(truth),
+                                   cells, truth.e_time, truth.cost, cal_rows)
+                    strat = C2.strategy_of(fr)
+                else:
+                    fr = freeze_full(table, view_rows, cal_rows, score_table, AC, int(seed), closer_src_of(truth), cells, truth.e_time, truth.cost, tpf, vf,
+                                     float(getattr(SCFG.variant, "risk_pct", 0.01)))
+                    strat = SF.strategy_from_dict(fr["strategy"]) if fr.get("strategy") else None
+                    if strat is None:
+                        raise SystemExit(f"STRATEGY_NO_SELECTABLE_POINT:{fr.get('note')}")
+                    ap = out_dir / "archive" / f"{fold}_{variant}_{gate}_{family}_q{q.open:.2f}_s{seed}.json.gz"
+                    ap.parent.mkdir(parents=True, exist_ok=True)
+                    import gzip
+                    with gzip.open(ap, "wt") as fh:
+                        json.dump({k: r["points"] for k, r in fr["runs"].items()}, fh, default=float)
+                    rec["archive"] = str(ap.relative_to(out_dir))
                 rec["strategy"] = fr["strategy"]
                 rec["chosen_calibration"] = {k: fr["chosen"].get(k) for k in ("sharpe", "lcb", "opw", "opw_ci_lb", "side_max_share", "agent_closes", "dd", "trades") if fr["chosen"]}
-                rec["gene_map"] = {k: v for k, v in fr["gene_map"].items() if k != "references"}
+                rec["gene_map"] = {k: v for k, v in (fr.get("gene_map") or {}).items() if k != "references"}
+                rec["chosen_genes"] = (fr.get("chosen") or {}).get("genes")
                 rec["front_points"] = fr.get("fitness_diversity", {}).get("selectable_front_points")
                 rec["by_fitness_chosen_genes"] = {f: (v["chosen"] or {}).get("genes") for f, v in fr["by_fitness"].items()}
-                bench = early_close_benefit(cx, table, strat, SCFG, cells, truth.e_time, truth.cost, Pol)
+                bench = early_close_benefit(cx, table, strat, SCFG, cells, truth.e_time, truth.cost, Pol, roll=roll)
                 rec["early_close_benefit_calibration"] = {k: bench[k] for k in ("mean_daily_diff_usd", "lower_bound", "beneficial")}
                 if not bench["beneficial"]:
                     strat = strat.no_early_close()
                     rec["early_close_disabled"] = True
                 rec["strategy_effective"] = strat.to_dict()
                 if seed == seeds[0]:                                   # one-at-a-time gene sensitivity on the SELECTION block (declared)
-                    rec["sensitivity"] = gene_sensitivity(cx, SCFG, table, fr, truth, AC, cells, sig, min_opw, view_rows, cal_rows, Pol=Pol)
+                    rec["sensitivity"] = (gene_sensitivity_full(cx, SCFG, table, fr, truth, AC, cells, sig, min_opw, view_rows, cal_rows, Pol, roll, tpf, vf)
+                                          if fam else gene_sensitivity(cx, SCFG, table, fr, truth, AC, cells, sig, min_opw, view_rows, cal_rows, Pol=Pol))
                 # (owner) which fitness: every variant's chosen point, scored ONCE on the decision block (and on selection, for the gap)
                 byf = {}
                 for f, v in fr["by_fitness"].items():
                     if not v.get("strategy"):
                         byf[f] = {"valid": False, "note": v.get("note")}
                         continue
-                    stf = C2.strategy_from_dict(v["strategy"])
+                    stf = (SF.strategy_from_dict if fam else C2.strategy_from_dict)(v["strategy"])
                     if rec.get("early_close_disabled"):
                         stf = stf.no_early_close()
-                    dsel = evaluate(cx, SCFG, table, stf, cells, truth.e_time, truth.cost, SEL_BLOCK, sig, AC, SCFG.capital, False, None, Pol)
-                    ddec = evaluate(cx, SCFG, table, stf, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, False, None, Pol)
+                    dsel = evaluate(cx, SCFG, table, stf, cells, truth.e_time, truth.cost, SEL_BLOCK, sig, AC, SCFG.capital, False, None, Pol, roll)
+                    ddec = evaluate(cx, SCFG, table, stf, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, False, None, Pol, roll)
                     byf[f] = {"valid": True, "genes": (v["chosen"] or {}).get("genes"), "nop_veto_kept": v.get("nop_veto_kept"),
                               "selection": {k: dsel["metrics"].get(k) for k in ("sharpe_daily_sqrt365", "net_profit_usd", "orders_per_week", "trades")} | {"expectancy": dsel["expectancy_sigma"].get("expectancy")},
                               "decision": {k: ddec["metrics"].get(k) for k in ("sharpe_daily_sqrt365", "net_profit_usd", "orders_per_week", "trades", "max_drawdown_pct", "valid")}
                                           | {"expectancy": ddec["expectancy_sigma"].get("expectancy"), "expectancy_low": ddec["expectancy_sigma"].get("low"), "lcb": ddec["components"].get("lcb")}}
                 rec["by_fitness"] = byf
-                rec["quarters"] = evaluate_quarters(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, sig, AC, Pol, qtags)
+                rec["quarters"] = evaluate_quarters(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, sig, AC, Pol, qtags, roll)
                 rows_led = [] if ledger else None
-                rec["selection"] = evaluate(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, SEL_BLOCK, sig, AC, SCFG.capital, True, None, Pol)
-                rec["decision"] = evaluate(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, True, rows_led, Pol)
+                rec["selection"] = evaluate(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, SEL_BLOCK, sig, AC, SCFG.capital, True, None, Pol, roll)
+                rec["decision"] = evaluate(cx, SCFG, table, strat, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, True, rows_led, Pol, roll)
                 if ledger and rows_led:
                     import pandas as pd
-                    p = out_dir / "ledger" / f"{fold}_{variant}_{gate}_q{q.open:.2f}_s{seed}.csv.gz"
+                    p = out_dir / "ledger" / f"{fold}_{variant}_{gate}_{family}_q{q.open:.2f}_s{seed}.csv.gz"
                     p.parent.mkdir(parents=True, exist_ok=True)
                     pd.DataFrame(rows_led).to_csv(p, index=False, compression="gzip")
                     rec["ledger"] = str(p.relative_to(out_dir))
@@ -642,7 +720,7 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
                 rec["refused"] = str(e)[:400]
             rec["seconds"] = round(time.time() - t0, 1)
             res["per_seed"].append(rec)
-            print(json.dumps({"fold": fold, "variant": variant, "q": q.open, "seed": seed, "sec": rec["seconds"],
+            print(json.dumps({"fold": fold, "variant": variant, "family": family, "q": q.open, "seed": seed, "sec": rec["seconds"],
                               "dec_sharpe": (rec.get("decision") or {}).get("metrics", {}).get("sharpe_daily_sqrt365"),
                               "dec_net": (rec.get("decision") or {}).get("metrics", {}).get("net_profit_usd"),
                               "refused": rec.get("refused")}), flush=True)
@@ -651,11 +729,11 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
     return res
 
 
-def early_close_benefit(cx, table, strat, SCFG, cells, e_time, cost, Pol, spec=C3.EARLY_CLOSE_BENEFIT) -> dict:
+def early_close_benefit(cx, table, strat, SCFG, cells, e_time, cost, Pol, spec=C3.EARLY_CLOSE_BENEFIT, roll=ACT.rollout_with_trades) -> dict:
     """c3.early_close_benefit with the policy class of the gate variant (same statistic, same bootstrap)."""
     p = spec["block"]
-    m1, t1 = ACT.rollout_with_trades(cx, p, Pol(table, strat, cells, e_time, cost)(cx), SCFG)
-    m0, t0 = ACT.rollout_with_trades(cx, p, Pol(table, strat.no_early_close(), cells, e_time, cost)(cx), SCFG)
+    m1, t1 = roll(cx, p, Pol(table, strat, cells, e_time, cost)(cx), SCFG)
+    m0, t0 = roll(cx, p, Pol(table, strat.no_early_close(), cells, e_time, cost)(cx), SCFG)
     d1, d0 = C3.daily_pnl(t1), C3.daily_pnl(t0)
     days = sorted(set(d1) | set(d0))
     diff = np.array([d1.get(d, 0.0) - d0.get(d, 0.0) for d in days])
@@ -687,6 +765,49 @@ def gene_sensitivity(cx, SCFG, table, fr: dict, truth: Truth, AC, cells, sig, mi
             lo, hi = bounds[g]
             g2[g] = float(min(max(genes[g] + sign * delta, lo), hi))
             c = score_table(view, C3.StrategyC3.from_genes(gm.to_absolute(g2), veto))
+            row[f"sharpe_{name}_delta"] = float(c["sharpe"] - base["sharpe"]) if math.isfinite(c["sharpe"]) and math.isfinite(base["sharpe"]) else float("nan")
+            row[f"opw_{name}_delta"] = float(c["opw"] - base["opw"])
+            row[f"valid_{name}"] = bool(c["valid"])
+        out.append(row)
+    return out
+
+
+def freeze_full(table, view_rows, cal_rows, score_table, AC, seed, closer_src, cells, e_time, cost, tpf, vf, risk_pct) -> dict:
+    """The FULL layer frozen on the selection view: C3's quantile map for the thresholds + copied coefficient genes;
+    NSGA-II over every gene (``FULL_OPTIMIZER``); no combinatorial feasibility probe (gene space declared non-Q)."""
+    view = C2.restrict(table, view_rows)
+    ref = C3.closer_reference_sides(table, closer_src or {})
+    bounds = AC["strategy"]["genes"]
+    gm = SF.gene_map_full(view, cal_rows, ref, cells, e_time, cost, bounds)
+    make = lambda g, veto, _gm=gm: SF.StrategyFull.from_genes(_gm.to_absolute(g), veto, tpf, vf, risk_pct)  # noqa: E731
+    fr = ACT.freeze_strategy(table, view_rows, score_table, AC, seed, "final", AC["strategy"]["fitness"]["default"], gene_names=tuple(bounds),
+                             make_strategy=make, restrict_fn=C2.restrict)
+    fr["gene_map"] = gm.describe()
+    return fr
+
+
+def gene_sensitivity_full(cx, SCFG, table, fr, truth, AC, cells, sig, min_opw, view_rows, cal_rows, Pol, roll, tpf, vf, delta: float = 0.1) -> list:
+    ch = fr.get("chosen") or {}
+    genes = dict(ch.get("genes") or {})
+    if not genes:
+        return []
+    view = C2.restrict(table, view_rows)
+    ref = C3.closer_reference_sides(table, closer_src_of(truth))
+    bounds = AC["strategy"]["genes"]
+    gm = SF.gene_map_full(view, cal_rows, ref, cells, truth.e_time, truth.cost, bounds)
+    veto = bool(fr.get("nop_veto_kept"))
+    rp = float(getattr(SCFG.variant, "risk_pct", 0.01))
+    score_table = score_fn(cx, SCFG, cells, truth.e_time, truth.cost, AC, SEL_BLOCK, sig, min_opw, Pol, roll)
+    base = score_table(view, SF.StrategyFull.from_genes(gm.to_absolute(genes), veto, tpf, vf, rp))
+    out = []
+    for g in genes:
+        lo, hi = bounds[g]
+        step = delta * (hi - lo) if (hi - lo) > 1.0 else delta
+        row = {"gene": g, "value": float(genes[g]), "sharpe_base": base["sharpe"], "opw_base": base["opw"]}
+        for sign, name in ((-1, "minus"), (1, "plus")):
+            g2 = dict(genes)
+            g2[g] = float(min(max(genes[g] + sign * step, lo), hi))
+            c = score_table(view, SF.StrategyFull.from_genes(gm.to_absolute(g2), veto, tpf, vf, rp))
             row[f"sharpe_{name}_delta"] = float(c["sharpe"] - base["sharpe"]) if math.isfinite(c["sharpe"]) and math.isfinite(base["sharpe"]) else float("nan")
             row[f"opw_{name}_delta"] = float(c["opw"] - base["opw"])
             row[f"valid_{name}"] = bool(c["valid"])
@@ -774,12 +895,12 @@ def cmd_run(a):
     seeds = [int(s) for s in a.seeds.split(",")]
     for lv in [float(x) for x in a.levels.split(",")]:
         q = quality_for(a.variant, lv)
-        p = out / f"RUN_{a.fold}_{a.variant}_{a.gate}_q{lv:.2f}.json"
+        p = out / (f"RUN_{a.fold}_{a.variant}_{a.gate}_q{lv:.2f}.json" if a.family == "c3" else f"RUN_{a.fold}_{a.variant}_{a.gate}_{a.family}_q{lv:.2f}.json")
         if p.exists() and not a.force:
             print(json.dumps({"skip": str(p)}), flush=True)
             continue
         miss = {"missing10": 0.10, "missing30": 0.30}.get(a.variant, 0.0)
-        res = run_config(cx, S, truth, AC, q, seeds, a.variant, out, a.fold, missing_frac=miss, ledger=not a.no_ledger, gate=a.gate)
+        res = run_config(cx, S, truth, AC, q, seeds, a.variant, out, a.fold, missing_frac=miss, ledger=not a.no_ledger, gate=a.gate, family=a.family)
         res["scenario"] = SCENARIOS.get(a.variant, "")
         res["level"] = lv
         p.write_text(json.dumps(res, indent=1, default=float))
@@ -792,7 +913,7 @@ def _agg(runs: list) -> list:
             d = s.get("decision") or {}
             m, c, ex = d.get("metrics", {}), d.get("components", {}), d.get("expectancy_sigma", {})
             sel = (s.get("selection") or {}).get("metrics", {})
-            rows.append({"fold": r["fold"], "variant": r["variant"], "gate": r.get("gate", "contract"), "level": r["level"], "seed": s["seed"], "refused": s.get("refused"),
+            rows.append({"fold": r["fold"], "variant": r["variant"], "gate": r.get("gate", "contract"), "family": r.get("family", "c3"), "level": r["level"], "seed": s["seed"], "refused": s.get("refused"),
                          "auc_cal": s.get("simulation", {}).get("achieved", {}).get("calibration", {}).get("auc_tp_first_side0"),
                          "auc_dec": s.get("simulation", {}).get("achieved", {}).get("decision", {}).get("auc_tp_first_side0"),
                          "spearman_dec": s.get("simulation", {}).get("achieved", {}).get("decision", {}).get("spearman_net_side0"),
@@ -839,6 +960,7 @@ def main():
     r.add_argument("--levels", default=",".join(str(x) for x in LADDER))
     r.add_argument("--seeds", default="0,1,2")
     r.add_argument("--gate", default="contract", choices=list(POLICIES))
+    r.add_argument("--family", default="c3", choices=list(FAMILIES))
     r.add_argument("--force", action="store_true")
     r.add_argument("--no-ledger", action="store_true")
     rp = sub.add_parser("report")
