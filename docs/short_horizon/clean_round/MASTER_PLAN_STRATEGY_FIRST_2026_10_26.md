@@ -1,7 +1,7 @@
 # Plan maestro, con la estrategia primero (orden del propietario, 2026-10-26)
 
 Regla del propietario: la estrategia es cimiento; debe estar simulada, probada y optimizada **antes** de configurar
-cabezales, entrenar o seleccionar. Ningún paso avanza con un defecto conocido en el anterior. Sin "pendientes": lo que
+cabezales, entrenar o seleccionar. Ningún paso avanza con un defecto conocido en el anterior. Sin tareas abiertas: lo que
 no se puede, se hace de otra forma o se da como límite medido.
 
 ## Fase 0 — Estrategia con salidas simuladas (en curso, carril F9)
