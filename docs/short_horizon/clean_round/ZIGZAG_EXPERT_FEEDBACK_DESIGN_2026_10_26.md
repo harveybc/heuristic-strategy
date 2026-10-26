@@ -272,3 +272,117 @@ imitación, (iii) el veto NOP en la capa superior evaluado por su valor, no por 
    nulo.
 7. **Costo computacional**: cinco especialistas + modelo de recompensa por semilla y por subconjunto del SBFS; el
    presupuesto 128 × 3 es el declarado y puede terminar en BUDGET.
+
+## §9. La estrategia completa, para la auditoría cruzada
+
+Autocontenido. Nombres de parámetros tal como están en `app/short_horizon/expert_guided/c2.py` (contrato C2/C3),
+`action_contract.py` y `exec_variants.py`. Lo que no está en archivo se declara como no probado (§9d).
+
+### (a) Salidas exactas del modelo y cómo se usan, decisión por decisión
+
+**Cabezas** (contrato C3, módulos `open_l`, `open_s`, `nop`, `close_l`, `close_s`; `c2.modules`):
+
+| cabeza | salida | codificación | rango | calibración |
+| --- | --- | --- | --- | --- |
+| `open_d.hit` (d ∈ {l, s}) | P(TP primero), P(SL primero), P(TIME) en la celda de referencia `REF_CELL` = (1.5σ, 1.5σ) | softmax 3 clases | simplex | Platt binaria por clase relevante (`platt_binary`, bloque `INNER_A`, 15 bins ECE) |
+| `open_d.value:net_<celda>` | neto esperado en σ tras costos para cada celda (TP, SL) ∈ {0.5, 1, 1.5, 2} × {0.75, 1.5, 2.5} (12 valores) | regresión acotada en la red (`reg_bounds`: lo + (hi − lo)·sigmoid) | [−SL − costo, TP − costo] por celda, recortado al tope efectivo por barra (`exec_variants.effective_cap`) | sin calibración (regresión); se reporta Spearman frente al neto realizado |
+| `nop.NOP` | P(no hay nada que ganar o el trade es riesgoso) | softmax 2 clases | [0, 1] | Platt |
+| `close_d.SL_FIRST` | P(el SL llega antes que el TP desde aquí), con geometría causal de la propia orden | softmax 2 clases | [0, 1] | Platt |
+| `close_d.value:remaining_sigma` | valor de mantener frente a cerrar ahora, en σ | regresión acotada | declarado en el contrato | — |
+
+**Genes de la estrategia** (`c2.GENES_Q13`, todos como tasas/cuantiles del bloque de calibración, mapeados una vez y
+congelados; `Q_BOUNDS_13`): `open_rate_l`, `open_rate_s` ∈ [0.002, 0.30]; `close_rem_rate` ∈ [0, 0.60];
+`close_p_rate` ∈ [0, 0.60]; `allow_reverse` ∈ [0, 1] (≥ 0.5 = sí); `nop_veto_rate` ∈ [0, 0.50]. Mapa
+(`gene_map`): `open_margin_l` = cuantil_{1 − open_rate_l} del mejor neto previsto LONG sobre las celdas en las filas planas
+de calibración; `open_margin_s` análogo; `close_margin` = −cuantil_{close_rem_rate} del valor restante previsto en las
+visitas posicionadas de calibración; `close_p` = cuantil_{1 − close_p_rate} de P(SL primero) calibrada; `nop_veto` =
+cuantil_{1 − nop_veto_rate} de pNOP calibrada. Restricciones (dominancia de Deb): actividad ≥ 2.0 trades/semana con la
+**cota inferior del IC 90 %** en calibración (`activity_interval`), lado ≤ `SIDE_CAP` = 0.90, `require_early_close`
+(`early_close_ok(share ≥ 0.05, value_lcb ≥ 0)`); prueba de factibilidad (`feasibility_probe`) → `STRATEGY_SPACE_INFEASIBLE`.
+
+**Tick plano, en orden** (`c2` regla `rule`, `ContractPolicy`):
+1. Veto NOP: si pNOP_cal(t) > `nop_veto` → HOLD (si el veto se conservó: sólo cuando sube la cota inferior en calibración).
+2. Por lado d: celda* = argmax_celda `open_d.value:net_<celda>`; neto*_d = su valor.
+3. Candidato: el lado con mayor neto*_d si neto*_d > `open_margin_d`; si ninguno supera su margen → HOLD. (El neto
+   previsto ya incluye costo; no se fuerza actividad: "sin trade" es válido.)
+4. Puerta mejor-del-día (`exec_variants.BestOfDayGate`, `observe_bars` = 3, regla de secretaria causal): los primeros 3
+   ticks elegibles del día de negocio sólo se observan; después se coloca la primera señal cuyo puntaje ≥ el mejor del
+   día **y** ≥ `threshold`. Con `observe_bars` = 0 degenera a "la primera que cruza" (lo que la auditoría A4-2 midió).
+5. Orden: lado d, fill en open_{t+1}, TP y SL = los de la celda* en σ_{t+1} (sólo barras ≤ t), recortados al tope
+   efectivo (`clip_multiples`); tamaño por riesgo (`sizing_mode` = "risk", `risk_pct` = 0.01:
+   unidades = ⌊risk_pct · balance / (distancia_SL · valor_pip)⌋, acotado por `rel_volume` ∈ [0.10, 0.20] y apalancamiento
+   ≤ 1:50, enteras). Tope diario del contrato de replay (1 entrada/día) aplicado por el entorno (`DAILY_CAP`), nunca en
+   las etiquetas.
+6. Corte del viernes: `entry_cutoff_hours_before_flat` = 24 → una entrada cuyo fill quede a < 24 h del cierre forzoso se
+   rechaza (`VARIANT_CUTOFF`); el calendario original sigue en vigor.
+
+**Tick posicionado, lado d** (parada óptima):
+1. CLOSE si `close_d.value:remaining_sigma`(t) < −`close_margin` **o** P(SL primero)_cal(t) > `close_p`; si no, HOLD.
+2. Reversión: si CLOSE y `allow_reverse` ≥ 0.5 y la regla de apertura elige el lado opuesto en el mismo tick → se cierra y
+   se abre el contrario con su celda*; con `reverse_counts_as_one_entry` = True la reversión cuenta como **una**
+   decisión de entrada frente al tope diario (A4-1).
+3. El entorno aplica SL/TP/cierre forzoso en cada barra con orden conservador (SL antes que TP dentro de la barra;
+   `short_trigger_on_ask` = True desplaza el disparo del stop corto al ask).
+
+Variante de ejecución declarada para C3: `full_f3` = `exec_709f9b1fa3512486` (riesgo 1 %, reversión = una decisión,
+corte 24 h, disparos ask); control `legacy` = `exec_5d80473b21dc61a0`. La identidad del contrato C3 sella arquitectura
+(`trunk`, `fusion_units`, `core_blocks`, `readout`), celdas, genes, mapa, calibración y variante de ejecución.
+
+### (b) Cómo se prueba la estrategia con datos ideales
+
+1. **Motor** (`evidence/exec_variants/ENGINE_CHECK.md`, barras admitidas 2021-01→2021-04, 1 entrada/día, 1:50, TEST
+   nunca leído): política con **visión perfecta** de la dirección a 12 h, TP/SL 1σ/1σ: primera-del-día **+7 536 USD,
+   Sharpe 9.37, DD 4.57 %** (47 trades, 21 % de entradas en la hora 0); con `BestOfDayGate(observe 3)` **+8 178 USD,
+   Sharpe 14.82, DD 1.41 %**, 0 % de entradas en la hora 0; con riesgo 1 % Sharpe 9.49 / DD 2.24 % (neto menor porque el
+   1 % dimensiona por debajo de la exposición fija 5×); corte 24 h: salidas TIME 7 → 3. **Moneda al aire** (5
+   semillas): −151 / −83 / −120 / −69 USD según variante ≈ los costos. Sin trade = 0 exacto. Conclusión: el motor, los
+   costos y el tamaño no están rotos (también auditoría A4, `synth.py`: +7.5–9.8 k USD con visión perfecta).
+2. **Tubería completa con característica trampa** (A6, `PIPELINE_CONTROLS_2026_10_26.md`, rama
+   `satoshi/pipeline-controls-20261026` @5b049e8; evidencia compacta `evidence/pipeline_controls_DIAGNOSTIC/`): mismo
+   comando E3-M que WF_V13 / C2_13, fold wf2022, 1 semilla, 2022 congelado: v1.3 **Sharpe 8.33**, PF 4.3, 42/58 %
+   compra/venta, 68 cierres propios, AUC de cabezas 0.80/0.88; C2 **9.67**, PF 11.6, AUC 0.84; oráculo 14.0. Ruido
+   graduado: σ = 0.5 → 9.5/9.0; σ = 1 → 7.5/7.4; σ = 2 → 4.1/2.5 (oráculo 12.0/10.5/6.7).
+3. **Mercado sintético con señal moderada plantada** (GARCH + deriva AR(1), κ = 0.1, media vida 12 h; la columna sola
+   predice con AUC 0.63; oráculo Sharpe 2.58): v1.3 **0.48** (FALLA), C2 **−0.85** (FALLA), C2 sin distractores 0.49
+   (FALLA). Dónde se pierde: etiquetas de pivote (la fuga perfecta las predice sólo a AUC 0.60), cabezas que sobreajustan
+   ~107 distractores (logística 0.73 frente a red 0.55 sobre el mismo tensor), cerradores anti-predictivos fuera de
+   muestra (AUC 0.43), búsqueda de estrategia con Sharpe 4.1 en calibración con ruido puro. **C3 debe pasar este
+   control (5 semillas, tronco TCN) como puerta antes de cualquier selección**; hoy no lo ha corrido.
+4. **Controles negativos**: etiquetas barajadas globalmente −0.29 / −0.01 y entradas de ruido 0.62 / −0.49 (≈ 0, sin
+   fuga). El barajado intra-día dio ganancia por diseño del control (etiquetas con horizonte ≈ 1 día casi idénticas en el
+   mismo día), no por fuga; se reemplaza por barajado global/semanal.
+5. **Corrección del trading** (`evidence/trading_detail/`, @4cc2913): 15/15 chequeos PASAN en todas las unidades,
+   semillas y periodos (SL y TP en toda orden y en el lado correcto, tamaño y `rel_volume`, apalancamiento ≤ 1:50,
+   unidades enteras, ≤ 1 entrada/día, sin solapes, fill en la apertura siguiente, precio de salida coherente con la razón,
+   ventana operativa, cierre antes del forzoso, costos > 0, protección re-derivada barra a barra, neto = bruto − costos);
+   cada replay reproduce su corrida exactamente.
+
+### (c) Dónde viven los resultados y cómo re-ejecutarlos
+
+| resultado | ruta (rama `satoshi/expert-guided-rl-20261019` salvo indicación) | commit | re-ejecución |
+| --- | --- | --- | --- |
+| chequeo del motor (visión perfecta / moneda) | `docs/short_horizon/clean_round/evidence/exec_variants/{ENGINE_CHECK.md,ENGINE_CHECK.json,README.md}` | 36b55e8 | `tools/exec_variants_check.py` (CPU, barras admitidas 2021-01→04) |
+| controles de tubería (trampa, ruido, sintético, negativos) | `docs/short_horizon/clean_round/PIPELINE_CONTROLS_2026_10_26.md`, `evidence/pipeline_controls_DIAGNOSTIC/` (rama `satoshi/pipeline-controls-20261026`) | 5b049e8 | `tools/pipeline_controls.py build / run-e3m / oracle / probe-heads / learner-check / ablate-strategy / summarize` (CPU 3G, un fold) |
+| detalle de trading y 15 chequeos | `docs/short_horizon/clean_round/evidence/trading_detail/{SUMMARY.md,TRADING_DETAIL_V13.md,TRADING_DETAIL_C2_C2G_13.md,trades/*.csv.gz}` | 4cc2913 | `tools/expert_guided_trading_report.py` sobre los directorios de unidad del paquete |
+| auditoría de cierre temprano | `evidence/early_close/EARLY_CLOSE_AUDIT_BASELINE.{md,json}` | 664821d | `tools/expert_guided_early_close_audit.py` |
+| registro de defectos (A1, A2, A4, A5, A6) | `ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md` | 3772893 | scripts de los auditores en sus scratch (no versionados; medidas citadas en el registro) |
+| C3 (contratos, código) | `contracts/ACTION_CONTRACT_C3.json` (`action_302289e2b317966e`), `ACTION_CONTRACT_C3_TCN.json` (`action_088ee4fdc709f96b`) | 682539f | `tools/expert_guided_e3m.py run --recipe … --action-contract …` |
+| tronco TCN con paridad | `app/short_horizon/expert_guided/temporal.py`, `tests/test_expert_guided_residual_tcn.py`, `evidence/residual_tcn/PARAM_COUNTS.json` | 62f6530 | `pytest tests/test_expert_guided_residual_tcn.py` |
+| testigos de este diseño | `tools/expert_feedback_witnesses.py`, `tests/test_expert_feedback_witnesses.py` | este commit | `python tools/expert_feedback_witnesses.py` (CPU, segundos) |
+
+Los directorios de unidad con checkpoints, `E3M.json`, `PROBE.json`, `TRIAL_LEDGER.jsonl` están en el paquete del host
+del 4090 (`<root>/out/<unidad>/`) y una copia parcial en el coordinador (`<root>/out_from_host/out/`); no se versionan.
+
+### (d) Lo que NO está probado para C3 (nada más que lo que hay en archivo)
+
+- C3 **no ha corrido** ni la trampa, ni el ruido graduado, ni el mercado sintético, ni los negativos; su primera prueba
+  con datos reales fue un humo de plomería. Hasta que pase el control sintético con 5 semillas y el tronco TCN, **no**
+  hay evidencia de que C3 recupere una señal moderada.
+- El acuerdo experto–realidad, el libro por tick y las curvas por tipo (§5) sólo existen en el testigo sintético; en
+  producción se emiten con la primera corrida de C3.
+- La puerta mejor-del-día, el tamaño por riesgo y el corte de 24 h están probados en el motor con visión perfecta y
+  moneda al aire, **no** con una política aprendida: su efecto sobre C3 es una hipótesis medible.
+- La selección SBFS con el evaluador real no ha empezado; las 121 columnas de la receta v2 son el candidato, no una
+  selección.
+- Todo resultado anterior a C3 (línea base WF, V13, C2, C2G) es negativo en los años congelados y, por el control
+  sintético, fue medido **por debajo del suelo de la tubería**: no prueba ausencia de señal ni presencia.
