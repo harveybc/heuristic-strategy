@@ -22,3 +22,9 @@ Lo que queda **fuera** por esta orden: la lista de 19 (retirada), los stores por
 reutiliza el store existente), cualquier experimento con lista reducida antes de que el SBFS la produzca.
 
 Secuencia: F1 (C3) → controles de entrada completa (3 familias × 3 semillas) → SBFS 128 × 3 → informe → confirmación.
+
+**Conciliación con el protocolo v11 (F2):** los contratos anidados (`WALK_FORWARD_NESTED`) y su exigencia de store por
+fold quedan reservados para la **confirmación** posterior; la **selección** usa el store consolidado existente bajo el
+alcance `development`, como Musashi. El lanzador acepta el store consolidado en la fase de selección con la etiqueta
+`DEVELOPMENT_SHARED_STORE` (declarada, nunca "fuera de muestra"); la exigencia `fold_local_store_required` se aplica sólo
+a unidades de confirmación.
