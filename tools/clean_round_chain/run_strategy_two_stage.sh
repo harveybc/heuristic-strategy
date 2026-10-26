@@ -18,6 +18,7 @@ for fam in ${FAMILIES:-c3 param_param}; do
   $CR -q -W ${MAXWAIT:-43200} -m ${MEM_A:-6G} -t 43200s -n stage-a-$fam${NAME_SUFFIX:-} -- $PY tools/strategy_hierarchy.py stage-a --fold ${FOLD_A:-wf2022} --admitted $ADM --csv-dir $CSV --catalog $ROOT/hier/CATALOG.json \
      --family $fam --population ${POP_A:-32} --generations ${GEN_A:-16} --seed 0 ${LEAVES:+--max-leaves $LEAVES} --out $ROOT/hier > $ROOT/logs/stage_a_$fam.log 2>&1 && log "stage A $fam DONE: $(tail -1 $ROOT/logs/stage_a_$fam.log | cut -c1-200)" || log "stage A $fam FAILED (see logs/stage_a_$fam.log)"
 done
+if [ -n "${SKIP_B:-}" ]; then log "two-stage end (Stage A only)"; exit 0; fi
 JOBLIST=$ROOT/JOBS_B.txt; : > $JOBLIST
 for f in ${FOLDS:-wf2022 wf2023}; do for fam in ${FAMILIES:-c3 param_param}; do
   [ -f $ROOT/hier/STAGE_A_$fam.json ] && echo "$f $fam" >> $JOBLIST

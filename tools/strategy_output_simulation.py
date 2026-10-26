@@ -74,9 +74,19 @@ def beta_for_auc(auc: float) -> float:
     return _ND.inv_cdf(a) / math.sqrt(2.0)              # AUC < 0.5 -> a negative beta: an inverted head
 
 
+def rho_of_level(level: float) -> float:
+    """The regression correlation carrying the SAME information as a binary head of AUC = level: for a bivariate normal
+    latent, AUC = 1/2 + arcsin(rho)/pi, so rho = sin(pi (level - 1/2)). Level 0.5 -> rho 0 (chance), 0.7 -> 0.588,
+    1.0 -> 1 (oracle). Round 1 used rho = level, whose 'chance' floor still carried Spearman 0.48 (the defect the
+    oracle / chance floor check exposed; recorded in the report)."""
+    return float(min(1.0, max(0.0, math.sin(math.pi * (float(level) - 0.5)))))
+
+
 def sigma_for_rho(rho: float, sd_true: float) -> float:
     """r = x + eps with eps ~ N(0, sigma^2): corr(r, x) = rho  ->  sigma = sd(x) * sqrt(1/rho^2 - 1). rho 1 -> 0."""
-    r = min(max(float(rho), 0.05), 1.0)
+    r = min(max(float(rho), 0.0), 1.0)
+    if r <= 1e-6:
+        return float(sd_true) * 1e3                             # chance: the truth is drowned (corr ~ 0.001)
     return 0.0 if r >= 1.0 else float(sd_true) * math.sqrt(1.0 / r ** 2 - 1.0)
 
 
@@ -332,14 +342,15 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
     t = {"net": np.full((n, 2, nc), np.nan), "p3": np.full((n, 2, 3), np.nan), "pn": np.full(n, np.nan), "cap": truth.cap, "lo": truth.lo}
     lat = {"tp": np.full((n, 2), np.nan), "sl": np.full((n, 2), np.nan), "nop": np.full(n, np.nan)}
     sd_net = float(np.nanstd(truth.net[cal])) if np.isfinite(truth.net[cal]).any() else 1.0
+    mu_net = float(np.nanmean(truth.net[cal])) if np.isfinite(truth.net[cal]).any() else 0.0   # the calibration-block naive (the regression's shrinkage target)
     qual = {}
     for r in rows:
         day = int(truth.day[r])
         qo = {si: q.side(si) for si in (0, 1)}
-        qn, qnp = q.net, q.nop
+        qn, qnp = rho_of_level(q.net), q.nop                  # the net regression's rho from its LEVEL (same information as an AUC-level binary)
         if dec[r] and q.decision_drop > 0:
             qo = {si: max(0.5, v - q.decision_drop) for si, v in qo.items()}
-            qn, qnp = max(0.05, qn - q.decision_drop), max(0.5, qnp - q.decision_drop)
+            qn, qnp = rho_of_level(max(0.5, q.net - q.decision_drop)), max(0.5, qnp - q.decision_drop)
         for si in (0, 1):
             h = int(truth.hit3[r, si])
             e = noise.draw(("open", int(r), si), day, 2)
@@ -351,7 +362,10 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
             if q.const_net:
                 t["net"][r, si, :] = 0.0                        # a constant net head: the RR rule alone decides the cell
             elif np.all(np.isfinite(x)):
-                t["net"][r, si, :] = x + sigma_for_rho(qn, sd_net) * (0.5 * en[0] + math.sqrt(0.75) * en[1:])   # shared row + cell noise
+                # a trained MSE head outputs the conditional mean E[x | r] = mu + rho^2 (r - mu) of its noisy view r = x + eps:
+                # corr(E[x|r], x) = rho, MAE / naive = sqrt(1 - rho^2); chance (rho 0) returns the naive mean, the oracle returns x
+                r_noisy = x + sigma_for_rho(qn, sd_net) * (0.5 * en[0] + math.sqrt(0.75) * en[1:])   # shared row + cell noise
+                t["net"][r, si, :] = mu_net + (qn ** 2) * (r_noisy - mu_net)
             else:
                 t["net"][r, si, :] = -1.0                       # no eligible entry at this row: the strategy must not open here
         e = noise.draw(("nop", int(r)), day, 1)
@@ -864,11 +878,11 @@ def quality_for(variant: str, level: float) -> Quality:
     elif variant == "asym":
         q.open_s = max(0.5, level - 0.10)
     elif variant == "closer_only":
-        q.open, q.net, q.nop = 0.5, 0.05, 0.5
+        q.open, q.net, q.nop = 0.5, 0.5, 0.5
     elif variant == "opener_only":
         q.close = 0.5
     elif variant == "nop_only":
-        q.open, q.net, q.close = 0.5, 0.05, 0.5
+        q.open, q.net, q.close = 0.5, 0.5, 0.5
     elif variant == "regime":
         q.decision_drop = 0.10
     elif variant == "cal08":

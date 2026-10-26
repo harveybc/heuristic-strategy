@@ -34,12 +34,20 @@ Para cada tick t (fila observable), lado d y cabeza:
   AUC 0.5 → β = 0 (azar), AUC < 0.5 → β < 0 (cabeza invertida). La probabilidad que consume la estrategia es Platt(s)
   ajustada en el bloque de calibración; TIME = 1 − P(TP) − P(SL), renormalizado (aproximación declarada de la cabeza
   de 3 clases).
-- **Regresiones** (neto por celda, valor restante): r = x + σ_n·ε con **σ_n = sd(x)·√(1/ρ² − 1)** para una correlación
-  ρ; ruido compartido por fila (50 %) + ruido por celda; se reporta la Spearman lograda, el MAE y **MAE/MAE naive**
-  (naive = la media del bloque de calibración), como exige la regla de barridos de ruido del propietario.
-- **Escalera de calidad**: AUC = ρ ∈ {0.50, 0.52, 0.55, 0.58, 0.62, 0.66, 0.70, 0.75, 0.80, 0.90, 1.00} (base) y
-  {0.50, 0.62, 0.70, 0.80, 1.00} (escenarios). La calidad lograda se mide en el bloque de calibración y en el de
-  decisión y se publica junto a la pedida (pruebas: AUC pedida lograda ± 0.01; ρ ± 0.03).
+- **Regresiones** (neto por celda): vista ruidosa r = x + σ_n·ε con **σ_n = sd(x)·√(1/ρ² − 1)** para una correlación
+  ρ (ruido compartido por fila 50 % + ruido por celda) y **salida = media condicional E[x | r] = μ + ρ²·(r − μ)**, que es
+  lo que entrega una cabeza entrenada por MSE (μ = media del bloque de calibración, el naive): corr(salida, x) = ρ,
+  **MAE/MAE naive = √(1 − ρ²)**; el azar devuelve el naive y el oráculo devuelve x. Se reporta la Spearman lograda, el
+  MAE y MAE/MAE naive, como exige la regla de barridos de ruido del propietario. La correlación se deriva
+  del nivel de la escalera con **la misma información que una binaria de AUC = nivel**: para una latente normal
+  bivariada AUC = ½ + arcsen(ρ)/π, luego **ρ = sen(π·(nivel − ½))** (0.50 → 0 = azar; 0.70 → 0.588; 1.00 → 1 =
+  oráculo). La primera ronda de barridos usó ρ = nivel, y su "suelo de azar" (nivel 0.50) todavía llevaba Spearman
+  0.48 en la regresión del neto: la estrategia ganaba con abridores al azar (Sharpe 3.4) y el equilibrio no se podía
+  medir. El chequeo oráculo / azar lo expuso; la ronda se descartó entera y se repitió con el mapeo correcto (§12).
+- **Escalera de calidad**: nivel ∈ {0.50, 0.52, 0.55, 0.58, 0.62, 0.66, 0.70, 0.75, 0.80, 0.90, 1.00} (base) y
+  {0.50, 0.62, 0.70, 0.80, 1.00} (escenarios); AUC = nivel para las binarias, ρ = sen(π·(nivel − ½)) para la regresión.
+  La calidad lograda se mide en el bloque de calibración y en el de decisión y se publica junto a la pedida (pruebas:
+  AUC pedida lograda ± 0.01; ρ ± 0.03).
 - **Realismo de forma**: desbalance de clases y cuota de TIME reales (vienen de la verdad), asimetría por lado,
   correlación serial del error dentro del día (variante `block`, ρ_día 0.5), caída de calidad a mitad del bloque de
   decisión (variante `regime`), deriva de calibración (logits × 0.8 / × 1.2), retardo de una fila (`lag1`), saturación,
@@ -231,3 +239,4 @@ observe_bars se usan directamente; el corte es el del contrato de ejecución, 24
 | el testigo de densidad fina no era monótono con el nivel L2 | amplitudes 1.5 / 2.5 / 4 sd y umbral de pivote 2 sd | `strategy_hierarchy.fine_pivot_count` |
 | el sondeo de factibilidad 2^k del optimizador es inviable con 26 genes | el contrato FULL declara un espacio de genes no cuantil y salta el sondeo | `contract_full`, `freeze_full` |
 | la ausencia de observación por bloque de un día no se distinguía del ruido | prueba a través de días | `tests/test_strategy_output_simulation.py` |
+| **el suelo de azar no era azar**: la regresión del neto recibía ρ = nivel (Spearman 0.48 a nivel 0.50) y la estrategia ganaba con abridores al azar (Sharpe 3.4, 0.39 σ/trade en decisión); el equilibrio salía 0.50 en todos los escenarios | ρ = sen(π·(nivel − ½)) (misma información que una binaria de AUC = nivel); **toda la primera ronda** (396 corridas C3, 100 FULL, Etapa A de las dos familias) descartada y repetida; la ronda descartada queda en el directorio de trabajo (`round1_rho_level/`, manifiesto) | `rho_of_level`, §2 |

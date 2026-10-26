@@ -80,7 +80,7 @@ def test_simulated_table_matches_requested_quality_per_block(monkeypatch):
     a = sim["achieved"]
     for blk in ("calibration", "decision"):
         assert abs(a[blk]["auc_tp_first_side0"] - 0.75) < 0.03 and abs(a[blk]["auc_nop"] - 0.75) < 0.03
-        assert abs(a[blk]["spearman_net_side0"] - 0.75) < 0.05
+        assert abs(a[blk]["spearman_net_side0"] - S.rho_of_level(0.75)) < 0.05      # rho = sin(pi (level - 1/2)) = 0.707
         assert 0.3 < a[blk]["mae_over_naive_net_side0"] < 1.0
     # Platt maps fitted on the calibration block only: the calibrated TP-first probability matches the base rate there
     cal = rows[t.period[rows] == "INNER_A"]
@@ -165,3 +165,23 @@ def test_stage_b_box_restricts_bounds_and_keeps_declared_ones():
     assert out["strategy"]["stage_a"]["best_mean_genes"] == {"a": 0.5}
     assert AC["strategy"]["genes"]["a"] == [0.0, 1.0]                   # the input contract is untouched
     assert S.apply_stage_a(AC, None) is AC
+
+
+def test_regression_level_maps_to_information_equivalent_rho():
+    """Level 0.5 must be chance for the regression too (round 1 gave rho = level and the chance floor carried
+    Spearman 0.48); the mapping rho = sin(pi (level - 1/2)) equals the AUC = 1/2 + arcsin(rho)/pi identity."""
+    import math
+    from tools import strategy_output_simulation as S
+    assert S.rho_of_level(0.5) == 0.0 and S.rho_of_level(1.0) == 1.0
+    assert S.rho_of_level(0.7) == pytest.approx(math.sin(math.pi * 0.2))
+    for lv in (0.55, 0.62, 0.8):
+        r = S.rho_of_level(lv)
+        assert 0.5 + math.asin(r) / math.pi == pytest.approx(lv)
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal(20000)
+    sig = S.sigma_for_rho(S.rho_of_level(0.5), 1.0)
+    r = x + sig * rng.standard_normal(20000)
+    assert abs(np.corrcoef(x, r)[0, 1]) < 0.02                      # chance floor
+    sig7 = S.sigma_for_rho(S.rho_of_level(0.7), 1.0)
+    r7 = x + sig7 * rng.standard_normal(20000)
+    assert abs(np.corrcoef(x, r7)[0, 1] - math.sin(math.pi * 0.2)) < 0.03
