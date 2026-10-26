@@ -394,7 +394,7 @@ def _entry_bars(v, lo, hi, cutoff):
 
 
 def _account(bars, trades, split, initial_capital, evaluated, refused, orders_submitted=None, unfilled=0,
-             margin_closeout=0.5):
+             margin_closeout=0.5, close_time_equity=False):
     ts = bars.index
     a, b = (pd.Timestamp(x) for x in split)
     sel = np.flatnonzero((ts >= a) & (ts < b))
@@ -407,15 +407,29 @@ def _account(bars, trades, split, initial_capital, evaluated, refused, orders_su
     unreal = np.zeros(n)
     in_pos = np.zeros(n, bool)
     intervals = []
+    mark_ts = ts[first:last + 1] + HOUR if close_time_equity else ts[first:last + 1]
     for t in trades:
         i, j = t["entry_bar_abs"] - first, t["exit_bar_abs"] - first
         cash[i] -= t["entry_cost_usd"]
         cash[j] += t["gross_usd"] - t["exit_cost_usd"]
+        if close_time_equity:
+            events = t.get("financing_events")
+            if events is None:
+                raise ValueError("FINANCING_EVENTS_REQUIRED")
+            total = sum(x["amount_usd"] for x in events)
+            if not math.isclose(total, t["financing_usd"], abs_tol=1e-9):
+                raise ValueError("FINANCING_EVENTS_MISMATCH")
+            cash[j] += total  # Move, do not duplicate, the close-time debit.
+            for event in events:
+                at = int(mark_ts.searchsorted(pd.Timestamp(event["time_ns"], tz="UTC")))
+                if not i <= at <= j:
+                    raise ValueError("FINANCING_EVENT_OUTSIDE_TRADE")
+                cash[at] -= event["amount_usd"]
         if j > i:
             unreal[i:j] = t["direction"] * t["units"] * (close[first + i:first + j] - t["entry_price"])
         in_pos[i:j + 1] = True
         intervals.append((t["entry_time"], t["exit_time"], t["units"]))
-    equity = pd.Series(initial_capital + np.cumsum(cash) + unreal, index=ts[first:last + 1])
+    equity = pd.Series(initial_capital + np.cumsum(cash) + unreal, index=mark_ts)
     day = equity.groupby(equity.index.normalize()).last()
     days = pd.date_range(day.index[0], day.index[-1], freq="D")
     daily = day.reindex(days).ffill()

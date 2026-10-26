@@ -28,11 +28,15 @@ Owner hard rules enforced here for EVERY agent (expert, student, SAC replays):
 
 Accounting reuses ``execution._account`` so net profit, drawdown, Sharpe (daily, sqrt(365), calendar days
 incl. closures) and Sortino have exactly the definitions of every other short-horizon result.
+
+Revision event_costs_v2 changes this engine's equity clock to completed bars,
+accrues swap while open and executes margin stop-out. Historical block simulators
+retain their separate accounting default. See docs/execution_cost_modes.md.
 """
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
@@ -89,6 +93,11 @@ class EnvConfig:
     rules: X.OrderRules = field(default_factory=X.OrderRules)
     same_direction: str = "IGNORE"
     reverse: str = "CLOSE_AND_OPEN"
+    cost_mode: str = "configured"
+
+    def __post_init__(self):
+        if self.cost_mode not in ("configured", "zero_cost"):
+            raise ValueError("COST_MODE: expected configured or zero_cost")
 
 
 @dataclass
@@ -109,7 +118,8 @@ class BarEnv:
 
     def __init__(self, bars: pd.DataFrame, cal, sigma: np.ndarray, sigma_rule: np.ndarray, start, end,
                  cfg: EnvConfig = EnvConfig()):
-        self.bars, self.cal, self.cfg = bars, cal, cfg
+        self.bars, self.cal = bars, cal
+        self.cfg = replace(cfg, profile=cfg.profile.scaled(0)) if cfg.cost_mode == "zero_cost" else cfg
         self.v = bars.index.as_unit("ns").asi8
         self.o, self.h, self.l, self.c = (bars[k].to_numpy(float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
         self.sigma, self.sigma_rule = np.asarray(sigma, float), np.asarray(sigma_rule, float)
@@ -139,6 +149,7 @@ class BarEnv:
                                       "refused_ENTRY_CUTOFF", "refused_DAILY_CAP", "refused_UNITS",
                                       "refused_LEVELS", "refused_GAP_BEYOND_LEVEL", "refused_NO_SIGMA",
                                       "refused_SESSION_END", "refused_RUIN", "ignored_same_direction",
+                                      "refused_FILL_DISTANCE", "close_MARGIN_CLOSEOUT",
                                       "levels_clipped", "decisions")}
         self.decisions = []
         return self.first
@@ -216,26 +227,72 @@ class BarEnv:
             return None
         return tp, sl, clipped
 
-    def _fill_cost(self, units, k, kind):
+    def _financing_events(self, until_ns):
+        p, prof = self.pos, self.cfg.profile
+        if p is None:
+            return []
+        rate = prof.swap_long_per_lot if p.direction > 0 else prof.swap_short_per_lot
+        return [{"time_ns": int(r), "amount_usd": float(-rate * p.units / prof.lot_units *
+                    (3 if i == prof.triple_swap_rollover_index else 1))}
+                for i, r in enumerate(self.cal.rollover_ns(p.seg), start=1)
+                if self.v[p.entry_bar] < r <= until_ns]
+
+    def equity_at(self, bar, price=None, at_open=False):
+        """Accrual mark; reading it never changes realized cash or charges twice."""
+        p = self.pos
+        if p is None:
+            return float(self.balance)
+        when = int(self.v[bar]) + (0 if at_open else H_NS)
+        fin = sum(x["amount_usd"] for x in self._financing_events(when))
+        mark = float(self.c[bar]) if price is None else float(price)
+        return float(self.balance + p.direction * p.units * (mark - p.entry_price)
+                     - sum(p.entry_cost.values()) - fin)
+
+    def _margin_level(self, k, at_open=True):
+        p = self.pos
+        when = int(self.v[k]) + (0 if at_open else H_NS)
+        fin = sum(x["amount_usd"] for x in self._financing_events(when))
+        threshold = self.cfg.sizing.required_margin(p.units, p.entry_price) * self.cfg.sizing.margin_closeout
+        return p.entry_price + p.direction * (threshold - self.balance +
+                sum(p.entry_cost.values()) + fin) / p.units
+
+    def _risk_hit(self, k, open_only=False):
+        """Nearest adverse barrier first; never assume a favorable OHLC path."""
+        p = self.pos
+        margin = self._margin_level(k)
+        stop = max(p.sl, margin) if p.direction > 0 else min(p.sl, margin)
+        margin_first = stop != p.sl
+        o = self.o[k]
+        hi, lo = (o, o) if open_only else (self.h[k], self.l[k])
+        hit = X._protect(p.direction, p.tp, stop, o, hi, lo, self.cfg.profile.limit_through)
+        if hit is None:
+            return None
+        reason, price, at_open, amb = hit
+        if reason == "SL" and margin_first:
+            # A gap crossing both has no observed ordering; SL wins the declared tie.
+            crossed_sl = o <= p.sl if p.direction > 0 else o >= p.sl
+            if not (at_open and crossed_sl):
+                reason = "MARGIN_CLOSEOUT"
+        return reason, price, at_open, amb
+
+    def _fill_cost(self, units, k, kind, time_ns=None):
         prof = self.cfg.profile
         si = int(self.seg_of[k])
         slip = {"MARKET": prof.slippage_market, "SL": prof.slippage_stop, "TP": 0.0}[kind]
-        return {"spread": units * prof.spread_at(int(self.v[k]), int(self.mo[si])) / 2, "slippage": units * slip,
+        when = int(self.v[k]) if time_ns is None else int(time_ns)
+        return {"spread": units * prof.spread_at(when, int(self.mo[si])) / 2, "slippage": units * slip,
                 "commission": units / prof.lot_units * prof.commission_per_lot_side}
 
-    def _close(self, k: int, price: float, at_open: bool, reason: str, ambiguous: bool = False):
+    def _close(self, k: int, price: float, at_open: bool, reason: str, ambiguous: bool = False,
+               known_close: bool = False):
         p, prof = self.pos, self.cfg.profile
-        kind = {"SL": "SL", "TP": "TP"}.get(reason, "MARKET")
-        fc_out = self._fill_cost(p.units, k, kind)
+        kind = {"SL": "SL", "TP": "TP", "MARGIN_CLOSEOUT": "SL"}.get(reason, "MARKET")
         entry_ns = int(self.v[p.entry_bar])
         exit_ns = int(self.v[k]) + (0 if at_open else H_NS)
-        lots = p.units / prof.lot_units
-        rate = prof.swap_long_per_lot if p.direction > 0 else prof.swap_short_per_lot
-        fin, rolls = 0.0, 0
-        for i, r in enumerate(self.cal.rollover_ns(p.seg), start=1):
-            if entry_ns < r <= exit_ns:
-                rolls += 1
-                fin -= rate * lots * (3 if i == prof.triple_swap_rollover_index else 1)
+        intrabar = not at_open and not known_close and reason in ("SL", "TP", "MARGIN_CLOSEOUT")
+        fc_out = self._fill_cost(p.units, k, kind, int(self.v[k]) if intrabar else exit_ns)
+        events = self._financing_events(exit_ns)
+        fin, rolls = sum(x["amount_usd"] for x in events), len(events)
         gross = p.direction * p.units * (price - p.entry_price)
         entry_cost = sum(p.entry_cost.values())
         exit_cost = sum(fc_out.values()) + fin
@@ -248,6 +305,9 @@ class BarEnv:
                "spread_usd": p.entry_cost["spread"] + fc_out["spread"],
                "slippage_usd": p.entry_cost["slippage"] + fc_out["slippage"],
                "commission_usd": p.entry_cost["commission"] + fc_out["commission"], "financing_usd": fin,
+               "financing_events": events, "accounting_version": "event_costs_v2",
+               "cost_mode": self.cfg.cost_mode,
+               "exit_clock": ("OPEN" if at_open else "INTRABAR_END_PROXY_COST_AT_OPEN" if intrabar else "CLOSE"),
                "rollovers": rolls, "entry_cost_usd": entry_cost, "exit_cost_usd": exit_cost,
                "net_usd": gross - entry_cost - exit_cost, "notional_usd": p.units * (p.entry_price + price),
                "stop_loss": p.sl, "take_profit": p.tp, "margin_usd": p.units * p.entry_price / self.cfg.sizing.leverage,
@@ -266,6 +326,15 @@ class BarEnv:
         k = b + 1
         self.counts["decisions"] += 1
         info = {"b": b, "action": int(action), "entry": False, "close": None, "refused": None}
+        # Existing broker protections take precedence over an agent instruction at the open.
+        if self.pos is not None:
+            hit = self._risk_hit(k, open_only=True)
+            if hit is not None:
+                reason, price, at_open, amb = hit
+                self._close(k, float(price), bool(at_open), reason, amb)
+                info["close"] = reason
+                self.decisions.append(b)
+                return info
         want_close, want_entry = False, 0
         p = self.pos
         if action == CLOSE and p is not None:
@@ -289,7 +358,7 @@ class BarEnv:
                 ok, why = False, "LEVELS"
             units = None
             if ok:
-                units = self.cfg.sizing.order_units(self.balance, float(self.c[b]), self.cfg.percentual_order_size)
+                units = self.cfg.sizing.order_units(self.balance, float(self.o[k]), self.cfg.percentual_order_size)
                 if units is None:
                     ok, why = False, "UNITS"
             if ok:
@@ -297,6 +366,8 @@ class BarEnv:
                 o = float(self.o[k])
                 if not ((sl < o < tp) if want_entry > 0 else (tp < o < sl)):
                     ok, why = False, "GAP_BEYOND_LEVEL"
+                elif min(abs(sl - o), abs(tp - o)) < self.cfg.rules.min_distance:
+                    ok, why = False, "FILL_DISTANCE"
             if not ok:
                 self.counts["refused_" + why] += 1
                 info["refused"] = why
@@ -311,11 +382,17 @@ class BarEnv:
         # 3) protections on bar b + 1 (open gap first, stop before take-profit)
         if self.pos is not None:
             p = self.pos
-            hit = X._protect(p.direction, p.tp, p.sl, self.o[k], self.h[k], self.l[k], self.cfg.profile.limit_through)
+            hit = self._risk_hit(k)
             if hit is not None:
                 reason, price, at_open, amb = hit
                 self._close(k, float(price), bool(at_open), reason, amb)
                 info["close"] = reason
+        # A rollover at this close can itself breach the margin threshold.
+        if self.pos is not None:
+            threshold = self.cfg.sizing.required_margin(self.pos.units, self.pos.entry_price) * self.cfg.sizing.margin_closeout
+            if self.equity_at(k) <= threshold:
+                self._close(k, float(self.c[k]), False, "MARGIN_CLOSEOUT", known_close=True)
+                info["close"] = "MARGIN_CLOSEOUT"
         # 4) forced flat: close at the close of the last bar before the forced flat (or a session end)
         if self.pos is not None:
             si = int(self.seg_of[k])
@@ -335,8 +412,9 @@ class BarEnv:
         self.flatten_at_end()
         res = X._account(self.bars, self.trades, self.split, self.cfg.capital, self.decisions,
                          self.counts["refused_GAP_BEYOND_LEVEL"], orders_submitted=self.counts["entries"],
-                         margin_closeout=self.cfg.sizing.margin_closeout)
+                         margin_closeout=self.cfg.sizing.margin_closeout, close_time_equity=True)
         m = dict(res.metrics)
+        m.update(cost_mode=self.cfg.cost_mode, accounting_version="event_costs_v2")
         m.update({f"n_{k}": int(v) for k, v in self.counts.items()})
         dec_v = self.v[np.asarray(self.decisions, int) + 1] if self.decisions else np.array([], np.int64)
         weeks = {tuple(pd.Timestamp(int(t), tz="UTC").isocalendar()[:2]) for t in dec_v}
