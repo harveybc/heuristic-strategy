@@ -1,0 +1,467 @@
+{
+ "status": "DIAGNOSTIC",
+ "unit": "DIAGNOSTIC_cheat_noise2_v13",
+ "contract": "action_564e6b858bb08951",
+ "c2": false,
+ "recipe": {
+  "identity": "recipe_DIAGNOSTIC_CHEAT_NOISE2_36924e9f95437185",
+  "sha256": "a3b89fd9bf482cc2aee1e8b5a84f37f33522a8ff1c489f75eff8657906a6bb3c"
+ },
+ "diagnostic_control": {
+  "status": "DIAGNOSTIC",
+  "pin_admitted": "",
+  "shuffle_labels_within_day": null,
+  "shuffle_labels_global": null,
+  "shuffle_ledger_samples": 0,
+  "shuffle_moved_share": null
+ },
+ "seeds": {
+  "20261019": {
+   "heads": {
+    "open_l": {
+     "INNER_A": {
+      "auc": 0.7565760326110359,
+      "brier": 0.045548652436032094,
+      "n": 9364,
+      "pos": 470
+     },
+     "INNER_B": {
+      "auc": 0.8146284253918797,
+      "brier": 0.10937483518123842,
+      "n": 4725,
+      "pos": 611
+     }
+    },
+    "open_s": {
+     "INNER_A": {
+      "auc": 0.752353487170409,
+      "brier": 0.04556969003737322,
+      "n": 9364,
+      "pos": 470
+     },
+     "INNER_B": {
+      "auc": 0.8660034356359309,
+      "brier": 0.10614072450245678,
+      "n": 4725,
+      "pos": 611
+     }
+    },
+    "close_l": {
+     "INNER_A": {
+      "auc": 0.6778527958143069,
+      "brier": 0.1771129556615374,
+      "n": 1153,
+      "pos": 299
+     },
+     "INNER_B": {
+      "auc": 0.5871543411665536,
+      "brier": 0.25478945626392807,
+      "n": 1453,
+      "pos": 523
+     }
+    },
+    "close_s": {
+     "INNER_A": {
+      "auc": 0.6245788434265114,
+      "brier": 0.17905914059970438,
+      "n": 2013,
+      "pos": 498
+     },
+     "INNER_B": {
+      "auc": 0.5277702136573105,
+      "brier": 0.24241375615098437,
+      "n": 1129,
+      "pos": 385
+     }
+    },
+    "nop": {
+     "INNER_A": {
+      "auc": 0.6252677753558659,
+      "brier": 0.19417568031990712,
+      "n": 9350,
+      "pos": 6727
+     },
+     "INNER_B": {
+      "auc": 0.6252328092955154,
+      "brier": 0.21062745912636757,
+      "n": 4717,
+      "pos": 3208
+     }
+    }
+   },
+   "strategy": {
+    "open_threshold_l": 0.12280737206252113,
+    "open_threshold_s": 0.13103829544216233,
+    "gain_margin_l": -2.118698683457775,
+    "gain_margin_s": -1.986048549555434,
+    "close_threshold": 0.3829558135415341,
+    "allow_reverse": true,
+    "nop_veto": null
+   },
+   "chosen": {
+    "genes": {
+     "open_rate_l": 0.081513,
+     "open_rate_s": 0.079392,
+     "gain_quantile_l": 0.226548,
+     "gain_quantile_s": 0.646767,
+     "close_rate": 0.135271,
+     "allow_reverse": 0.92176
+    },
+    "first_generation": 20,
+    "veto": false,
+    "opw_ci_mean": 3.5925925925925926,
+    "opw_ci_lb": 3.2222222222222223,
+    "opw_ci_ub": 3.888888888888889,
+    "opw_ci_weeks": 27,
+    "long": 58,
+    "short": 39,
+    "side_max_share": 0.5979381443298969,
+    "sharpe": 8.475770636691765,
+    "se_lo": 1.4761129624627514,
+    "lcb": 6.999657674229013,
+    "dd": 2.920342522581291,
+    "opw": 3.5925925925925926,
+    "opd": 0.7185185185185186,
+    "r_ann": 1.4633076738471127,
+    "trade_t": 7.142110583254869,
+    "trade_mean_sigma": 0.36822379402096483,
+    "trade_tstat_reused": 7.179212706077321,
+    "calmar": 50.107398790799884,
+    "return_minus_dd": 1.4341042486212998,
+    "trades": 97,
+    "days": 184,
+    "weeks_below_2": 1,
+    "weeks_below_2_share": 0.037037037037037035,
+    "agent_closes": 40,
+    "valid": true,
+    "violation": 0.0,
+    "reasons": [],
+    "fitness": {
+     "sharpe_lcb": 6.999657674229013,
+     "sharpe_plus_return": 2.0099979683792957,
+     "sharpe_plus_return_plus_activity": 2.860875161361752,
+     "trade_tstat": 7.179212706077321,
+     "calmar": 50.107398790799884,
+     "return_minus_dd": 1.4341042486212998,
+     "balanced": 1.9941804677264057
+    }
+   },
+   "nop_veto_kept": false,
+   "gene_values": {
+    "open_rate_l": 0.081513,
+    "open_rate_s": 0.079392,
+    "gain_quantile_l": 0.226548,
+    "gain_quantile_s": 0.646767,
+    "close_rate": 0.135271,
+    "allow_reverse": 0.92176
+   },
+   "best_epochs": {
+    "open_l": 80,
+    "open_s": 67,
+    "close_l": 82,
+    "close_s": 91,
+    "nop": 63
+   },
+   "fits": {
+    "open_l": {
+     "epochs": 90,
+     "best_epoch": 80,
+     "stop_reason": "patience"
+    },
+    "open_s": {
+     "epochs": 77,
+     "best_epoch": 67,
+     "stop_reason": "patience"
+    },
+    "close_l": {
+     "epochs": 92,
+     "best_epoch": 82,
+     "stop_reason": "patience"
+    },
+    "close_s": {
+     "epochs": 101,
+     "best_epoch": 91,
+     "stop_reason": "patience"
+    },
+    "nop": {
+     "epochs": 73,
+     "best_epoch": 63,
+     "stop_reason": "patience"
+    }
+   },
+   "engine": {
+    "TRAIN": {
+     "net_profit_usd": 80278.53383835727,
+     "sharpe_daily_sqrt365": 6.958708741485603,
+     "max_drawdown_pct": 7.2452596379848035,
+     "trades": 308,
+     "win_rate": 0.6688311688311688,
+     "profit_factor": 3.414197113160779,
+     "orders_per_week": 3.8987341772151898,
+     "valid": true,
+     "n_entries_long": 167,
+     "n_entries_short": 141,
+     "n_close_TP": 143,
+     "n_close_SL": 0,
+     "n_close_FORCED_FLAT": 30,
+     "n_close_AGENT_CLOSE": 115,
+     "n_close_REVERSAL": 20
+    },
+    "INNER_A": {
+     "net_profit_usd": 7376.674301037499,
+     "sharpe_daily_sqrt365": 8.475770636691765,
+     "max_drawdown_pct": 2.920342522581291,
+     "trades": 97,
+     "win_rate": 0.7319587628865979,
+     "profit_factor": 5.0453203483971425,
+     "orders_per_week": 3.5925925925925926,
+     "valid": true,
+     "n_entries_long": 58,
+     "n_entries_short": 39,
+     "n_close_TP": 49,
+     "n_close_SL": 0,
+     "n_close_FORCED_FLAT": 8,
+     "n_close_AGENT_CLOSE": 35,
+     "n_close_REVERSAL": 5
+    },
+    "INNER_B": {
+     "net_profit_usd": 22359.42154910127,
+     "sharpe_daily_sqrt365": 4.07024536067638,
+     "max_drawdown_pct": 12.109538187661569,
+     "trades": 168,
+     "win_rate": 0.6785714285714286,
+     "profit_factor": 2.4112266068137234,
+     "orders_per_week": 3.169811320754717,
+     "valid": true,
+     "n_entries_long": 75,
+     "n_entries_short": 93,
+     "n_close_TP": 74,
+     "n_close_SL": 6,
+     "n_close_FORCED_FLAT": 25,
+     "n_close_AGENT_CLOSE": 60,
+     "n_close_REVERSAL": 3
+    },
+    "OBS_2024": {
+     "net_profit_usd": 2061.7461375772946,
+     "sharpe_daily_sqrt365": 1.2307086548053843,
+     "max_drawdown_pct": 20.03670591514952,
+     "trades": 190,
+     "win_rate": 0.5210526315789473,
+     "profit_factor": 1.2638853959905196,
+     "orders_per_week": 3.5849056603773586,
+     "valid": true,
+     "n_entries_long": 110,
+     "n_entries_short": 80,
+     "n_close_TP": 57,
+     "n_close_SL": 9,
+     "n_close_FORCED_FLAT": 25,
+     "n_close_AGENT_CLOSE": 90,
+     "n_close_REVERSAL": 9
+    }
+   },
+   "detail": {
+    "TRAIN": {
+     "trades_per_week": null,
+     "buy_share": 0.5422077922077922,
+     "sell_share": 0.4577922077922078,
+     "BUY": {
+      "trades": 167,
+      "win_rate": 0.6826347305389222,
+      "profit_factor": 3.341799272577511,
+      "expectancy_usd": 269.22859157439404,
+      "expectancy_sigma": 0.35025569439880017,
+      "net_usd": 44961.174792923804
+     },
+     "SELL": {
+      "trades": 141,
+      "win_rate": 0.6524822695035462,
+      "profit_factor": 3.5131062059346903,
+      "expectancy_usd": 250.47772372647876,
+      "expectancy_sigma": 0.3026621061708419,
+      "net_usd": 35317.359045433506
+     },
+     "exits": {
+      "TP": 143,
+      "SL": 0,
+      "TIME": 30,
+      "AGENT_CLOSE": 115,
+      "REVERSAL": 20
+     },
+     "equity": {
+      "net_profit_usd": 80278.53383835727,
+      "return_pct": 802.7853383835726,
+      "sharpe_daily_sqrt365": 6.958708741485603,
+      "sortino_daily_sqrt365": 16.130613761410284,
+      "max_drawdown_pct": 7.2452596379848035,
+      "win_rate": 0.6688311688311688,
+      "profit_factor": 3.4141971131607796,
+      "expectancy_usd": 260.64459038427697,
+      "expectancy_sigma": 0.32846772056716994,
+      "longest_losing_streak": 6,
+      "best_trade_usd": 1472.4350844662931,
+      "worst_trade_usd": -2707.6000000000618,
+      "monthly_pnl_usd": {
+       "2020-01": 198.57534014303565,
+       "2020-02": 852.616851374516,
+       "2020-03": 6756.295249786552,
+       "2020-04": 3960.543328518994,
+       "2020-05": 1815.681234047981,
+       "2020-06": 6922.0296280389375,
+       "2020-07": 6008.708520950917,
+       "2020-08": 4034.6738462339563,
+       "2020-09": 5317.79752739094,
+       "2020-10": 2751.583942069512,
+       "2020-11": 9181.742798260435,
+       "2020-12": 4913.85607634925,
+       "2021-01": 3930.292584512419,
+       "2021-02": 3900.886252046068,
+       "2021-03": 2594.4514020005154,
+       "2021-04": 8366.516505107094,
+       "2021-05": 6284.258268259451,
+       "2021-06": 2488.024483266694
+      }
+     },
+     "costs": {
+      "spread": 3612.2802,
+      "slippage": 1903.07392,
+      "commission": 4231.325559999999,
+      "financing": 735.4683799999999,
+      "gross_usd": 90760.68189835732,
+      "net_usd": 80278.53383835731,
+      "trading_cost_usd": 9746.67968,
+      "cost_share_of_gross_abs": 0.06516570116608789
+     },
+     "correctness_fail": 0
+    },
+    "INNER_A": {
+     "trades_per_week": null,
+     "buy_share": 0.5979381443298969,
+     "sell_share": 0.4020618556701031,
+     "BUY": {
+      "trades": 58,
+      "win_rate": 0.6551724137931034,
+      "profit_factor": 3.165269082497974,
+      "expectancy_usd": 51.80985060035442,
+      "expectancy_sigma": 0.2530939087245965,
+      "net_usd": 3004.9713348205564
+     },
+     "SELL": {
+      "trades": 39,
+      "win_rate": 0.8461538461538461,
+      "profit_factor": 11.03367572644261,
+      "expectancy_usd": 112.09494785171643,
+      "expectancy_sigma": 0.539442597795051,
+      "net_usd": 4371.702966216941
+     },
+     "exits": {
+      "TP": 49,
+      "SL": 0,
+      "TIME": 8,
+      "AGENT_CLOSE": 35,
+      "REVERSAL": 5
+     },
+     "equity": {
+      "net_profit_usd": 7376.674301037499,
+      "return_pct": 73.766743010375,
+      "sharpe_daily_sqrt365": 8.475770636691765,
+      "sortino_daily_sqrt365": 21.315427955829232,
+      "max_drawdown_pct": 2.920342522581291,
+      "win_rate": 0.7319587628865979,
+      "profit_factor": 5.045320348397141,
+      "expectancy_usd": 76.04818867048967,
+      "expectancy_sigma": 0.36822379402096483,
+      "longest_losing_streak": 3,
+      "best_trade_usd": 292.7106554367576,
+      "worst_trade_usd": -241.05937500000005,
+      "monthly_pnl_usd": {
+       "2021-07": 1151.0338545279083,
+       "2021-08": 357.7965576165425,
+       "2021-09": 1175.4370997562037,
+       "2021-10": 1062.9589272271041,
+       "2021-11": 2065.1730848905117,
+       "2021-12": 1564.274777019229
+      }
+     },
+     "costs": {
+      "spread": 276.061475,
+      "slippage": 164.37210000000002,
+      "commission": 385.64792,
+      "financing": 61.906475,
+      "gross_usd": 8264.662271037498,
+      "net_usd": 7376.674301037498,
+      "trading_cost_usd": 826.0814950000001,
+      "cost_share_of_gross_abs": 0.07189678368224492
+     },
+     "correctness_fail": 0
+    },
+    "INNER_B": {
+     "trades_per_week": null,
+     "buy_share": 0.44642857142857145,
+     "sell_share": 0.5535714285714286,
+     "BUY": {
+      "trades": 75,
+      "win_rate": 0.6266666666666667,
+      "profit_factor": 2.5616193893636496,
+      "expectancy_usd": 163.16269085390502,
+      "expectancy_sigma": 0.1979037087534377,
+      "net_usd": 12237.201814042875
+     },
+     "SELL": {
+      "trades": 93,
+      "win_rate": 0.7204301075268817,
+      "profit_factor": 2.2640549687492957,
+      "expectancy_usd": 108.84107241998281,
+      "expectancy_sigma": 0.25647905452337905,
+      "net_usd": 10122.219735058401
+     },
+     "exits": {
+      "TP": 74,
+      "SL": 6,
+      "TIME": 25,
+      "AGENT_CLOSE": 60,
+      "REVERSAL": 3
+     },
+     "equity": {
+      "net_profit_usd": 22359.42154910127,
+      "return_pct": 223.59421549101268,
+      "sharpe_daily_sqrt365": 4.07024536067638,
+      "sortino_daily_sqrt365": 6.618903929798093,
+      "max_drawdown_pct": 12.109538187661569,
+      "win_rate": 0.6785714285714286,
+      "profit_factor": 2.411226606813724,
+      "expectancy_usd": 133.09179493512664,
+      "expectancy_sigma": 0.23032934659036955,
+      "longest_losing_streak": 4,
+      "best_trade_usd": 1806.6464299742597,
+      "worst_trade_usd": -1539.0521549999758,
+      "monthly_pnl_usd": {
+       "2022-01": 104.36477551819735,
+       "2022-02": 517.7346521173549,
+       "2022-03": 1675.2497648785757,
+       "2022-04": 2108.7293606924904,
+       "2022-05": 73.90741981361134,
+       "2022-06": 1817.625000621134,
+       "2022-07": 1263.2885074605,
+       "2022-08": 241.56834427371723,
+       "2022-09": 2582.4851537847826,
+       "2022-10": 4633.804026875587,
+       "2022-11": 5025.699978885816,
+       "2022-12": 2314.964564179503
+      }
+     },
+     "costs": {
+      "spread": 722.86322,
+      "slippage": 447.48575000000005,
+      "commission": 971.46819,
+      "financing": 257.417575,
+      "gross_usd": 24758.656284101275,
+      "net_usd": 22359.421549101276,
+      "trading_cost_usd": 2141.81716,
+      "cost_share_of_gross_abs": 0.039151824204118967
+     },
+     "correctness_fail": 0
+    }
+   }
+  }
+ }
+}

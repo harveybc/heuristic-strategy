@@ -1,0 +1,24 @@
+{
+ "status": "DIAGNOSTIC",
+ "kind": "cheat_noise1",
+ "store": "/var/tmp/pipeline-controls-20261026/DIAGNOSTIC_cheat_noise1/store/full_pool_eurusd_h1.parquet",
+ "store_sha256": "0fa88c801b89975f3288cb94b0c59b9710ce0afe3fe809136127e0363e617bed",
+ "recipe": "/var/tmp/pipeline-controls-20261026/DIAGNOSTIC_cheat_noise1/recipe/CONSUMER_RECIPE_wf2022_DIAGNOSTIC_CHEAT_NOISE1.json",
+ "recipe_sha256": "6ee4e2a8942ac997fd402f251d9e0d04a25beaa9642aaba86a647d14973ab62a",
+ "identity": "recipe_DIAGNOSTIC_CHEAT_NOISE1_c33df59f2be1a24d",
+ "columns_with_changed_constants": [
+  "act.p_hit"
+ ],
+ "note": {
+  "column_replaced": "act.p_hit",
+  "leaked_feature": "first touch of close[b] +/- 1 sigma (sigma of the fill bar b+1) in bars b+1..forced flat: +1 up first, -1 down first, 0 neither/ambiguous",
+  "noise_sd": 1.0,
+  "noise_seed": 20261026,
+  "leak_value_counts_rows": {
+   "-1.0": 10492,
+   "0.0": 10328,
+   "1.0": 10296
+  },
+  "column_name_kept": "the tensor name is unchanged so the recipe's groups / model resolve identically"
+ }
+}

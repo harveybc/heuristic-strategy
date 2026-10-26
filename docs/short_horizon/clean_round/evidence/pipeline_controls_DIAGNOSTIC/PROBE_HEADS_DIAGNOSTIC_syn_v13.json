@@ -1,0 +1,85 @@
+{
+ "status": "DIAGNOSTIC",
+ "unit": "DIAGNOSTIC_syn_v13",
+ "column": "act.p_hit",
+ "seeds": {
+  "20261019": {
+   "open_l": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": -0.03573161378725364,
+     "spearman_reg0_vs_column": 0.06951210867572641
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": -0.03461354038210944,
+     "spearman_reg0_vs_column": 0.06441330375107879
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": -0.03652843812545236,
+     "spearman_reg0_vs_column": 0.09134694756473141
+    }
+   },
+   "open_s": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": 0.03369842033431486,
+     "spearman_reg0_vs_column": 0.015349571550567386
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": 0.07131655069162315,
+     "spearman_reg0_vs_column": 0.04745464945748016
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": 0.04431741574764742,
+     "spearman_reg0_vs_column": 0.03137852233953779
+    }
+   },
+   "nop": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": 0.0006439123823110229
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": -0.02713124083652434
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": -0.0006956160674790024
+    }
+   },
+   "close_l": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": -0.255726994574088
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": -0.24427503236695206
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": -0.20978932684833698
+    }
+   },
+   "close_s": {
+    "TRAIN": {
+     "rows": 8300,
+     "spearman_logit_vs_column": 0.026356976813044226
+    },
+    "INNER_A": {
+     "rows": 2900,
+     "spearman_logit_vs_column": 0.016931984300412255
+    },
+    "INNER_B": {
+     "rows": 5441,
+     "spearman_logit_vs_column": 0.02208595781627841
+    }
+   }
+  }
+ }
+}

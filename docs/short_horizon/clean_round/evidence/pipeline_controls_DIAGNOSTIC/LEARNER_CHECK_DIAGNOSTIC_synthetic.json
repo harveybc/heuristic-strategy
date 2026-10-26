@@ -1,0 +1,90 @@
+{
+ "status": "DIAGNOSTIC",
+ "column": "act.p_hit",
+ "sides": {
+  "open_l": {
+   "rows": {
+    "TRAIN": 6559,
+    "INNER_A": 2289,
+    "INNER_B": 4345
+   },
+   "positive_rate": {
+    "TRAIN": 0.2857142857142857,
+    "INNER_A": 0.22236784622105724,
+    "INNER_B": 0.26904487917146147
+   },
+   "column_alone_auc": {
+    "TRAIN": 0.5923709151462068,
+    "INNER_A": 0.5751396216419064,
+    "INNER_B": 0.628876647568483
+   },
+   "logreg_last_slot": {
+    "TRAIN": 0.7758398075558477,
+    "INNER_A": 0.7343248493410741,
+    "INNER_B": 0.7274584512155968
+   },
+   "logreg_full_window": {
+    "TRAIN": 0.8427628424238214,
+    "INNER_A": 0.7501821151850953,
+    "INNER_B": 0.7168846007158048
+   },
+   "gbm_last_slot": {
+    "TRAIN": 0.9976890983622428,
+    "INNER_A": 0.6573861504161056,
+    "INNER_B": 0.685138269700254
+   },
+   "net_column_alone_spearman": {
+    "TRAIN": 0.13495594357989882,
+    "INNER_A": 0.1486924176200912,
+    "INNER_B": 0.19811552938795385
+   },
+   "net_ridge_last_slot_spearman": {
+    "TRAIN": 0.24762479488111358,
+    "INNER_A": 0.14668022301834124,
+    "INNER_B": 0.1890794213733078
+   }
+  },
+  "open_s": {
+   "rows": {
+    "TRAIN": 6565,
+    "INNER_A": 2289,
+    "INNER_B": 4345
+   },
+   "positive_rate": {
+    "TRAIN": 0.26016755521706014,
+    "INNER_A": 0.25906509392747923,
+    "INNER_B": 0.26513233601841196
+   },
+   "column_alone_auc": {
+    "TRAIN": 0.5931277390511486,
+    "INNER_A": 0.5619093830538674,
+    "INNER_B": 0.6382948702891742
+   },
+   "logreg_last_slot": {
+    "TRAIN": 0.79138091814658,
+    "INNER_A": 0.6627278946196188,
+    "INNER_B": 0.7397062149841668
+   },
+   "logreg_full_window": {
+    "TRAIN": 0.8640328862131432,
+    "INNER_A": 0.6775052499284101,
+    "INNER_B": 0.7104913743605804
+   },
+   "gbm_last_slot": {
+    "TRAIN": 0.9982564578803909,
+    "INNER_A": 0.5632208708517611,
+    "INNER_B": 0.7256748703761701
+   },
+   "net_column_alone_spearman": {
+    "TRAIN": 0.1373104909698632,
+    "INNER_A": 0.16112423214275925,
+    "INNER_B": 0.1860523700247448
+   },
+   "net_ridge_last_slot_spearman": {
+    "TRAIN": 0.2605479174581108,
+    "INNER_A": 0.14601615778066596,
+    "INNER_B": 0.15719867085357114
+   }
+  }
+ }
+}
