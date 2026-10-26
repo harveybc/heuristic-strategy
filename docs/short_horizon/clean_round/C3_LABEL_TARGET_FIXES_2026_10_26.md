@@ -48,6 +48,30 @@ Los dos difieren SÓLO en `architecture` (y por tanto en la identidad). Decision
 - interruptor de cierre temprano: exec_variants.early_close_ok(agent close share >= 0.05, value lower bound >= 0) on the selection block; on failure the closers are not consulted (flagged)
 - entradas de los cerradores: recipe window + the order's own geometry (dist to SL / TP in sigma_entry, hours held / 24, side); openers / NOP: recipe window only
 
+## Smoke de punta a punta (DIAGNOSTIC, store trampa, wf2022, TCN por defecto, 1 semilla, 3 épocas, CPU 3G, `full_f3`, receta derivada `recipe_c3e7ecbbf95cd0e4`)
+
+E3-M completo (284 s): entrenamiento → calibración → estrategia congelada → `search_overfit` → prueba de cierre temprano. No es un resultado; prueba la tubería.
+
+| bloque | trades | /sem (cota inf. IC90) | largos / cortos | cierres propios | salidas TP / SL / tiempo / propio | Sharpe |
+| --- | ---: | ---: | --- | ---: | --- | ---: |
+| INNER_A (calibración) | 66 | 2.44 (2.07) | 25 / 41 | 53 | 9 / 1 / 3 / 53 | 3.02 |
+| INNER_B (decisión, una lectura) | 116 | 2.19 (1.89) | 31 / 85 | 110 | 5 / 0 / 1 / 110 | −0.17 |
+
+- Cabezas en la trampa (AUC calibrada INNER_A / INNER_B): open_l **0.81 / 0.81**, open_s 0.56 / 0.61, close_l 0.80 / 0.74, close_s 0.73 / 0.78, nop 0.57 / 0.55; Spearman de los netos por celda 0.15–0.29; cerradores 0.35–0.58. (3 épocas: la trampa está en `act.p_hit`; el abridor largo ya la lee.)
+- Objetivos de regresión: std en TRAIN 0.50–1.48σ (ninguno constante; `C3_CONSTANT_TARGET` no disparó). Temperatura ajustada 0.25 (piso de la rejilla: cabezas subconfiadas a 3 épocas).
+- Sobreajuste de la búsqueda: 604 puntos archivados, 31 del frente reproducidos; Sharpe deflactado 0.17 (z −0.95), **PBO 0.43**: el punto elegido en calibración no se distingue del máximo esperado de 604 pruebas nulas.
+- Cierre temprano: 80 % de las salidas propias en calibración, cota inferior del PnL diario pareado +20 USD/día → se mantiene (`early_close_ok`). Fuera de muestra cierra el 95 % (110 / 116): el cerrador aún no discrimina.
+- Puerta mejor-del-día (INNER_B): 249 días, 116 colocadas, 165 observadas, 262 diferidas por debajo del mejor.
+- Tope efectivo p1 2.23σ (TRAIN del fold): ninguna celda ≤ 2.0σ se recorta. Visitas ronda 0 (exploración): TRAIN 3 807 / INNER_A 1 197. Parámetros por especialista 3 864–4 306 (TCN).
+
+### Herramientas aguas abajo sobre esa unidad (todas reproducen la corrida exactamente)
+
+- `tools/expert_guided_seed_ensemble.py` (evaluador C3): replay por semilla igual a la corrida en TRAIN / INNER_A / INNER_B / OBS_2024; Sharpe recalculado igual al motor; ensamble (1 miembro) recalibrado y re-optimizado en el bloque de selección: INNER_A 3.18 (71 trades, 46 L / 25 S, 59 cierres propios), INNER_B −1.06 (137 trades, 2.58/sem, 64 L / 73 S, 130 cierres propios); cierre temprano mantenido (`early_close_ok`).
+- `tools/expert_guided_early_close_audit.py run`: `c3: true`, `all_replays_reproduce_run: true` (semilla y las 7 variantes de fitness del ensamble, INNER_A e INNER_B).
+- `tools/expert_guided_trading_report.py run`: `all_replays_reproduce_run: true` (Sharpe, neto, DD, trades, entradas, salidas por razón), **0 fallos de corrección** en los 15 chequeos, variante de ejecución `exec_709f9b1fa3512486` registrada.
+- `tools/expert_guided_sanity_gate.py unit` (con ensamble y auditoría): **PASS**, sin causas.
+- Suite completa `tests/*.py`: 500 pasan (45 de C3), 1 omitida.
+
 ## Controles (DIAGNOSTIC, wf2022, 1 semilla, CPU, `full_f3`)
 
-Se llena con `PIPELINE_CONTROLS_C3` al terminar la cola (`queue_c3.sh`): trampa y sintético × {u, residual_tcn}, contra C2 v1.3 y el oráculo.
+**No lanzados** (orden del propietario 2026-10-26: la prueba de la estrategia con salidas simuladas, carril F9, va antes; los controles esperan los parámetros congelados de la Fase 0). La cola está preparada (`queue_c3.sh`: trampa y sintético × {residual_tcn por defecto, u control}, contra C2 v1.3 y el oráculo); las tablas de resultados de 25 celdas bajo `full_f3` ya existen para el store trampa (16 838 filas elegibles) y el sintético.

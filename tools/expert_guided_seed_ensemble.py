@@ -296,6 +296,7 @@ def evaluate_c3(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
     its own frozen strategy are replayed again under the run's exec variant (verification); the ENSEMBLE averages the
     seeds' calibrated probabilities / nets, refits ONE calibration per specialist on the saved calibration-block rows
     (C3_SETS.npz) and re-optimises the strategy on the selection block only, for every fitness variant."""
+    from app.short_horizon.expert_guided import c2 as C2
     from app.short_horizon.expert_guided import c3 as C3
     ac = e3m["action_contract"]
     AC = ac["contract"]
