@@ -171,10 +171,9 @@ def _core19_groups(rec, core):
 
 
 def test_parameter_counts_are_reported():
-    rec, res = _resolved(); core = json.loads(CORE19.read_text())["features"]
+    rec, res = _resolved()                      # the 19-column list was retired by the owner (2026-10-26); only the 121-column recipe is counted
     out = {}
-    for name, (nf, groups, gu, gk) in {"recipe_v2_121": (121, res["indices"], res["units"], res["kinds"]),
-                                      "core19": (lambda t: (len(t[0]), t[1], t[2], t[3]))(_core19_groups(rec, core))}.items():
+    for name, (nf, groups, gu, gk) in {"recipe_v2_121": (121, res["indices"], res["units"], res["kinds"])}.items():
         base = T.TemporalPolicyNet(nf, 13, 2, n_reg=2, n_state=9, units=2, depth=2, head=16, groups=groups, group_units=gu, group_kinds=gk)
         tcn = T.TemporalPolicyNet(nf, 13, 2, n_reg=2, n_state=9, units=2, head=16, groups=groups, group_units=gu, group_kinds=gk,
                                   trunk="residual_tcn", fusion_units=8, core_blocks=2, readout="flatten")
