@@ -30,3 +30,18 @@ Orden: gravedad. Cada ítem: hallazgo medido → arreglo.
 
 ## Verificado correcto
 Motor (visión perfecta +7.5–9.8 k USD en 3 meses, moneda al aire ≈ −costos, sin trade = 0), costos (1.2–1.75 pips ida y vuelta), orden intrabarra conservador, neto = bruto − costos, Sharpe y EE de Lo (reproducidos a 1e-15), bootstrap estacionario, causalidad de los productores (filtros sólo pasado), receta = tensor (Δ 0), soporte compartido entre brazos, estabilidad por prefijo de las etiquetas (0 fallos en 2.08 M comprobaciones), censura y purga, tablas C2 exactas al motor, máscara Huber correcta.
+
+## A6 — Controles de punta a punta (DIAGNOSTIC; rama `satoshi/pipeline-controls-20261026` @5b049e8, `PIPELINE_CONTROLS_2026_10_26.md`)
+
+Mismo comando E3-M que WF_V13 / C2_13 (fold wf2022, 1 semilla, CPU). El oráculo lee la columna plantada directo por el mismo motor.
+
+| control | v1.3 (Sharpe 2022) | C2 (Sharpe 2022) | oráculo | veredicto |
+| --- | ---: | ---: | ---: | --- |
+| característica trampa (futuro perfecto) | 8.33 (PF 4.3, 68 cierres propios, 42/58 % L/S) | 9.67 (PF 11.6) | 14.0 | PASA: la tubería explota una señal fuerte |
+| trampa + ruido σ=1 / σ=2 | 7.50 / 4.07 | 7.40 / 2.47 | 10.5 / 6.7 | PASA (conserva 60–75 % / 61–37 %) |
+| **mercado sintético con deriva plantada (AUC de la columna 0.63)** | 0.48 | −0.85 (sin distractores 0.49) | 2.58 | **FALLA: no recupera una señal moderada** |
+| etiquetas barajadas globalmente | −0.29 | −0.01 | — | PASA (sin fuga) |
+| entradas de ruido | 0.62 | −0.49 | — | PASA |
+
+Conclusión del control: **los nulos con datos reales se midieron por debajo del suelo demostrado de la tubería**; no dicen nada sobre si las entradas tienen señal. Dónde se pierde la señal moderada: (F1/F2) la etiqueta de pivote no es el resultado operable — la fuga perfecta sólo la predice con AUC 0.60 y el factor plantado con 0.495; (F3) las cabezas binarias **sobreajustan los ~107 distractores** (correlación con el factor 0.18 en TRAIN → 0.04 fuera; una logística sobre el mismo tensor da AUC 0.73 frente a 0.55 de la red), la cabeza de valor pierde dos tercios de la señal incluso sin distractores, y los cerradores son anti-predictivos fuera de muestra (AUC 0.43); (F5) la búsqueda de estrategia alcanza Sharpe 4.1 en INNER_A **con entradas de ruido puro** → cualquier Sharpe de calibración < 4 no es evidencia; (F6) con TP 0.6–1.25σ y SL 2σ, 65 % de aciertos es empate (PF 1.09).
+Arreglos: controles trampa+sintético como puerta obligatoria antes de cualquier veredicto; abridores sobre la tabla de resultados (no pivote); regla de apertura C2 con la cabeza binaria calibrada; selección en-modelo o por grupos contra la dimensionalidad + línea base logística/GBM junto a cada cabeza; cierre temprano que supere "sin cierre" en calibración retenida; publicar el Sharpe de ruido como suelo de selección; repetir con 5 semillas.
