@@ -34,6 +34,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 MIN_OPW = 2.0
+ACTIVITY_BLOCK = "INNER_A"          # protocol v11 (A5-6): the activity rule is TESTED on the calibration block only;
+                                   # below-2 on a decision block is reported as DECISION_BLOCK_ACTIVITY_INVALID, never a cause
+PREREGISTERED_IN = "CLEAN_ROUND_SPEC.json revisions[-1].sanity_gate_v11"
 MAX_SIDE_SHARE = 0.90
 BLOCKS = ("INNER_A", "INNER_B")
 EXIT_KEYS = ("n_close_TP", "n_close_SL", "n_close_FORCED_FLAT", "n_close_AGENT_CLOSE", "n_close_REVERSAL")
@@ -126,10 +129,24 @@ def last_error(log: Path) -> str:
     return "no E3M.json: the unit was stopped or ended before writing its results" + (f" (last log line: {lines[-1].strip()[:160]})" if lines else "")
 
 
+def _split_activity(causes: list, block: str):
+    """The activity cause counts only on ACTIVITY_BLOCK; elsewhere it is returned apart (reported, never a cause)."""
+    if block == ACTIVITY_BLOCK:
+        return list(causes), []
+    keep = [c for c in causes if c != "below_2_trades_per_week"]
+    return keep, [c for c in causes if c == "below_2_trades_per_week"]
+
+
+def _noise_floor(m: dict) -> dict:
+    from app.short_horizon.expert_guided import stats as ST
+    return ST.noise_floor_note(_num(m.get("sharpe_daily_sqrt365", m.get("sharpe"))))
+
+
 def gate_unit(unit_dir: Path, ensemble: Path | None = None, audit: Path | None = None, log: Path | None = None) -> dict:
     unit_dir = Path(unit_dir)
     doc = {"unit": unit_dir.name, "rule": "FAILED_SANITY when any seed or the ensemble shows any cause on the calibration or decision block",
-           "causes": [], "seeds": {}, "ensemble": None, "unmeasured": [], "blocks": []}
+           "causes": [], "seeds": {}, "ensemble": None, "unmeasured": [], "blocks": [], "decision_block_activity_invalid": [],
+           "activity_rule_block": ACTIVITY_BLOCK, "preregistered_in": PREREGISTERED_IN, "noise_floor": None}
     e3m_p = unit_dir / "E3M.json"
     if not e3m_p.exists():
         lg = log if log is not None else unit_dir.with_suffix(".log")
@@ -149,6 +166,8 @@ def gate_unit(unit_dir: Path, ensemble: Path | None = None, audit: Path | None =
                 continue
             w = check_window(m, _audit_balance(au, str(s), b))
             rec[b] = w
+            w["causes"], extra = _split_activity(w["causes"], b)
+            doc["decision_block_activity_invalid"] += [{"where": f"seed {s}", "block": b} for _ in extra]
             doc["causes"] += [{"cause": c, "where": f"seed {s}", "block": b} for c in w["causes"]]
             doc["unmeasured"] += [f"seed {s}/{b}/{u}" for u in w["unmeasured"]]
         sv = _share_valid((t.get("action_contract") or {}).get("strategy"))
@@ -166,7 +185,11 @@ def gate_unit(unit_dir: Path, ensemble: Path | None = None, audit: Path | None =
                 continue
             w = check_window(w_["metrics"], _audit_balance(au, "ensemble", b))
             er[b] = w
+            w["causes"], extra = _split_activity(w["causes"], b)
+            doc["decision_block_activity_invalid"] += [{"where": "ensemble", "block": b} for _ in extra]
             doc["causes"] += [{"cause": c, "where": "ensemble", "block": b} for c in w["causes"]]
+            if b == ACTIVITY_BLOCK:
+                doc["noise_floor"] = _noise_floor(w_["metrics"])
             doc["unmeasured"] += [f"ensemble/{b}/{u}" for u in w["unmeasured"]]
         sv = _share_valid(en.get("ensemble_strategy"))
         er["strategy_share_valid"] = sv

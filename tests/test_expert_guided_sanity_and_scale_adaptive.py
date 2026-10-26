@@ -144,6 +144,9 @@ def test_each_sanity_cause_fails_the_unit(tmp_path, kw, cause):
     from tools import expert_guided_sanity_gate as SG
     d = write_unit(tmp_path, "U", {"1": {"INNER_A": summ(), "INNER_B": summ(**kw)}, "2": {"INNER_A": summ(), "INNER_B": summ()}})
     g = SG.gate_unit(d)
+    if cause == "below_2_trades_per_week":                     # protocol v11 (A5-6): activity is a cause on the calibration block only
+        assert g["status"] == "PASS" and {"where": "seed 1", "block": "INNER_B"} in g["decision_block_activity_invalid"], g
+        return
     assert g["status"] == "FAILED_SANITY" and any(c["cause"] == cause and c["block"] == "INNER_B" and c["where"] == "seed 1" for c in g["causes"]), g["causes"]
 
 

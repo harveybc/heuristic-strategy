@@ -118,6 +118,97 @@ def _wf_contract(fit_end: str, inner_start: str, val_end: str) -> dict:
 SPLIT_CONTRACTS["wf2022"] = _wf_contract("2022-01-01", "2021-07-01", "2023-01-01")
 SPLIT_CONTRACTS["wf2023"] = _wf_contract("2023-01-01", "2022-07-01", "2024-01-01")
 
+# ----------------------------------------------------------------------------------------------------------------------
+# NESTED walk-forward contracts (audit A5-2 / A5-9 / A5-4 / A1-1, owner-approved fix order 2026-10-26). One 6-month
+# block can no longer carry early stopping, calibration, strategy selection AND the decision at once. Per fold:
+#   TRAIN      fit block (scaler constants, learned producers of the FOLD-LOCAL store, every fitted statistic)
+#   INNER_ES   early-stopping block (patience / best epoch only)
+#   INNER_A    calibration block (Platt maps, gene maps, activity CI of the sanity gate)   [name kept for the consumers]
+#   INNER_SEL  strategy-selection block (NSGA-II search, fitness choice, arbiter)
+#   embargo    EMBARGO_DAYS of rows that belong to NO period (dropped as ``outside_periods``), so no label whose
+#              support ends inside the decision block can be seen before it; label purge at every period end is the
+#              existing ``label_support_crosses_period_end`` rule
+#   INNER_B    decision block, scored once after freeze; every read goes to the read ledger (read_ledger.py)
+#   OBS_2024   unchanged single read
+# ``WALK_FORWARD_NESTED`` = the two yearly folds (comparability with wf2022 / wf2023) + rolling QUARTERLY decision
+# blocks 2021-Q3 .. 2023-Q4 (10 folds). The feature list is fixed EX ANTE (FEATURE_LIST_core19) and the store of each
+# fold must be rebuilt fold-locally (``nested_store_rebuild_spec``): these contracts REFUSE the consolidated store
+# identity unless the recipe declares ``fold_local_store`` for that fold (checked by the launcher, not here).
+EMBARGO_DAYS = 7
+NESTED_BLOCK_MONTHS = {"early_stop": 2, "calibration": 2, "selection": 2}
+FEATURE_LIST_FIXED_EX_ANTE = "FEATURE_LIST_core19.json"
+
+
+def _nested_contract(decision_start: str, decision_end: str, fit_start: str = "2020-01-01") -> dict:
+    D = pd.Timestamp(decision_start)
+    sel_end = D - pd.Timedelta(days=EMBARGO_DAYS)
+    sel_start = D - pd.DateOffset(months=NESTED_BLOCK_MONTHS["selection"])
+    cal_start = sel_start - pd.DateOffset(months=NESTED_BLOCK_MONTHS["calibration"])
+    es_start = cal_start - pd.DateOffset(months=NESTED_BLOCK_MONTHS["early_stop"])
+    f = lambda t: pd.Timestamp(t).strftime("%Y-%m-%d")  # noqa: E731
+    periods = {"TRAIN": (fit_start, f(es_start)), "INNER_ES": (f(es_start), f(cal_start)), "INNER_A": (f(cal_start), f(sel_start)),
+               "INNER_SEL": (f(sel_start), f(sel_end)), "INNER_B": (decision_start, decision_end), "OBS_2024": ("2024-01-01", "2025-01-01")}
+    if pd.Timestamp(decision_end) > pd.Timestamp("2024-01-01"):
+        raise ValueError(f"NESTED_DECISION_OVERLAPS_OBS_2024:{decision_start}")
+    return {"periods": periods,
+            "status": {"TRAIN": "NESTED_FIT_BLOCK_FOLD_LOCAL_STORE", "INNER_ES": "EARLY_STOP_BLOCK", "INNER_A": "CALIBRATION_BLOCK",
+                       "INNER_SEL": "STRATEGY_SELECTION_BLOCK", "INNER_B": "DECISION_BLOCK_SCORED_ONCE_AFTER_FREEZE_LEDGERED",
+                       "OBS_2024": "PREVIOUSLY_OBSERVED_DEVELOPMENT_READ_ONCE_AFTER_FREEZE"},
+            "scaler_fit": (fit_start, f(es_start)), "report": ("TRAIN", "INNER_ES", "INNER_A", "INNER_SEL", "INNER_B"),
+            "early_stop": "INNER_ES", "calibration": "INNER_A", "selection": "INNER_SEL", "decision": "INNER_B",
+            "read_once": "OBS_2024", "embargo": (f(sel_end), decision_start), "embargo_days": EMBARGO_DAYS,
+            "train": (fit_start, f(sel_end)), "validation": (decision_start, decision_end),
+            "feature_list": FEATURE_LIST_FIXED_EX_ANTE, "fold_local_store_required": True, "nested": True}
+
+
+def _quarters(first: str, last: str):
+    q = pd.Timestamp(first)
+    while q <= pd.Timestamp(last):
+        yield q, q + pd.DateOffset(months=3)
+        q = q + pd.DateOffset(months=3)
+
+
+WALK_FORWARD_NESTED = {"wf2022n": _nested_contract("2022-01-01", "2023-01-01"), "wf2023n": _nested_contract("2023-01-01", "2024-01-01")}
+for _qs, _qe in _quarters("2021-07-01", "2023-10-01"):
+    WALK_FORWARD_NESTED[f"wf{_qs.year}q{(_qs.month - 1) // 3 + 1}"] = _nested_contract(_qs.strftime("%Y-%m-%d"), _qe.strftime("%Y-%m-%d"))
+SPLIT_CONTRACTS.update(WALK_FORWARD_NESTED)
+
+
+def nested_contract_errors(sc: dict) -> list:
+    """Structural refusals of a nested contract: ordered, non-overlapping blocks; an embargo of >= EMBARGO_DAYS between
+    the selection and decision blocks; a decision block of >= 80 days; no block at or after TEST; the scaler fitted on
+    the fit block only; the feature list fixed ex ante; the fold-local store required."""
+    errs = []
+    P = sc["periods"]
+    order = ["TRAIN", "INNER_ES", "INNER_A", "INNER_SEL", "INNER_B"]
+    for a, b in zip(order[:-1], order[1:]):
+        if pd.Timestamp(P[a][1]) > pd.Timestamp(P[b][0]):
+            errs.append(f"NESTED_BLOCKS_OVERLAP:{a}>{b}")
+    if (pd.Timestamp(P["INNER_B"][0]) - pd.Timestamp(P["INNER_SEL"][1])).days < EMBARGO_DAYS:
+        errs.append("NESTED_EMBARGO_TOO_SHORT")
+    if (pd.Timestamp(P["INNER_B"][1]) - pd.Timestamp(P["INNER_B"][0])).days < 80:
+        errs.append("NESTED_DECISION_BLOCK_TOO_SHORT")
+    if any(pd.Timestamp(v[1]) > pd.Timestamp(TEST_CLOSED_FROM) for v in P.values()):
+        errs.append("NESTED_BLOCK_REACHES_TEST")
+    if tuple(sc["scaler_fit"]) != tuple(P["TRAIN"]):
+        errs.append("NESTED_SCALER_NOT_FIT_BLOCK")
+    if sc.get("feature_list") != FEATURE_LIST_FIXED_EX_ANTE or not sc.get("fold_local_store_required"):
+        errs.append("NESTED_FEATURE_LIST_OR_STORE_NOT_FIXED")
+    return errs
+
+
+def nested_store_rebuild_spec() -> dict:
+    """What has to be rebuilt per nested fold BEFORE any unit runs (a separate job, predictor
+    ``tools/fold_local_producers.py`` scopes): every learned producer (Kalman, GMM/HMM, fracdiff, act.p_hit cross-fit)
+    fitted on the fold's TRAIN block only with its diagnostic window inside it; stationarity / transform decisions
+    re-decided on that block; the consumer store of the fold bound to the fold recipe by its own sha256."""
+    return {"rule": "one fold-local store per nested fold; producers fitted on TRAIN of the fold only; feature list core19 fixed ex ante; "
+                    "each fold recipe binds its own store sha256; a unit whose recipe binds the consolidated store cd0eb8d2... is refused",
+            "folds": {k: {"producer_fit_window": v["periods"]["TRAIN"], "diag_window_inside": v["periods"]["TRAIN"],
+                          "scaler_fit": v["scaler_fit"], "decision": v["periods"]["INNER_B"], "embargo": v["embargo"]}
+                      for k, v in WALK_FORWARD_NESTED.items()},
+            "feature_list": FEATURE_LIST_FIXED_EX_ANTE, "status": "NOT_BUILT: declared job, no store rebuilt by this change"}
+
 
 def check_scaling(scaling) -> str:
     """Strict enum: anything but the two declared policies is refused before any statistic is fitted."""

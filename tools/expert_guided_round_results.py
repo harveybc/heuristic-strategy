@@ -26,7 +26,7 @@ def arm_summary(name: str, stage: str, e: dict, cap: str | None = None) -> dict:
     train = [v["TRAIN"]["sharpe"] for v in seeds.values()]
     lab = e.get("labels") or {"mode": "zigzag"}
     return {"arm": name, "stage": stage, "seeds": seeds, "n_seeds": len(seeds),
-            "inner_a_mean": st.mean(inner), "inner_a_std": st.pstdev(inner) if len(inner) > 1 else 0.0,
+            "inner_a_mean": st.mean(inner), "inner_a_std": st.stdev(inner) if len(inner) > 1 else 0.0,   # ddof=1 (A5-10)
             "train_mean": st.mean(train), "gap_mean": st.mean(train) - st.mean(inner),
             "all_valid": all(v["INNER_A"]["valid"] and v["TRAIN"]["valid"] for v in seeds.values()),
             "params": sum(e["params"]["FULL"].values()), "memory_cap": cap, "wall_seconds": e.get("wall_seconds"),

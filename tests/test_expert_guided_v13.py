@@ -228,7 +228,7 @@ def test_spec_v10_preregisters_the_v13_stages_and_emits_them(tmp_path):
     pytest.importorskip("torch")
     from tools import expert_guided_clean_round as C
     s = json.loads((ROOT / "docs/short_horizon/clean_round/CLEAN_ROUND_SPEC.json").read_text())
-    assert s["identity"].endswith("-v10") and s["superseded"]["WF_V12_"] == "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY"
+    assert s["identity"].endswith("-v11") and any(r.get("identity", "").endswith("-v10") for r in s["revisions"]) and s["superseded"]["WF_V12_"] == "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY"
     for k, f in (("walk_forward_v13", "ACTION_CONTRACT_v1_3.json"), ("walk_forward_c2_13", "ACTION_CONTRACT_C2_v1_3.json"),
                  ("walk_forward_c2g_13", "ACTION_CONTRACT_C2G_v1_3.json")):
         assert s[k]["action_contract"]["sha256"] == ACT.sha256_file(CONTRACTS / f) and "Con confianza estadística" in s[k]["activity_rule"]

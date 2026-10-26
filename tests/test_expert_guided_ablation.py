@@ -127,7 +127,8 @@ def test_build_sets_zeroes_the_input_slots_but_labels_by_the_real_partition():
 
 # ------------------------------------------------------------------ 7. split contract
 def test_split_contracts_dev3y_is_the_default_and_consolidated_folds_inside_train():
-    assert tuple(DG.SPLIT_CONTRACTS) == ("dev3y", "consolidated", "wf2022", "wf2023")
+    assert tuple(DG.SPLIT_CONTRACTS)[:4] == ("dev3y", "consolidated", "wf2022", "wf2023")          # protocol v11 adds the nested folds after these
+    assert set(DG.SPLIT_CONTRACTS) == {"dev3y", "consolidated", "wf2022", "wf2023"} | set(DG.WALK_FORWARD_NESTED)
     d = DG.split_contract("dev3y")
     assert d["periods"] is DG.PERIODS and d["status"] is DG.PERIOD_STATUS and d["scaler_fit"] == DG.PERIODS["TRAIN"]
     c = DG.split_contract("consolidated")
@@ -192,4 +193,4 @@ def test_e3m_cli_declares_the_new_flags_with_byte_identical_defaults():
     with pytest.raises(SystemExit):
         M.build_parser().parse_args(["run", "--admitted", "a", "--csv-dir", "b", "--out", "c", "--agent-state", "partial"])
     r = subprocess.run([sys.executable, str(ROOT / "tools" / "expert_guided_e3m.py"), "--help"], capture_output=True, text=True, cwd=ROOT)
-    assert r.returncode == 0 and "--agent-state {full,minimal,none}" in r.stdout and "--split-contract {dev3y,consolidated,wf2022,wf2023}" in r.stdout
+    assert r.returncode == 0 and "--agent-state {full,minimal,none}" in r.stdout and "--split-contract {dev3y,consolidated,wf2022,wf2023," in r.stdout

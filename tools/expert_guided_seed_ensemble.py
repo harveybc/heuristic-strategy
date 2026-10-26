@@ -100,7 +100,7 @@ def window_stats(m: dict, cfg) -> dict:
             "se_lo": d["se_lo"], "sharpe_minus_se": d["sharpe_minus_se"], "days": d["days"], "bootstrap": d["bootstrap"]}
 
 
-def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=None) -> dict:
+def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=None, from_members: bool = False) -> dict:
     """Seed ensemble of an action-contract-v1 arm: per seed, its calibrated table and its own frozen strategy are
     replayed again (verification against the run); the ENSEMBLE averages the seeds' calibrated probabilities and TP/SL,
     refits ONE Platt map per specialist on the ensemble over the calibration block (round-0 label rows of INNER_A,
@@ -162,9 +162,17 @@ def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
         return ACT.window_components(m, trades, sig, SCFG.capital, min_opw, **ACT.score_kwargs(AC))
 
     primary = ac.get("primary_fitness") or ACT.DEFAULT_FITNESS
-    fr = ACT.freeze_strategy(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary)
-    doc["arbiter"] = {"arbiter": "action_contract_v1", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": fr["chosen"],
-                      "rule": "mean of the seeds' calibrated probabilities and TP/SL -> one Platt refit per specialist on INNER_A -> strategy re-optimised on INNER_A (never a member's)"}
+    if from_members:
+        from app.short_horizon.expert_guided import ensemble_freeze as EF
+        mem = EF.strategy_from_members({str(s_): trials[s_]["action_contract"]["strategy"]["strategy"] for s_ in seeds
+                                        if (trials[s_].get("action_contract") or {}).get("strategy", {}).get("strategy")})
+        fr = {"strategy": mem["strategy"], "nop_veto_kept": bool(mem["strategy"].get("nop_veto", False)), "chosen": None, "from_members": mem, "valid": True}
+        doc["arbiter"] = {"arbiter": "action_contract_v1", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": None,
+                          "rule": EF.RULE, "member_seed": mem["seed"]}
+    else:
+        fr = ACT.freeze_strategy(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary)
+        doc["arbiter"] = {"arbiter": "action_contract_v1", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": fr["chosen"],
+                          "rule": "mean of the seeds' calibrated probabilities and TP/SL -> one Platt refit per specialist on INNER_A -> strategy re-optimised on INNER_A (never a member's)"}
     doc["ensemble_calibration"] = cal_e
     doc["ensemble_strategy"] = fr
     doc["by_fitness"] = {}
@@ -196,7 +204,7 @@ def evaluate_v1(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
     return doc
 
 
-def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=None) -> dict:
+def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=None, from_members: bool = False) -> dict:
     """Seed ensemble of a C2 arm (causal-ladder stage C2): per seed its calibrated table and its own frozen strategy are
     replayed again (verification); the ENSEMBLE averages the seeds' calibrated probabilities and predicted values (net
     grid, remaining), refits ONE Platt map per binary head on the saved round-0 INNER_A label rows (C2_SETS.npz) and
@@ -240,9 +248,17 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
 
     primary = ac.get("primary_fitness") or ACT.DEFAULT_FITNESS
     closer_src = {m: {"rows": saved[cb][m]["rows"], "G": saved[cb][m].get("G")} for m in C2.CLOSERS if m in saved[cb]}
-    fr = C2.freeze(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary, closer_src)
-    doc["arbiter"] = {"arbiter": "action_contract_c2", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": fr["chosen"],
-                      "rule": "mean of the seeds' calibrated probabilities and predicted values -> one Platt refit per binary head on INNER_A -> strategy re-optimised on INNER_A"}
+    if from_members:
+        from app.short_horizon.expert_guided import ensemble_freeze as EF
+        mem = EF.strategy_from_members({str(s_): trials[s_]["action_contract"]["strategy"]["strategy"] for s_ in seeds
+                                        if (trials[s_].get("action_contract") or {}).get("strategy", {}).get("strategy")})
+        fr = {"strategy": mem["strategy"], "nop_veto_kept": bool(mem["strategy"].get("nop_veto", False)), "chosen": None, "from_members": mem, "valid": True}
+        doc["arbiter"] = {"arbiter": "action_contract_c2", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": None,
+                          "rule": EF.RULE, "member_seed": mem["seed"]}
+    else:
+        fr = C2.freeze(ens_t, cal_rows, score_table, AC, min(int(x) for x in seeds), "final", primary, closer_src)
+        doc["arbiter"] = {"arbiter": "action_contract_c2", "primary_fitness": primary, "strategy": fr["strategy"], "nop_veto_kept": fr["nop_veto_kept"], "chosen": fr["chosen"],
+                          "rule": "mean of the seeds' calibrated probabilities and predicted values -> one Platt refit per binary head on INNER_A -> strategy re-optimised on INNER_A"}
     doc["ensemble_calibration"] = cal_e
     doc["ensemble_strategy"] = fr
     doc["by_fitness"] = {}
@@ -272,15 +288,15 @@ def evaluate_c2(out_dir: Path, e3m: dict, ds, periods: list, seeds: list, cfg=No
     return doc
 
 
-def evaluate(out_dir: Path, ds, periods: list, seeds: list | None = None, cfg=None, selection: str = "INNER_A") -> dict:
+def evaluate(out_dir: Path, ds, periods: list, seeds: list | None = None, cfg=None, selection: str = "INNER_A", from_members: bool = False) -> dict:
     e3m = json.loads((out_dir / "E3M.json").read_text())
     from app.short_horizon.expert_guided import c2 as C2
     if C2.is_c2((e3m.get("action_contract") or {}).get("contract", {})):            # C2 and C2G
         tr = e3m["trials"]["FULL"]
-        return evaluate_c2(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg)
+        return evaluate_c2(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg, from_members=from_members)
     if e3m.get("action_contract"):
         tr = e3m["trials"]["FULL"]
-        return evaluate_v1(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg)
+        return evaluate_v1(out_dir, e3m, ds, periods, [str(s) for s in (seeds or list(tr))], cfg, from_members=from_members)
     trials = e3m["trials"]["FULL"]
     seeds = [str(s) for s in (seeds or list(trials))]
     missing = [s for s in seeds if s not in trials]
@@ -332,6 +348,8 @@ def main():
     ap.add_argument("--recipe", required=True, help="the recipe the arm ran on (fold recipe for WF units)")
     ap.add_argument("--split-contract", required=True)
     ap.add_argument("--periods", default="TRAIN,INNER_A")
+    ap.add_argument("--strategy-from-members", action="store_true",
+                    help="protocol v11 (A5-8): the ensemble strategy is a frozen MEMBER strategy (closest to the gene-wise median); no re-search")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     rec = json.loads(Path(a.recipe).read_text())
@@ -363,7 +381,7 @@ def main():
         (view / "E3M.json").write_text(json.dumps(e))
         out_dir = view
     try:
-        doc = evaluate(out_dir, ds, [p.strip() for p in a.periods.split(",") if p.strip()])
+        doc = evaluate(out_dir, ds, [p.strip() for p in a.periods.split(",") if p.strip()], from_members=bool(getattr(a, "strategy_from_members", False)))
     finally:
         if a.extra_arm_dir:
             import shutil

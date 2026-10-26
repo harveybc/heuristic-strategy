@@ -713,15 +713,25 @@ def cmd_decide(a):
             tr.update(ep["trials"]["FULL"])
         sh = [tr[s]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in tr]
         gap = [tr[s]["trading"]["TRAIN"]["sharpe_daily_sqrt365"] - tr[s]["trading"]["INNER_A"]["sharpe_daily_sqrt365"] for s in tr]
-        res.append({"arm": arm["name"], "inner_a_sharpe_mean": float(sum(sh) / len(sh)),
+        res.append({"arm": arm["name"], "inner_a_sharpe_mean": float(sum(sh) / len(sh)), "inner_a_sharpe_seeds": [float(x) for x in sh],
                     "all_valid": all(bool(tr[s]["trading"]["INNER_A"]["valid"]) for s in tr), "n_seeds": len(tr), "seeds": sorted(tr),
                     "params": sum(e["params"]["FULL"].values()), "train_minus_inner_sharpe_mean": float(sum(gap) / len(gap)),
                     "is_control": arm["name"] == control})
     if only and len(res) != len(only):
         raise SystemExit(f"ARM_UNKNOWN:{sorted(set(only) - {r['arm'] for r in res})}")
     ok = [r for r in res if r["all_valid"]] or res
-    chosen = max(ok, key=lambda r: (r["inner_a_sharpe_mean"], -r["params"], r["is_control"]))
-    doc = {"stage": a.stage, "rule": cmd_decide.__doc__.strip(), "arms": res, "chosen": chosen["arm"],
+    from app.short_horizon.expert_guided import stats as ST
+    for r in res:                                             # protocol v11 (A5-10): seed mean with ddof=1 SE and a t interval
+        r["inner_a_sharpe_ci"] = ST.seed_mean_ci(r["inner_a_sharpe_seeds"]) if r.get("inner_a_sharpe_seeds") else None
+    ranked = sorted(ok, key=lambda r: (r["inner_a_sharpe_mean"], -r["params"], r["is_control"]), reverse=True)
+    chosen = ranked[0]
+    tie = None
+    if len(ranked) > 1 and ranked[0].get("inner_a_sharpe_ci") and ranked[1].get("inner_a_sharpe_ci"):
+        tie = ST.tie_band(ranked[0]["inner_a_sharpe_ci"], ranked[1]["inner_a_sharpe_ci"])
+        if tie["tied"]:                                       # inside the tie band: fewer parameters, then the control
+            chosen = min(ranked[:2], key=lambda r: (r["params"], not r["is_control"]))
+    doc = {"stage": a.stage, "rule": cmd_decide.__doc__.strip() + " Protocol v11: a top-two difference inside the tie band "
+           "sqrt(se1^2 + se2^2) is a TIE -> fewer parameters, then the control.", "arms": res, "chosen": chosen["arm"], "tie": tie,
            "pooled_suffixes": pool, "restricted_to": only or None, "tie_control": control}
     Path(a.out).write_text(json.dumps(doc, indent=1))
     print(json.dumps(doc, indent=1))

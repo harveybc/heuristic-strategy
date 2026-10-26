@@ -1,5 +1,5 @@
 {
- "identity": "clean-expert-guided-a1-20261024-v10",
+ "identity": "clean-expert-guided-a1-20261024-v11",
  "status": "FROZEN on the accepted shared recipe (Musashi re-review 2026-10-24, ACCEPT_SHARED_RECIPE_FOR_DEVELOPMENT); launch gate = the owner's word for the expert-guided lane",
  "recipe": {
   "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/CONSUMER_RECIPE.json",
@@ -249,17 +249,38 @@
    "identity": "clean-expert-guided-a1-20261024-v9",
    "date": "2026-10-25",
    "by": "lane L11",
-   "change": "WF_V1 SUPERSEDED_INFEASIBLE_STRATEGY_SPACE (zero trades, archived); stage WF_V12 pre-registered with contract v1.2 (action_4b15ba2f36ee195f: scale-adaptive genes, feasibility probe, early close required); WF_C2 contract replaced (action_3ca9b7062b103f94: the same scale-adaptive genes; WF_C2 never ran); stage WF_C2G pre-registered (action_af7d8c66612d1d29: C2 + closer-only order geometry, owner 'Sí, como brazo extra'); sanity gate rules; one chain run_chain_v12_c2_c2g.sh replaces the stopped v6 / early-close / c2 drivers"
+   "change": "WF_V1 SUPERSEDED_INFEASIBLE_STRATEGY_SPACE (zero trades, archived); stage WF_V12 pre-registered with contract v1.2 (action_4b15ba2f36ee195f: scale-adaptive genes, feasibility probe, early close required); WF_C2 contract replaced (action_3ca9b7062b103f94: the same scale-adaptive genes; WF_C2 never ran); stage WF_C2G pre-registered (action_af7d8c66612d1d29: C2 + closer-only order geometry, owner 'S\u00ed, como brazo extra'); sanity gate rules; one chain run_chain_v12_c2_c2g.sh replaces the stopped v6 / early-close / c2 drivers"
   },
   {
    "identity": "clean-expert-guided-a1-20261024-v10",
    "date": "2026-10-25",
    "by": "lane L12",
-   "change": "v12 units SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY (all 8 FAILED_SANITY: one-sided seeds; C2/C2G ensembles < 2 trades/week out of sample); contracts v1.3 (action_564e6b858bb08951), C2 v1.3 (action_5540240a4750af96), C2G v1.3 (action_0f4105d47565d45e): per-side open genes, side-balance constraint (<= 90 %), activity rule held with confidence (CI90 lower bound >= 2.0 on the calibration block; owner 'Con confianza estadística'), front-size diagnostic with a declared budget escalation; stages WF_V13, WF_C2_13, WF_C2G_13 pre-registered BEFORE any run with the same HOLDS / SEPARABLE rules decided by ensembles on INNER_B and the unchanged strict sanity gate; chain run_chain_v13.sh with a first-seed / first-ensemble stop rule",
+   "change": "v12 units SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY (all 8 FAILED_SANITY: one-sided seeds; C2/C2G ensembles < 2 trades/week out of sample); contracts v1.3 (action_564e6b858bb08951), C2 v1.3 (action_5540240a4750af96), C2G v1.3 (action_0f4105d47565d45e): per-side open genes, side-balance constraint (<= 90 %), activity rule held with confidence (CI90 lower bound >= 2.0 on the calibration block; owner 'Con confianza estad\u00edstica'), front-size diagnostic with a declared budget escalation; stages WF_V13, WF_C2_13, WF_C2G_13 pre-registered BEFORE any run with the same HOLDS / SEPARABLE rules decided by ensembles on INNER_B and the unchanged strict sanity gate; chain run_chain_v13.sh with a first-seed / first-ensemble stop rule",
    "rules_verbatim": {
-    "activity": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+    "activity": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estad\u00edstica'",
     "side": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
     "diversity": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
+   }
+  },
+  {
+   "identity": "clean-expert-guided-a1-20261024-v11",
+   "from": "clean-expert-guided-a1-20261024-v10",
+   "utc": "2026-10-26",
+   "what": "evaluation protocol v11 (audit A5-1..A5-10, A1-1, A1-7): nested blocks, quarterly folds, pooled per-trade expectancy, paired two-sided tests with Romano-Wolf, read ledger, pre-registered sanity gate, noise floor, seed CIs + tie band, member-frozen ensemble",
+   "sanity_gate_v11": "causes zero_trades, one_side_over_90pct, zero_agent_closes, single_exit_reason, sharpe_undefined, strategy_share_valid_zero, replay_mismatch, unit_failed on calibration AND decision blocks for seeds AND ensembles uniformly; below_2_trades_per_week is a cause ONLY on the calibration block (INNER_A); on a decision block it is DECISION_BLOCK_ACTIVITY_INVALID, reported apart; refusals reported separately from results",
+   "rules_verbatim": {
+    "HOLDS": "an arm HOLDS only if the lower bound of the (1 - alpha) day-block bootstrap interval of its per-trade net expectancy (sigma, after costs), POOLED across every decision block of the protocol, is > 0; otherwise DOES_NOT_HOLD; a FAILED_SANITY input refuses the verdict",
+    "SEPARABLE": "two arms are SEPARABLE only when the paired, two-sided test of their daily-return difference on the same decision rows has p < alpha AFTER Romano-Wolf step-down across every arm x variant read on that block; otherwise NOT_SEPARABLE; the sign of the difference is always reported",
+    "alpha": 0.05,
+    "multiplicity": "Romano-Wolf step-down across arms x variants read on the same block",
+    "paired_tests": "paired stationary block bootstrap of the Sharpe difference AND Ledoit-Wolf HAC delta-method test; two-sided; sign always reported",
+    "mde": "minimum detectable effect printed before any run (stats.mde_table)",
+    "deflated_sharpe_pbo": "every strategy search reports deflated Sharpe (Bailey-LdP) and PBO (CSCV)",
+    "read_ledger": "every evaluation of a decision block appends to READ_LEDGER.jsonl; a block with > 1 read(s) is DEVELOPMENT, never 'held out'",
+    "sanity_gate_v11": "causes zero_trades, one_side_over_90pct, zero_agent_closes, single_exit_reason, sharpe_undefined, strategy_share_valid_zero, replay_mismatch, unit_failed on calibration AND decision blocks for seeds AND ensembles uniformly; below_2_trades_per_week is a cause ONLY on the calibration block (INNER_A); on a decision block it is DECISION_BLOCK_ACTIVITY_INVALID, reported apart; refusals reported separately from results",
+    "noise_floor": "calibration-block Sharpe of the strategy search on PURE-NOISE inputs = 4.1 (A6 controls, v1.3, wf2022, 1 seed): a calibration Sharpe below this floor is NOT evidence of signal",
+    "decisions_by_seeds": "seed mean with ddof=1 SE and t interval; top-two inside sqrt(se1^2+se2^2) = TIE -> fewer params, then control",
+    "ensemble_strategy": "ensemble strategy = the member (seed) strategy whose genes are closest to the gene-wise median of all members, standardised by the members' spread; no re-search on any block; ties -> the lowest seed"
    }
   }
  ],
@@ -462,7 +483,7 @@
  },
  "walk_forward_c2g": {
   "stage": "WF_C2G",
-  "why": "owner 2026-10-25, answer 'Sí, como brazo extra' to: allow ONLY the closers to see the geometry of their own order (signed distance to SL and to TP in the order's sigma, hours held, side) and nothing else (no balance, no accumulated PnL, no agent outputs), as an extra C2 arm next to the C2 arm without it; the walk-forward measures the difference",
+  "why": "owner 2026-10-25, answer 'S\u00ed, como brazo extra' to: allow ONLY the closers to see the geometry of their own order (signed distance to SL and to TP in the order's sigma, hours held, side) and nothing else (no balance, no accumulated PnL, no agent outputs), as an extra C2 arm next to the C2 arm without it; the walk-forward measures the difference",
   "action_contract": {
    "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_C2G.json",
    "sha256": "9f601a136755b5973f8ba20bc18e8c286ed0976c256319ae6c8825677b33bd64",
@@ -508,7 +529,7 @@
    "balanced"
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
-  "owner_words": "Sí, como brazo extra (2026-10-25)",
+  "owner_words": "S\u00ed, como brazo extra (2026-10-25)",
   "gene_space": "calibration_quantile",
   "status": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY"
  },
@@ -621,7 +642,7 @@
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_V12 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
   "gene_space": "calibration_quantile",
-  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estad\u00edstica'",
   "side_rule": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
   "diversity_rule": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
  },
@@ -673,13 +694,13 @@
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
   "gene_space": "calibration_quantile",
-  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estad\u00edstica'",
   "side_rule": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
   "diversity_rule": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
  },
  "walk_forward_c2g_13": {
   "stage": "WF_C2G_13",
-  "why": "the C2G arm (owner 'Sí, como brazo extra') under the v1.3 strategy rules, against the C2 v1.3 arm of the same fold",
+  "why": "the C2G arm (owner 'S\u00ed, como brazo extra') under the v1.3 strategy rules, against the C2 v1.3 arm of the same fold",
   "action_contract": {
    "path": "/var/tmp/hs-expert-guided-rl-20261019/docs/short_horizon/clean_round/contracts/ACTION_CONTRACT_C2G_v1_3.json",
    "sha256": "bf62e8240dcc18b023270fc4bbbf4a2ae30b9d7bd57bca678137f735cb168a35",
@@ -725,9 +746,9 @@
    "balanced"
   ],
   "fitness_rule": "PRE-REGISTERED 2026-10-25 before any WF_C2 result exists (owner's fitness variants F0-F6, no retraining: the same frozen specialists and seed ensembles, only the strategy point changes; activity = exactly 2.0 trades/week as a SELECTION criterion): per arm, the fitness variant is CHOSEN on the wf2022 decision year by the highest ensemble Sharpe - 1 Lo SE among variants whose chosen point is valid there out of sample (>= 2 trades/week); it is CONFIRMED on wf2023 when its ensemble Sharpe - 1 Lo SE > 0 there with >= 2 trades/week (the HOLDS rule on the confirmation fold), otherwise REFUTED; every variant is reported with its components, its chosen valid point and its full-archive view (best unconstrained Sharpe, best unconstrained point by the fitness with INNER_B metrics marked NOT SELECTABLE, best valid point, share valid)",
-  "owner_words": "Sí, como brazo extra (2026-10-25)",
+  "owner_words": "S\u00ed, como brazo extra (2026-10-25)",
   "gene_space": "calibration_quantile",
-  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estadística'",
+  "activity_rule": "on the calibration block the activity rule is met when the LOWER bound of the 90 % confidence interval of trades/week is >= 2.0: weekly-block bootstrap (resample the decision weeks with replacement, 2000 draws, seed 20261025) of the entries per decision week, the engine's week definition (ISO weeks with decisions); out of sample the rule stays exactly >= 2.0 trades/week (period average) - owner 2026-10-25: 'Con confianza estad\u00edstica'",
   "side_rule": "per-side open genes: each side has its own open rate q_L, q_S in [0.002, 0.30] (and, in v1.3, its own gain quantile; in C2 / C2G its own predicted-net margin), mapped through its own opener's calibration-block score distribution; side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable; the feasibility probe adds the side-balance corner (both open rates at their maximum)",
   "diversity_rule": "fitness diversity: per (arm, fold), seed and ensemble, the number of selectable front points and of distinct points chosen across the 7 fitness variants are reported; fewer than 5 selectable front points = FRONT_TOO_SMALL and the final strategy search is rerun once with the declared escalated budget (population 48, generations 40)"
  },
@@ -737,5 +758,641 @@
   "WF_C2_wf": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY",
   "WF_C2G_wf": "SUPERSEDED_ONE_SIDED_AND_BOUNDARY_ACTIVITY",
   "note": "archived, never results; the sanity gate is unchanged (strict: any seed or the ensemble failing marks the unit)"
+ },
+ "evaluation_protocol_v11": {
+  "preregistered_utc": "2026-10-26",
+  "status": "PRE-REGISTERED BEFORE ANY RUN; no unit of any nested fold exists",
+  "nested_contracts": [
+   "wf2021q3",
+   "wf2021q4",
+   "wf2022n",
+   "wf2022q1",
+   "wf2022q2",
+   "wf2022q3",
+   "wf2022q4",
+   "wf2023n",
+   "wf2023q1",
+   "wf2023q2",
+   "wf2023q3",
+   "wf2023q4"
+  ],
+  "blocks": {
+   "wf2021q3": {
+    "TRAIN": [
+     "2020-01-01",
+     "2021-01-01"
+    ],
+    "INNER_ES": [
+     "2021-01-01",
+     "2021-03-01"
+    ],
+    "INNER_A": [
+     "2021-03-01",
+     "2021-05-01"
+    ],
+    "INNER_SEL": [
+     "2021-05-01",
+     "2021-06-24"
+    ],
+    "INNER_B": [
+     "2021-07-01",
+     "2021-10-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2021q4": {
+    "TRAIN": [
+     "2020-01-01",
+     "2021-04-01"
+    ],
+    "INNER_ES": [
+     "2021-04-01",
+     "2021-06-01"
+    ],
+    "INNER_A": [
+     "2021-06-01",
+     "2021-08-01"
+    ],
+    "INNER_SEL": [
+     "2021-08-01",
+     "2021-09-24"
+    ],
+    "INNER_B": [
+     "2021-10-01",
+     "2022-01-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2022n": {
+    "TRAIN": [
+     "2020-01-01",
+     "2021-07-01"
+    ],
+    "INNER_ES": [
+     "2021-07-01",
+     "2021-09-01"
+    ],
+    "INNER_A": [
+     "2021-09-01",
+     "2021-11-01"
+    ],
+    "INNER_SEL": [
+     "2021-11-01",
+     "2021-12-25"
+    ],
+    "INNER_B": [
+     "2022-01-01",
+     "2023-01-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2022q1": {
+    "TRAIN": [
+     "2020-01-01",
+     "2021-07-01"
+    ],
+    "INNER_ES": [
+     "2021-07-01",
+     "2021-09-01"
+    ],
+    "INNER_A": [
+     "2021-09-01",
+     "2021-11-01"
+    ],
+    "INNER_SEL": [
+     "2021-11-01",
+     "2021-12-25"
+    ],
+    "INNER_B": [
+     "2022-01-01",
+     "2022-04-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2022q2": {
+    "TRAIN": [
+     "2020-01-01",
+     "2021-10-01"
+    ],
+    "INNER_ES": [
+     "2021-10-01",
+     "2021-12-01"
+    ],
+    "INNER_A": [
+     "2021-12-01",
+     "2022-02-01"
+    ],
+    "INNER_SEL": [
+     "2022-02-01",
+     "2022-03-25"
+    ],
+    "INNER_B": [
+     "2022-04-01",
+     "2022-07-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2022q3": {
+    "TRAIN": [
+     "2020-01-01",
+     "2022-01-01"
+    ],
+    "INNER_ES": [
+     "2022-01-01",
+     "2022-03-01"
+    ],
+    "INNER_A": [
+     "2022-03-01",
+     "2022-05-01"
+    ],
+    "INNER_SEL": [
+     "2022-05-01",
+     "2022-06-24"
+    ],
+    "INNER_B": [
+     "2022-07-01",
+     "2022-10-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2022q4": {
+    "TRAIN": [
+     "2020-01-01",
+     "2022-04-01"
+    ],
+    "INNER_ES": [
+     "2022-04-01",
+     "2022-06-01"
+    ],
+    "INNER_A": [
+     "2022-06-01",
+     "2022-08-01"
+    ],
+    "INNER_SEL": [
+     "2022-08-01",
+     "2022-09-24"
+    ],
+    "INNER_B": [
+     "2022-10-01",
+     "2023-01-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2023n": {
+    "TRAIN": [
+     "2020-01-01",
+     "2022-07-01"
+    ],
+    "INNER_ES": [
+     "2022-07-01",
+     "2022-09-01"
+    ],
+    "INNER_A": [
+     "2022-09-01",
+     "2022-11-01"
+    ],
+    "INNER_SEL": [
+     "2022-11-01",
+     "2022-12-25"
+    ],
+    "INNER_B": [
+     "2023-01-01",
+     "2024-01-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2023q1": {
+    "TRAIN": [
+     "2020-01-01",
+     "2022-07-01"
+    ],
+    "INNER_ES": [
+     "2022-07-01",
+     "2022-09-01"
+    ],
+    "INNER_A": [
+     "2022-09-01",
+     "2022-11-01"
+    ],
+    "INNER_SEL": [
+     "2022-11-01",
+     "2022-12-25"
+    ],
+    "INNER_B": [
+     "2023-01-01",
+     "2023-04-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2023q2": {
+    "TRAIN": [
+     "2020-01-01",
+     "2022-10-01"
+    ],
+    "INNER_ES": [
+     "2022-10-01",
+     "2022-12-01"
+    ],
+    "INNER_A": [
+     "2022-12-01",
+     "2023-02-01"
+    ],
+    "INNER_SEL": [
+     "2023-02-01",
+     "2023-03-25"
+    ],
+    "INNER_B": [
+     "2023-04-01",
+     "2023-07-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2023q3": {
+    "TRAIN": [
+     "2020-01-01",
+     "2023-01-01"
+    ],
+    "INNER_ES": [
+     "2023-01-01",
+     "2023-03-01"
+    ],
+    "INNER_A": [
+     "2023-03-01",
+     "2023-05-01"
+    ],
+    "INNER_SEL": [
+     "2023-05-01",
+     "2023-06-24"
+    ],
+    "INNER_B": [
+     "2023-07-01",
+     "2023-10-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   },
+   "wf2023q4": {
+    "TRAIN": [
+     "2020-01-01",
+     "2023-04-01"
+    ],
+    "INNER_ES": [
+     "2023-04-01",
+     "2023-06-01"
+    ],
+    "INNER_A": [
+     "2023-06-01",
+     "2023-08-01"
+    ],
+    "INNER_SEL": [
+     "2023-08-01",
+     "2023-09-24"
+    ],
+    "INNER_B": [
+     "2023-10-01",
+     "2024-01-01"
+    ],
+    "OBS_2024": [
+     "2024-01-01",
+     "2025-01-01"
+    ]
+   }
+  },
+  "block_roles": {
+   "TRAIN": "fit (scaler, fold-local producers)",
+   "INNER_ES": "early stopping only",
+   "INNER_A": "calibration only (Platt, gene maps, activity CI)",
+   "INNER_SEL": "strategy search / fitness / arbiter only",
+   "embargo": "7 days, no period",
+   "INNER_B": "decision, scored once, ledgered",
+   "OBS_2024": "single read, never decides"
+  },
+  "feature_list_fixed_ex_ante": "FEATURE_LIST_core19.json",
+  "fold_local_store": {
+   "rule": "one fold-local store per nested fold; producers fitted on TRAIN of the fold only; feature list core19 fixed ex ante; each fold recipe binds its own store sha256; a unit whose recipe binds the consolidated store cd0eb8d2... is refused",
+   "folds": {
+    "wf2022n": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2021-07-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2021-07-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2021-07-01"
+     ],
+     "decision": [
+      "2022-01-01",
+      "2023-01-01"
+     ],
+     "embargo": [
+      "2021-12-25",
+      "2022-01-01"
+     ]
+    },
+    "wf2023n": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2022-07-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2022-07-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2022-07-01"
+     ],
+     "decision": [
+      "2023-01-01",
+      "2024-01-01"
+     ],
+     "embargo": [
+      "2022-12-25",
+      "2023-01-01"
+     ]
+    },
+    "wf2021q3": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2021-01-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2021-01-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2021-01-01"
+     ],
+     "decision": [
+      "2021-07-01",
+      "2021-10-01"
+     ],
+     "embargo": [
+      "2021-06-24",
+      "2021-07-01"
+     ]
+    },
+    "wf2021q4": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2021-04-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2021-04-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2021-04-01"
+     ],
+     "decision": [
+      "2021-10-01",
+      "2022-01-01"
+     ],
+     "embargo": [
+      "2021-09-24",
+      "2021-10-01"
+     ]
+    },
+    "wf2022q1": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2021-07-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2021-07-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2021-07-01"
+     ],
+     "decision": [
+      "2022-01-01",
+      "2022-04-01"
+     ],
+     "embargo": [
+      "2021-12-25",
+      "2022-01-01"
+     ]
+    },
+    "wf2022q2": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2021-10-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2021-10-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2021-10-01"
+     ],
+     "decision": [
+      "2022-04-01",
+      "2022-07-01"
+     ],
+     "embargo": [
+      "2022-03-25",
+      "2022-04-01"
+     ]
+    },
+    "wf2022q3": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2022-01-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2022-01-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2022-01-01"
+     ],
+     "decision": [
+      "2022-07-01",
+      "2022-10-01"
+     ],
+     "embargo": [
+      "2022-06-24",
+      "2022-07-01"
+     ]
+    },
+    "wf2022q4": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2022-04-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2022-04-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2022-04-01"
+     ],
+     "decision": [
+      "2022-10-01",
+      "2023-01-01"
+     ],
+     "embargo": [
+      "2022-09-24",
+      "2022-10-01"
+     ]
+    },
+    "wf2023q1": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2022-07-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2022-07-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2022-07-01"
+     ],
+     "decision": [
+      "2023-01-01",
+      "2023-04-01"
+     ],
+     "embargo": [
+      "2022-12-25",
+      "2023-01-01"
+     ]
+    },
+    "wf2023q2": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2022-10-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2022-10-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2022-10-01"
+     ],
+     "decision": [
+      "2023-04-01",
+      "2023-07-01"
+     ],
+     "embargo": [
+      "2023-03-25",
+      "2023-04-01"
+     ]
+    },
+    "wf2023q3": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2023-01-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2023-01-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2023-01-01"
+     ],
+     "decision": [
+      "2023-07-01",
+      "2023-10-01"
+     ],
+     "embargo": [
+      "2023-06-24",
+      "2023-07-01"
+     ]
+    },
+    "wf2023q4": {
+     "producer_fit_window": [
+      "2020-01-01",
+      "2023-04-01"
+     ],
+     "diag_window_inside": [
+      "2020-01-01",
+      "2023-04-01"
+     ],
+     "scaler_fit": [
+      "2020-01-01",
+      "2023-04-01"
+     ],
+     "decision": [
+      "2023-10-01",
+      "2024-01-01"
+     ],
+     "embargo": [
+      "2023-09-24",
+      "2023-10-01"
+     ]
+    }
+   },
+   "feature_list": "FEATURE_LIST_core19.json",
+   "status": "NOT_BUILT: declared job, no store rebuilt by this change"
+  },
+  "primary_statistic": "per-trade net expectancy in sigma after costs, day-block stationary bootstrap (block 5, 2000, seed 20261026), POOLED across decision blocks",
+  "rules_verbatim": {
+   "HOLDS": "an arm HOLDS only if the lower bound of the (1 - alpha) day-block bootstrap interval of its per-trade net expectancy (sigma, after costs), POOLED across every decision block of the protocol, is > 0; otherwise DOES_NOT_HOLD; a FAILED_SANITY input refuses the verdict",
+   "SEPARABLE": "two arms are SEPARABLE only when the paired, two-sided test of their daily-return difference on the same decision rows has p < alpha AFTER Romano-Wolf step-down across every arm x variant read on that block; otherwise NOT_SEPARABLE; the sign of the difference is always reported",
+   "alpha": 0.05,
+   "multiplicity": "Romano-Wolf step-down across arms x variants read on the same block",
+   "paired_tests": "paired stationary block bootstrap of the Sharpe difference AND Ledoit-Wolf HAC delta-method test; two-sided; sign always reported",
+   "mde": "minimum detectable effect printed before any run (stats.mde_table)",
+   "deflated_sharpe_pbo": "every strategy search reports deflated Sharpe (Bailey-LdP) and PBO (CSCV)",
+   "read_ledger": "every evaluation of a decision block appends to READ_LEDGER.jsonl; a block with > 1 read(s) is DEVELOPMENT, never 'held out'",
+   "sanity_gate_v11": "causes zero_trades, one_side_over_90pct, zero_agent_closes, single_exit_reason, sharpe_undefined, strategy_share_valid_zero, replay_mismatch, unit_failed on calibration AND decision blocks for seeds AND ensembles uniformly; below_2_trades_per_week is a cause ONLY on the calibration block (INNER_A); on a decision block it is DECISION_BLOCK_ACTIVITY_INVALID, reported apart; refusals reported separately from results",
+   "noise_floor": "calibration-block Sharpe of the strategy search on PURE-NOISE inputs = 4.1 (A6 controls, v1.3, wf2022, 1 seed): a calibration Sharpe below this floor is NOT evidence of signal",
+   "decisions_by_seeds": "seed mean with ddof=1 SE and t interval; top-two inside sqrt(se1^2+se2^2) = TIE -> fewer params, then control",
+   "ensemble_strategy": "ensemble strategy = the member (seed) strategy whose genes are closest to the gene-wise median of all members, standardised by the members' spread; no re-search on any block; ties -> the lowest seed"
+  },
+  "wf_yearly_folds_kept_for_comparability": [
+   "wf2022",
+   "wf2023"
+  ],
+  "superseded_rules": {
+   "HOLDS_v1": "an arm HOLDS only if its seed-ensemble validation Sharpe minus one Lo standard error is > 0 in BOTH walk-forward folds (wf2022 and wf2023); otherwise DOES_NOT_HOLD",
+   "SEPARABLE_v1": "two arms are SEPARABLE on a window only when |Sharpe_a - Sharpe_b| > the pooled Lo standard error sqrt(SE_a^2 + SE_b^2); otherwise NOT_SEPARABLE"
+  }
  }
 }

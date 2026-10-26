@@ -133,7 +133,7 @@ def _unit_doc(out: Path, unit: str, extra_units: list | None = None) -> dict:
     for p in periods:
         sh = [v[p]["sharpe"] for v in seeds.values() if p in v]
         doc.setdefault("seed_mean", {})[p] = st.mean(sh) if sh else None
-        doc.setdefault("seed_std", {})[p] = (st.pstdev(sh) if len(sh) > 1 else 0.0) if sh else None
+        doc.setdefault("seed_std", {})[p] = (st.stdev(sh) if len(sh) > 1 else 0.0) if sh else None   # ddof=1 (A5-10)
         doc.setdefault("all_valid", {})[p] = all(v[p]["valid"] for v in seeds.values() if p in v)
     if ens:
         doc["ensemble"] = {p: {"sharpe": v["sharpe"], "se_lo": v["se_lo"], "sharpe_minus_se": v["sharpe_minus_se"], "days": v["days"],
