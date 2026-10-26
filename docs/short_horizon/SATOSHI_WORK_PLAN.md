@@ -327,3 +327,13 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   calibración "con confianza estadística" (cota inferior del IC 90 % ≥ 2.0). L12: umbrales por lado + restricción de
   balance ≤ 90 %, regla de actividad con IC, arreglo del informe, diagnóstico de diversidad de fitness → cadena v13 con
   parada en la primera semilla de cada etapa si falla el filtro.
+
+## 2026-10-26 — Auditoría adversaria cerrada y orden de corrección APROBADO ("no más excusas")
+
+- Registro: `ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md` (A1 entradas, A2 etiquetas, A4 estrategia, A5 métricas, A6
+  controles). Motor correcto. La tubería explota una señal fuerte y **falla con una moderada plantada** → los nulos con
+  datos reales nunca fueron evidencia. Selección cerrada en core19 (regla del propietario: no repetir).
+- Carriles de corrección en paralelo: F1 etiquetas/abridores/cerradores (contrato C3), F2 protocolo (bloques anidados,
+  ≥ 8 folds, expectativa por trade, libro de lecturas, spec v11), F3 ejecución (mejor señal del día, reversión,
+  tamaño por riesgo, corte del viernes). Después: F4 líneas base + dimensionalidad + evaluador en `feature_selector`;
+  F5 control sintético a 5 semillas como PUERTA antes de datos reales; cadena en el 4090.
