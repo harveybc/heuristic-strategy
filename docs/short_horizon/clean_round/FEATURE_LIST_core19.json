@@ -1,5 +1,5 @@
 {
- "name": "core23",
+ "name": "core19",
  "n": 19,
  "features": [
   "HIGH@diff",
@@ -22,7 +22,7 @@
   "CLOSE@diff",
   "RAW_BAR_LOG_RETURN"
  ],
- "rule": "cut from EXISTING selection-v5 metrics only (no new test): core15 + the single family with a material mean delta_loss gain in RANKING.csv (inv.raw +0.0992; the next family px.close_loc adds +0.0097 and would exceed 25 columns)",
+ "rule": "cut from EXISTING selection-v5 metrics only (no new test): core15 + the single family with a material mean delta_loss gain in RANKING.csv (inv.raw +0.0992; 4 of its 8 columns were already in core15, so the union is 19; the next family px.close_loc adds only +0.0097)",
  "source": {
   "core15": "selection_v5/FEATURE_LIST_core15.json",
   "ranking": "selection_v5/RANKING.csv (hgb, mean delta_loss over tasks x folds)",
