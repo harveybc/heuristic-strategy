@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_bef6627ca7881000",
+ "identity": "action_b031c345f56c97a9",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -860,10 +860,6 @@
     0.0,
     0.6
    ],
-   "allow_reverse": [
-    0.0,
-    1.0
-   ],
    "close_p_l": [
     0.3,
     0.95
@@ -871,6 +867,10 @@
    "close_p_s": [
     0.3,
     0.95
+   ],
+   "allow_reverse": [
+    0.0,
+    1.0
    ],
    "nop_veto": [
     0.3,
@@ -972,6 +972,11 @@
    },
    "min_agent_close_share": 0.05,
    "rule": "early close is kept only when exec_variants.early_close_ok passes: agent closes >= 5 % of the exits on the block AND the lower 90 % bound of the mean daily difference >= 0; otherwise the unit runs with early close DISABLED and is flagged early_close_disabled (reported, never hidden)"
+  },
+  "params": {
+   "file": "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json",
+   "sha256": "197bd952f9da674a1404b6782f96882bfc028cf5270a5100798b9fc46fa4a4c7",
+   "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"
   }
  },
  "blocks": {
@@ -1195,5 +1200,12 @@
  "derived_from": {
   "identity": "action_af7d8c66612d1d29",
   "why": "adversarial audit 2026-10-26: labels taught losing trades (TP 0.43 sigma vs constant SL 2 sigma), closers blind / leaky, DAgger contradictions, wrong probability in the gain rule"
- }
+ },
+ "changelog": [
+  {
+   "when": "2026-10-27",
+   "change": "contract regenerated from the code and re-sealed; the strategy parameter file and its sha are embedded",
+   "why": "since 6a38ccf close_p_l / close_p_s / nop_veto are ABSOLUTE calibrated-probability thresholds (genes in [0.30, 0.95]); the committed contracts were edited by hand and drifted from default_contract() (TCN file: action_bef6627ca7881000 vs code action_db1380893d680db6; the U control file still carried the quantile genes close_p_rate / nop_veto_rate). The requirement change was a fix proven by the behaviour matrix: a quantile over a saturated reference mapped close_p to 1e-6 under perfect closers and closed 49 value-positive positions in one cell, and nop_veto mapped to 1.0 and never vetoed"
+  }
+ ]
 }

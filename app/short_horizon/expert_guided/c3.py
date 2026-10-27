@@ -798,6 +798,18 @@ def head_outputs(cells) -> dict:
         "early_close_switch": "exec_variants.early_close_ok(agent close share >= 0.05, value lower bound >= 0) on the selection block; on failure the closers are not consulted (flagged)"}
 
 
+STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
+STRATEGY_PARAMS_SHA256 = "197bd952f9da674a1404b6782f96882bfc028cf5270a5100798b9fc46fa4a4c7"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+CONTRACT_CHANGELOG = (
+    {"when": "2026-10-27", "change": "contract regenerated from the code and re-sealed; the strategy parameter file and its sha are embedded",
+     "why": "since 6a38ccf close_p_l / close_p_s / nop_veto are ABSOLUTE calibrated-probability thresholds (genes in [0.30, 0.95]); the committed contracts "
+            "were edited by hand and drifted from default_contract() (TCN file: action_bef6627ca7881000 vs code action_db1380893d680db6; the U control "
+            "file still carried the quantile genes close_p_rate / nop_veto_rate). The requirement change was a fix proven by the behaviour matrix: a "
+            "quantile over a saturated reference mapped close_p to 1e-6 under perfect closers and closed 49 value-positive positions in one cell, and "
+            "nop_veto mapped to 1.0 and never vetoed"},
+)
+
+
 def default_contract(architecture: dict | None = None) -> dict:
     """C3 contract; the DEFAULT trunk is ``residual_tcn`` (owner 2026-10-26: every model of this line uses the TCN trunk);
     the u-design conv1d trunk is a declared CONTROL arm (``ACTION_CONTRACT_C3_U.json``), never the default."""
@@ -828,7 +840,8 @@ def default_contract(architecture: dict | None = None) -> dict:
         "close_margin_l": "-quantile(predicted remaining value, calibration LONG positioned visits, close_rem_rate_l)",
         "close_margin_s": "-quantile(predicted remaining value, calibration SHORT positioned visits, close_rem_rate_s)",
         "close_p_l": "absolute threshold on calibrated P(SL first) (gene close_p_l in [0.30, 0.95])",
-        "close_p_s": "absolute threshold on calibrated P(SL first) (gene close_p_s in [0.30, 0.95])"})
+        "close_p_s": "absolute threshold on calibrated P(SL first) (gene close_p_s in [0.30, 0.95])",
+        "nop_veto": "absolute threshold on calibrated P(NOP) (gene nop_veto in [0.30, 0.95])"})
     for k in ("open_margin_l", "open_margin_s", "close_margin", "close_p"):
         st["gene_map"].pop(k, None)
     st["side_symmetry"] = SIDE_SYMMETRY_RULE
@@ -880,6 +893,9 @@ def default_contract(architecture: dict | None = None) -> dict:
                          "openers_and_nop": "fitted once in round 0 (their rows are every clean-account eligible flat row)"}
     doc["constraints"]["teacher"] = "none"
     doc["derived_from"] = {"identity": base.get("identity"), "why": "adversarial audit 2026-10-26: labels taught losing trades (TP 0.43 sigma vs constant SL 2 sigma), closers blind / leaky, DAgger contradictions, wrong probability in the gain rule"}
+    doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256,
+                                 "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"}
+    doc["changelog"] = list(CONTRACT_CHANGELOG)
     return ACT.seal(doc)
 
 

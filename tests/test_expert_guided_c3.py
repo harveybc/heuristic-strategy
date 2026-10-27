@@ -31,6 +31,14 @@ def test_committed_c3_contract_is_the_sealed_default_and_passes_every_check():
         assert "stop_loss_head" in d["specialists"][m] and d["specialists"][m]["stop_loss_head"].startswith("none")
         assert list(d["specialists"][m]["continuous"]) == [C2.cell_name(c) for c in C3.CELLS]
     assert d["label_rules"]["teacher"] == "none" and d["constraints"]["teacher"] == "none"
+    for k in ("close_p_l", "close_p_s", "nop_veto"):                       # absolute thresholds in the genes AND in the gene map text
+        assert d["strategy"]["genes"][k] == [0.30, 0.95] and d["strategy"]["gene_map"][k].startswith("absolute threshold")
+
+
+def test_contract_embeds_the_sha_of_the_strategy_parameter_file_it_was_proven_with():
+    d = json.loads((CONTRACTS / "ACTION_CONTRACT_C3.json").read_text())
+    pr = d["strategy"]["params"]
+    assert pr["sha256"] == ACT.sha256_file(ROOT / pr["file"]) and d["changelog"] and "6a38ccf" in d["changelog"][-1]["why"]
 
 
 @pytest.mark.parametrize("mutate, code", [
@@ -138,11 +146,14 @@ def test_gene_map_and_strategy_from_genes_are_per_side():
     view["net"][:, 1, 0] = 0.2
     ref = {"rem_ref_l": np.linspace(-1, 1, 5), "rem_ref_s": np.linspace(-2, 2, 5), "psl_ref_l": np.linspace(0.1, 0.5, 5), "psl_ref_s": np.linspace(0.5, 0.9, 5)}
     gm = C3.gene_map(view, rows, ref, cells, (-0.1, -0.1), 0.05)
-    g = gm.to_absolute({"open_rate": 0.5, "close_rem_rate_l": 0.0, "close_rem_rate_s": 0.0, "close_p_rate_l": 0.0,
-                        "close_p_rate_s": 0.0, "allow_reverse": 1.0, "nop_veto_rate": 0.5})
+    g = gm.to_absolute({"open_rate": 0.5, "close_rem_rate_l": 0.0, "close_rem_rate_s": 0.0, "close_p_l": 0.5,
+                        "close_p_s": 0.9, "allow_reverse": 1.0, "nop_veto": 0.6})
     assert gm.refs["open_score"].shape[0] == 12                              # pooled: 6 long + 6 short EVs, one margin
     st = C3.StrategyC3.from_genes(g, True)
-    assert st.close_margin_l == 1.0 and st.close_margin_s == 2.0 and st.close_p_l == 0.5 and st.close_p_s == 0.9 and st.allow_reverse
+    # close_p_l / close_p_s / nop_veto are ABSOLUTE calibrated-probability thresholds (6a38ccf, a fix proven by the behaviour
+    # matrix: a quantile over a saturated reference mapped close_p to 1e-6 under perfect closers and closed 49 value-positive
+    # positions in one cell; nop_veto mapped to 1.0 and never vetoed): the gene value passes through, per side
+    assert st.close_margin_l == 1.0 and st.close_margin_s == 2.0 and st.close_p_l == 0.5 and st.close_p_s == 0.9 and st.nop_veto == 0.6 and st.allow_reverse
     assert set(gm.rules) == set(C3.GENES) and st.early_close is True
 
 

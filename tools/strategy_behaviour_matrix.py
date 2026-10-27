@@ -147,13 +147,13 @@ RUN_HISTORY = [
     {"run": "v10 restart (2026-10-27T12:39Z)", "note": "the re-sealed spec v3 (W8 switch v3, VALIDITY_SPEC: vacuous control passes do not validate, O* as a second control for the timing / exit witnesses) needs the O* witnesses and the W8 replay in every record; the 36 records run 12:19-12:30Z lacked them and were re-run (kept as results_v10_pre_rule_superseded). allow_reverse = 0 stays in the canonical point to avoid a third full rerun: it REMOVED PROFITABLE REVERSALS (net -18 %, Sharpe unchanged on the 23-world check); it remains a DEAP gene, and justified reversals can now pass W5 non-vacuously where O* validates it"},
     {"run": "v6 ZigZag", "note":"production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
 ]
-KNOWN_TEST_FAILURES = [   # failing before and after the v10 / v3 changes, listed by name and cause (coordinator 2026-10-27: never hidden)
+KNOWN_TEST_FAILURES = [   # failed before the v10 / v3 changes, listed by name and cause (coordinator 2026-10-27: never hidden); all FIXED the same day (status)
     {"test": "tests/test_expert_guided_c3.py::test_committed_c3_contract_is_the_sealed_default_and_passes_every_check",
-     "cause": "the committed ACTION_CONTRACT_C3.json and C3.default_contract() disagree in strategy.genes and identity (action_bef6627ca7881000 vs action_db1380893d680db6) since 6a38ccf made close_p / nop_veto absolute thresholds; the contract file or the default was not regenerated"},
+     "cause": "the committed ACTION_CONTRACT_C3.json and C3.default_contract() disagree in strategy.genes and identity (action_bef6627ca7881000 vs action_db1380893d680db6) since 6a38ccf made close_p / nop_veto absolute thresholds; the contract file or the default was not regenerated", "status": "FIXED 2026-10-27: both contracts regenerated from default_contract() and re-sealed (TCN action_b031c345f56c97a9, U control action_ee544107f683ba08) with a changelog entry and the strategy parameter sha embedded"},
     {"test": "tests/test_expert_guided_c3.py::test_gene_map_and_strategy_from_genes_are_per_side",
-     "cause": "the test still expects close_p_l mapped through the calibration quantiles (0.5); since 6a38ccf close_p_l is an absolute probability threshold and the gene value passes through (0.0)"},
+     "cause": "the test still expects close_p_l mapped through the calibration quantiles (0.5); since 6a38ccf close_p_l is an absolute probability threshold and the gene value passes through (0.0)", "status": "FIXED 2026-10-27: the test now requires the absolute-threshold pass-through (close_p 0.5 / 0.9, nop_veto 0.6), citing the matrix evidence of 6a38ccf"},
     {"test": "tests/test_expert_guided_c3.py::test_two_sealed_variants_carry_the_architecture_and_differ_only_by_it",
-     "cause": "the same contract / default disagreement as the first test (strategy.genes and identity)"},
+     "cause": "the same contract / default disagreement as the first test (strategy.genes and identity)", "status": "FIXED 2026-10-27: both contracts regenerated from default_contract() and re-sealed (TCN action_b031c345f56c97a9, U control action_ee544107f683ba08) with a changelog entry and the strategy parameter sha embedded"},
 ]
 EPS_CLOSE = 0.02                    # sigma units of the trade: the A(t) tie rule (close when A(t) >= -EPS_CLOSE)
 CLOSER_QUALITIES = (1.0, 0.85, 0.70)
@@ -2017,7 +2017,7 @@ def cmd_report(a):
             lines.append(f"| {r['id']} | {r['records_with_validity']} | {fm(vs.get('DEFECT', {}))} | {fm(vs.get('SEALED_UNVALIDATED', {}))} | {fm(vs.get('REPLAY_CONFLICT', {}))} | {', '.join(r.get('failing_effective') or [])} |")
     lines += exit_report_sections(recs, outp)
     lines += ["", "## Historia de corridas (lo que cada versión invalidó)", "", "| corrida | nota |", "| --- | --- |"] + [f"| {x['run']} | {x['note']} |" for x in RUN_HISTORY]
-    lines += ["", "## Pruebas que fallan (anteriores a estos cambios, no ocultadas)", "", "| prueba | causa |", "| --- | --- |"] + [f"| `{x['test']}` | {x['cause']} |" for x in KNOWN_TEST_FAILURES]
+    lines += ["", "## Pruebas que fallaban (anteriores a estos cambios, no ocultadas)", "", "| prueba | causa | estado |", "| --- | --- | --- |"] + [f"| `{x['test']}` | {x['cause']} | {x.get('status', 'FAILING')} |" for x in KNOWN_TEST_FAILURES]
     lines += ["", "## Cobertura de intensidades (cambios de tendencia y de volatilidad variados independientemente)", "", intensity_coverage(cells, rows)]
     qdir = Path(a.cells).parent / "queue"
     if qdir.exists():
