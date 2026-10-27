@@ -17,6 +17,7 @@ Keys (quantile genes are mapped to absolute thresholds on the calibration block 
   max_entries_per_day
   rr_margin_sigma                 TP < SL cells allowed only when net > cost + this
   confirmation_lag_bars           declared coarse-switch confirmation lag
+  open_margin_eps                 an open needs EV > margin + eps (sigma): removes float knife-edges on the quantile sample
   tp_grid, sl_grid                the TP / SL cell grid (sigma multiples)
 """
 from __future__ import annotations
@@ -34,7 +35,7 @@ BOUNDS = {
     "v_alpha_l": [0.0, 1.0], "v_beta_l": [-1.0, 1.0], "v_gamma_l": [0.0, 1.0], "v_delta_l": [0.0, 1.0],
     "v_alpha_s": [0.0, 1.0], "v_beta_s": [-1.0, 1.0], "v_gamma_s": [0.0, 1.0], "v_delta_s": [0.0, 1.0], "v_min": [0.0, 0.5],
     "risk_pct": [0.0025, 0.03], "entry_cutoff_hours": [4.0, 48.0], "max_entries_per_day": [1, 6], "rr_margin_sigma": [0.0, 0.5],
-    "confirmation_lag_bars": [24, 480],
+    "confirmation_lag_bars": [24, 480], "open_margin_eps": [0.0, 1e-3],
 }
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
 META_KEYS = {"schema", "note", "defaults_are", "sealed"}
@@ -45,7 +46,7 @@ DEFAULTS = {
     "tp_a_l": 1.0, "tp_b_l": 0.0, "sl_c_l": 1.0, "sl_e_l": 0.0, "tp_a_s": 1.0, "tp_b_s": 0.0, "sl_c_s": 1.0, "sl_e_s": 0.0,
     "v_alpha_l": 1.0, "v_beta_l": 0.0, "v_gamma_l": 0.0, "v_delta_l": 0.0, "v_alpha_s": 1.0, "v_beta_s": 0.0, "v_gamma_s": 0.0, "v_delta_s": 0.0, "v_min": 0.0,
     "risk_pct": 0.01, "entry_cutoff_hours": 24.0, "max_entries_per_day": 4, "rr_margin_sigma": 0.10, "confirmation_lag_bars": 120,
-    "tp_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "sl_grid": [0.5, 0.75, 1.0, 1.5, 2.0],
+    "tp_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "sl_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "open_margin_eps": 1e-6,
 }
 
 

@@ -296,7 +296,7 @@ class PolicyC3Audit(S.PolicyC3PerBar):
             cells_.append(int(ci))
         pooled = getattr(s, "open_margin", None)                   # C3 b27781e: ONE pooled open margin for both sides (side symmetry)
         mar = (getattr(s, "open_margin_l", pooled), getattr(s, "open_margin_s", pooled))
-        cleared = [bool(np.isfinite(evs[i]) and evs[i] > mar[i]) for i in (0, 1)]
+        cleared = [bool(np.isfinite(evs[i]) and evs[i] > mar[i] + C3.OPEN_MARGIN_EPS) for i in (0, 1)]
         out = super().open_decision(r, with_score)
         chosen = -1 if out is None else (0 if out[0] == E.LONG else 1)
         self.log.append((int(r), evs[0], evs[1], cleared[0], cleared[1], chosen, bool(vetoed), cells_[0], cells_[1]))

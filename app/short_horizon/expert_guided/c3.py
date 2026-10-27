@@ -54,6 +54,8 @@ CAP_P1_SIGMA = 2.09                           # engine effective cap 1.5 * sigma
 CLASSES_OPEN = ["TP_FIRST", "SL_FIRST", "TIME"]
 HIT_TP, HIT_SL, HIT_TIME = OC.HIT_TP, OC.HIT_SL, OC.HIT_TIME
 RR_MARGIN_SIGMA = 0.10                        # a TP < SL cell is allowed only when its predicted net > cost + this
+OPEN_MARGIN_EPS = 1e-6                        # an open needs EV > margin + eps (sigma): the margin is a quantile SAMPLE of the EV reference, so the
+                                              # defining row sits exactly on it and a 1e-7 float difference decided it (behaviour matrix mirror witness)
 MIN_TARGET_STD = 0.05                         # a regression target below this std on TRAIN is a constant: refused
 LOSS_BALANCE = {"ce_weight": 1.0, "huber_weight": 1.0, "huber_norm": "masked_rows", "ce_norm": "class_weighted_mean"}
 EARLY_CLOSE_BENEFIT = {"block": "INNER_A", "statistic": "mean daily P&L difference (with early close - never close), USD",
@@ -249,8 +251,8 @@ class PolicyC3:
                 self.ledger.append(rec)
             return None
         ev_l, ci_l, ev_s, ci_s = self.side_evs(r)
-        cl = bool(np.isfinite(ev_l) and ev_l > s.open_margin)
-        cs = bool(np.isfinite(ev_s) and ev_s > s.open_margin)
+        cl = bool(np.isfinite(ev_l) and ev_l > s.open_margin + OPEN_MARGIN_EPS)
+        cs = bool(np.isfinite(ev_s) and ev_s > s.open_margin + OPEN_MARGIN_EPS)
         if rec is not None:
             rec.update(ev_l=float(ev_l), ev_s=float(ev_s), cleared_l=cl, cleared_s=cs, both_cleared=cl and cs)
         if cl and cs:
