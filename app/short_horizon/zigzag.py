@@ -106,10 +106,13 @@ def select_pivots(lowmap, highmap) -> list:
     for i in range(n):
         if look == 0:
             if last_low == 0.0 and last_high == 0.0:
-                if highmap[i] != 0:
+                # SYMMETRIC first pivot (2026-10-27): a bar holding BOTH a high and a low candidate does not start the
+                # ZigZag (the legacy rule let the low overwrite the high, so a path and its price mirror started with
+                # different first pivots); the first bar with exactly one candidate does
+                if highmap[i] != 0 and lowmap[i] == 0:
                     last_high, last_high_pos, look = highmap[i], i, VALLEY
                     zz[i] = (PEAK, last_high)
-                if lowmap[i] != 0:
+                elif lowmap[i] != 0 and highmap[i] == 0:
                     last_low, last_low_pos, look = lowmap[i], i, PEAK
                     zz[i] = (VALLEY, last_low)
         elif look == PEAK:
@@ -129,6 +132,20 @@ def select_pivots(lowmap, highmap) -> list:
                 last_low, last_low_pos, look = lowmap[i], i, PEAK
                 zz[i] = (VALLEY, last_low)
     return [(i, kind, lvl) for i, (kind, lvl) in sorted(zz.items())]
+
+
+def select_pivots_legacy(lowmap, highmap) -> list:
+    """The pre-2026-10-27 selection (asymmetric first pivot), kept only to measure the change on real data."""
+    lm, hm = np.asarray(lowmap, float).copy(), np.asarray(highmap, float).copy()
+    k = next((i for i in range(len(lm)) if lm[i] != 0 or hm[i] != 0), None)
+    if k is not None and lm[k] != 0 and hm[k] != 0:
+        hm[k] = 0.0                                                # legacy: the low overwrote the high on a bar with both
+    return select_pivots(lm, hm)
+
+
+def hindsight_pivots_legacy(high, low, p: Params) -> list:
+    lowmap, highmap = candidate_maps(high, low, p)
+    return select_pivots_legacy(lowmap, highmap)
 
 
 def confirmation_bars(high, low, pivots, p: Params, max_lag: int = 400) -> list:

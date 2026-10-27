@@ -63,25 +63,10 @@ def _raw_pivots(h, l, spec: str):
 
 
 def level_pivots(h, l, spec: str):
-    """[(bar, PEAK|VALLEY, level)] of one ladder member on a path: reversal ZigZags in pips, the expert MetaTrader ZigZag
-    (Depth 3 / Deviation 40.7 / Backstep 0) for '3'. MIRROR-SYMMETRIC: the underlying implementations decide their first
-    pivot asymmetrically (highs are examined before lows), which made rev400 and Depth-3 differ between a path and its
-    exact mirror (behaviour matrix W14); only the pivots found on BOTH the path and its mirror are kept, with the
-    peak / valley alternation restored."""
-    h, l = np.asarray(h, float), np.asarray(l, float)
-    k = 2.0 * float(np.nanmax(h))
-    p1 = _raw_pivots(h, l, spec)
-    p2 = _raw_pivots(k - l, k - h, spec)
-    mirror_bars_kind = {(int(b), -int(kd)) for b, kd, _ in p2}
-    keep = [p for p in p1 if (int(p[0]), int(p[1])) in mirror_bars_kind]
-    out = []
-    for p in keep:
-        if out and int(out[-1][1]) == int(p[1]):                 # restore alternation: keep the more extreme of two same-kind pivots
-            if (int(p[1]) == Z.PEAK and p[2] > out[-1][2]) or (int(p[1]) == Z.VALLEY and p[2] < out[-1][2]):
-                out[-1] = p
-            continue
-        out.append(p)
-    return out
+    """[(bar, PEAK|VALLEY, level)] of one ladder member: the PRODUCTION implementations (reversal ZigZag in pips, the
+    expert MetaTrader ZigZag Depth 3 / Deviation 40.7 / Backstep 0), both symmetric under price negation since
+    2026-10-27 (the matrix certifies the ladder the strategy will see)."""
+    return _raw_pivots(np.asarray(h, float), np.asarray(l, float), spec)
 
 
 def _level_arrays(o, h, l, c, sigma, piv):

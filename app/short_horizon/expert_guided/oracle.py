@@ -96,6 +96,56 @@ def reversal_pivots(high, low, threshold: float):
     """Classic reversal ZigZag on highs / lows (hindsight; labels only, never an input). A leg's extreme is fixed as a
     pivot at the first LATER bar whose low (high) lies >= ``threshold`` (price units) beyond it; a bar that makes a new
     extreme extends the leg and cannot also confirm a reversal from it (no intrabar-order assumption), so every pivot
+    is confirmed strictly after its own bar. Returns (pivots [(bar, PEAK|VALLEY, level)], conf [bar it became final]).
+
+    SYMMETRIC under price negation (2026-10-27): before the first pivot both running extremes are tracked and the
+    first peak and the first valley obey the same rule (a peak needs the running high to be later than the running low
+    and a drop of ``threshold`` on a bar that is not a new high; a valley the mirror conditions), so
+    reversal_pivots(K - low, K - high) == mirror(reversal_pivots(high, low)) exactly. The legacy rule examined the
+    high first and let a new-low bar confirm a peak while a new-high bar could not confirm a valley; only the pivots
+    before and at the first confirmation can differ from ``reversal_pivots_legacy``."""
+    high, low = np.asarray(high, float), np.asarray(low, float)
+    n = len(high)
+    piv, conf = [], []
+    if n == 0:
+        return piv, conf
+    trend, hi_i, hi_v, lo_i, lo_v = 0, 0, high[0], 0, low[0]
+    for i in range(1, n):
+        if trend == 0:
+            nh, nl = high[i] > hi_v, low[i] < lo_v
+            pk = (not nh) and (hi_v - low[i] >= threshold) and hi_i > lo_i
+            vl = (not nl) and (high[i] - lo_v >= threshold) and lo_i > hi_i
+            if pk:
+                piv.append((hi_i, Z.PEAK, hi_v)); conf.append(i)
+                trend, lo_i, lo_v = -1, i, low[i]
+                continue
+            if vl:
+                piv.append((lo_i, Z.VALLEY, lo_v)); conf.append(i)
+                trend, hi_i, hi_v = 1, i, high[i]
+                continue
+            if nh:
+                hi_i, hi_v = i, high[i]
+            if nl:
+                lo_i, lo_v = i, low[i]
+        elif trend == 1:
+            if high[i] > hi_v:
+                hi_i, hi_v = i, high[i]
+            elif hi_v - low[i] >= threshold:
+                piv.append((hi_i, Z.PEAK, hi_v)); conf.append(i)
+                trend, lo_i, lo_v = -1, i, low[i]
+        else:
+            if low[i] < lo_v:
+                lo_i, lo_v = i, low[i]
+            elif high[i] - lo_v >= threshold:
+                piv.append((lo_i, Z.VALLEY, lo_v)); conf.append(i)
+                trend, hi_i, hi_v = 1, i, high[i]
+    return piv, conf
+
+
+def reversal_pivots_legacy(high, low, threshold: float):
+    """Classic reversal ZigZag on highs / lows (hindsight; labels only, never an input). A leg's extreme is fixed as a
+    pivot at the first LATER bar whose low (high) lies >= ``threshold`` (price units) beyond it; a bar that makes a new
+    extreme extends the leg and cannot also confirm a reversal from it (no intrabar-order assumption), so every pivot
     is confirmed strictly after its own bar. Returns (pivots [(bar, PEAK|VALLEY, level)], conf [bar it became final])."""
     high, low = np.asarray(high, float), np.asarray(low, float)
     n = len(high)

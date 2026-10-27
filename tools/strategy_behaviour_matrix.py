@@ -89,6 +89,15 @@ WITNESS_CHANGELOG = [
     {"when": "2026-10-27T01:50Z (after the seal; NOT admitted: the oracle passes the sealed form)", "witness": "W4_early_close_justified (v2 = SL-first detection or negative remaining)",
      "defect": "proposed after 49 strategy closes with positive remaining; those closes were the close_p quantile defect of the STRATEGY (fixed); the oracle passes the sealed form", "evidence": "oracle: 8-11 early closes per twin, all with remaining <= 0", "effect": "the sealed form stands; v2 is computed and reported but never admitted"},
 ]
+RUN_HISTORY = [
+    {"run": "v1 (2026-10-27T00:58Z)", "note": "first launch; mirror twins built from a stale queue (double-mirrored legs); superseded"},
+    {"run": "v2 (01:36Z)", "note": "absolute close_p / nop_veto and open-margin eps; witnesses not yet oracle-controlled; superseded"},
+    {"run": "v3 (01:55Z)", "note": "truth-oracle control, sealed + corrected witness forms; strategy C3; 349 / 429 effective PASS; superseded"},
+    {"run": "v4 (03:17Z)", "note": "strategy C3Z, witnesses W15-W17, intensity and multi-horizon blocks; superseded"},
+    {"run": "v1-v4 SEED DEFECT", "note": "in runs v1 to v4 the synthetic path seed came from the cell id only and perfect heads add no noise, so the three seeds of a cell were IDENTICAL worlds: their per-seed agreement is not evidence of robustness"},
+    {"run": "v5 (04:23Z)", "note": "seeds vary the path; close-margin floor, net-ranked sides; the ladder kept only pivots found on both the path and its mirror -- a ladder production never computes: superseded by v6"},
+    {"run": "v6", "note": "production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
+]
 BURST_DETECTION_LAG = 3             # bars the causal burst gate needs (realized vol over 6 bars > 2 sigma at a x3 burst after ~2-3 bars)
 THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_positive_open_min": 0.90, "wrong_side_max": 0.10,
           "best_cell_min": 0.70, "nop_open_max": 0.05, "sl_exit_max": 0.10, "early_close_justified_min": 0.80, "reverse_in_switch_window_min": 0.50,
@@ -1124,7 +1133,7 @@ def cmd_report(a):
            "oracle_witness_defects_sealed": defect_tally,
            "pass": n_pass, "fail": sum(1 for r in rows if r["n_runs"] and not r["PASS"]),
            "spec_sha256_sealed_cells_only": SEALED_CELLS_SHA, "cells_sha256_current": spec_sha, "spec_sha256_v2": spec_v2_sha, "spec_v2": spec_doc,
-           "strategy_params_sha256": psha, "witness_code_commit": commit, "witness_changelog": WITNESS_CHANGELOG, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
+           "strategy_params_sha256": psha, "witness_code_commit": commit, "witness_changelog": WITNESS_CHANGELOG, "run_history": RUN_HISTORY, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
     outp = Path(a.out)
     outp.mkdir(parents=True, exist_ok=True)
     (outp / "BEHAVIOUR_MATRIX.json").write_text(json.dumps(doc, indent=1, default=float))
@@ -1139,6 +1148,7 @@ def cmd_report(a):
                      f"{', '.join(f'{k}×{v}' for k, v in r['failing_witnesses'].items()) or ''} | {', '.join(f'{k}×{v}' for k, v in r['witness_defects_sealed'].items()) or ''} | {vd(r['PASS_v2'])} | {vd(r['PASS_effective'])} | "
                      f"{r['share_long_mean'] if r['share_long_mean'] is None else f'{r['share_long_mean']:.2f}'} | {'' if r['opens_mean'] is None else f'{r['opens_mean']:.0f}'} |")
     fails = [r for r in rows if r["n_runs"] and not r["PASS_sealed"]]
+    lines += ["", "## Historia de corridas (lo que cada versión invalidó)", "", "| corrida | nota |", "| --- | --- |"] + [f"| {x['run']} | {x['note']} |" for x in RUN_HISTORY]
     lines += ["", "## Cobertura de intensidades (cambios de tendencia y de volatilidad variados independientemente)", "", intensity_coverage(cells, rows)]
     qdir = Path(a.cells).parent / "queue"
     if qdir.exists():

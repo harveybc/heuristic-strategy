@@ -104,6 +104,20 @@ espejo aplicado dos veces), registrados en el `witness_changelog` del JSON. El s
 de celdas; la lista de celdas cambió después del sellado al corregir el espejo (`legs_gen`), por lo que el reporte
 muestra tres sha: el sellado original, el de las celdas actuales y el de la especificación v2.
 
+## 5b. Semillas, ZigZag simétrico y corridas invalidadas
+
+En las corridas v1 a v4 la semilla del camino sintético salía sólo del identificador de la celda y las cabezas
+perfectas no añaden ruido: las **tres semillas de cada celda eran el mismo mundo**, y su acuerdo entre semillas **no es
+evidencia** de robustez. Desde v5 la semilla de la corrida varía el camino. En v5 la escalera conservaba sólo los
+pivotes hallados en el camino y en su espejo, una escalera que producción nunca calcula; desde v6 los dos ZigZag de
+producción (reversión en pips y MetaTrader experto Depth 3 / Deviation 40.7 / Backstep 0) deciden el primer pivote con
+una regla **simétrica bajo negación del precio** (`oracle.reversal_pivots`, `zigzag.select_pivots`; las reglas
+anteriores quedan como `*_legacy` sólo para medir el cambio), con la prueba `tests/test_zigzag_mirror_symmetry.py`
+(zigzag(K − camino) = espejo(zigzag(camino)) exactamente, 12 caminos × 10 umbrales y 12 caminos del experto). La misma
+implementación sirve a la matriz, a las etiquetas y a producción. Impacto en los datos reales (folds `wf2022`/`wf2023`,
+2020-01-02 → 2024-12-31): **un pivote por fold** (el primero del ZigZag experto, 2020-01-02 00:00); los diez niveles de
+reversión, idénticos.
+
 ## 6. Resultado (generado)
 
 <!-- BEHAVIOUR_MATRIX_FRAGMENT -->
