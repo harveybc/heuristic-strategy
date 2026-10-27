@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import hashlib
 import json
 import math
 import os
@@ -53,24 +54,38 @@ CALENDARS = {"normal": {}, "cutoff12": {"cutoff_h": 12.0}, "missing": {"missing_
 TRENDS = [("trend_up", st) for st in H.TREND_STRENGTH] + [("trend_down", st) for st in H.TREND_STRENGTH] + [("range", "medium")]
 BEHAVIOURS = ("OPEN_LONG", "OPEN_SHORT", "NOP", "HOLD", "EARLY_CLOSE", "REVERSE", "VOLUME", "TPSL_CELL")
 LAG = H.CONFIRMATION_LAG_BARS
+SEALED_CELLS_SHA = "e07bbe731fc0b0cb59e7569202a1cd8ffc0f2af0e4e48c33b4a7fd964e28ba6a"   # the original seal (cells only, 2026-10-27T00:58Z)
+WITNESS_SPEC = {
+    "sealed": {"W1_side_static": "|side share - truth opportunity share| <= 0.15 and the trend direction is the majority when the truth is dominated by it (>= 0.60); range: both sides >= 0.25",
+               "W1_side_transition": "per trend leg: share in the leg's direction >= 0.60; old-direction share after the 120-bar lag <= 0.40",
+               "W2": "truth net > 0 at the chosen cell >= 0.90; wrong side (other side's truth best net higher by > 0.10 sigma) <= 0.10", "W7": "chosen cell = truth best cell >= 0.70",
+               "W3": "opens on truth-NOP rows <= 0.05", "W4_sl_exits": "SL exits <= 0.10", "W4_early_close_justified": "early closes with remaining hold value <= 0: >= 0.80",
+               "W5_reverse": "static leg: reversals <= 1 per week; transition: reversals inside the switch windows >= 0.50", "W6": "risk-sized units exact", "W0": "opens >= 1 per week",
+               "W8_old_direction_after_lag": "max old-direction share after the lag <= 0.40", "W8_early_close_at_switch": "early-close share of exits in [switch, switch+lag] >= before",
+               "W9": "gap trade loss <= SL + gap + 0.5 sigma", "W10": "opens inside the x5 window have truth net > 0", "W12": "no open on an unobservable row", "W13": "TP distance tracks sigma",
+               "WA": "winner = argmax EV on every both-cleared tick", "W14": "exact mirror of the zero-cost twin"},
+    "v2": {"W1_side_transition_v2": "per leg: |share - truth opportunity| <= 0.15; direction majority when the truth is dominated (>= 0.60)",
+           "W4_early_close_justified_v2": "early closes on an SL-first detection (P(SL first) > close_p) or a negative remaining value: >= 0.95",
+           "W5_reverse_v2": "reversals whose new side has truth net > 0: >= 0.90; static leg <= 1 per week",
+           "W8_old_direction_after_lag_v2": "old-direction share after the lag <= max(0.40, truth old-direction opportunity + 0.10)",
+           "rule": "a v2 form is admitted only where the TRUTH ORACLE fails the sealed form (witness defect); otherwise the sealed form stands"},
+}
 WITNESS_CHANGELOG = [
-    {"when": "2026-10-27T01:20Z", "witness": "W4_early_close_justified -> W4_early_close_on_sl_first (+ early-close value reported)",
-     "defect": "the witness demanded remaining hold value <= 0 at every early close; `hold_value.remaining` subtracts the close-now fill costs and marks losing TIME exits as SL-first, so a mandated close on an SL-first detection can show a small positive remaining; the owner's hard rule mandates closing on SL-first detection",
-     "evidence": "B_trans_up_down_early s0: 49 early closes, 46 with psl = 1 (SL-first true) and remaining > 0; B_trend_trend_up_strong: 3 early closes, 1 such", "effect": "asserts that early closes fire on SL-first detections (>= 0.95) and that SL-destined positions are closed early (W4_sl_exits unchanged); reports the mean early-close value"},
-    {"when": "2026-10-27T01:20Z", "witness": "W1_side on transition cells -> truth-relative per leg (same rule as the static cells)",
-     "defect": "a fixed 0.60 share in the leg's direction fails a PERFECT strategy whenever the market truth offers fewer than 60 % opportunities on that side",
-     "evidence": "B_trans_up_down_early s0 first leg: 50 opens, long share 0.50, every open truth-positive (W2 = 1.0)", "effect": "per leg: |strategy share - truth opportunity share| <= 0.15 and the leg's direction is the majority when the truth is dominated by it (>= 0.60); the old-direction-after-lag rule (W8) unchanged"},
-    {"when": "2026-10-27T01:20Z", "witness": "W5_reverse -> truth-justified reversals (switch-window share reported)",
-     "defect": "with perfect heads a reversal at a fine counter-pivot is truth-positive and optimal; demanding reversals only inside coarse-switch windows fails a perfect strategy",
-     "evidence": "B_trans_up_down_early s0: 6 reversals, 1 inside the switch window, all truth-positive (W2 = 1.0)", "effect": "reversals whose new side has truth net > 0: >= 0.90; the static-leg rate limit (<= 1 per week) unchanged; the switch-window share is reported"},
-]
-WITNESS_CHANGELOG += [
-    {"when": "2026-10-27T01:50Z", "witness": "W4_early_close_on_sl_first -> W4_early_close_justified (SL-first detection OR negative remaining)",
-     "defect": "demanding that every early close fire on an SL-first detection contradicts the strategy's declared close rule (close when remaining < -margin OR P(SL first) > close_p); closes on a negative remaining value are value-positive by construction",
-     "evidence": "B_trans_up_down_early s0 after the close_p fix: 2 early closes, both remaining < 0 (mean benefit +0.21 sigma), 0 on SL-first; witness read 0.0", "effect": "an early close is justified when P(SL first) > close_p or remaining < 0; share >= 0.95; SL-first share and mean benefit reported"},
-    {"when": "2026-10-27T01:50Z", "witness": "W8_old_direction_after_lag -> truth-relative (<= max(0.40, truth old-direction opportunity + 0.10)); the duplicate clause inside W1 removed",
-     "defect": "with perfect heads a truth-positive counter-move in the old direction is a legitimate open (the owner's spec allows them at confirmed fine counter-pivots); a fixed 0.40 fails a perfect strategy when the truth itself offers more",
-     "evidence": "B_trans_up_down_early s0: old-direction share after the lag 0.405 vs threshold 0.40 while every open was truth-positive (W2 = 1.0)", "effect": "the strategy may not open in the old direction more than the truth offers (+0.10 slack) after the lag"},
+    {"when": "2026-10-27T00:40Z (before the seal)", "witness": "W2 / W7 instrumentation", "defect": "the decision row was looked up one bar off the fill bar; truth lookups returned nothing (W2 / W7 read 0.0 while every trade hit TP)",
+     "evidence": "B_trend_trend_down_medium s0: 178 trades, 171 TP exits, W2 = 0.0, W7 = 0.0; after the fix both 1.0", "effect": "trades are mapped to the audited decision rows (decision_row_offset recorded)"},
+    {"when": "2026-10-27T00:50Z (before the seal)", "witness": "W14 mirror cells", "defect": "the mirror cell was double-mirrored (mirrored legs AND flipped path), so twins did not share a path; and the real engine is side-asymmetric by construction (bid bars, ask-triggered shorts, swap -7 / +2.5)",
+     "evidence": "S/M twins 178 vs 169 trades, 0 bars matching; engine truth of the twins differs by up to 4 sigma; at zero cost with the base legs 165/165 identical", "effect": "zero-cost twins S_ and exact mirrors M_ per base cell; the real-cost cell is witnessed on its own"},
+    {"when": "2026-10-27T02:40Z (after the seal; admitted by the TRUTH ORACLE control)", "witness": "W1_side on transition cells -> v2 truth-relative per leg",
+     "defect": "the sealed form demands >= 0.60 opens in the leg's direction; the TRUTH ORACLE (argmax true net per side, no strategy) fails it whenever the market truth offers fewer opportunities on that side",
+     "evidence": "B_trans_up_down_early s0, oracle: first leg long share 0.523 with truth opportunity 0.473 (W2 = 1.0, W7 = 1.0); S_ twin 0.543 / 0.514; M_ twin 0.533 / 0.464", "effect": "v2 admitted only in the cells where the oracle fails the sealed form (automatic, per cell); both verdicts reported"},
+    {"when": "2026-10-27T02:40Z (after the seal; admitted by the TRUTH ORACLE control)", "witness": "W5_reverse on transition cells -> v2 truth-justified reversals",
+     "defect": "the sealed form demands that reversals happen inside the coarse-switch windows; the TRUTH ORACLE reverses at truth-positive fine counter-pivots outside them",
+     "evidence": "B_trans_up_down_early s0, oracle: 3 reversals, 0 inside the switch window, 3/3 truth-justified; twins 3 / 0 / 3", "effect": "v2 admitted only where the oracle fails the sealed form; both verdicts reported"},
+    {"when": "2026-10-27T02:40Z (after the seal; admitted by the TRUTH ORACLE control)", "witness": "W8_old_direction_after_lag -> v2 bounded by the truth's old-direction opportunity (+0.10)",
+     "defect": "the sealed fixed 0.40 is exceeded by the TRUTH ORACLE itself when the truth keeps offering old-direction opportunities after the switch (the earlier relaxation made after the strategy's 0.405 was REVERTED as adapting the test to the result; this entry rests on the oracle only)",
+     "evidence": "B_trans_up_down_early s0, oracle: old-direction share after the lag 0.414 (truth opportunity 0.350); S_ twin 0.443 (truth 0.415); M_ twin 0.414 (truth 0.343)", "effect": "v2 admitted only where the oracle fails the sealed form; the strategy's own 0.405 is reported under the sealed form as FAIL"},
+    {"when": "2026-10-27T01:50Z (after the seal; NOT admitted: the oracle passes the sealed form)", "witness": "W4_early_close_justified (v2 = SL-first detection or negative remaining)",
+     "defect": "proposed after 49 strategy closes with positive remaining; those closes were the close_p quantile defect of the STRATEGY (fixed); the oracle passes the sealed form", "evidence": "oracle: 8-11 early closes per twin, all with remaining <= 0", "effect": "the sealed form stands; v2 is computed and reported but never admitted"},
 ]
 THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_positive_open_min": 0.90, "wrong_side_max": 0.10,
           "best_cell_min": 0.70, "nop_open_max": 0.05, "sl_exit_max": 0.10, "early_close_justified_min": 0.80, "reverse_in_switch_window_min": 0.50,
@@ -325,6 +340,73 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     return strat, view, cells
 
 
+ORACLE_STRATEGY = C3.StrategyC3(0.0, 0.0, 0.0, 0.5, 0.5, True, 0.5, True)   # zero margins; close on SL-first or a negative remaining value; reverse allowed
+
+
+class PolicyOracle(PolicyC3Audit):
+    """The TRUTH ORACLE: at every flat decision it takes, per side, the allowed cell with the highest TRUE engine net
+    and opens the side whose true net is higher when that net is positive; positioned, it closes on the true SL-first
+    flag or a negative true remaining value. No strategy, no calibration, no margins: the engine truth itself. A
+    witness the oracle fails is a defective witness, never a strategy defect (owner rule 2026-10-27)."""
+
+    def open_decision(self, r, with_score: bool = False):
+        cap, lo = self._cap(r)
+        evs, cells_ = [], []
+        for si in (0, 1):
+            net = np.asarray(self._v("net", r, si), float)
+            ok = C3.allowed_cells(net, self.cells, 0.0, C3.RR_MARGIN_SIGMA, cap, lo)
+            if ok.any():
+                ci = int(np.argmax(np.where(ok, net, -np.inf)))
+                evs.append(float(net[ci])); cells_.append(ci)
+            else:
+                evs.append(float("nan")); cells_.append(-1)
+        cleared = [bool(np.isfinite(evs[i]) and evs[i] > C3.OPEN_MARGIN_EPS) for i in (0, 1)]
+        chosen = -1
+        if cleared[0] or cleared[1]:
+            if cleared[0] and cleared[1]:
+                chosen = 0 if evs[0] >= evs[1] else 1
+            else:
+                chosen = 0 if cleared[0] else 1
+        self.log.append((int(r), evs[0], evs[1], cleared[0], cleared[1], chosen, False, cells_[0], cells_[1]))
+        if chosen < 0:
+            return None
+        d = E.LONG if chosen == 0 else E.SHORT
+        out = (d, self.cells[cells_[chosen]][0], self.cells[cells_[chosen]][1])
+        return out + (evs[chosen],) if with_score else out
+
+
+def rollout_oracle(world: dict, view, cells) -> dict:
+    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    pol = PolicyOracle(view, ORACLE_STRATEGY, cells, truth.e_time, truth.cost)
+    m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": ORACLE_STRATEGY}
+
+
+def oracle_view(world: dict, view: dict) -> dict:
+    """The truth as a table: one-hot outcome probabilities from the engine's hit at the reference cell, the true net per
+    cell, the true NOP flag; the (perfect) closer object is shared. A policy with zero margins on this table is the
+    TRUTH ORACLE: it acts on the engine truth itself, no strategy involved (owner rule 2026-10-27: a witness the
+    oracle fails is defective, not the strategy)."""
+    truth = world["truth"]
+    ov = dict(view)
+    n = len(truth.period)
+    p3 = np.full((n, 2, 3), np.nan)
+    net = np.full_like(truth.net, np.nan)
+    for si in (0, 1):
+        h = truth.hit3[:, si]
+        fin = np.isfinite(truth.net[:, si, :]).all(axis=1)
+        p3[:, si, 0] = np.where(fin & (h == 0), 1.0, 0.0)
+        p3[:, si, 1] = np.where(fin & (h == 1), 1.0, 0.0)
+        p3[:, si, 2] = np.where(fin & (h >= 0) & (h != 0) & (h != 1), 1.0, np.where(fin, 0.0, 1.0))   # unknown hit or no eligible entry -> TIME (no open)
+        p3[fin & (h < 0), si, :] = (0.0, 0.0, 1.0)
+        net[:, si, :] = np.where(fin.reshape(-1, 1), truth.net[:, si, :], -1.0)                  # the simulated table's convention: -1 = no eligible entry
+    keep = np.isfinite(view["pn"])
+    ov["p3"] = np.where(keep.reshape(-1, 1, 1), p3, np.nan)
+    ov["net"] = np.where(keep.reshape(-1, 1, 1), net, np.nan)
+    ov["pn"] = np.where(keep, truth.nop.astype(float), np.nan)
+    return ov
+
+
 def rollout_cell(world: dict, strat, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
     pol = PolicyC3Audit(view, strat, cells, truth.e_time, truth.cost)
@@ -402,10 +484,11 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             mn = min(share_l, share_s) if n_open else float("nan")
             out["W1_side"] = {"value": {"min_side_share": mn, "truth_share_short_better": t_short, "deviation": dev}, "threshold": "min side >= 0.25; |dev| <= 0.15",
                               "pass": bool(follow and n_open and mn >= THRESH["side_share_range_min"]), "desc": "both sides traded (range), following the truth"}
+        out["W1_side_v2"] = dict(out["W1_side"])                           # the static form was sealed truth-relative: identical in both versions
     else:
         meta = world["meta"]
         bounds = [a] + list(meta["switch_bars"]) + [b]
-        per_leg, ok_all, old_after = [], True, []
+        per_leg, ok_sealed, ok_v2, old_after = [], True, True, []
         for i, lr in enumerate(legs):
             lo_, hi_ = bounds[i], bounds[i + 1]
             tl = [t for t in trades if lo_ <= int(t["entry_bar_abs"]) < hi_]
@@ -420,10 +503,12 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             dev_leg = abs(sh_short - t_leg) if np.isfinite(t_leg) else float("nan")
             t_dir = (t_leg if d == 1 else 1 - t_leg) if d is not None else float("nan")
             per_leg.append({"leg": lr, "n": len(tl), "share_in_direction": sh, "truth_share_in_direction": t_dir, "deviation": dev_leg})
+            if d is not None and sh < THRESH["new_leg_side_min"]:
+                ok_sealed = False                                          # sealed: fixed 0.60 in the leg's direction
             if np.isfinite(dev_leg) and dev_leg > 0.15:
-                ok_all = False
+                ok_v2 = False                                              # v2: follows the truth's opportunities
             if d is not None and np.isfinite(t_dir) and t_dir >= THRESH["side_share_trend_min"] and sh < 0.5:
-                ok_all = False
+                ok_v2 = False
             if i > 0:
                 prev = legs[i - 1]
                 dprev = 0 if prev == "trend_up" else 1 if prev == "trend_down" else None
@@ -433,10 +518,18 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                     t_old = truth_side_opportunity(truth, cx, lo_ + LAG, hi_, bars=(lo_ + LAG, hi_))["share_short_better"]
                     t_old = t_old if dprev == 1 else 1 - t_old
                     old_after.append({"leg": lr, "old_direction_share_after_lag": sh_old, "truth_old_direction_opportunity": t_old, "n": len(tl2)})
-        out["W1_side"] = {"value": per_leg, "threshold": "per leg: |share - truth opportunity| <= 0.15; the leg's direction is the majority when the truth is dominated by it (>= 0.60)", "pass": bool(n_open and ok_all), "desc": "side share per coarse leg follows the truth; old-direction share after the lag in W8"}
-        ok8 = all(x["old_direction_share_after_lag"] <= max(THRESH["old_direction_after_lag_max"], (x["truth_old_direction_opportunity"] if np.isfinite(x["truth_old_direction_opportunity"]) else 0.0) + 0.10) for x in old_after)
-        out["W8_old_direction_after_lag"] = {"value": old_after, "threshold": "old-direction share after the lag <= max(0.40, truth old-direction opportunity + 0.10)",
-                                             "pass": bool(ok8) if old_after else True, "desc": "after the confirmation lag the strategy opens in the old direction no more than the truth offers"}
+                    if sh_old > THRESH["old_direction_after_lag_max"]:
+                        ok_sealed = False                                  # sealed W1 carried the old-direction clause as well
+        out["W1_side"] = {"value": per_leg, "threshold": "SEALED: per trend leg share in the leg's direction >= 0.60; old-direction share after the lag <= 0.40",
+                          "pass": bool(n_open and ok_sealed), "desc": "side share per coarse leg (sealed form)"}
+        out["W1_side_v2"] = {"value": per_leg, "threshold": "per leg: |share - truth opportunity| <= 0.15; the leg's direction is the majority when the truth is dominated by it (>= 0.60)",
+                             "pass": bool(n_open and ok_v2), "desc": "side share per coarse leg follows the truth (corrected form, admitted only if the truth oracle fails the sealed form)"}
+        ok8 = all(x["old_direction_share_after_lag"] <= THRESH["old_direction_after_lag_max"] for x in old_after)
+        out["W8_old_direction_after_lag"] = {"value": old_after, "threshold": THRESH["old_direction_after_lag_max"],
+                                             "pass": bool(ok8) if old_after else True, "desc": "SEALED: max old-direction open share after the confirmation lag <= 0.40"}
+        ok8v2 = all(x["old_direction_share_after_lag"] <= max(THRESH["old_direction_after_lag_max"], (x["truth_old_direction_opportunity"] if np.isfinite(x["truth_old_direction_opportunity"]) else 0.0) + 0.10) for x in old_after)
+        out["W8_old_direction_after_lag_v2"] = {"value": old_after, "threshold": "old-direction share after the lag <= max(0.40, truth old-direction opportunity + 0.10)",
+                                                "pass": bool(ok8v2) if old_after else True, "desc": "corrected form (admitted only where the truth oracle fails the sealed form): no more old-direction opens than the truth offers"}
         # early-close rate at the switch vs before
         ec_before, ec_at = [], []
         for sw in meta["switch_bars"]:
@@ -479,12 +572,14 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     out["W4_sl_exits"] = {"value": sl_share, "threshold": THRESH["sl_exit_max"], "pass": bool(n_open and sl_share <= THRESH["sl_exit_max"]), "desc": "share of trades ending at the stop (perfect closers should have closed early)"}
     ec = [c for c in roll["closes"] if c[5]]
     p_close = {0: float(getattr(roll.get("strategy_obj", None), "close_p_l", 0.5)), 1: float(getattr(roll.get("strategy_obj", None), "close_p_s", 0.5))}
-    just = [bool(c[4] > p_close.get(c[2], 0.5) or c[3] < 0.0) for c in ec]
+    just_sealed = [bool(c[3] <= 0.0) for c in ec]
+    just_v2 = [bool(c[4] > p_close.get(c[2], 0.5) or c[3] < 0.0) for c in ec]
     on_sl = float(np.mean([c[4] > p_close.get(c[2], 0.5) for c in ec])) if ec else float("nan")
     value = float(np.mean([-c[3] for c in ec])) if ec else float("nan")
-    out["W4_early_close_justified"] = {"value": float(np.mean(just)) if just else float("nan"), "threshold": 0.95, "pass": bool((not ec) or np.mean(just) >= 0.95),
-                                       "desc": "early closes fired on an SL-first detection (P(SL first) > close_p) or on a negative remaining hold value: no early close destroys value",
-                                       "share_on_sl_first": on_sl, "early_close_value_sigma_mean": value, "n_early_closes": len(ec)}
+    out["W4_early_close_justified"] = {"value": float(np.mean(just_sealed)) if ec else float("nan"), "threshold": THRESH["early_close_justified_min"], "pass": bool((not ec) or np.mean(just_sealed) >= THRESH["early_close_justified_min"]),
+                                       "desc": "SEALED: early closes whose remaining hold value was <= 0", "share_on_sl_first": on_sl, "early_close_value_sigma_mean": value, "n_early_closes": len(ec)}
+    out["W4_early_close_justified_v2"] = {"value": float(np.mean(just_v2)) if ec else float("nan"), "threshold": 0.95, "pass": bool((not ec) or np.mean(just_v2) >= 0.95),
+                                          "desc": "corrected form: early closes fired on an SL-first detection (P(SL first) > close_p) or on a negative remaining value", "n_early_closes": len(ec)}
     # W5 reversals: opens while positioned (an open logged at a row where the previous trade was still open)
     rev, rev_just, inwin = 0, 0, 0
     sw = (world.get("meta") or {}).get("switch_bars") or []
@@ -499,10 +594,15 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             rev_just += int(r >= 0 and ci >= 0 and np.isfinite(truth.net[r, si, ci]) and truth.net[r, si, ci] > 0)
             inwin += int(any(s_ <= eb < s_ + LAG for s_ in sw))
     just_share = (rev_just / rev) if rev else float("nan")
-    out["W5_reverse"] = {"value": {"reversals": rev, "per_week": rev / weeks, "truth_justified_share": just_share, "in_switch_window_share": (inwin / rev) if rev else float("nan")},
-                         "threshold": "truth-justified >= 0.90" + ("; <= 1 per week on a static leg" if len(legs) == 1 else ""),
-                         "pass": bool((rev == 0 or just_share >= 0.90) and (len(legs) > 1 or rev / weeks <= THRESH["reverse_per_week_static_max"])),
-                         "desc": "reversals open the side the truth says is positive; rate-limited on static legs; switch-window share reported"}
+    inwin_share = (inwin / rev) if rev else float("nan")
+    val5 = {"reversals": rev, "per_week": rev / weeks, "truth_justified_share": just_share, "in_switch_window_share": inwin_share}
+    if len(legs) == 1:
+        out["W5_reverse"] = {"value": val5, "threshold": THRESH["reverse_per_week_static_max"], "pass": bool(rev / weeks <= THRESH["reverse_per_week_static_max"]), "desc": "SEALED: reversals per week (static leg) <= 1"}
+    else:
+        out["W5_reverse"] = {"value": val5, "threshold": THRESH["reverse_in_switch_window_min"], "pass": bool(rev == 0 or inwin_share >= THRESH["reverse_in_switch_window_min"]), "desc": "SEALED: share of reversals inside the switch windows >= 0.50"}
+    out["W5_reverse_v2"] = {"value": val5, "threshold": "truth-justified >= 0.90" + ("; <= 1 per week on a static leg" if len(legs) == 1 else ""),
+                            "pass": bool((rev == 0 or just_share >= 0.90) and (len(legs) > 1 or rev / weeks <= THRESH["reverse_per_week_static_max"])),
+                            "desc": "corrected form: reversals open the side the truth says is positive; rate-limited on static legs"}
     # W6 volume: risk-sized units exact (engine formula)
     sig = np.asarray(cx.ds.sigma, float)
     vol_ok = []
@@ -563,7 +663,11 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     out["summary"] = {"opens": n_open, "share_long": share_l, "share_short": share_s, "net_usd": float(roll["metrics"].get("net_profit_usd", np.nan)) if isinstance(roll["metrics"], dict) else None,
                       "early_closes": int(sum(1 for t in trades if t["exit_reason"] == "EARLY")), "tp_exits": int(sum(1 for t in trades if t["exit_reason"] == "TP")),
                       "sl_exits": int(sum(1 for t in trades if t["exit_reason"] == "SL")), "time_exits": int(sum(1 for t in trades if t["exit_reason"] == "TIME"))}
-    out["PASS"] = bool(all(v["pass"] for k, v in out.items() if k not in ("summary",)))
+    sealed = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2")}
+    v2 = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in out)}
+    out["PASS_sealed"] = bool(all(v["pass"] for v in sealed.values()))
+    out["PASS_v2"] = bool(all(v["pass"] for v in v2.values()))
+    out["PASS"] = out["PASS_sealed"]
     return out
 
 
@@ -602,13 +706,23 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     strat, view, cells = strategy_for(w, genes, AC)
     roll = rollout_cell(w, strat, view, cells)
     wit = witnesses(cell, w, roll, cells)
+    # the truth-oracle control: the same witnesses on a policy that acts on the engine truth itself
+    oroll = rollout_oracle(w, oracle_view(w, view), cells)
+    owit = witnesses(cell, w, oroll, cells)
+    defects_sealed = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
+    defects_v2 = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in owit) and v["pass"] is False)
     sig = np.asarray(w["cx"].ds.sigma, float)
     for t in roll["trades"]:
         s_ = float(sig[int(t["entry_bar_abs"])])
         t["net_sigma"] = float(t["net_usd"]) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else float("nan")
         t["financing_sigma"] = float(t.get("financing_usd", 0.0)) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else 0.0
     rec = {"id": cell["id"], "seed": seed, "level": cell["level"], "regime": cell["regime"], "legs": cell["legs"], "mirror_of": cell.get("mirror_of"), "quality": cell["quality"],
-           "witness": w["witness"], "achieved": w["sim"]["achieved"], "strategy": strat.to_dict(), "results": wit, "PASS": wit["PASS"], "sec": round(time.time() - t0, 1),
+           "witness": w["witness"], "achieved": w["sim"]["achieved"], "strategy": strat.to_dict(), "results": wit, "PASS": wit["PASS"], "PASS_sealed": wit["PASS_sealed"], "PASS_v2": wit["PASS_v2"],
+           "oracle": {k: v for k, v in owit.items() if k != "summary"} | {"summary": owit["summary"]}, "oracle_PASS_sealed": owit["PASS_sealed"], "oracle_PASS_v2": owit["PASS_v2"],
+           "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2,
+           "PASS_effective": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2"))),
+           "PASS_sealed_excluding_defective_witnesses": bool(all(v["pass"] for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and k not in defects_sealed)),
+           "sec": round(time.time() - t0, 1),
            "trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll["trades"]]}
     key = cell.get("mirror_of") or cell["id"]
     twin_trades.setdefault(key, {})[cell["id"]] = roll["trades"]
@@ -616,6 +730,9 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
         rec["results"]["W14_mirror"] = mirror_check(twin_trades[key][cell["mirror_of"]], roll["trades"])
         rec["results"]["W14_mirror"]["desc"] = "exact mirror of the twin's ledger"
         rec["PASS"] = bool(rec["PASS"] and rec["results"]["W14_mirror"]["pass"])
+        rec["PASS_sealed"] = bool(rec["PASS_sealed"] and rec["results"]["W14_mirror"]["pass"])
+        rec["PASS_v2"] = bool(rec["PASS_v2"] and rec["results"]["W14_mirror"]["pass"])
+        rec["PASS_effective"] = bool(rec["PASS_effective"] and rec["results"]["W14_mirror"]["pass"])
         rec["results"]["PASS"] = rec["PASS"]
     (out_dir / f"CELL_{cell['id']}_s{seed}.json").write_text(json.dumps(rec, indent=1, default=float))
     return rec
@@ -677,17 +794,31 @@ def cmd_report(a):
     rows = []
     for c in cells:
         rs = recs.get(c["id"], [])
-        passes = [r["PASS"] for r in rs]
-        fails = {}
+        passes = [r.get("PASS_sealed", r["PASS"]) for r in rs]
+        passes_v2 = [r.get("PASS_v2", r["PASS"]) for r in rs]
+        fails, fails_v2, defects = {}, {}, {}
         for r in rs:
             for k, v in (r.get("results") or {}).items():
                 if isinstance(v, dict) and v.get("pass") is False:
-                    fails[k] = fails.get(k, 0) + 1
+                    (fails_v2 if k.endswith("_v2") else fails)[k] = (fails_v2 if k.endswith("_v2") else fails).get(k, 0) + 1
+            for k in r.get("witness_defects_sealed", []):
+                defects[k] = defects.get(k, 0) + 1
         sl = [r["results"]["summary"]["share_long"] for r in rs if r.get("results", {}).get("summary")]
         rows.append({"id": c["id"], "level": c["level"], "regime": c["regime"], "legs": c["legs"], "mirror": c["mirror"], "sym": bool(c.get("sym_of")), "n_runs": len(rs), "PASS": bool(rs) and all(passes),
+                     "PASS_sealed": bool(rs) and all(passes), "PASS_v2": bool(rs) and all(passes_v2), "PASS_sealed_excluding_defective_witnesses": bool(rs) and all(r.get("PASS_sealed_excluding_defective_witnesses", r["PASS"]) for r in rs),
+                     "oracle_PASS_sealed": bool(rs) and all(r.get("oracle_PASS_sealed", True) for r in rs), "oracle_PASS_v2": bool(rs) and all(r.get("oracle_PASS_v2", True) for r in rs),
+                     "PASS_effective": bool(rs) and all(r.get("PASS_effective", r["PASS"]) for r in rs),
+                     "witness_defects_sealed": defects, "failing_witnesses_v2": fails_v2,
                      "failing_witnesses": fails, "share_long_mean": float(np.nanmean(sl)) if sl else None, "opens_mean": float(np.mean([r["results"]["summary"]["opens"] for r in rs if r.get("results", {}).get("summary")])) if rs else None,
                      "errors": [r.get("error") for r in rs if r.get("error")], "expected": c["expected"], "forbidden": c["forbidden"]})
     n_pass = sum(1 for r in rows if r["PASS"])
+    n_pass_v2 = sum(1 for r in rows if r["PASS_v2"])
+    n_pass_excl = sum(1 for r in rows if r["PASS_sealed_excluding_defective_witnesses"])
+    n_pass_eff = sum(1 for r in rows if r["PASS_effective"])
+    defect_tally = {}
+    for r in rows:
+        for k, v in r["witness_defects_sealed"].items():
+            defect_tally[k] = defect_tally.get(k, 0) + v
     import hashlib
     spec_sha = hashlib.sha256(Path(a.cells).read_bytes()).hexdigest()
     psha = (Path(a.results) / "PARAMS_SHA.txt").read_text().split()[0] if (Path(a.results) / "PARAMS_SHA.txt").exists() else None
@@ -696,19 +827,29 @@ def cmd_report(a):
         commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=10).stdout.strip() or None
     except Exception:
         commit = None
-    doc = {"schema": "behaviour_matrix.v1", "block": BLOCK, "cells": len(rows), "run": sum(1 for r in rows if r["n_runs"]), "pass": n_pass, "fail": sum(1 for r in rows if r["n_runs"] and not r["PASS"]),
-           "spec_sha256": spec_sha, "strategy_params_sha256": psha, "witness_code_commit": commit, "witness_changelog": WITNESS_CHANGELOG, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
+    spec_doc = {"cells_sha256": spec_sha, "witness_spec": WITNESS_SPEC, "witness_code_commit": commit}
+    spec_v2_sha = hashlib.sha256(json.dumps(spec_doc, sort_keys=True).encode()).hexdigest()
+    doc = {"schema": "behaviour_matrix.v2", "block": BLOCK, "cells": len(rows), "run": sum(1 for r in rows if r["n_runs"]),
+           "pass_sealed": n_pass, "fail_sealed": sum(1 for r in rows if r["n_runs"] and not r["PASS"]), "pass_v2": n_pass_v2, "fail_v2": sum(1 for r in rows if r["n_runs"] and not r["PASS_v2"]),
+           "pass_sealed_excluding_defective_witnesses": n_pass_excl, "pass_effective": n_pass_eff, "fail_effective": sum(1 for r in rows if r["n_runs"] and not r["PASS_effective"]),
+           "oracle_witness_defects_sealed": defect_tally,
+           "pass": n_pass, "fail": sum(1 for r in rows if r["n_runs"] and not r["PASS"]),
+           "spec_sha256_sealed_cells_only": SEALED_CELLS_SHA, "cells_sha256_current": spec_sha, "spec_sha256_v2": spec_v2_sha, "spec_v2": spec_doc,
+           "strategy_params_sha256": psha, "witness_code_commit": commit, "witness_changelog": WITNESS_CHANGELOG, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
     outp = Path(a.out)
     outp.mkdir(parents=True, exist_ok=True)
     (outp / "BEHAVIOUR_MATRIX.json").write_text(json.dumps(doc, indent=1, default=float))
     lines = ["# Matriz de comportamiento (cabezas perfectas, estrategia C3, motor real)", "",
              f"Celdas: {len(rows)} (cada una con su gemela de financiación simétrica y su espejo exacto); corridas: {doc['run']}; PASS: {n_pass}; FAIL: {doc['fail']}; bloque sostenido: `{BLOCK}` del fold.",
-             f"Especificación sellada: sha256 `{spec_sha}` del archivo de celdas; parámetros de la estrategia: sha256 `{psha}` (`STRATEGY_PARAMS.json`).", "",
-             "| celda | nivel | tramos | régimen | espejo | corridas | PASS | testigos que fallan | cuota largos | aperturas |", "| --- | --- | --- | --- | --- | ---: | --- | --- | ---: | ---: |"]
+             f"Celdas: PASS sellado {n_pass}; PASS re-sellado v2 {n_pass_v2}; PASS efectivo (forma sellada salvo donde el oráculo de la verdad la falla, entonces la forma v2) {n_pass_eff}; PASS sellado excluyendo los testigos defectuosos {n_pass_excl}. Testigos que el oráculo falla (defectuosos, conteo de celdas): {defect_tally or 'ninguno'}.",
+             f"Especificación sellada original (sólo celdas): sha256 `{SEALED_CELLS_SHA}`; celdas actuales: `{spec_sha}`; especificación re-sellada v2 (celdas + definiciones de testigos + commit): `{spec_v2_sha}`; parámetros de la estrategia: sha256 `{psha}` (`STRATEGY_PARAMS.json`).", "",
+             "| celda | nivel | tramos | régimen | espejo | corridas | PASS (sellado) | testigos que fallan (sellado) | oráculo falla (testigo defectuoso) | PASS (re-sellado v2) | PASS efectivo | cuota largos | aperturas |", "| --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | ---: | ---: |"]
     for r in rows:
-        lines.append(f"| {r['id']} | {r['level']} | {' → '.join(r['legs'])} | {r['regime']} | {'sí' if r['mirror'] else ''} | {r['n_runs']} | {'PASS' if r['PASS'] else ('FAIL' if r['n_runs'] else '—')} | "
-                     f"{', '.join(f'{k}×{v}' for k, v in r['failing_witnesses'].items()) or ''} | {r['share_long_mean'] if r['share_long_mean'] is None else f'{r['share_long_mean']:.2f}'} | {'' if r['opens_mean'] is None else f'{r['opens_mean']:.0f}'} |")
-    fails = [r for r in rows if r["n_runs"] and not r["PASS"]]
+        vd = lambda ok: ('PASS' if ok else ('FAIL' if r['n_runs'] else '—'))  # noqa: E731
+        lines.append(f"| {r['id']} | {r['level']} | {' → '.join(r['legs'])} | {r['regime']} | {'sí' if r['mirror'] else ''} | {r['n_runs']} | {vd(r['PASS_sealed'])} | "
+                     f"{', '.join(f'{k}×{v}' for k, v in r['failing_witnesses'].items()) or ''} | {', '.join(f'{k}×{v}' for k, v in r['witness_defects_sealed'].items()) or ''} | {vd(r['PASS_v2'])} | {vd(r['PASS_effective'])} | "
+                     f"{r['share_long_mean'] if r['share_long_mean'] is None else f'{r['share_long_mean']:.2f}'} | {'' if r['opens_mean'] is None else f'{r['opens_mean']:.0f}'} |")
+    fails = [r for r in rows if r["n_runs"] and not r["PASS_sealed"]]
     lines += ["", "## Celdas que fallan (defectos de la estrategia a corregir; ninguna se excluye)", ""]
     if fails:
         lines += ["| celda | testigos | errores | esperado |", "| --- | --- | --- | --- |"]
