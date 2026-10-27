@@ -387,8 +387,9 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
     meta = None
     if leaf.get("legs"):
         import zlib
-        base_id = leaf.get("mirror_of") or leaf["id"]
-        seed_v2 = zlib.crc32(base_id.encode()) & 0xFFFF                      # the mirror twin shares the generator seed: an EXACT mirror
+        import re as _re
+        base_id = _re.sub(r"^(M_|S_)+", "", leaf["id"])                       # the twins share the base cell's generator seed: an EXACT mirror
+        seed_v2 = zlib.crc32(base_id.encode()) & 0xFFFF
         block = period_bars(ds, calendar_period)
         bars, meta = synthetic_path_v2(ds.bars.index, base_sd, tuple(leaf["legs"]), leaf["vol"], leaf["fine"], seed_v2, block, leaf.get("switch_fracs") or None,
                                        leaf.get("persistence"), mirror=bool(leaf.get("mirror")), strength=leaf.get("strength", "medium"), jump=leaf.get("jump"))

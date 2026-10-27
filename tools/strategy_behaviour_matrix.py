@@ -108,19 +108,20 @@ def _sym(cell: dict) -> dict:
     """The base cell with SYMMETRIC financing (both swap rates at their mean): the mirror pair isolates the strategy's
     side symmetry from the declared swap asymmetry (long -7 vs short +2.5 per lot per rollover)."""
     m = dict(cell)
-    m["id"], m["sym_of"], m["exec"] = "S_" + cell["id"], cell["id"], {**(cell.get("exec") or {}), "financing_symmetric": True}
-    m["expected"] = list(cell["expected"]) + ["same behaviours as " + cell["id"] + " with symmetric financing; its mirror M_" + cell["id"] + " must mirror it EXACTLY"]
+    m["id"], m["sym_of"], m["exec"] = "S_" + cell["id"], cell["id"], {**{k: v for k, v in (cell.get("exec") or {}).items() if k != "cost_mult"}, "financing_symmetric": True, "costs_zero": True}
+    m["expected"] = list(cell["expected"]) + ["same behaviours as " + cell["id"] + " at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_" + cell["id"] + " must mirror it EXACTLY"]
     return m
 
 
 def _mirror(cell: dict) -> dict:
     m = dict(cell)
     m["id"], m["mirror_of"], m["mirror"] = "M_" + cell["id"], "S_" + cell["id"], True
-    m["exec"] = {**(cell.get("exec") or {}), "financing_symmetric": True}
-    m["legs"] = [H.MIRROR[x] for x in cell["legs"]]
+    m["exec"] = {**{k: v for k, v in (cell.get("exec") or {}).items() if k != "cost_mult"}, "financing_symmetric": True, "costs_zero": True}
+    m["legs_gen"] = list(cell["legs"])                      # the generator runs the BASE legs and flips the path: an exact mirror
+    m["legs"] = [H.MIRROR[x] for x in cell["legs"]]          # the effective (mirrored) legs the witnesses expect
     m["regime"] = H.MIRROR[cell["regime"]]
     sw = {"OPEN_LONG": "OPEN_SHORT", "OPEN_SHORT": "OPEN_LONG"}
-    m["expected"] = [sw.get(x.split(" ")[0], x.split(" ")[0]) + x[len(x.split(" ")[0]):] for x in cell["expected"]] + ["EXACT MIRROR of S_" + cell["id"] + " (symmetric financing): same entry / exit bars, sides flipped, net equal in sigma units"]
+    m["expected"] = [sw.get(x.split(" ")[0], x.split(" ")[0]) + x[len(x.split(" ")[0]):] for x in cell["expected"]] + ["EXACT MIRROR of S_" + cell["id"] + " (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"]
     m["forbidden"] = [sw.get(x.split(" ")[0], x.split(" ")[0]) + x[len(x.split(" ")[0]):] for x in cell["forbidden"]]
     if cell.get("jump"):
         m["jump"] = dict(cell["jump"])                       # the mirror flips the path, so with / against is preserved relative to the mirrored leg
@@ -227,6 +228,8 @@ def cell_world(cx, SCFG, AC, cell: dict, seed: int) -> dict:
     """The synthetic world of a cell over the sustained span (truth on CAL + BLOCK), perfect heads unless the cell says
     otherwise. Fine amplitude / density come from the cell (continuous) through a temporary L2 entry."""
     leaf = dict(cell)
+    if cell.get("legs_gen"):
+        leaf["legs"] = list(cell["legs_gen"])
     key = f"cell_{cell.get('fine_amp')}_{cell.get('fine_dens')}"
     if cell.get("fine_amp") is not None:
         H.L2[key] = (float(cell["fine_amp"]), float(cell["fine_dens"]))
@@ -236,10 +239,17 @@ def cell_world(cx, SCFG, AC, cell: dict, seed: int) -> dict:
     if leaf["vol"] == "mid":
         H.VOL["mid"] = 1.0
     SC = SCFG
-    if (cell.get("exec") or {}).get("financing_symmetric"):
-        prof = SCFG.profile
+    ex = cell.get("exec") or {}
+    if ex.get("financing_symmetric"):
+        prof = SC.profile
         mean_swap = 0.5 * (float(prof.swap_long_per_lot) + float(prof.swap_short_per_lot))
-        SC = dataclasses.replace(SCFG, profile=dataclasses.replace(prof, swap_long_per_lot=mean_swap, swap_short_per_lot=mean_swap))
+        SC = dataclasses.replace(SC, profile=dataclasses.replace(prof, swap_long_per_lot=mean_swap, swap_short_per_lot=mean_swap))
+    if ex.get("costs_zero"):
+        # the exact-mirror twins: bars are BID and a short triggers on ASK = bid + spread (A4-12), so a bid-bar world's
+        # mirror is not a bid-bar world; with every cost at zero the engine is side-symmetric and the trades must mirror
+        prof = SC.profile.scaled(0.0)
+        prof = dataclasses.replace(prof, weekly_open_spread=0.0, slippage_market=0.0, slippage_stop=0.0, commission_per_lot_side=0.0, swap_long_per_lot=0.0, swap_short_per_lot=0.0)
+        SC = dataclasses.replace(SC, profile=prof)
     w = H.leaf_world(cx, SC, AC, leaf, BLOCK, seed, periods=(CAL, BLOCK))
     H.L2.pop(key, None)
     return w
