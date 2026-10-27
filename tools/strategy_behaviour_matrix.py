@@ -144,7 +144,16 @@ RUN_HISTORY = [
     {"run": "v7 design", "note": "mirror around the middle of the path's range; C3Z TP<SL rule without the double cost, net margin floored at 0, canonical open_rate 0.45; W13 / W8-switch corrected forms admitted only where the oracle fails the sealed form"},
     {"run": "v9 (2026-10-27T10:33Z)", "note": "sealed exit spec, episodes in every cell; superseded by v10 after 161 records: the known transition defects (W1 side share 0.58-0.60 in trend legs, W5 reversals all outside the switch windows, W8 old-direction share 0.44 after the lag) were fixed in the canonical parameters instead of being rediscovered"},
     {"run": "v10 (2026-10-27)", "note": "canonical point changed in STRATEGY_PARAMS (no code change; every key is already in the DEAP genome): allow_reverse 0 (a close, then a fresh open; the 13-26 reversals per world all fell outside the switch windows), zz_counter_net_frac 1.2 (the strong-net exception against the coarse leg no longer fires), zz_room_tp_mult 1.75 (the coarse room must pay 1.75 x TP). Local check on 23 worlds at perfect heads (W witnesses, no exit layer), bracketed by room 1.5 / 2.0: failing worlds 14 -> 10 / 9, every W1 / W5 / W8-old failure gone at 1.75, mean daily Sharpe 10.41 -> 10.47 / 10.39, mean net -18 % (the reversals were profitable). Left: W8 early close at the switch (each in-window exit that is not early is a TP fill whose every earlier close had A(t) between -0.11 and -0.50 sigma: closing it early is a destructive close under the sealed E4) and W7 best cell 0.69 in one H3 world"},
+    {"run": "v10 restart (2026-10-27T12:39Z)", "note": "the re-sealed spec v3 (W8 switch v3, VALIDITY_SPEC: vacuous control passes do not validate, O* as a second control for the timing / exit witnesses) needs the O* witnesses and the W8 replay in every record; the 36 records run 12:19-12:30Z lacked them and were re-run (kept as results_v10_pre_rule_superseded). allow_reverse = 0 stays in the canonical point to avoid a third full rerun: it REMOVED PROFITABLE REVERSALS (net -18 %, Sharpe unchanged on the 23-world check); it remains a DEAP gene, and justified reversals can now pass W5 non-vacuously where O* validates it"},
     {"run": "v6 ZigZag", "note":"production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
+]
+KNOWN_TEST_FAILURES = [   # failing before and after the v10 / v3 changes, listed by name and cause (coordinator 2026-10-27: never hidden)
+    {"test": "tests/test_expert_guided_c3.py::test_committed_c3_contract_is_the_sealed_default_and_passes_every_check",
+     "cause": "the committed ACTION_CONTRACT_C3.json and C3.default_contract() disagree in strategy.genes and identity (action_bef6627ca7881000 vs action_db1380893d680db6) since 6a38ccf made close_p / nop_veto absolute thresholds; the contract file or the default was not regenerated"},
+    {"test": "tests/test_expert_guided_c3.py::test_gene_map_and_strategy_from_genes_are_per_side",
+     "cause": "the test still expects close_p_l mapped through the calibration quantiles (0.5); since 6a38ccf close_p_l is an absolute probability threshold and the gene value passes through (0.0)"},
+    {"test": "tests/test_expert_guided_c3.py::test_two_sealed_variants_carry_the_architecture_and_differ_only_by_it",
+     "cause": "the same contract / default disagreement as the first test (strategy.genes and identity)"},
 ]
 EPS_CLOSE = 0.02                    # sigma units of the trade: the A(t) tie rule (close when A(t) >= -EPS_CLOSE)
 CLOSER_QUALITIES = (1.0, 0.85, 0.70)
@@ -1982,7 +1991,7 @@ def cmd_report(a):
            "oracle_witness_defects_sealed": defect_tally,
            "pass": n_pass, "fail": sum(1 for r in rows if r["n_runs"] and not r["PASS"]),
            "spec_sha256_sealed_cells_only": SEALED_CELLS_SHA, "cells_sha256_current": spec_sha, "spec_sha256_v2": spec_v2_sha, "spec_v2": spec_doc,
-           "strategy_params_sha256": psha, "witness_code_commit": commit, "witness_changelog": WITNESS_CHANGELOG, "run_history": RUN_HISTORY, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
+           "strategy_params_sha256": psha, "witness_code_commit": commit, "witness_changelog": WITNESS_CHANGELOG, "run_history": RUN_HISTORY, "known_test_failures": KNOWN_TEST_FAILURES, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
     outp = Path(a.out)
     outp.mkdir(parents=True, exist_ok=True)
     (outp / "BEHAVIOUR_MATRIX.json").write_text(json.dumps(doc, indent=1, default=float))
@@ -2008,6 +2017,7 @@ def cmd_report(a):
             lines.append(f"| {r['id']} | {r['records_with_validity']} | {fm(vs.get('DEFECT', {}))} | {fm(vs.get('SEALED_UNVALIDATED', {}))} | {fm(vs.get('REPLAY_CONFLICT', {}))} | {', '.join(r.get('failing_effective') or [])} |")
     lines += exit_report_sections(recs, outp)
     lines += ["", "## Historia de corridas (lo que cada versión invalidó)", "", "| corrida | nota |", "| --- | --- |"] + [f"| {x['run']} | {x['note']} |" for x in RUN_HISTORY]
+    lines += ["", "## Pruebas que fallan (anteriores a estos cambios, no ocultadas)", "", "| prueba | causa |", "| --- | --- |"] + [f"| `{x['test']}` | {x['cause']} |" for x in KNOWN_TEST_FAILURES]
     lines += ["", "## Cobertura de intensidades (cambios de tendencia y de volatilidad variados independientemente)", "", intensity_coverage(cells, rows)]
     qdir = Path(a.cells).parent / "queue"
     if qdir.exists():
