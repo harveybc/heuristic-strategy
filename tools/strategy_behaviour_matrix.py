@@ -92,6 +92,10 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-27T23:30Z (instrument defect)", "witness": "E1-E4 normal run: trades censored by the end of the block",
+     "defect": "the last trade of a run is flattened at the block's last bar (FORCED_FLAT), but its engine path (closer.path) runs on past the block and may end at the SL, so the trade was counted SL-destined and 'not closed early' although the run itself closed it at a profit; its regret and ticks also read prices beyond the run",
+     "evidence": "DEAP-point re-verification: B_vol_low s0 BUY 9273-9306 FORCED_FLAT +0.23 sigma, B_trend_trend_up_medium s0 SELL 9283-9306 +0.46, B_fine_medium_high s0 BUY 9244-9306 +0.90, B_voldyn_ramp_down s1 SELL 9247-9306 +0.87: each the only 'SL-destined trade not closed early' of its side (E1 0.944 / 0.947 against 0.95); O* had 0 SL-destined trades there",
+     "effect": "such trades are censored (exit mix keeps them; E1-E4 exclude them; the count is reported); the closer and the strategy are unchanged; exit spec re-sealed"},
     {"when": "2026-10-27T14:45Z (coordinator ruling)", "witness": "W8_early_close_at_switch_v3 condition (c) -> (c')",
      "defect": "(c) count compared O*'s own trades; replaced by a same-trade replay",
      "evidence": "v10: B_trans_up_down_early s1, B_trans_up_pause_up_late s1, B_trans_up_range_early s1, S_ / M_B_trans_down_range_middle s0 failed (c) with every in-window exit a TP fill whose best earlier close had A between -0.088 and -0.248 sigma (nothing the strategy could close without a destructive close) while O* early-closed 1-2 of ITS OWN, different trades in the window",
@@ -191,6 +195,7 @@ EXIT_SPEC = {
                            "Z1": "the ZigZag exit label reproduces P*_pre within 0.05 sigma in >= 0.95 of SL-destined episodes",
                            "E8": "episodes at closer quality 0.85 and 0.70: mean R / sigma non-increasing in quality and early-close value versus holding to SL > 0, per side"},
     "verdict": "every E witness per side (BUY and SELL); the cell fails if either side fails; an E witness O* fails in a cell is defective THERE (reported, not counted)",
+    "censoring": "a normal-run trade flattened by the END OF THE BLOCK (TIME exit at the block's last bars while its engine path runs on) is censored: counted in the exit mix, excluded from E1-E4 (SL-destined, regret, ticks), reported per side",
 }
 EXIT_SPEC["episodes"] = {"every_bars": 12, "min_sl_destined_per_side": 30, "late_bars_max": 2.0, "z1_tol_sigma": 0.05, "net_ladder_sigma": [2.0, 1.0, 0.5, 0.25, 0.1]}
 EXIT_SPEC_SHA = hashlib.sha256(json.dumps(EXIT_SPEC, sort_keys=True).encode()).hexdigest()
@@ -762,12 +767,13 @@ def exit_stats(world: dict, roll: dict, closer) -> dict:
     for t in trades:
         side_trades[0 if int(t["direction"]) > 0 else 1].append(t)
     pp = roll.get("positions") or {}
+    blk_end = H.period_bars(world["cx"].ds, BLOCK)[1]
     per_side = {}
     for si in (0, 1):
         ts = side_trades[si]
         n = len(ts)
         mix = {"early": 0, "tp": 0, "sl": 0, "time": 0}
-        sl_dest, sl_dest_early, regrets, ecv = 0, 0, [], 0.0
+        sl_dest, sl_dest_early, regrets, ecv, censored = 0, 0, [], 0.0, set()
         for t in ts:
             reason = t["exit_reason"]
             mix["early" if reason == "EARLY" else ("tp" if reason == "TP" else ("sl" if reason == "SL" else "time"))] += 1
@@ -775,6 +781,9 @@ def exit_stats(world: dict, roll: dict, closer) -> dict:
             if pos is None:
                 continue
             path = closer.path(pos)
+            if reason == "TIME" and int(t["exit_bar_abs"]) >= blk_end - 2 and int(path["exit_bar"]) > int(t["exit_bar_abs"]):
+                censored.add(int(t["entry_bar_abs"]))                  # flattened by the END OF THE BLOCK: its engine path runs on past the run; not SL-destined in the run
+                continue
             u, sg = path["units"], path["sigma"]
             pstar = max(float(np.max(path["P"])) if len(path["P"]) else -np.inf, path["hold_net"])
             regrets.append((pstar - float(t["net_usd"])) / u / sg)
@@ -790,7 +799,7 @@ def exit_stats(world: dict, roll: dict, closer) -> dict:
                 continue
             bar = int(c[1])
             t = next((x for x in ts if int(x["entry_bar_abs"]) <= bar < int(x["exit_bar_abs"])), None)
-            pos = pp.get((int(t["entry_bar_abs"]), si)) if t is not None else None
+            pos = pp.get((int(t["entry_bar_abs"]), si)) if (t is not None and int(t["entry_bar_abs"]) not in censored) else None
             if pos is None:
                 continue
             a = S.path_advantage(closer.path(pos), bar)
@@ -811,7 +820,7 @@ def exit_stats(world: dict, roll: dict, closer) -> dict:
                         "R_hist": np.histogram(R, bins=[-1e9, 0.01, 0.05, 0.1, 0.3, 1.0, 1e9])[0].tolist() if len(R) else [],
                         "agreement": agree / n_ticks if n_ticks else float("nan"), "held_ticks": n_ticks,
                         "destructive_share": destructive / n_closes if n_closes else 0.0, "destructive_mean_cost_sigma": float(np.mean(dcost)) if dcost else 0.0, "closes": n_closes,
-                        "early_close_value_sigma": float(ecv)}
+                        "early_close_value_sigma": float(ecv), "censored_by_block_end": len(censored)}
     return per_side
 
 
