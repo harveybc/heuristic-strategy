@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import re
 import dataclasses
 import hashlib
 import json
@@ -123,7 +124,9 @@ RUN_HISTORY = [
     {"run": "v7 (06:43Z)", "note": "superseded by v8: strategy failures where the oracle passes the governing witness -- W1 in short late transition legs (the coarse-room gate was more with-trend than the truth: 0.75 vs 0.53) and W8-old after the switch; the first W13 corrected form was itself failed by the oracle; W10's table lookup was mis-mapped"},
     {"run": "v8", "note": "C3Z: an open against the coarse leg also passes when its predicted net >= 0.8 x TP, except within 240 bars of a coarse direction flip; W13 / W10 corrected forms re-defined (admitted per cell where the oracle fails the sealed form); the governing verdict stays per cell"},
     {"run": "v7 design", "note": "mirror around the middle of the path's range; C3Z TP<SL rule without the double cost, net margin floored at 0, canonical open_rate 0.45; W13 / W8-switch corrected forms admitted only where the oracle fails the sealed form"},
-    {"run": "v6 ZigZag", "note": "production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
+    {"run": "v9 (2026-10-27T10:33Z)", "note": "sealed exit spec, episodes in every cell; superseded by v10 after 161 records: the known transition defects (W1 side share 0.58-0.60 in trend legs, W5 reversals all outside the switch windows, W8 old-direction share 0.44 after the lag) were fixed in the canonical parameters instead of being rediscovered"},
+    {"run": "v10 (2026-10-27)", "note": "canonical point changed in STRATEGY_PARAMS (no code change; every key is already in the DEAP genome): allow_reverse 0 (a close, then a fresh open; the 13-26 reversals per world all fell outside the switch windows), zz_counter_net_frac 1.2 (the strong-net exception against the coarse leg no longer fires), zz_room_tp_mult 1.75 (the coarse room must pay 1.75 x TP). Local check on 23 worlds at perfect heads (W witnesses, no exit layer), bracketed by room 1.5 / 2.0: failing worlds 14 -> 10 / 9, every W1 / W5 / W8-old failure gone at 1.75, mean daily Sharpe 10.41 -> 10.47 / 10.39, mean net -18 % (the reversals were profitable). Left: W8 early close at the switch (each in-window exit that is not early is a TP fill whose every earlier close had A(t) between -0.11 and -0.50 sigma: closing it early is a destructive close under the sealed E4) and W7 best cell 0.69 in one H3 world"},
+    {"run": "v6 ZigZag", "note":"production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
 ]
 EPS_CLOSE = 0.02                    # sigma units of the trade: the A(t) tie rule (close when A(t) >= -EPS_CLOSE)
 CLOSER_QUALITIES = (1.0, 0.85, 0.70)
@@ -1611,6 +1614,62 @@ def cmd_run(a):
     print(json.dumps({"chunk": a.chunk, "cells_run": done}))
 
 
+def cell_family(cid: str) -> str:
+    """The cell family of a record id (twins and mirrors fold into their base family)."""
+    s = re.sub(r"^(M_|S_|R_)+", "", cid)
+    return "_".join(s.split("_")[:2]) if s.startswith("B_") else s.split("_")[0]
+
+
+def exit_headline_tables(rows: list) -> list:
+    """The two headline tables of the exit sections. (1) The evidence of exit skill: at perfect closer heads the closer
+    IS O*, so E1' / E2' / E7 equal to O* is expected by construction, not skill; the evidence is the closer-quality
+    ladder (1.00 / 0.85 / 0.70) and the early-close value against holding to the SL, per cell family and side.
+    (2) The price ladders against the exit label: Z1 is built from the trade's own cost-inclusive net path, the price
+    ladders the model reads locate P*_exit only partly; per level, per family and side."""
+    fam = {}
+    for r in rows:
+        for si, side in (("0", "BUY"), ("1", "SELL")):
+            w = r["exit"]["witnesses"]
+            e8 = w.get(f"E8_closer_quality_ladder_{side}", {}).get("value")
+            z = w.get(f"Z1_zigzag_exit_label_{side}", {}).get("value")
+            d = fam.setdefault((cell_family(r["id"]), side), {"n": 0, "R": [], "E1p": [], "ecv": [], "lvl": {}})
+            d["n"] += 1
+            if e8:
+                d["R"].append(e8["mean_R_sigma"])
+                d["E1p"].append(e8["E1p"])
+                d["ecv"].append(e8["early_close_value_vs_hold_to_SL"])
+            if z:
+                for k, v in z["per_level"].items():
+                    if v == v:
+                        d["lvl"].setdefault(k, []).append(v)
+    mean = lambda xs: np.nanmean(np.asarray(xs, float), axis=0) if xs else np.full(3, np.nan)  # noqa: E731
+    L = ["### Titular 1: evidencia de habilidad de salida = escalera de calidad del cerrador", "",
+         "Con cabezas de cierre perfectas el cerrador ES O*: que E1′ / E2′ / E7 coincidan con O* es esperado por construcción y no es evidencia de habilidad. "
+         "La evidencia es cómo se degrada la salida al bajar la calidad del cerrador (1.00 / 0.85 / 0.70) y el valor del cierre temprano frente a mantener hasta el SL, "
+         "en los episodios de estado inicial destinados al SL.", "",
+         "| familia | lado | registros | R medio/σ a 1.00 / 0.85 / 0.70 | E1′ a 1.00 / 0.85 / 0.70 | valor del cierre temprano vs SL (σ, suma) a 1.00 / 0.85 / 0.70 |",
+         "| --- | --- | ---: | --- | --- | --- |"]
+    for (f, side), d in sorted(fam.items()):
+        R, E1, V = mean(d["R"]), mean(d["E1p"]), mean(d["ecv"])
+        L.append(f"| {f} | {side} | {d['n']} | " + " / ".join(f"{v:.3f}" for v in R) + " | " + " / ".join(f"{v:.3f}" for v in E1) + " | " + " / ".join(f"{v:.1f}" for v in V) + " |")
+    order = [str(x) for x in ZZ.DEFAULT_LEVELS]
+
+    def lvl_key(k):                                                   # net thresholds coarse to fine, then each price ladder coarse to fine
+        kind, name = k.split(":", 1)
+        if kind == "net":
+            return (0, "", -float(name.replace("sigma", "")))
+        return (1 if kind == "close" else 2, kind, order.index(name) if name in order else len(order))
+    levels = sorted({k for d in fam.values() for k in d["lvl"]}, key=lvl_key)
+    L += ["", "### Titular 2: escaleras de precio frente a la etiqueta de salida", "",
+          "La etiqueta de salida Z1 es el ZigZag del propio camino neto de la operación (con todos los costes); las escaleras de precio que lee el modelo localizan P*_exit "
+          "antes del SL solo en parte. El objetivo de entrenamiento del cerrador es A(t) / L_avail del replay del motor; las escaleras de precio son contexto "
+          "multihorizonte, no la etiqueta de salida. Fracción de episodios destinados al SL en que cada nivel reproduce P*_pre dentro de 0.05 σ.", "",
+          "| familia | lado | " + " | ".join(levels) + " |", "| --- | --- | " + " | ".join("---:" for _ in levels) + " |"]
+    for (f, side), d in sorted(fam.items()):
+        L.append(f"| {f} | {side} | " + " | ".join(f"{np.mean(d['lvl'][k]):.2f}" if d["lvl"].get(k) else "—" for k in levels) + " |")
+    return L + [""]
+
+
 def exit_report_sections(recs: dict, outp: Path) -> list:
     """The exit-optimality sections: per cell and aggregate exit mixes per side (strategy / hold oracle / O*), regret
     distribution, tick agreement, early-close value, SL-destined episode counts, Z1 per level, the exit-loss curves and
@@ -1620,9 +1679,10 @@ def exit_report_sections(recs: dict, outp: Path) -> list:
         return ["", "## Salidas (capa de salida óptima)", "", "(sin registros con capa de salida)"]
     pct = lambda m, k: f"{100 * m.get(k, float('nan')):.0f}"  # noqa: E731
     L = ["", "## Salidas: optimalidad del cierre (especificación sellada " + f"`{EXIT_SPEC_SHA[:16]}…`)", "",
-         f"Registros con capa de salida: {len(rows)}; PASS (regla por celda): {sum(1 for r in rows if r['exit']['PASS_effective'])}; referencia del propietario: {OWNER_EARLY_CLOSE_REFERENCE:.0%} de salidas por cierre temprano.", "",
-         "### Mezcla de salidas por lado (operaciones propias de la estrategia), % temprano / TP / SL / tiempo", "",
-         "| celda | semilla | lado | estrategia | oráculo de mantener | O* | PASS salida | testigos que fallan |", "| --- | ---: | --- | --- | --- | --- | --- | --- |"]
+         f"Registros con capa de salida: {len(rows)}; PASS (regla por celda): {sum(1 for r in rows if r['exit']['PASS_effective'])}; referencia del propietario: {OWNER_EARLY_CLOSE_REFERENCE:.0%} de salidas por cierre temprano.", ""]
+    L += exit_headline_tables(rows)
+    L += ["### Mezcla de salidas por lado (operaciones propias de la estrategia), % temprano / TP / SL / tiempo", "",
+          "| celda | semilla | lado | estrategia | oráculo de mantener | O* | PASS salida | testigos que fallan |", "| --- | ---: | --- | --- | --- | --- | --- | --- |"]
     agg = {k: {si: collections.Counter() for si in ("0", "1")} for k in ("strategy", "hold_oracle", "O*")}
     for r in sorted(rows, key=lambda x: (x["id"], x["seed"])):
         x = r["exit"]

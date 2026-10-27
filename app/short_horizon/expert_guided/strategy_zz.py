@@ -41,7 +41,7 @@ DEFAULT_LEVELS = ("rev800", "rev400", "rev200", "rev100", "rev60", "rev20", "rev
 ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60", "rev20", "rev15"), "fine": ("3", "rev10", "rev8", "rev5")}
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
-PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 0.8, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 1.2, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
           "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5}
 
 

@@ -59,12 +59,12 @@ META_KEYS = {"schema", "note", "defaults_are", "sealed"}
 DEFAULTS = {
     "open_rate_l": 0.45, "open_rate_s": 0.45, "nop_veto": 0.50,
     "close_rem_rate_l": 0.30, "close_rem_rate_s": 0.30, "close_p_l": 0.50, "close_p_s": 0.50,
-    "allow_reverse": 1.0, "observe_bars": 0,
+    "allow_reverse": 0.0, "observe_bars": 0,
     "tp_a_l": 1.0, "tp_b_l": 0.0, "sl_c_l": 1.0, "sl_e_l": 0.0, "tp_a_s": 1.0, "tp_b_s": 0.0, "sl_c_s": 1.0, "sl_e_s": 0.0,
     "v_alpha_l": 1.0, "v_beta_l": 0.0, "v_gamma_l": 0.0, "v_delta_l": 0.0, "v_alpha_s": 1.0, "v_beta_s": 0.0, "v_gamma_s": 0.0, "v_delta_s": 0.0, "v_min": 0.0,
     "risk_pct": 0.01, "entry_cutoff_hours": 24.0, "max_entries_per_day": 4, "rr_margin_sigma": 0.10, "confirmation_lag_bars": 120,
     "tp_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "sl_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "open_margin_eps": 1e-6,
-    "closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24, "zz_post_flip_bars": 240, "zz_counter_net_frac": 0.8, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+    "closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24, "zz_post_flip_bars": 240, "zz_counter_net_frac": 1.2, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
     "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5,
 }
 

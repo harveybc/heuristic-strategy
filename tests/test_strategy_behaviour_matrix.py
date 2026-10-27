@@ -108,7 +108,9 @@ def test_mirror_check_demands_identical_bars_flipped_sides_and_equal_sigma_net()
 def test_canonical_genes_come_from_the_parameter_file():
     from app.short_horizon.expert_guided import strategy_params as SP
     g = SP.genes_c3(SP.default_doc())
-    assert g["open_rate"] == pytest.approx(0.45) and g["allow_reverse"] == 1.0 and g["nop_veto"] == 0.5 and g["close_p_l"] == 0.5
+    assert g["open_rate"] == pytest.approx(0.45) and g["allow_reverse"] == 0.0 and g["nop_veto"] == 0.5 and g["close_p_l"] == 0.5
+    d = SP.default_doc()                                               # the v10 canonical point (transition fixes): no reversal, no strong-net exception, room 1.75 x TP
+    assert d["zz_counter_net_frac"] == pytest.approx(1.2) and d["zz_room_tp_mult"] == pytest.approx(1.75)
 
 
 def test_intensity_generators_vary_trend_and_volatility_independently():

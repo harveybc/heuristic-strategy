@@ -55,7 +55,8 @@ for c in cells:
 print("\n".join(pending))
 PYEOF
   running=$(ls $ROOT/claims 2>/dev/null | wc -l)
-  slots=$((JOBS - running)); [ $slots -lt 0 ] && slots=0
+  J=$(cat $ROOT/JOBS_OVERRIDE 2>/dev/null || echo $JOBS)        # the job count can be rebalanced between runs without a restart
+  slots=$((J - running)); [ $slots -lt 0 ] && slots=0
   n=0
   while read -r cid && [ $n -lt $slots ]; do
     [ -z "$cid" ] && continue
