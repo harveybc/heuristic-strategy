@@ -111,6 +111,9 @@ class CachedWorld:
         memo = w.setdefault("_exit_memo", {})
         memo["sroll"], memo["st_star"], memo["st_hold"] = self.sroll, BM.exit_stats(w, self.sroll, cl1), BM.exit_stats(w, orl, cl1)
         self.closer1 = cl1
+        for ro in (self.sroll, self.oroll):                           # memory (the 13G pool was OOM-killed at generation 8): the controls' per-tick logs are consumed above
+            for k in ("closes", "log", "positions", "attr"):
+                ro.pop(k, None)
         self.oracle_sharpe = float(orl["metrics"].get("sharpe_daily_sqrt365", float("nan")))
         # memory: what an evaluation never reads again (the raw head table -- the view holds its restricted copy -- and the
         # exploration visits, consumed by the gene map and the closer references above); ~270 MB per world before
@@ -194,7 +197,7 @@ def _worker(conn, share: list, fold: str, admitted: str, csv_dir: str, contract:
             break
         t1 = time.time()
         res = [w.evaluate(msg) for w in worlds]
-        conn.send({"results": res, "sec": time.time() - t1})
+        conn.send({"results": res, "sec": time.time() - t1, "maxrss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0})
 
 
 class Pool:
@@ -223,7 +226,8 @@ class Pool:
         res = [r for o in outs for r in o["results"]]
         n_fail = sum(len(r["fails"]) for r in res)
         sh = float(np.mean([r["sharpe"] for r in res]))
-        return {"fitness_sharpe": sh, "n_failing_witnesses": n_fail, "feasible": n_fail == 0, "per_world": res, "wall_sec": max(o["sec"] for o in outs)}
+        return {"fitness_sharpe": sh, "n_failing_witnesses": n_fail, "feasible": n_fail == 0, "per_world": res, "wall_sec": max(o["sec"] for o in outs),
+                "worker_maxrss_mb": [round(o.get("maxrss_mb", 0.0)) for o in outs]}
 
     def close(self):
         for c in self.conns:
@@ -306,7 +310,7 @@ def _eval(pool: Pool, x: list, base: dict, arch: Path, gen: int) -> dict:
     doc = decode(x, base)
     r = pool.evaluate(doc)
     rec = {"generation": gen, "params": {k: doc[k] for k in GENOME}, "fitness_sharpe": r["fitness_sharpe"], "n_failing_witnesses": r["n_failing_witnesses"],
-           "feasible": r["feasible"], "wall_sec": r["wall_sec"], "per_world": r["per_world"]}
+           "feasible": r["feasible"], "wall_sec": r["wall_sec"], "worker_maxrss_mb": r.get("worker_maxrss_mb"), "per_world": r["per_world"]}
     with open(arch, "a") as fh:
         fh.write(json.dumps(rec, default=float) + "\n")
     return {"fitness_sharpe": r["fitness_sharpe"], "n_failing_witnesses": r["n_failing_witnesses"], "feasible": r["feasible"]}
@@ -361,7 +365,8 @@ def cmd_run(a):
     log = lambda m: (print(m, flush=True), open(out / "PROGRESS.log", "a").write(m + "\n"))  # noqa: E731
     t0 = time.time()
     pool = Pool(sub, a.jobs, a.fold, a.admitted, a.csv_dir, a.contract)
-    log(json.dumps({"pool_ready_sec": time.time() - t0, "defects": {k: v for x in pool.ready for k, v in x["defects"].items() if v}}))
+    log(json.dumps({"pool_ready_sec": time.time() - t0, "workers": len(pool.ready), "worker_build_maxrss_mb": [round(x["maxrss_mb"]) for x in pool.ready],
+                    "defects": {k: v for x in pool.ready for k, v in x["defects"].items() if v}}))
     init = warm_population(Path(a.warm_archive), base, a.population) if getattr(a, "warm_archive", None) else None
     res = run_search(pool, base, out, a.population, a.generations, SEED, log, init=init)
     pool.close()

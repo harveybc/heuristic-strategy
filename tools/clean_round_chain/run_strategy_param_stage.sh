@@ -9,7 +9,7 @@
 #      100 % effective PASS, otherwise take the next feasible point.
 # Usage: run_strategy_param_stage.sh <matrix root>   (honours <root>/STOP_PARAM_STAGE; WARM_ARCHIVE=<earlier ARCHIVE.jsonl> warm-starts generation 0)
 set -u
-R=$1; CODE=$R/code
+R=$1; CODE=${CODE:-$R/code}                                     # the DEAP's own code root may differ (resume on the code it loaded); the re-verification always uses $R/code
 PY=${PY:-~/anaconda3/envs/trading-stack/bin/python}; CR=${CR:-~/.local/bin/crispdm-run}
 export CUDA_VISIBLE_DEVICES="" BEHAVIOUR_MATRIX_ALLOWED=1
 log(){ echo "$(date -u +%FT%TZ) [param-stage] $*" >> $R/LOG; }
