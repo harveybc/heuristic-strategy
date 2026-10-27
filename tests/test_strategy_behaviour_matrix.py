@@ -222,3 +222,34 @@ def test_episode_replay_scores_regret_lateness_and_the_loss_curve():
     assert best["R_pre"] == pytest.approx(0.0) and best["late_bars"] == 0 and best["early"]
     assert hold["R_pre"] == pytest.approx(4.0 + 6.0) and not hold["early"]
     assert best["L_curve"] == [pytest.approx(3.0), pytest.approx(0.0)]
+
+
+def test_validity_rule_vacuous_controls_and_the_w8_replay_conflict():
+    """VALIDITY_SPEC (coordinator ruling 2026-10-27): a control's pass with zero events does not validate the sealed
+    form; a control's failure admits the corrected form; O* is a second control for the timing / exit witnesses; the W8
+    switch v3 governs where the replay shows a destructive-close conflict."""
+    w = lambda p, e=None, **k: {"value": 0, "pass": p, "events": e, **k}  # noqa: E731
+    strat = {"W1_side": w(False, 10), "W1_side_v2": w(True, 10), "W5_reverse": w(False, 3), "W5_reverse_v2": w(True, 3),
+             "W8_early_close_at_switch": w(False, 2), "W8_early_close_at_switch_v2": w(True, 2), "W8_early_close_at_switch_v3": w(True, 2, conflict_shown=True),
+             "W3_nop": w(False, 10)}
+    hold = {"W1_side": w(True, 0), "W5_reverse": w(True, 0), "W8_early_close_at_switch": w(True, 0), "W3_nop": w(True, 12)}
+    ostar = {"W5_reverse": w(True, 4), "W8_early_close_at_switch": w(True, 3)}
+    v = BM.validity(strat, hold, ostar)["per_witness"]
+    assert v["W1_side"]["status"] == "SEALED_UNVALIDATED" and v["W1_side"]["governing_form"] == "W1_side_v2" and v["W1_side"]["pass"]   # vacuous hold pass; O* is not a W1 control
+    assert v["W5_reverse"]["status"] == "VALIDATED" and v["W5_reverse"]["governing_form"] == "W5_reverse" and not v["W5_reverse"]["pass"]   # O* reverses: sealed form governs
+    assert v["W8_early_close_at_switch"]["status"] == "REPLAY_CONFLICT" and v["W8_early_close_at_switch"]["governing_form"] == "W8_early_close_at_switch_v3"
+    assert v["W3_nop"]["status"] == "VALIDATED" and not v["W3_nop"]["pass"]
+    hold["W3_nop"] = w(False, 12)
+    v = BM.validity(strat, hold, ostar)
+    assert v["per_witness"]["W3_nop"]["status"] == "DEFECT" and v["per_witness"]["W3_nop"]["governing_form"] == "W3_nop"   # no corrected form: sealed, reported
+    assert set(v["failing"]) == {"W5_reverse", "W3_nop"}
+    strat["W8_early_close_at_switch_v3"] = w(True, 2, conflict_shown=False)
+    assert BM.validity(strat, hold, ostar)["per_witness"]["W8_early_close_at_switch"]["status"] == "VALIDATED"   # no replayed conflict: the sealed failure stands
+
+
+def test_spec_v3_is_resealed_with_the_validity_rule():
+    assert "W8_early_close_at_switch_v3" in BM.WITNESS_SPEC["v3"] and "vacuity" in BM.VALIDITY_SPEC
+    doc = {"witness_spec": BM.WITNESS_SPEC, "exit_spec": BM.EXIT_SPEC, "validity_spec": BM.VALIDITY_SPEC, "thresholds": BM.THRESH}
+    import hashlib
+    assert BM.SPEC_V3_SHA == hashlib.sha256(json.dumps(doc, sort_keys=True).encode()).hexdigest()
+    assert any("v3" in x["witness"] and "-0.497" in x["evidence"] for x in BM.WITNESS_CHANGELOG)

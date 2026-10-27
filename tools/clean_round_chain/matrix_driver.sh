@@ -3,7 +3,7 @@
 # base cells whose results (3 seeds, cell + zero-cost twin + mirror) are not all present and that no job claims, and
 # launches up to $JOBS crispdm jobs (one base cell with its twins per job, 1500M each, 12 h queue); it rewrites
 # BEHAVIOUR_MATRIX.{json,md} after every loop. New queue files are picked up without a restart. Honours $ROOT/STOP
-# (its own flag only). The DONE line of a cell is read from the RESULT files (witnesses passed / total, PASS or FAIL
+# (its own flag only); base cells listed in $ROOT/EXCLUDE_IDS belong to another host's shard and are skipped. The DONE line of a cell is read from the RESULT files (witnesses passed / total, PASS or FAIL
 # per file), never from the job's stdout.
 set -u
 ROOT=${ROOT:-/var/tmp/behaviour-matrix-20261027}; CODE=$ROOT/code; JOBS=${JOBS:-10}; SEEDS=${SEEDS:-0,1,2}; RES=${RES:-$ROOT/results_v2}
@@ -38,9 +38,10 @@ for q in sorted(glob.glob(f"{root}/queue/*.json")):
             seen.add(c["id"]); cells.append(c)
 json.dump(cells, open(f"{root}/QUEUE.json", "w"))
 by_id = {c["id"]: c for c in cells}
+excl = set(open(f"{root}/EXCLUDE_IDS").read().split()) if os.path.exists(f"{root}/EXCLUDE_IDS") else set()   # base cells another host's shard runs
 pending = []
 for c in cells:
-    if c["mirror"] or c.get("sym_of"):
+    if c["mirror"] or c.get("sym_of") or c["id"] in excl:
         continue
     need = [(c["id"], s) for s in seeds]
     if ("S_" + c["id"]) in by_id:

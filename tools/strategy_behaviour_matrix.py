@@ -79,7 +79,25 @@ WITNESS_SPEC = {
            "rule": "a v2 form is admitted only in the cells where the TRUTH ORACLE fails the sealed form; everywhere else the sealed form governs; both verdicts are reported",
            "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
+WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c) early closes >= O*'s early closes there",
+                      "rule": "admitted where VALIDITY_SPEC admits a corrected form for W8_early_close_at_switch (DEFECT, SEALED_UNVALIDATED or REPLAY_CONFLICT); it replaces v2 for that witness"}
+TIMING_EXIT_WITNESSES = ("W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W8_early_close_at_switch")
+VALIDITY_SPEC = {
+    "controls": "the hold oracle for every witness; O* (the truth oracle's opens, exit at A(t) >= -EPS_CLOSE, reversals allowed) as well for the timing / exit witnesses " + ", ".join(TIMING_EXIT_WITNESSES) + " and the E series",
+    "vacuity": "a control's pass with zero events of the witnessed kind (no opens, no early closes around the switch, no reversals, no trade crossing the gap, ...) does not validate the sealed form in that cell",
+    "status": {"DEFECT": "a control fails the sealed form: the corrected form governs", "VALIDATED": "a control passes the sealed form with events > 0: the sealed form governs",
+               "SEALED_UNVALIDATED": "every control passes only vacuously: the corrected (truth-relative) form governs; reported per cell",
+               "REPLAY_CONFLICT": "W8 switch only: the sealed form fails and the engine replay shows that meeting it needs a close with A(t) < -EPS_CLOSE (destructive under the sealed E4): v3 governs"},
+    "e_series": "an E witness O* fails is defective in that cell (EXIT_SPEC); an E witness every control passes only vacuously is SEALED_UNVALIDATED (no corrected form: the sealed form governs, reported)",
+    "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
+}
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-27T12:40Z (coordinator ruling; E4 wins a demonstrated conflict)", "witness": "W8_early_close_at_switch -> v3 (stronger than v2), and the VALIDITY_SPEC (vacuous controls)",
+     "defect": "the sealed W8 (early-close share in the switch window >= before) can only be met by closing TP-bound trades early at A(t) well below -EPS_CLOSE, which the sealed E4 forbids; the hold oracle passes the sealed W8 only vacuously (0 early closes before and after)",
+     "evidence": "engine replay at the canonical point, every in-window exit that is not early is a TP fill: B_trans_up_range_late s0 BUY 6969-7058 TP +2.52 sigma, best earlier A -0.197; B_trans_down_range_middle s0 SELL 4618-4712 TP +2.53, best A -0.106; "
+                 "B_trans_range_up_late s2 BUY 6966-7024 TP +2.36, best A -0.192 and SELL 7026-7037 TP +2.44, best A -0.278; I4_garch097_down_up_middle s0 SELL 4618-4708 TP +2.23, best A -0.497",
+     "effect": "v3 admitted per cell by VALIDITY_SPEC only; a control pass with zero events no longer validates a sealed form (SEALED_UNVALIDATED -> corrected form, reported); O* is a control for the timing / exit witnesses"},
+
     {"when": "2026-10-27T11:00Z", "witness": "Z1 label generator (the trade's own net-value ZigZag): anchored start",
      "defect": "a reversal ZigZag never confirms a pivot at the first point of its series, and the best exit of many SL-destined orders is the entry tick itself (the order declines from entry)",
      "evidence": "smoke 2bd39110: net:0.1sigma matched P*_pre in 0.63 of the SL-destined BUY episodes of B_trend_trend_down_medium s0 with E1' = 1.0 and R = 0.0006 sigma (the closer exits optimally; the label missed)",
@@ -160,12 +178,16 @@ EXIT_SPEC = {
 }
 EXIT_SPEC["episodes"] = {"every_bars": 12, "min_sl_destined_per_side": 30, "late_bars_max": 2.0, "z1_tol_sigma": 0.05, "net_ladder_sigma": [2.0, 1.0, 0.5, 0.25, 0.1]}
 EXIT_SPEC_SHA = hashlib.sha256(json.dumps(EXIT_SPEC, sort_keys=True).encode()).hexdigest()
+SPEC_V3 = {"witness_spec": WITNESS_SPEC, "exit_spec": EXIT_SPEC, "validity_spec": VALIDITY_SPEC, "thresholds": None}
+SPEC_V3_SHA = None   # set after THRESH below
 BURST_DETECTION_LAG = 3             # bars the causal burst gate needs (realized vol over 6 bars > 2 sigma at a x3 burst after ~2-3 bars)
 THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_positive_open_min": 0.90, "wrong_side_max": 0.10,
           "best_cell_min": 0.70, "nop_open_max": 0.05, "sl_exit_max": 0.10, "early_close_justified_min": 0.80, "reverse_in_switch_window_min": 0.50,
           "reverse_per_week_static_max": 1.0, "old_direction_after_lag_max": 0.40, "new_leg_side_min": 0.60, "mirror_net_rel_tol": 0.02,
           "activity_per_week_min": 1.0, "gap_loss_extra_sigma_max": 0.5,
           "high_risk_open_max": 0.05}
+SPEC_V3["thresholds"] = THRESH
+SPEC_V3_SHA = hashlib.sha256(json.dumps(SPEC_V3, sort_keys=True).encode()).hexdigest()   # the re-sealed witness specification (forms + validity rule + exit spec + thresholds)
 
 
 # ----------------------------------------------------------------------------- the matrix definition
@@ -670,7 +692,8 @@ class PolicyOracleStar(PolicyOracle):
         cl = self.t["closer"]
         a = S.path_advantage(cl.path(pos), int(bar))
         dec = bool(np.isfinite(a) and a >= -EPS_CLOSE)
-        self.closes.append((int(r), int(bar), int(si), float("nan"), float("nan"), dec, False, False, False, float(a), "oracle_star"))
+        rem, psl = cl.value(r, bar, pos)                               # logged so that the W4 witnesses read O* like any policy (VALIDITY_SPEC control)
+        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, False, False, False, float(a), "oracle_star"))
         return dec
 
 
@@ -783,16 +806,16 @@ def exit_witnesses(stats: dict, star: dict, hold: dict) -> dict:
                                       "threshold": "reported", "desc": "exit mix per side"}
         e1 = st["sl_destined_closed_early"] / st["sl_destined"] if st["sl_destined"] else float("nan")
         out[f"E1_sl_destined_closed_early_{side}"] = {"value": e1, "n_sl_destined": st["sl_destined"], "threshold": 0.95, "pass": bool((not st["sl_destined"]) or e1 >= 0.95),
-                                                      "desc": "SL-destined trades closed early before the SL"}
+                                                      "desc": "SL-destined trades closed early before the SL", "events": st["sl_destined"]}
         out[f"E2_exit_regret_{side}"] = {"value": {"mean_R_sigma": st["R_mean"], "p90_R_sigma": st["R_p90"], "hold_oracle_mean_R": ho["R_mean"], "O*_mean_R": os_["R_mean"], "R_hist": st["R_hist"]},
-                                         "threshold": "mean <= 0.10 and p90 <= 0.30", "pass": bool((not st["n"]) or (st["R_mean"] <= 0.10 and st["R_p90"] <= 0.30)), "desc": "exit regret P* - P(exit)"}
+                                         "threshold": "mean <= 0.10 and p90 <= 0.30", "pass": bool((not st["n"]) or (st["R_mean"] <= 0.10 and st["R_p90"] <= 0.30)), "desc": "exit regret P* - P(exit)", "events": st["n"]}
         out[f"E3_tick_agreement_{side}"] = {"value": st["agreement"], "held_ticks": st["held_ticks"], "threshold": 0.95, "pass": bool((not st["held_ticks"]) or st["agreement"] >= 0.95),
-                                            "desc": "close / hold agrees with sign(A(t) + EPS_CLOSE)"}
+                                            "desc": "close / hold agrees with sign(A(t) + EPS_CLOSE)", "events": st["held_ticks"]}
         out[f"E4_no_destructive_close_{side}"] = {"value": st["destructive_share"], "mean_cost_sigma": st["destructive_mean_cost_sigma"], "closes": st["closes"], "threshold": 0.05,
-                                                  "pass": bool(st["destructive_share"] <= 0.05), "desc": "closes with A(t) < -EPS_CLOSE"}
+                                                  "pass": bool(st["destructive_share"] <= 0.05), "desc": "closes with A(t) < -EPS_CLOSE", "events": st["closes"]}
         se, oe = st["mix"]["early"], os_["mix"]["early"]
         out[f"E5_early_close_vs_Ostar_{side}"] = {"value": {"strategy": se, "O*": oe}, "threshold": "strategy >= O* - 0.10",
-                                                  "pass": bool((not st["n"]) or (not np.isfinite(oe)) or se >= oe - 0.10), "desc": "early-close share relative to the truth's optimal stopping"}
+                                                  "pass": bool((not st["n"]) or (not np.isfinite(oe)) or se >= oe - 0.10), "desc": "early-close share relative to the truth's optimal stopping", "events": st["n"]}
     return out
 
 
@@ -1401,12 +1424,119 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                           "early_closes_by_trigger": {"remaining_negative": sum(1 for c in ecl if len(c) > 6 and c[6]), "sl_first_and_negative_remaining": sum(1 for c in ecl if len(c) > 7 and c[7]),
                                                       "fine_alarm_and_weak_coarse_room": sum(1 for c in ecl if len(c) > 8 and c[8]),
                                                       "advantage_head": sum(1 for c in ecl if len(c) > 10 and c[10] == "advantage")}}
+    attach_events(out, roll, world)
     sealed = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2")}
     v2 = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in out)}
     out["PASS_sealed"] = bool(all(v["pass"] for v in sealed.values()))
     out["PASS_v2"] = bool(all(v["pass"] for v in v2.values()))
     out["PASS"] = out["PASS_sealed"]
     return out
+
+
+def attach_events(out: dict, roll: dict, world: dict) -> None:
+    """Every witness carries ``events``: how many events of the witnessed kind the run produced (opens, early closes
+    around the switch, reversals, trades crossing the gap, ...). A control's pass with zero events is VACUOUS and does
+    not validate the sealed form in that cell (VALIDITY_SPEC). None = not an event-counting witness."""
+    trades = roll["trades"]
+    n = len(trades)
+    sw = (world.get("meta") or {}).get("switch_bars") or []
+    early_near = sum(1 for t in trades if t["exit_reason"] == "EARLY" and any(s_ - LAG <= int(t["exit_bar_abs"]) < s_ + LAG for s_ in sw))
+    for k, v in out.items():
+        if not (isinstance(v, dict) and "pass" in v) or "events" in v:
+            continue
+        base = re.sub(r"_v[23]$", "", k)
+        val = v.get("value")
+        if base == "W1_side" and isinstance(val, list):
+            e = sum(int(x.get("n", 0)) for x in val if x.get("leg") != "range")
+        elif base == "W8_old_direction_after_lag":
+            e = sum(int(x.get("n", 0)) for x in (val or []))
+        elif base == "W8_early_close_at_switch":
+            e = early_near if k == base else (val.get("exits_in_switch_window") if isinstance(val, dict) else None)
+        elif base == "W4_early_close_justified":
+            e = v.get("n_early_closes")
+        elif base == "W5_reverse":
+            e = val.get("reversals") if isinstance(val, dict) else None
+        elif base == "W9_gap_loss_bounded":
+            e = v.get("n_crossing")
+        elif base == "W10_spread_window":
+            e = v.get("n_inside")
+        elif base == "W13_tpsl_track_sigma":
+            e = val.get("trades_checked") if isinstance(val, dict) else n
+        elif base == "WA_side_comparison":
+            e = val.get("both_cleared") if isinstance(val, dict) else None
+        elif base in ("W11_cutoff", "W14_mirror"):
+            e = None
+        else:
+            e = n
+        v["events"] = e
+
+
+def w8_switch_v3(world: dict, roll: dict, sroll: dict, closer) -> dict:
+    """W8_early_close_at_switch_v3 (coordinator ruling 2026-10-27, admitted only by VALIDITY_SPEC): in every window
+    [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every
+    earlier held tick (O* would also have held it); (c) early closes >= O*'s early closes there. ``conflict_shown``:
+    the window holds at least one non-early exit and (b) holds, i.e. meeting the sealed form means a destructive close
+    under the sealed E4."""
+    sw = (world.get("meta") or {}).get("switch_bars") or []
+    pp = roll.get("positions") or {}
+    sl_n, held_ok, n_non_early, early_s, early_o, rows = 0, True, 0, 0, 0, []
+    for s_ in sw:
+        win = [t for t in roll["trades"] if s_ <= int(t["exit_bar_abs"]) < s_ + LAG]
+        early_s += sum(1 for t in win if t["exit_reason"] == "EARLY")
+        early_o += sum(1 for t in sroll["trades"] if s_ <= int(t["exit_bar_abs"]) < s_ + LAG and t["exit_reason"] == "EARLY")
+        for t in win:
+            if t["exit_reason"] == "SL":
+                sl_n += 1
+            if t["exit_reason"] == "EARLY":
+                continue
+            n_non_early += 1
+            si = 0 if int(t["direction"]) > 0 else 1
+            pos = pp.get((int(t["entry_bar_abs"]), si))
+            best = float("nan")
+            if pos is not None:
+                path = closer.path(pos)
+                aa = [S.path_advantage(path, b) for b in range(int(t["entry_bar_abs"]), int(t["exit_bar_abs"]))]
+                aa = [x for x in aa if np.isfinite(x)]
+                best = float(max(aa)) if aa else float("nan")
+            ok = bool(np.isfinite(best) and best < -EPS_CLOSE)
+            held_ok &= ok
+            rows.append({"switch": int(s_), "entry": int(t["entry_bar_abs"]), "exit": int(t["exit_bar_abs"]), "reason": t["exit_reason"], "side": "BUY" if si == 0 else "SELL",
+                         "best_A_of_an_earlier_close_sigma": best, "Ostar_would_hold": ok})
+    n_win = sum(1 for s_ in sw for t in roll["trades"] if s_ <= int(t["exit_bar_abs"]) < s_ + LAG)
+    return {"value": {"sl_exits_in_window": sl_n, "non_early_exits": rows, "early_closes_in_window": early_s, "Ostar_early_closes_in_window": early_o},
+            "threshold": "(a) 0 SL exits in [switch, switch + lag]; (b) every non-early exit there had A(t) < -EPS_CLOSE at every earlier held tick; (c) early closes there >= O*'s",
+            "pass": bool(sl_n == 0 and held_ok and early_s >= early_o), "conflict_shown": bool(n_non_early > 0 and held_ok), "events": n_win,
+            "desc": "corrected form v3 (coordinator ruling 2026-10-27; E4 wins the demonstrated conflict): admitted only where VALIDITY_SPEC admits a corrected form"}
+
+
+def validity(wit: dict, hold: dict, ostar: dict | None) -> dict:
+    """VALIDITY_SPEC applied to one run's witnesses. Per sealed witness: DEFECT when a control fails the sealed form;
+    VALIDATED when a control passes it with events > 0; SEALED_UNVALIDATED when every control passes only vacuously;
+    REPLAY_CONFLICT (W8 switch only) when the sealed form fails and the replay shows that meeting it needs a destructive
+    close. The governing form is the sealed form when VALIDATED, the corrected form (v3, else v2) otherwise (the sealed
+    form when no corrected form exists, reported). Controls: the hold oracle for every witness, and O* (reversals
+    allowed) as well for the timing / exit witnesses. Identical for the strategy and for every DEAP candidate."""
+    status, failing = {}, []
+    for k, v in wit.items():
+        if not (isinstance(v, dict) and "pass" in v) or re.search(r"_v[23]$", k):
+            continue
+        ctr = [("hold_oracle", hold)] + ([("O*", ostar)] if (ostar is not None and k in TIMING_EXIT_WITNESSES) else [])
+        fails = [nm for nm, c in ctr if isinstance(c.get(k), dict) and c[k].get("pass") is False]
+        valid = [nm for nm, c in ctr if isinstance(c.get(k), dict) and c[k].get("pass") is True and (c[k].get("events") is None or c[k]["events"] > 0)]
+        st = "DEFECT" if fails else ("VALIDATED" if valid else "SEALED_UNVALIDATED")
+        corr = (k + "_v3") if (k + "_v3") in wit else ((k + "_v2") if (k + "_v2") in wit else None)
+        if st == "VALIDATED" and v["pass"] is False and corr and wit[corr].get("conflict_shown"):
+            st = "REPLAY_CONFLICT"
+        form = corr if (st != "VALIDATED" and corr) else k
+        p = bool(wit[form]["pass"])
+        status[k] = {"status": st, "failed_by": fails, "validated_by": valid, "governing_form": form, "pass": p,
+                     "control_events": {nm: (c.get(k) or {}).get("events") for nm, c in ctr}}
+        if not p:
+            failing.append(k)
+    return {"per_witness": status, "failing": failing, "PASS": not failing,
+            "unvalidated": sorted(k for k, x in status.items() if x["status"] == "SEALED_UNVALIDATED"),
+            "defects": sorted(k for k, x in status.items() if x["status"] == "DEFECT"),
+            "replay_conflicts": sorted(k for k, x in status.items() if x["status"] == "REPLAY_CONFLICT")}
 
 
 def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = False) -> dict:
@@ -1424,6 +1554,7 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
     st_n = exit_stats(w, roll, closer)
     ew = exit_witnesses(st_n, st_star, st_hold)
     ew_star = exit_witnesses(st_star, st_star, st_hold)
+    ew_hold = exit_witnesses(st_hold, st_star, st_hold)
     eps = build_episodes(w, strat, view, cells, every=EPISODE_EVERY_BARS * (2 if light else 1))
     lad = {}
     for q in ((1.0,) if light else CLOSER_QUALITIES):
@@ -1464,11 +1595,14 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
     never_excused = ("Z1_", "EP_counts")
     defects = sorted(k for k, v in allw_star.items() if isinstance(v, dict) and v.get("pass") is False and not k.startswith(never_excused))
     eff_fail = sorted(k for k, v in allw.items() if isinstance(v, dict) and v.get("pass") is False and k not in defects)
+    # VALIDITY_SPEC on the E series: a pass with zero events by every control (O* and the hold oracle) does not validate
+    vac = lambda x: isinstance(x, dict) and x.get("pass") is True and x.get("events") is not None and x["events"] == 0  # noqa: E731
+    e_unvalidated = sorted(k for k, v in ew.items() if isinstance(v, dict) and "pass" in v and k not in defects and vac(ew_star.get(k)) and vac(ew_hold.get(k)))
     sealed_fail = sorted(k for k, v in allw.items() if isinstance(v, dict) and v.get("pass") is False)
     summ = {si: {"n": len([x for x in lad[1.0] if x["side"] == si]), "early": float(np.mean([x["early"] for x in lad[1.0] if x["side"] == si] or [np.nan])),
                  "mean_R": float(np.mean([x["R_pre"] for x in lad[1.0] if x["side"] == si] or [np.nan]))} for si in (0, 1)}
     return {"witnesses": allw, "oracle_star_witnesses": {k: v for k, v in allw_star.items() if isinstance(v, dict) and "pass" in v},
-            "defects_by_Ostar": defects, "failing_sealed": sealed_fail, "failing_effective": eff_fail, "PASS_sealed": not sealed_fail, "PASS_effective": not eff_fail,
+            "defects_by_Ostar": defects, "sealed_unvalidated": e_unvalidated, "failing_sealed": sealed_fail, "failing_effective": eff_fail, "PASS_sealed": not sealed_fail, "PASS_effective": not eff_fail,
             "episodes": {"n": len(eps), "by_side_class": {si: {c: sum(1 for e in eps if e["side"] == si and e["class"] == c) for c in ("SL", "TP", "TIME")} for si in (0, 1)}},
             "episode_summary": summ, "exit_loss_curves": curves, "closer_sweep": sweep,
             "normal_exit_mix": {"strategy": {si: st_n[si]["mix"] for si in (0, 1)}, "hold_oracle": {si: st_hold[si]["mix"] for si in (0, 1)}, "O*": {si: st_star[si]["mix"] for si in (0, 1)}},
@@ -1521,6 +1655,11 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     tps = meta.get("turning_points") or ({"long": list(meta.get("switch_bars") or [])} if meta.get("switch_bars") else None)
     ladder_map = H.pivot_matching(w["ladder"]["pivots"], tps, H.period_bars(w["cx"].ds, BLOCK)) if tps else None
     owit = witnesses(cell, w, oroll, cells)
+    sroll = w["_exit_memo"]["sroll"]                                  # O*: the validity control of the timing / exit witnesses (VALIDITY_SPEC)
+    swit = witnesses(cell, w, sroll, cells)
+    if "W8_early_close_at_switch" in wit:
+        wit["W8_early_close_at_switch_v3"] = w8_switch_v3(w, roll, sroll, view["closer"].with_quality(1.0))
+    vres = validity(wit, owit, swit)
     defects_sealed = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
     defects_v2 = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in owit) and v["pass"] is False)
     sig = np.asarray(w["cx"].ds.sigma, float)
@@ -1533,10 +1672,12 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "oracle": {k: v for k, v in owit.items() if k != "summary"} | {"summary": owit["summary"]}, "oracle_PASS_sealed": owit["PASS_sealed"], "oracle_PASS_v2": owit["PASS_v2"],
            "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2, "ladder_to_horizon": ladder_map,
            "attribution": wit.get("attribution"), "oracle_attribution": owit.get("attribution"),
-           "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA,
-           "PASS_effective": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2"))
-                                  and exit_layer["PASS_effective"]),
-           "PASS_sealed_excluding_defective_witnesses": bool(all(v["pass"] for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and k not in defects_sealed)),
+           "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA,
+           "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres,
+           "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
+           "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))
+                                              and exit_layer["PASS_effective"]),
+           "PASS_sealed_excluding_defective_witnesses": bool(all(v["pass"] for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k) and k not in defects_sealed)),
            "sec": round(time.time() - t0, 1),
            "trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll["trades"]]}
     key = cell.get("mirror_of") or cell["id"]
@@ -1781,26 +1922,33 @@ def cmd_report(a):
                 r_["PASS_witness_level"] = False
                 continue
             r_["PASS_witness_level"] = bool(all((res_[k + "_v2"]["pass"] if (k in ORACLE_FAILED_SOMEWHERE and (k + "_v2") in res_) else v["pass"]) for k, v in res_.items()
-                                                if isinstance(v, dict) and "pass" in v and not k.endswith("_v2")) and (res_.get("W14_mirror") or {}).get("pass", True))
+                                                if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k)) and (res_.get("W14_mirror") or {}).get("pass", True))
     rows = []
     for c in cells:
         rs = recs.get(c["id"], [])
         passes = [r.get("PASS_sealed", r["PASS"]) for r in rs]
         passes_v2 = [r.get("PASS_v2", r["PASS"]) for r in rs]
-        fails, fails_v2, defects = {}, {}, {}
+        fails, fails_v2, defects, vstat = {}, {}, {}, {}
         for r in rs:
             for k, v in (r.get("results") or {}).items():
                 if isinstance(v, dict) and v.get("pass") is False:
-                    (fails_v2 if k.endswith("_v2") else fails)[k] = (fails_v2 if k.endswith("_v2") else fails).get(k, 0) + 1
+                    tgt = fails_v2 if re.search(r"_v[23]$", k) else fails
+                    tgt[k] = tgt.get(k, 0) + 1
             for k in r.get("witness_defects_sealed", []):
                 defects[k] = defects.get(k, 0) + 1
+            for k, x in ((r.get("validity") or {}).get("per_witness") or {}).items():
+                if x["status"] != "VALIDATED":
+                    vstat.setdefault(x["status"], {})[k] = vstat.setdefault(x["status"], {}).get(k, 0) + 1
+            for k in (r.get("exit") or {}).get("sealed_unvalidated", []):
+                vstat.setdefault("SEALED_UNVALIDATED", {})[k] = vstat.setdefault("SEALED_UNVALIDATED", {}).get(k, 0) + 1
         sl = [r["results"]["summary"]["share_long"] for r in rs if r.get("results", {}).get("summary")]
         rows.append({"id": c["id"], "level": c["level"], "regime": c["regime"], "legs": c["legs"], "mirror": c["mirror"], "sym": bool(c.get("sym_of")), "n_runs": len(rs), "PASS": bool(rs) and all(passes),
                      "PASS_sealed": bool(rs) and all(passes), "PASS_v2": bool(rs) and all(passes_v2), "PASS_sealed_excluding_defective_witnesses": bool(rs) and all(r.get("PASS_sealed_excluding_defective_witnesses", r["PASS"]) for r in rs),
                      "oracle_PASS_sealed": bool(rs) and all(r.get("oracle_PASS_sealed", True) for r in rs), "oracle_PASS_v2": bool(rs) and all(r.get("oracle_PASS_v2", True) for r in rs),
                      "PASS_effective": bool(rs) and all(r.get("PASS_effective", r["PASS"]) for r in rs),
                      "PASS_witness_level_informational": bool(rs) and all(r.get("PASS_witness_level", False) for r in rs),
-                     "witness_defects_sealed": defects, "failing_witnesses_v2": fails_v2,
+                     "witness_defects_sealed": defects, "failing_witnesses_v2": fails_v2, "validity_status_counts": vstat, "records_with_validity": sum(1 for r in rs if r.get("validity")),
+                     "failing_effective": sorted({k for r in rs for k in ((r.get("validity") or {}).get("failing") or []) + ((r.get("exit") or {}).get("failing_effective") or [])}),
                      "failing_witnesses": fails, "share_long_mean": float(np.nanmean(sl)) if sl else None, "opens_mean": float(np.mean([r["results"]["summary"]["opens"] for r in rs if r.get("results", {}).get("summary")])) if rs else None,
                      "errors": [r.get("error") for r in rs if r.get("error")], "expected": c["expected"], "forbidden": c["forbidden"],
                      "ladder_capture": (rs[0].get("ladder_to_horizon") or {}).get("capture") if rs else None, "attribution": rs[0].get("attribution") if rs else None,
@@ -1827,7 +1975,8 @@ def cmd_report(a):
     spec_v2_sha = hashlib.sha256(json.dumps(spec_doc, sort_keys=True).encode()).hexdigest()
     doc = {"schema": "behaviour_matrix.v2", "block": BLOCK, "cells": len(rows), "run": sum(1 for r in rows if r["n_runs"]),
            "pass_sealed": n_pass, "fail_sealed": sum(1 for r in rows if r["n_runs"] and not r["PASS"]), "pass_v2": n_pass_v2, "fail_v2": sum(1 for r in rows if r["n_runs"] and not r["PASS_v2"]),
-           "effective_rule": "per cell: a corrected form applies only in the cells where the truth oracle fails the sealed form; elsewhere the sealed form governs",
+           "effective_rule": "VALIDITY_SPEC per cell (re-sealed): the sealed form governs where a control (hold oracle; O* too for the timing / exit witnesses) passes it with events > 0; the corrected form (v3, else v2) where a control fails it, where every control passes only vacuously (SEALED_UNVALIDATED) or, for the W8 switch, where the replay shows a destructive-close conflict",
+           "spec_v3_sha256": SPEC_V3_SHA, "validity_spec": VALIDITY_SPEC,
            "pass_witness_level_informational": sum(1 for r in rows if r["PASS_witness_level_informational"]), "oracle_failed_somewhere": ORACLE_FAILED_SOMEWHERE,
            "pass_sealed_excluding_defective_witnesses": n_pass_excl, "pass_effective": n_pass_eff, "fail_effective": sum(1 for r in rows if r["n_runs"] and not r["PASS_effective"]),
            "oracle_witness_defects_sealed": defect_tally,
@@ -1839,8 +1988,8 @@ def cmd_report(a):
     (outp / "BEHAVIOUR_MATRIX.json").write_text(json.dumps(doc, indent=1, default=float))
     lines = ["# Matriz de comportamiento (cabezas perfectas, estrategia C3, motor real)", "",
              f"Celdas: {len(rows)} (cada una con su gemela de financiación simétrica y su espejo exacto); corridas: {doc['run']}; PASS: {n_pass}; FAIL: {doc['fail']}; bloque sostenido: `{BLOCK}` del fold.",
-             f"Celdas: PASS sellado {n_pass}; PASS re-sellado v2 {n_pass_v2}; PASS efectivo (forma sellada salvo donde el oráculo de la verdad la falla, entonces la forma v2) {n_pass_eff}; PASS sellado excluyendo los testigos defectuosos {n_pass_excl}. Testigos que el oráculo falla (defectuosos, conteo de celdas): {defect_tally or 'ninguno'}.",
-             f"Especificación sellada original (sólo celdas): sha256 `{SEALED_CELLS_SHA}`; celdas actuales: `{spec_sha}`; especificación re-sellada v2 (celdas + definiciones de testigos + commit): `{spec_v2_sha}`; parámetros de la estrategia: sha256 `{psha}` (`STRATEGY_PARAMS.json`).", "",
+             f"Celdas: PASS sellado {n_pass}; PASS re-sellado v2 {n_pass_v2}; PASS efectivo (regla de validez re-sellada: forma sellada donde un control la pasa con eventos; corregida v3 / v2 donde un control la falla, sólo la pasa vacíamente o, en W8 al cambio, exige un cierre destructivo) {n_pass_eff}; PASS sellado excluyendo los testigos defectuosos {n_pass_excl}. Testigos que el oráculo falla (defectuosos, conteo de celdas): {defect_tally or 'ninguno'}.",
+             f"Especificación sellada original (sólo celdas): sha256 `{SEALED_CELLS_SHA}`; celdas actuales: `{spec_sha}`; especificación re-sellada v2 (celdas + definiciones de testigos + commit): `{spec_v2_sha}`; especificación re-sellada v3 (formas + regla de validez + salida + umbrales): `{SPEC_V3_SHA}`; parámetros de la estrategia: sha256 `{psha}` (`STRATEGY_PARAMS.json`).", "",
              "| celda | nivel | tramos | régimen | espejo | corridas | PASS (sellado) | testigos que fallan (sellado) | oráculo falla (testigo defectuoso) | PASS (re-sellado v2) | PASS efectivo | cuota largos | aperturas |", "| --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | ---: | ---: |"]
     for r in rows:
         vd = lambda ok: ('PASS' if ok else ('FAIL' if r['n_runs'] else '—'))  # noqa: E731
@@ -1848,6 +1997,15 @@ def cmd_report(a):
                      f"{', '.join(f'{k}×{v}' for k, v in r['failing_witnesses'].items()) or ''} | {', '.join(f'{k}×{v}' for k, v in r['witness_defects_sealed'].items()) or ''} | {vd(r['PASS_v2'])} | {vd(r['PASS_effective'])} | "
                      f"{r['share_long_mean'] if r['share_long_mean'] is None else f'{r['share_long_mean']:.2f}'} | {'' if r['opens_mean'] is None else f'{r['opens_mean']:.0f}'} |")
     fails = [r for r in rows if r["n_runs"] and not r["PASS_sealed"]]
+    lines += ["", f"## Validez de los controles (especificación re-sellada `{SPEC_V3_SHA[:16]}…`)", "",
+              "Un PASS de un control con cero eventos del tipo atestiguado no valida la forma sellada. Controles: el oráculo de mantener para todo testigo y O* (con reversos) además para "
+              + ", ".join(TIMING_EXIT_WITNESSES) + " y la serie E. DEFECT: un control falla la forma sellada; SEALED_UNVALIDATED: todos pasan sólo vacíamente; REPLAY_CONFLICT: W8 en el cambio cuya forma sellada exige un cierre destructivo (E4). En esos casos gobierna la forma corregida (v3 / v2); el veredicto sellado queda en cada registro.", "",
+              "| celda | registros con regla | DEFECT | SEALED_UNVALIDATED | REPLAY_CONFLICT | testigos que fallan (forma gobernante) |", "| --- | ---: | --- | --- | --- | --- |"]
+    for r in rows:
+        vs = r.get("validity_status_counts") or {}
+        if r["n_runs"] and (vs or r.get("failing_effective")):
+            fm = lambda d: ", ".join(f"{k}×{v}" for k, v in sorted(d.items()))  # noqa: E731
+            lines.append(f"| {r['id']} | {r['records_with_validity']} | {fm(vs.get('DEFECT', {}))} | {fm(vs.get('SEALED_UNVALIDATED', {}))} | {fm(vs.get('REPLAY_CONFLICT', {}))} | {', '.join(r.get('failing_effective') or [])} |")
     lines += exit_report_sections(recs, outp)
     lines += ["", "## Historia de corridas (lo que cada versión invalidó)", "", "| corrida | nota |", "| --- | --- |"] + [f"| {x['run']} | {x['note']} |" for x in RUN_HISTORY]
     lines += ["", "## Cobertura de intensidades (cambios de tendencia y de volatilidad variados independientemente)", "", intensity_coverage(cells, rows)]

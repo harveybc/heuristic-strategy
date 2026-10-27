@@ -7,7 +7,7 @@
 #      elitism 2), one capped job with up to 10 worker processes, resumable;
 #   4. re-verify the best feasible point on the FULL matrix (every cell, seeds 0,1,2, perfect heads); accept it only at
 #      100 % effective PASS, otherwise take the next feasible point.
-# Usage: run_strategy_param_stage.sh <matrix root>   (honours <root>/STOP_PARAM_STAGE)
+# Usage: run_strategy_param_stage.sh <matrix root>   (honours <root>/STOP_PARAM_STAGE; WARM_ARCHIVE=<earlier ARCHIVE.jsonl> warm-starts generation 0)
 set -u
 R=$1; CODE=$R/code
 PY=${PY:-~/anaconda3/envs/trading-stack/bin/python}; CR=${CR:-~/.local/bin/crispdm-run}
@@ -35,10 +35,10 @@ cd $CODE
 [ -f $OUT/SUBSET.json ] || $PY tools/strategy_param_deap.py subset --cells ${SUBSET_CELLS:-$R/QUEUE.json} --per-level ${PER_LEVEL:-1} --out $OUT/SUBSET.json > $R/logs/deap_subset.log 2>&1
 log "subset: $(tail -1 $R/logs/deap_subset.log | cut -c1-200)"
 $CR -q -W 43200 -m ${MEM_DEAP:-18G} -t 43200s -n deap-strategy-params -- $PY tools/strategy_param_deap.py run --subset $OUT/SUBSET.json --params $P0 \
-   --admitted $R/data/admitted --csv-dir $R/data/sel15 --jobs ${JOBS_DEAP:-10} --out $OUT > $R/logs/deap_run.log 2>&1 \
+   --admitted $R/data/admitted --csv-dir $R/data/sel15 --jobs ${JOBS_DEAP:-10} --out $OUT ${WARM_ARCHIVE:+--warm-archive $WARM_ARCHIVE} > $R/logs/deap_run.log 2>&1 \
    && log "DEAP DONE: $(grep '"done"' $OUT/PROGRESS.log | tail -1)" || { log "DEAP FAILED (see logs/deap_run.log)"; exit 1; }
 for k in $(seq 0 ${MAX_RANK:-9}); do
-  $PY tools/strategy_param_deap.py best --archive $OUT/ARCHIVE.jsonl --params $P0 --k $k --out $OUT/CANDIDATE_k$k.json > $R/logs/deap_best_k$k.log 2>&1 || { log "no feasible point at rank $k"; exit 2; }
+  $PY tools/strategy_param_deap.py best --archive $OUT/ARCHIVE.jsonl --params $P0 --k $k --allow-infeasible --out $OUT/CANDIDATE_k$k.json > $R/logs/deap_best_k$k.log 2>&1 || { log "no feasible point at rank $k"; exit 2; }
   log "re-verifying rank $k on the full matrix: $(tail -1 $R/logs/deap_best_k$k.log | cut -c1-200)"
   VR=$R/verify_k$k                                              # its own matrix root: never shares claims with the running matrix
   mkdir -p $VR/queue $VR/logs $VR/report

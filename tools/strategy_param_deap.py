@@ -102,7 +102,15 @@ class CachedWorld:
         orl = BM.rollout_oracle(w, self.ov, cells)                     # the oracle does not depend on the candidate: once per world
         self.oroll = orl
         owit = BM.witnesses(cell, w, orl, cells)
-        self.defects = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)   # per-cell rule
+        self.owit = owit
+        self.defects = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)   # the hold oracle's failures (logged)
+        # O*: the second validity control (timing / exit witnesses, VALIDITY_SPEC); its run is shared with the exit layer's memo
+        self.sroll = BM.rollout_oracle_star(w, self.ov, cells)
+        self.swit = BM.witnesses(cell, w, self.sroll, cells)
+        cl1 = view["closer"].with_quality(1.0)
+        memo = w.setdefault("_exit_memo", {})
+        memo["sroll"], memo["st_star"], memo["st_hold"] = self.sroll, BM.exit_stats(w, self.sroll, cl1), BM.exit_stats(w, orl, cl1)
+        self.closer1 = cl1
         self.oracle_sharpe = float(orl["metrics"].get("sharpe_daily_sqrt365", float("nan")))
         # memory: what an evaluation never reads again (the raw head table -- the view holds its restricted copy -- and the
         # exploration visits, consumed by the gene map and the closer references above); ~270 MB per world before
@@ -127,15 +135,10 @@ class CachedWorld:
         roll = BM.rollout_cell(self.w, strat, view, self.cells)
         wit = BM.witnesses(self.cell, self.w, roll, self.cells)
         perfect = float(self.cell["quality"]) >= 0.999
-        fails = []
-        for k, v in wit.items():
-            if not (isinstance(v, dict) and "pass" in v) or k.endswith("_v2"):
-                continue
-            if not perfect and k not in QUALITY_INDEPENDENT:
-                continue
-            eff = wit.get(k + "_v2", v) if (k in self.defects and (k + "_v2") in wit) else v
-            if eff["pass"] is False:
-                fails.append(k)
+        if perfect and "W8_early_close_at_switch" in wit:
+            wit["W8_early_close_at_switch_v3"] = BM.w8_switch_v3(self.w, roll, self.sroll, self.closer1)
+        vres = BM.validity(wit, self.owit, self.swit)                 # VALIDITY_SPEC, identical to the matrix's governing verdict
+        fails = [k for k in vres["failing"] if perfect or k in QUALITY_INDEPENDENT]
         exit_fails = []
         if perfect:                                                   # the exit layer (sealed EXIT_SPEC) is a constraint: E0-E5, EP, E1', E2', E7, Z1, E8
             ex = BM.exit_layer_of(self.cell, self.w, strat, view, self.cells, roll, self.oroll, self.ov, light=True)
@@ -237,7 +240,24 @@ def better(a: dict, b: dict) -> bool:
     return a["fitness_sharpe"] > b["fitness_sharpe"]
 
 
-def run_search(pool: Pool, base: dict, out: Path, population: int, generations: int, seed: int, log=print) -> dict:
+def warm_population(archive: Path, base: dict, k: int) -> list:
+    """The top ``k`` distinct points of an earlier run's archive by (failing witnesses, -Sharpe) under ITS rule; they are
+    re-scored under the current rule in generation 0 (coordinator ruling 2026-10-27)."""
+    recs = [json.loads(x) for x in archive.read_text().splitlines() if x.strip()]
+    recs.sort(key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"]))
+    out, seen = [], set()
+    for r in recs:
+        key = json.dumps(r["params"], sort_keys=True)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(encode({**base, **r["params"]}))
+        if len(out) == k:
+            break
+    return out
+
+
+def run_search(pool: Pool, base: dict, out: Path, population: int, generations: int, seed: int, log=print, init: list | None = None) -> dict:
     from deap import tools as DT
     rnd = random.Random(seed)
     ck = out / "CHECKPOINT.pkl"
@@ -248,7 +268,11 @@ def run_search(pool: Pool, base: dict, out: Path, population: int, generations: 
         rnd.setstate(st["rng"])
         log(json.dumps({"resume_from_generation": st["gen"]}))
     else:
-        pop = [encode(base)] + [[rnd.random() for _ in GENOME] for _ in range(population - 1)]   # the canonical point is in generation 0
+        if init:
+            pop = [list(x) for x in init[:population]] + [[rnd.random() for _ in GENOME] for _ in range(population - len(init[:population]))]   # warm start
+            log(json.dumps({"warm_start_points": len(init[:population])}))
+        else:
+            pop = [encode(base)] + [[rnd.random() for _ in GENOME] for _ in range(population - 1)]   # the canonical point is in generation 0
         pop = [{"x": x, **{k: v for k, v in _eval(pool, x, base, arch, 0).items()}} for x in pop]
         gen0 = 1
         ck.write_bytes(pickle.dumps({"pop": pop, "gen": 0, "rng": rnd.getstate()}))
@@ -331,13 +355,15 @@ def cmd_run(a):
             "subset": a.subset, "subset_worlds": len(sub), "operating_quality": OPERATING_QUALITY, "quality_independent_constraints": QUALITY_INDEPENDENT,
             "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads, per-cell rule) incl. the sealed exit layer E0-E5 / EP / E1' / E2' / E7 / Z1 / E8, + quality-independent witnesses (0.70)",
             "exit_spec_sha256": BM.EXIT_SPEC_SHA,
-            "params_base_sha256": SP.sha256_of(a.params), "effective_rule": "per cell (corrected form only where the oracle fails the sealed form in that world)"}
+            "params_base_sha256": SP.sha256_of(a.params), "spec_v3_sha256": BM.SPEC_V3_SHA, "warm_archive": getattr(a, "warm_archive", None),
+            "effective_rule": "VALIDITY_SPEC per world (hold oracle + O* controls, vacuous passes do not validate, W8 switch v3 on a replayed destructive-close conflict)"}
     (out / "RUN_META.json").write_text(json.dumps(meta, indent=1, default=list))
     log = lambda m: (print(m, flush=True), open(out / "PROGRESS.log", "a").write(m + "\n"))  # noqa: E731
     t0 = time.time()
     pool = Pool(sub, a.jobs, a.fold, a.admitted, a.csv_dir, a.contract)
     log(json.dumps({"pool_ready_sec": time.time() - t0, "defects": {k: v for x in pool.ready for k, v in x["defects"].items() if v}}))
-    res = run_search(pool, base, out, a.population, a.generations, SEED, log)
+    init = warm_population(Path(a.warm_archive), base, a.population) if getattr(a, "warm_archive", None) else None
+    res = run_search(pool, base, out, a.population, a.generations, SEED, log, init=init)
     pool.close()
     (out / "RESULT.json").write_text(json.dumps({"best": res["best"], "population": res["population"], "best_params": {k: v for k, v in zip(GENOME, res["best"]["x"])},
                                                  "wall_sec": time.time() - t0}, indent=1, default=float))
@@ -355,6 +381,12 @@ def cmd_best(a):
             continue
         seen.add(key)
         feas.append(r)
+    if not feas and getattr(a, "allow_infeasible", False):             # the DEAP point is re-verified on the full matrix whatever it picks (coordinator 2026-10-27)
+        for r in sorted(recs, key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"])):
+            key = json.dumps(r["params"], sort_keys=True)
+            if key not in seen:
+                seen.add(key)
+                feas.append(r)
     if a.k >= len(feas):
         print(json.dumps({"no_feasible_point_at_rank": a.k, "feasible_points": len(feas)}))
         raise SystemExit(3)
@@ -365,7 +397,7 @@ def cmd_best(a):
         doc[k] = doc[src]
     SP.validate(doc)
     Path(a.out).write_text(json.dumps(doc, indent=1))
-    print(json.dumps({"rank": a.k, "fitness_sharpe": r["fitness_sharpe"], "generation": r["generation"], "out": a.out, "sha256": SP.sha256_of(a.out)}))
+    print(json.dumps({"rank": a.k, "fitness_sharpe": r["fitness_sharpe"], "n_failing_witnesses": r["n_failing_witnesses"], "feasible": r["feasible"], "generation": r["generation"], "out": a.out, "sha256": SP.sha256_of(a.out)}))
 
 
 def main():
@@ -391,11 +423,13 @@ def main():
             r.add_argument("--population", type=int, default=POPULATION)
             r.add_argument("--generations", type=int, default=GENERATIONS)
             r.add_argument("--out", required=True)
+            r.add_argument("--warm-archive", default=None, help="an earlier run's ARCHIVE.jsonl: generation 0 = its top points re-scored under the current rule")
     b = sub.add_parser("best")
     b.add_argument("--archive", required=True)
     b.add_argument("--params", default=str(ROOT / "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"))
     b.add_argument("--k", type=int, default=0)
     b.add_argument("--out", required=True)
+    b.add_argument("--allow-infeasible", action="store_true", help="when no point is feasible, rank every point by (failing witnesses, -Sharpe)")
     a = ap.parse_args()
     {"subset": cmd_subset, "measure": cmd_measure, "run": cmd_run, "best": cmd_best}[a.cmd](a)
 
