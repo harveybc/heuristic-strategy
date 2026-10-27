@@ -108,3 +108,83 @@ def test_canonical_genes_come_from_the_parameter_file():
     from app.short_horizon.expert_guided import strategy_params as SP
     g = SP.genes_c3(SP.default_doc())
     assert g["open_rate"] == pytest.approx(0.251) and g["allow_reverse"] == 1.0 and g["nop_veto"] == 0.5 and g["close_p_l"] == 0.5
+
+
+def test_intensity_generators_vary_trend_and_volatility_independently():
+    """Owner 2026-10-27: per-leg trend strengths and volatility changes of declared ratio / slope at their own bar."""
+    idx = _idx(8000)
+    sd = 7e-4
+    blk = (1000, 7000)
+    drift = {}
+    for s1, s2 in (("weak", "strong"), ("strong", "weak")):
+        segs = []
+        for seed in range(10):                                         # one path's leg mean has SE ~ 1.3e-5 (AR(1) drift + noise): average 10 seeds
+            bars, meta = H.synthetic_path_v2(idx, sd, ("trend_up", "trend_up"), "low", "medium", 21 + seed, blk, [0.5], strengths=[s1, s2])
+            r = np.diff(np.log(bars["CLOSE"].to_numpy()))
+            segs.append((r[1500:4000].mean(), r[4500:7000].mean()))
+            assert meta["strengths"] == [s1, s2]
+        drift[(s1, s2)] = tuple(np.mean(segs, axis=0))
+    assert drift[("weak", "strong")][1] > drift[("weak", "strong")][0] and drift[("strong", "weak")][0] > drift[("strong", "weak")][1]
+    for vk, up in (("vstep_up_3", True), ("vstep_down_1.5", False), ("vramp_up_steep", True), ("vramp_down_gentle", False)):
+        bars, meta = H.synthetic_path_v2(idx, sd, ("range",), vk, "medium", 9, blk, None, vol_frac=0.3)
+        assert meta["vol_change_bar"] == 1000 + int(0.3 * 6000)
+        r = np.diff(np.log(bars["CLOSE"].to_numpy()))
+        cb = meta["vol_change_bar"]
+        ratio = r[cb + 400:7000].std() / r[1000:cb - 50].std()
+        assert (ratio > 1.15) == up and (ratio < 0.87) == (not up), (vk, ratio)
+    b3, _ = H.synthetic_path_v2(idx, sd, ("range",), "vstep_up_3", "medium", 9, blk, None, vol_frac=0.5)
+    b15, _ = H.synthetic_path_v2(idx, sd, ("range",), "vstep_up_1.5", "medium", 9, blk, None, vol_frac=0.5)
+    rr = lambda b: np.diff(np.log(b["CLOSE"].to_numpy()))  # noqa: E731
+    assert rr(b3)[4400:7000].std() / rr(b3)[1000:3950].std() > rr(b15)[4400:7000].std() / rr(b15)[1000:3950].std()   # intensity is graded
+    bt, mt = H.synthetic_path_v2(idx, sd, ("trend_up", "trend_down"), "vstep_up_2", "medium", 9, blk, [0.7], vol_frac=0.3)
+    assert mt["switch_bars"] == [1000 + int(0.7 * 6000)] and mt["vol_change_bar"] == 1000 + int(0.3 * 6000)   # independent in time
+    bs, _ = H.synthetic_path_v2(idx, sd, ("trend_up",), "low", "medium", 4, blk)
+    bs2, _ = H.synthetic_path_v2(idx, sd, ("trend_up",), "low", "medium", 4, blk, strengths=None)
+    assert np.allclose(bs["CLOSE"].to_numpy(), bs2["CLOSE"].to_numpy())                                        # sealed-block paths unchanged
+
+
+def test_intensity_block_cells_cover_every_declared_combination():
+    cells = BM.build_intensity_block()
+    base = [c for c in cells if not c["mirror"] and not c.get("sym_of")]
+    assert len(cells) == 3 * len(base) and len({c["id"] for c in cells}) == len(cells)
+    i1 = [c for c in base if c["level"] == "I1_trend_change_intensity"]
+    tt = [c for c in i1 if c["intensity"]["kind"] == "trend_change"]
+    assert len(tt) == (4 * 9 - 2 * 3) * 3                                                                     # 4 ordered trend pairs x 3 x 3 strengths (no-change excluded) x 3 switches
+    assert {(c["intensity"]["from"], c["intensity"]["to"]) for c in tt} == {(a, b) for a in BM.STRENGTHS for b in BM.STRENGTHS}
+    assert len([c for c in i1 if c["intensity"]["kind"] == "trend_range"]) == 2 * 3 * 2 * 3
+    i2 = [c for c in base if c["level"] == "I2_vol_change_intensity"]
+    i3 = [c for c in base if c["level"] == "I3_vol_x_trend_change"]
+    assert len(i2) == 10 * 3 and len(i3) == 10 * 2 * 3
+    assert {c["intensity"]["timing"] for c in i3} == {"vol_first", "trend_first", "same_bar"}
+    assert all(c["intensity"]["vol_at"] != c["intensity"]["trend_at"] for c in i3 if c["intensity"]["timing"] != "same_bar")
+    assert len([c for c in base if c["level"] == "I4_garch_x_trend_change"]) == 6
+    for c in base:
+        assert c["expected"] and c["forbidden"] and c["quality"] == 1.0
+
+
+def test_multiscale_world_components_are_planted_and_the_ladder_reads_them():
+    """Multi-horizon worlds: independent components with their own turning points; the ladder pivots and the ideal
+    hierarchy heads exist for every bar; the mirror flips the coarse direction; the multi-horizon block is complete."""
+    from app.short_horizon.expert_guided import strategy_zz as ZZ
+    idx = _idx(6000)
+    sd = 7e-4
+    spec = {"long": {"legs": ["trend_up", "trend_down"], "strengths": ["strong", "strong"], "switch_fracs": [0.5]},
+            "medium": {"amp": "mid", "align": "with", "leg_bars": [48, 144]}, "short": {"fine": "medium", "bursts": 2, "burst_mult": 3.0, "burst_bars": [6, 12], "burst_at_switch": True, "jumps": []},
+            "vol": {"horizon": "both", "slow_ratio": 2.0, "slow_mean_bars": 360, "fast_persistence": 0.97}}
+    bars, meta = H.synthetic_path_ms(idx, sd, spec, 5, (1000, 5000))
+    assert meta["switch_bars"] == [3000] and meta["burst_windows"][0][0] == 3000
+    assert len(meta["turning_points"]["medium"]) > 20 and len(meta["turning_points"]["short"]) > 200
+    sigma = pd.Series(np.diff(np.r_[bars["CLOSE"].iloc[0], bars["CLOSE"].to_numpy()]) ** 2).rolling(24).sum().pow(0.5).rolling(480, min_periods=120).mean().shift(1).to_numpy()
+    q = ZZ.ladder_quantities(bars, sigma)
+    assert q["room"].shape == (6000, 2) and set(q["pivots"]) == set(ZZ.DEFAULT_LEVELS)
+    mb, _ = H.synthetic_path_ms(idx, sd, spec, 5, (1000, 5000), mirror=True)
+    qm = ZZ.ladder_quantities(mb, sigma)
+    both = (q["direction"] != 0) & (qm["direction"] != 0)
+    assert np.mean(q["direction"][both] == -qm["direction"][both]) > 0.99
+    pm = H.pivot_matching(q["pivots"], meta["turning_points"], (1000, 5000))
+    assert set(pm["capture"]) == {"long", "medium", "short"}
+    cells = BM.build_multihorizon_block()
+    base = [c for c in cells if not c["mirror"] and not c.get("sym_of")]
+    assert len(cells) == 3 * len(base) and all(c["ms"] for c in base)
+    assert {c["intensity"]["active"] for c in base if c["level"] == "H1_active_horizons"} == {"long", "medium", "short", "long+medium", "long+short", "medium+short", "long+medium+short"}
+    assert all(any("NO NEW OPENS" in e for e in c["expected"]) and any("EARLY CLOSE" in e for e in c["expected"]) and any("OPENS" in e for e in c["expected"]) for c in base)

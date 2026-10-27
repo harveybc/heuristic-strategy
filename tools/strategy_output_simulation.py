@@ -127,7 +127,7 @@ class Noise:
     @staticmethod
     def _swap(key):
         k = tuple(key)
-        if k and k[0] in ("open", "net") and len(k) >= 3:
+        if k and k[0] in ("open", "net", "mae") and len(k) >= 3:
             return k[:2] + (1 - int(k[2]),) + k[3:]
         if k and k[0] == "close" and len(k) >= 2:
             inner = k[1:]
@@ -168,6 +168,7 @@ class Truth:
     lo: np.ndarray
     xvis: dict                  # exploration visits per block: row, bar, side, remaining, sl_first, key (hold-value truth)
     stamp: dict
+    mae: np.ndarray | None = None   # (n, 2, cells) engine maximum adverse excursion in sigma (NaN unknown); the MAE head's truth
 
 
 def load_fold(fold: str, admitted: str, csv_dir: str):
@@ -217,6 +218,7 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
     cap, lo = C3.cap_arrays(cx, SCFG)
     hit3 = et["hit"][:, :, ref].astype(np.int64)
     net = et["net_sigma"].astype(float)
+    mae_t = et["mae"].astype(float) if "mae" in et else None
     # reality-based NOP: no allowed cell on either side has a true net above the cost (A2-8: open only with positive EV)
     nop = np.ones(n, np.int64)
     for r in (rows if rows_sel is None else rows_sel):
@@ -245,7 +247,7 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
                    "censored": xt["censored"], "exit_bar": xt["exit_bar"]}
     return Truth(fold, [list(c) for c in cells], ref, rows, np.asarray(cx.ds.period), day, hit3, net, nop, e_time, cost, cap, lo, xvis,
                  {"entry_table": et["stamp"], "refused": {k: int(v_) for k, v_ in et["refused"].items()}, "explore_seed": explore_seed,
-                  "exploration_prior": list(EXPLORATION_PRIOR)})
+                  "exploration_prior": list(EXPLORATION_PRIOR)}, mae=mae_t)
 
 
 def save_truth(path: Path, t: Truth):
@@ -369,6 +371,8 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
     if len(dec_rows):
         dec[dec_rows[len(dec_rows) // 2:]] = True
     t = {"net": np.full((n, 2, nc), np.nan), "p3": np.full((n, 2, 3), np.nan), "pn": np.full(n, np.nan), "cap": truth.cap, "lo": truth.lo}
+    if truth.mae is not None:
+        t["mae"] = np.full((n, 2, nc), np.nan)
     lat = {"tp": np.full((n, 2), np.nan), "sl": np.full((n, 2), np.nan), "nop": np.full(n, np.nan)}
     sd_net = float(np.nanstd(truth.net[cal])) if np.isfinite(truth.net[cal]).any() else 1.0
     mu_net = float(np.nanmean(truth.net[cal])) if np.isfinite(truth.net[cal]).any() else 0.0   # the calibration-block naive (the regression's shrinkage target)
@@ -397,6 +401,14 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
                 t["net"][r, si, :] = mu_net + (qn ** 2) * (r_noisy - mu_net)
             else:
                 t["net"][r, si, :] = -1.0                       # no eligible entry at this row: the strategy must not open here
+            if truth.mae is not None:
+                xm = truth.mae[r, si]
+                if np.all(np.isfinite(xm)):
+                    em = noise.draw(("mae", int(r), si), day, nc)
+                    sdm = float(np.nanstd(truth.mae[cal])) if np.isfinite(truth.mae[cal]).any() else 1.0
+                    mum = float(np.nanmean(truth.mae[cal])) if np.isfinite(truth.mae[cal]).any() else 0.0
+                    rn = xm + sigma_for_rho(qn, sdm) * em
+                    t["mae"][r, si, :] = np.maximum(0.0, mum + (qn ** 2) * (rn - mum))
         e = noise.draw(("nop", int(r)), day, 1)
         lat["nop"][r] = beta_for_auc(qnp) * (1.0 if truth.nop[r] else -1.0) + e[0]
     # calibration on the calibration block only (Platt per binary latent), then the 3-class probabilities

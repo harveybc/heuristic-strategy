@@ -117,6 +117,22 @@ def vol_multiplier(n: int, vol: str, block: tuple, switch_frac: float = 0.5) -> 
     position inside the block, or a ramp across the block; the GARCH kinds carry their clustering in the innovation."""
     a, b = int(block[0]), int(block[1])
     m = np.ones(n)
+    if vol.startswith("vstep_"):                                   # intensity block: step of a declared ratio at its OWN change bar
+        _, dirn, r = vol.split("_")
+        r = float(r)
+        sw = a + int(switch_frac * (b - a))
+        m[:sw], m[sw:] = (1.0, r) if dirn == "up" else (r, 1.0)
+        return m
+    if vol.startswith("vramp_"):                                   # intensity block: ramp x2 over 60 % (gentle) or 5 % (steep) of the block
+        _, dirn, slope = vol.split("_")
+        span = int((0.60 if slope == "gentle" else 0.05) * (b - a))
+        sw = a + int(switch_frac * (b - a))
+        e = min(sw + max(span, 1), n)
+        lo_, hi_ = (1.0, 2.0) if dirn == "up" else (2.0, 1.0)
+        m[:sw] = lo_
+        m[sw:e] = np.linspace(lo_, hi_, e - sw)
+        m[e:] = hi_
+        return m
     if vol in VOL:
         m[:] = VOL[vol]
     elif vol in ("step_lh", "step_hl"):
@@ -135,7 +151,8 @@ TREND_STRENGTH = {"weak": 0.5, "medium": 1.0, "strong": 2.0}     # multiples of 
 
 
 def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, seed: int, block: tuple, switch_fracs=None,
-                      persistence: float | None = None, start: float = 1.10, mirror: bool = False, strength: str = "medium", jump: dict | None = None):
+                      persistence: float | None = None, start: float = 1.10, mirror: bool = False, strength: str = "medium", jump: dict | None = None,
+                      strengths: list | None = None, vol_frac: float | None = None):
     """Multi-leg hourly OHLC on the real calendar: coarse legs (regimes) switching at ``switch_fracs`` of the scoring
     block (the first leg runs from the start of the index, the last to its end), a volatility process (constant level,
     step, ramp, GARCH clustering with the given persistence), the L2 fine oscillation, and optionally the exact log
@@ -149,13 +166,16 @@ def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, s
     switches = [a + int(float(f) * (b - a)) for f in switch_fracs]
     bounds = [0] + switches + [n]
     regime_at = np.empty(n, object)
+    strength_at = np.empty(n, object)
     for i, reg in enumerate(legs):
         regime_at[bounds[i]:bounds[i + 1]] = reg
+        strength_at[bounds[i]:bounds[i + 1]] = (strengths[i] if strengths else strength)
     pers = persistence if persistence is not None else {"garch09": 0.90, "garch097": 0.97}.get(vol, 0.92)
     alpha = 0.08
     beta = max(0.0, pers - alpha)
     omega = max(1e-6, 1.0 - alpha - beta)
-    mult = vol_multiplier(n, vol, block, switch_fracs[0] if switch_fracs else 0.5)
+    vfrac = float(vol_frac) if vol_frac is not None else (switch_fracs[0] if switch_fracs else 0.5)
+    mult = vol_multiplier(n, vol, block, vfrac)
     amp, dens = L2[fine]
     h = np.ones(n)
     eps = np.zeros(n)
@@ -168,7 +188,7 @@ def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, s
     d = 0.0
     zn = rng.standard_normal(n)
     for t in range(n):
-        k = L1[regime_at[t]] * TREND_STRENGTH[strength]
+        k = L1[regime_at[t]] * TREND_STRENGTH[strength_at[t]]
         d = 0.98 * d + 0.02 * (k * TREND_DRIFT_SD * base_sd) + 0.02 * base_sd * zn[t]
         drift[t] = d
     logp = np.log(start) + np.cumsum(drift + eps)
@@ -204,8 +224,192 @@ def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, s
     if mirror:
         bars = mirror_bars(bars)
     meta = {"switch_bars": [int(x) for x in switches], "switch_fracs": [float(f) for f in switch_fracs], "legs": list(legs), "vol": vol,
-            "persistence": float(pers), "block": [a, b], "mirror": bool(mirror), "strength": strength, "jump_bar": jump_bar, "jump": jump}
+            "persistence": float(pers), "block": [a, b], "mirror": bool(mirror), "strength": strength, "jump_bar": jump_bar, "jump": jump,
+            "strengths": list(strengths) if strengths else [strength] * len(legs),
+            "vol_change_bar": (a + int(vfrac * (b - a))) if (vol.startswith(("vstep_", "vramp_")) or vol in ("step_lh", "step_hl", "ramp_up", "ramp_down")) else None}
     return bars, meta
+
+
+MS_MED_AMP = {"low": 0.05, "mid": 0.10, "high": 0.20}      # medium swing slope in hourly-sd units per bar
+MS_SHORT_FINE = {"low": (1.5, 0.5), "medium": (2.5, 1.0), "high": (4.0, 2.0)}
+MS_VOL = ("none", "slow", "fast", "both")
+
+
+def synthetic_path_ms(index, base_sd: float, spec: dict, seed: int, block: tuple, mirror: bool = False, start: float = 1.10):
+    """A MULTI-SCALE world as a sum of independent components, each with its own horizon, intensity and timing
+    (owner 2026-10-27). ``spec``:
+      long   {"legs": [...], "strengths": [...], "switch_fracs": [...]} or None   weeks-months (the AR(1) trend drift)
+      medium {"amp": low|mid|high, "align": with|against|neutral, "leg_bars": [lo, hi]} or None   days: alternating
+             swings; 'with' = swings in the long leg's direction last 1.5x longer, 'against' = counter-swings do
+      short  {"fine": low|medium|high, "bursts": n, "burst_mult": x, "burst_bars": [lo, hi], "burst_at_switch": bool,
+             "jumps": [{"sigma", "frac", "against_medium"}]} or None   hours: fine pivots, volatility bursts, gaps
+      vol    {"horizon": none|slow|fast|both, "slow_ratio": r, "slow_mean_bars": m, "fast_persistence": p}
+    Each component draws from its own random stream (independent timing). Returns (bars, meta) with every planted
+    turning point per component (long switches, medium swing ends, short oscillation extrema), burst windows and
+    jump bars: the truth the ladder-to-horizon mapping is scored against."""
+    root = np.random.SeedSequence(int(seed))
+    r_long, r_med, r_short, r_vol, r_eps = (np.random.default_rng(x) for x in root.spawn(5))
+    n = len(index)
+    a, b = int(block[0]), int(block[1])
+    sd = base_sd
+    # --- volatility process (own horizon)
+    vs = spec.get("vol") or {"horizon": "none"}
+    hz = vs.get("horizon", "none")
+    mult = np.ones(n)
+    slow_switches = []
+    if hz in ("slow", "both"):
+        state, t = 0, 0
+        mean_bars = float(vs.get("slow_mean_bars", 360))
+        while t < n:
+            dur = int(max(24, r_vol.exponential(mean_bars)))
+            mult[t:t + dur] = float(vs.get("slow_ratio", 2.0)) if state else 1.0
+            t += dur
+            state = 1 - state
+            if t < n:
+                slow_switches.append(int(t))
+    pers = float(vs.get("fast_persistence", 0.97)) if hz in ("fast", "both") else 0.50
+    alpha = 0.08 if hz in ("fast", "both") else 0.05
+    beta = max(0.0, pers - alpha)
+    omega = max(1e-6, 1.0 - alpha - beta)
+    # --- short bursts (multiply the volatility inside short windows)
+    sh = spec.get("short")
+    burst_windows = []
+    if sh and int(sh.get("bursts", 0)) > 0:
+        lo_b, hi_b = sh.get("burst_bars", [6, 12])
+        lw = spec.get("long") or {}
+        sw_bars = [a + int(f * (b - a)) for f in (lw.get("switch_fracs") or [])]
+        for k in range(int(sh["bursts"])):
+            if sh.get("burst_at_switch") and k < len(sw_bars):
+                t0 = sw_bars[k]
+            else:
+                t0 = int(r_short.integers(a, max(a + 1, b - 24)))
+            dur = int(r_short.integers(int(lo_b), int(hi_b) + 1))
+            mult[t0:t0 + dur] *= float(sh.get("burst_mult", 3.0))
+            burst_windows.append([int(t0), int(t0 + dur)])
+    h = np.ones(n)
+    eps = np.zeros(n)
+    z = r_eps.standard_normal(n)
+    for t in range(1, n):
+        prev = eps[t - 1] / (sd * mult[t - 1])
+        h[t] = omega + alpha * prev * prev + beta * h[t - 1]
+        eps[t] = sd * mult[t] * math.sqrt(h[t]) * z[t]
+    # --- long component
+    lw = spec.get("long")
+    regime_at = np.full(n, "range", object)
+    strength_at = np.full(n, "medium", object)
+    long_switches = []
+    drift = np.zeros(n)
+    if lw:
+        legs = list(lw["legs"])
+        fr = list(lw.get("switch_fracs") or [(i + 1) / len(legs) for i in range(len(legs) - 1)])
+        long_switches = [a + int(f * (b - a)) for f in fr]
+        bounds = [0] + long_switches + [n]
+        stl = list(lw.get("strengths") or ["medium"] * len(legs))
+        for i, reg in enumerate(legs):
+            regime_at[bounds[i]:bounds[i + 1]] = reg
+            strength_at[bounds[i]:bounds[i + 1]] = stl[i]
+        d = 0.0
+        zn = r_long.standard_normal(n)
+        for t in range(n):
+            k = L1[regime_at[t]] * TREND_STRENGTH[strength_at[t]]
+            d = 0.98 * d + 0.02 * (k * TREND_DRIFT_SD * sd) + 0.02 * sd * zn[t]
+            drift[t] = d
+    logp = np.log(start) + np.cumsum(drift + eps)
+    if lw:
+        anchor = None
+        for t in range(1, n):
+            if regime_at[t] == "range":
+                if anchor is None or regime_at[t - 1] != "range":
+                    anchor = logp[t - 1]
+                logp[t] = logp[t] - 0.03 * (logp[t - 1] - anchor)
+            else:
+                anchor = None
+    # --- medium swings (days)
+    md = spec.get("medium")
+    med = np.zeros(n)
+    med_ends, med_dir = [], np.zeros(n)
+    if md:
+        slope = MS_MED_AMP[md.get("amp", "mid")] * sd
+        lo_m, hi_m = md.get("leg_bars", [48, 144])
+        t, sgn, level = 0, (1.0 if r_med.random() < 0.5 else -1.0), 0.0
+        while t < n:
+            L = int(r_med.integers(int(lo_m), int(hi_m) + 1))
+            longdir = L1[regime_at[min(t, n - 1)]]
+            if md.get("align", "neutral") == "with" and longdir != 0 and sgn == longdir:
+                L = int(L * 1.5)
+            if md.get("align", "neutral") == "against" and longdir != 0 and sgn == -longdir:
+                L = int(L * 1.5)
+            e = min(t + L, n)
+            med[t:e] = level + sgn * slope * np.arange(1, e - t + 1)
+            med_dir[t:e] = sgn
+            level = med[e - 1]
+            if e < n:
+                med_ends.append(int(e))
+            t, sgn = e, -sgn
+        logp = logp + med
+    # --- short oscillation and jumps (hours)
+    short_ext = []
+    jump_bars = []
+    if sh:
+        amp, dens = MS_SHORT_FINE[sh.get("fine", "medium")]
+        t = 0
+        osc = np.zeros(n)
+        while t < n:
+            per = int(max(4, r_short.integers(6, 19) / dens))
+            seg = min(per, n - t)
+            a_ = amp * sd * float(np.mean(mult[t:t + seg])) * r_short.uniform(0.8, 1.2)
+            osc[t:t + seg] = a_ * np.sin(2 * np.pi * np.arange(seg) / per)
+            for q in (per // 4, (3 * per) // 4):
+                if q < seg:
+                    short_ext.append(int(t + q))
+            t += seg
+        logp = logp + osc
+        for jp in sh.get("jumps") or []:
+            jb = a + int(float(jp.get("frac", 0.5)) * (b - a))
+            ref = med_dir[jb] if md else (L1[regime_at[jb]] or 1.0)
+            sign = -ref if jp.get("against_medium") else ref
+            logp[jb:] += sign * float(jp["sigma"]) * sd * float(mult[jb]) * math.sqrt(24.0)
+            jump_bars.append(int(jb))
+    c = np.exp(logp)
+    intr = np.abs(r_eps.standard_normal(n)) * sd * mult * 0.6
+    o = np.r_[c[0], c[:-1]]
+    hi = np.maximum(o, c) * (1 + intr)
+    lo = np.minimum(o, c) * (1 - intr)
+    bars = pd.DataFrame({"OPEN": o, "HIGH": hi, "LOW": lo, "CLOSE": c}, index=index)
+    if mirror:
+        bars = mirror_bars(bars)
+    meta = {"kind": "multi_scale", "block": [a, b], "mirror": bool(mirror), "spec": spec, "switch_bars": long_switches,
+            "legs": list(lw["legs"]) if lw else ["range"], "strengths": list(lw.get("strengths") or []) if lw else [],
+            "turning_points": {"long": long_switches, "medium": med_ends, "short": short_ext}, "burst_windows": burst_windows,
+            "jump_bars": jump_bars, "vol_slow_switches": slow_switches, "jump_bar": (jump_bars[0] if jump_bars else None),
+            "jump": ((sh.get("jumps") or [None])[0] if sh else None), "vol_change_bar": None}
+    return bars, meta
+
+
+def pivot_matching(pivots_by_level: dict, turning_points: dict, block: tuple, tol=None) -> dict:
+    """Per ladder level and planted component: recall (share of the component's true turning points inside the block
+    with a level pivot within the tolerance), precision (share of the level's pivots near a point of that component)
+    and F1; the level that captures each component = argmax F1."""
+    tol = tol or {"long": 72, "medium": 12, "short": 2}
+    a, b = int(block[0]), int(block[1])
+    out, capture = {}, {}
+    for lvl, piv in pivots_by_level.items():
+        pb = np.array([int(p[0]) for p in piv if a <= int(p[0]) < b], np.int64)
+        out[lvl] = {}
+        for comp, pts in turning_points.items():
+            tp = np.array([x for x in pts if a <= x < b], np.int64)
+            if not len(tp) or not len(pb):
+                out[lvl][comp] = {"recall": float("nan") if not len(tp) else 0.0, "precision": 0.0 if len(tp) else float("nan"), "f1": float("nan") if not len(tp) else 0.0, "n_true": int(len(tp)), "n_pivots": int(len(pb))}
+                continue
+            t_ = int(tol.get(comp, 6))
+            rec = float(np.mean([np.any(np.abs(pb - x) <= t_) for x in tp]))
+            prec = float(np.mean([np.any(np.abs(tp - y) <= t_) for y in pb]))
+            f1 = 2 * rec * prec / (rec + prec) if rec + prec > 0 else 0.0
+            out[lvl][comp] = {"recall": rec, "precision": prec, "f1": f1, "n_true": int(len(tp)), "n_pivots": int(len(pb))}
+    for comp in turning_points:
+        best = max(((lvl, out[lvl][comp]["f1"]) for lvl in out if np.isfinite(out[lvl][comp]["f1"])), key=lambda x: x[1], default=(None, float("nan")))
+        capture[comp] = {"level": best[0], "f1": best[1]}
+    return {"per_level": out, "capture": capture, "tolerance_bars": tol}
 
 
 def mirror_bars(bars: pd.DataFrame) -> pd.DataFrame:
@@ -385,14 +589,20 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
     r = np.diff(np.log(ds.bars["CLOSE"].to_numpy(float)))
     base_sd = float(np.nanstd(r))
     meta = None
-    if leaf.get("legs"):
+    if leaf.get("ms"):
+        import re as _re
+        import zlib
+        base_id = _re.sub(r"^(M_|S_)+", "", leaf["id"])
+        bars, meta = synthetic_path_ms(ds.bars.index, base_sd, leaf["ms"], zlib.crc32(base_id.encode()) & 0xFFFF, period_bars(ds, calendar_period), mirror=bool(leaf.get("mirror")))
+    elif leaf.get("legs"):
         import zlib
         import re as _re
         base_id = _re.sub(r"^(M_|S_)+", "", leaf["id"])                       # the twins share the base cell's generator seed: an EXACT mirror
         seed_v2 = zlib.crc32(base_id.encode()) & 0xFFFF
         block = period_bars(ds, calendar_period)
         bars, meta = synthetic_path_v2(ds.bars.index, base_sd, tuple(leaf["legs"]), leaf["vol"], leaf["fine"], seed_v2, block, leaf.get("switch_fracs") or None,
-                                       leaf.get("persistence"), mirror=bool(leaf.get("mirror")), strength=leaf.get("strength", "medium"), jump=leaf.get("jump"))
+                                       leaf.get("persistence"), mirror=bool(leaf.get("mirror")), strength=leaf.get("strength", "medium"), jump=leaf.get("jump"),
+                                       strengths=leaf.get("strengths"), vol_frac=leaf.get("vol_frac"))
     else:
         bars = synthetic_path(ds.bars.index, base_sd, leaf["regime"], leaf["vol"], leaf["fine"], seed)
     from tools.expert_guided_e1t import Ctx
@@ -424,8 +634,12 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
                           mirror_exploration=bool(leaf.get("mirror")))
     q = S.quality_for(leaf["variant"], float(leaf["quality"]))
     table, sim = S.simulate_table(cx2, S2, truth, q, seed, side_swap=bool(leaf.get("mirror")))
-    wit = transition_witness(bars, base_sd, meta) if meta is not None else leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"])
-    return {"cx": cx2, "scfg": S2, "truth": truth, "table": table, "sim": sim, "witness": wit, "period": calendar_period, "meta": meta}
+    if meta is not None and meta.get("kind") == "multi_scale":
+        wit = {"turning_points": {k: len(v) for k, v in meta["turning_points"].items()}, "burst_windows": len(meta["burst_windows"]), "jumps": len(meta["jump_bars"]),
+               "legs": transition_witness(bars, base_sd, {**meta, "vol": "ms"})["legs"] if meta["switch_bars"] or meta["legs"] else []}
+    else:
+        wit = transition_witness(bars, base_sd, meta) if meta is not None else leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"])
+    return {"cx": cx2, "scfg": S2, "truth": truth, "table": table, "sim": sim, "witness": wit, "period": calendar_period, "meta": meta, "bars": bars}
 
 
 def composite(c: dict, scales: dict) -> float:

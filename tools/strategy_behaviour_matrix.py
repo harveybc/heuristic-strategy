@@ -37,6 +37,7 @@ from app.short_horizon.expert_guided import action_contract as ACT  # noqa: E402
 from app.short_horizon.expert_guided import c2 as C2  # noqa: E402
 from app.short_horizon.expert_guided import c3 as C3  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
+from app.short_horizon.expert_guided import strategy_zz as ZZ  # noqa: E402
 from tools import strategy_hierarchy as H  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
 
@@ -68,7 +69,8 @@ WITNESS_SPEC = {
            "W4_early_close_justified_v2": "early closes on an SL-first detection (P(SL first) > close_p) or a negative remaining value: >= 0.95",
            "W5_reverse_v2": "reversals whose new side has truth net > 0: >= 0.90; static leg <= 1 per week",
            "W8_old_direction_after_lag_v2": "old-direction share after the lag <= max(0.40, truth old-direction opportunity + 0.10)",
-           "rule": "a v2 form is admitted only where the TRUTH ORACLE fails the sealed form (witness defect); otherwise the sealed form stands"},
+           "rule": "a v2 form is admitted only where the TRUTH ORACLE fails the sealed form (witness defect); otherwise the sealed form stands",
+           "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
 WITNESS_CHANGELOG = [
     {"when": "2026-10-27T00:40Z (before the seal)", "witness": "W2 / W7 instrumentation", "defect": "the decision row was looked up one bar off the fill bar; truth lookups returned nothing (W2 / W7 read 0.0 while every trade hit TP)",
@@ -87,10 +89,12 @@ WITNESS_CHANGELOG = [
     {"when": "2026-10-27T01:50Z (after the seal; NOT admitted: the oracle passes the sealed form)", "witness": "W4_early_close_justified (v2 = SL-first detection or negative remaining)",
      "defect": "proposed after 49 strategy closes with positive remaining; those closes were the close_p quantile defect of the STRATEGY (fixed); the oracle passes the sealed form", "evidence": "oracle: 8-11 early closes per twin, all with remaining <= 0", "effect": "the sealed form stands; v2 is computed and reported but never admitted"},
 ]
+BURST_DETECTION_LAG = 3             # bars the causal burst gate needs (realized vol over 6 bars > 2 sigma at a x3 burst after ~2-3 bars)
 THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_positive_open_min": 0.90, "wrong_side_max": 0.10,
           "best_cell_min": 0.70, "nop_open_max": 0.05, "sl_exit_max": 0.10, "early_close_justified_min": 0.80, "reverse_in_switch_window_min": 0.50,
           "reverse_per_week_static_max": 1.0, "old_direction_after_lag_max": 0.40, "new_leg_side_min": 0.60, "mirror_net_rel_tol": 0.02,
-          "activity_per_week_min": 1.0, "gap_loss_extra_sigma_max": 0.5}
+          "activity_per_week_min": 1.0, "gap_loss_extra_sigma_max": 0.5,
+          "high_risk_open_max": 0.05}
 
 
 # ----------------------------------------------------------------------------- the matrix definition
@@ -130,8 +134,8 @@ def _cell(cid: str, level: str, cfg: dict, family: str = "c3") -> dict:
         expected.append("no entry inside the Friday cutoff window (engine refusal honoured)")
     if cfg.get("exec", {}).get("missing_runs"):
         expected.append("no decision on an unobservable row (HOLD)")
-    if cfg["vol"] in ("step_lh", "step_hl", "ramp_up", "ramp_down"):
-        expected.append("TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)")
+    if cfg["vol"] in ("step_lh", "step_hl", "ramp_up", "ramp_down") or str(cfg["vol"]).startswith(("vstep_", "vramp_")):
+        expected.append("TP/SL price distances track sigma (after / before the volatility change follows the vol ratio)")
     return {"id": cid, "level": level, "family": family, "legs": list(legs), "strength": cfg.get("strength", "medium"), "switch_fracs": list(cfg.get("switch_fracs") or []),
             "vol": cfg["vol"], "persistence": cfg.get("persistence"), "fine": cfg["fine"], "fine_amp": cfg.get("fine_amp"), "fine_dens": cfg.get("fine_dens"),
             "jump": cfg.get("jump"), "exec": dict(cfg.get("exec") or {}), "regime": coarse, "quality": 1.0, "variant": "base",
@@ -248,6 +252,191 @@ def build_matrix(n_lhs: int = 64, seed: int = 7, fine_full: bool = True) -> list
     return cells + [_sym(c) for c in cells] + [_mirror(c) for c in cells]
 
 
+# ----------------------------------------------------------------------------- the intensity block (owner 2026-10-27)
+STRENGTHS = ("weak", "medium", "strong")
+VSTEP_RATIOS = (1.5, 2.0, 3.0)
+RAMP_SLOPES = ("gentle", "steep")
+
+
+def build_intensity_block() -> list:
+    """Changes of SEVERAL INTENSITIES, varied independently for trend and for volatility (sealed as its own block):
+    I1 trend-change intensity: every ordered pair of trend directions (reversal and same-direction strength change) x
+       strength before x strength after (same-direction same-strength = no change, excluded) x switch early/middle/late;
+       trend <-> range with the trend strength x 3 x switch position;
+    I2 volatility-change intensity with the trend held constant: steps of ratio 1.5 / 2 / 3 up and down, ramps x2
+       gentle (60 % of the block) / steep (5 %) up and down, on trend up / down / range (medium);
+    I3 the same volatility changes crossed with a trend change at a DIFFERENT bar (vol at 0.3 and trend at 0.7, and
+       the reverse) and at the SAME bar (0.5), for up->down and down->up (medium);
+    I4 GARCH persistence 0.97 under trend changes (0.90 is the backbone's transition volatility; GARCH with the trend
+       held constant is the F2 factorial). Every cell is mirrored and has its zero-cost twin."""
+    cells = []
+
+    def add(cid, level, intensity, **cfg):
+        base = dict(BASELINE)
+        base.update(fine="medium", fine_amp=FINE_AMP["medium"], fine_dens=FINE_DENS["medium"])
+        base.update(cfg)
+        c = _cell(cid, level, base)
+        c["strengths"] = list(cfg.get("strengths") or [])
+        c["vol_frac"] = cfg.get("vol_frac")
+        c["intensity"] = intensity
+        cells.append(c)
+
+    pairs_tt = [("trend_up", "trend_down"), ("trend_down", "trend_up"), ("trend_up", "trend_up"), ("trend_down", "trend_down")]
+    for a_, b_ in pairs_tt:
+        for s1 in STRENGTHS:
+            for s2 in STRENGTHS:
+                if a_ == b_ and s1 == s2:
+                    continue
+                for pos, f in H.SWITCH_POS.items():
+                    add(f"I1_{a_[6:]}{s1}_{b_[6:]}{s2}_{pos}", "I1_trend_change_intensity",
+                        {"kind": "trend_change", "pair": f"{a_}->{b_}", "from": s1, "to": s2, "switch": pos},
+                        legs=[a_, b_], strengths=[s1, s2], switch_fracs=[f], vol="garch09")
+    for tr in ("trend_up", "trend_down"):
+        for st in STRENGTHS:
+            for order in ((tr, "range"), ("range", tr)):
+                for pos, f in H.SWITCH_POS.items():
+                    stl = [st, "medium"] if order[0] == tr else ["medium", st]
+                    add(f"I1_{'_'.join(x[6:] if x.startswith('trend_') else x for x in order)}_{st}_{pos}", "I1_trend_change_intensity",
+                        {"kind": "trend_range", "pair": f"{order[0]}->{order[1]}", "trend_strength": st, "switch": pos},
+                        legs=list(order), strengths=stl, switch_fracs=[f], vol="garch09")
+    vkinds = [f"vstep_{d}_{r:g}" for d in ("up", "down") for r in VSTEP_RATIOS] + [f"vramp_{d}_{sl}" for d in ("up", "down") for sl in RAMP_SLOPES]
+    for vk in vkinds:
+        for tr in ("trend_up", "trend_down", "range"):
+            add(f"I2_{vk}_{tr}", "I2_vol_change_intensity", {"kind": "vol_only", "vol": vk, "trend": tr, "vol_at": 0.5},
+                legs=[tr], strengths=["medium"], vol=vk, vol_frac=0.5)
+        for a_, b_ in (("trend_up", "trend_down"), ("trend_down", "trend_up")):
+            for vf, tf, timing in ((0.3, 0.7, "vol_first"), (0.7, 0.3, "trend_first"), (0.5, 0.5, "same_bar")):
+                add(f"I3_{vk}_{a_[6:]}_{b_[6:]}_{timing}", "I3_vol_x_trend_change",
+                    {"kind": "vol_x_trend", "vol": vk, "pair": f"{a_}->{b_}", "timing": timing, "vol_at": vf, "trend_at": tf},
+                    legs=[a_, b_], strengths=["medium", "medium"], switch_fracs=[tf], vol=vk, vol_frac=vf)
+    for a_, b_ in (("trend_up", "trend_down"), ("trend_down", "trend_up")):
+        for pos, f in H.SWITCH_POS.items():
+            add(f"I4_garch097_{a_[6:]}_{b_[6:]}_{pos}", "I4_garch_x_trend_change", {"kind": "garch_x_trend", "persistence": 0.97, "pair": f"{a_}->{b_}", "switch": pos},
+                legs=[a_, b_], strengths=["medium", "medium"], switch_fracs=[f], vol="garch097")
+    return cells + [_sym(c) for c in cells] + [_mirror(c) for c in cells]
+
+
+# ----------------------------------------------------------------------------- the multi-horizon block (owner 2026-10-27)
+def _ms_expected(ms: dict) -> tuple:
+    comps = [k for k in ("long", "medium", "short") if ms.get(k)]
+    lw, md, sh, vs = ms.get("long"), ms.get("medium"), ms.get("short"), ms.get("vol") or {}
+    exp, forb = [], []
+    exp.append("OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)")
+    exp.append("EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)")
+    exp.append("NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)")
+    if sh and int(sh.get("bursts", 0)) > 0:
+        exp.append(f"NO NEW OPENS inside the {sh['bursts']} volatility burst(s) after the detection lag (W17)")
+    if lw and len(lw["legs"]) > 1:
+        exp.append("after the long-horizon switch the old direction fades within the confirmation lag (W8); reversals truth-justified (W5)")
+    if md and lw:
+        exp.append(f"medium swings ({md.get('amp')}, {md.get('align')} the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move")
+    if sh and md:
+        exp.append("short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close")
+    if vs.get("horizon", "none") != "none":
+        exp.append(f"volatility horizon {vs.get('horizon')}: sizing and the per-bar cost gate follow sigma; no open inside bursts")
+    forb.append("an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag")
+    return exp, forb, comps
+
+
+def build_multihorizon_block(n_lhs: int = 32, seed: int = 11) -> list:
+    """Multi-scale worlds (sum of independent long / medium / short / volatility components, own horizon, intensity and
+    timing): H1 active horizons x volatility horizon (static long), H2 the same with a long reversal, H3 intensity per
+    horizon x alignment, H4 volatility bursts while the long trend reverses, H5 gaps with / against the medium swing,
+    H6 Latin hypercube over every knob. Every cell has its zero-cost twin and exact mirror."""
+    cells = []
+
+    def add(cid, level, ms):
+        lw = ms.get("long")
+        legs = list(lw["legs"]) if lw else ["range"]
+        base = dict(BASELINE)
+        base.update(legs=legs, strengths=list((lw or {}).get("strengths") or []), switch_fracs=list((lw or {}).get("switch_fracs") or []), vol="ms", fine="medium",
+                    fine_amp=None, fine_dens=None)
+        c = _cell(cid, level, base)
+        exp, forb, comps = _ms_expected(ms)
+        c["expected"] = exp + [x for x in c["expected"] if x.startswith(("after each", "side shares", "early-close rate", "REVERSE"))]
+        c["forbidden"] = forb + c["forbidden"]
+        c["ms"], c["intensity"] = ms, {"kind": "multi_horizon", "active": "+".join(comps) or "none", "vol": (ms.get("vol") or {}).get("horizon", "none")}
+        cells.append(c)
+
+    def comp(active, long_legs=("trend_down",), long_strengths=("medium",), sw=(), med_amp="mid", align="neutral", fine="medium", bursts=0, burst_mult=3.0,
+             at_switch=False, jumps=None, vol="none", slow_ratio=2.0, persistence=0.97):
+        ms = {}
+        if "long" in active:
+            ms["long"] = {"legs": list(long_legs), "strengths": list(long_strengths), "switch_fracs": list(sw)}
+        if "medium" in active:
+            ms["medium"] = {"amp": med_amp, "align": align, "leg_bars": [48, 144]}
+        if "short" in active:
+            ms["short"] = {"fine": fine, "bursts": int(bursts), "burst_mult": float(burst_mult), "burst_bars": [6, 12], "burst_at_switch": bool(at_switch), "jumps": jumps or []}
+        ms["vol"] = {"horizon": vol, "slow_ratio": float(slow_ratio), "slow_mean_bars": 360, "fast_persistence": float(persistence)}
+        return ms
+
+    subsets = [("long",), ("medium",), ("short",), ("long", "medium"), ("long", "short"), ("medium", "short"), ("long", "medium", "short")]
+    for sub in subsets:
+        for vh in H.MS_VOL:
+            add(f"H1_{'+'.join(sub)}_{vh}", "H1_active_horizons", comp(sub, vol=vh))
+    for sub in [x for x in subsets if "long" in x]:
+        for vh in H.MS_VOL:
+            add(f"H2_{'+'.join(sub)}_{vh}_reversal", "H2_active_horizons_long_reversal", comp(sub, long_legs=("trend_up", "trend_down"), long_strengths=("medium", "medium"), sw=(0.5,), vol=vh))
+    for st in STRENGTHS:
+        for amp in ("low", "mid", "high"):
+            for fine in ("low", "medium", "high"):
+                for al in ("with", "against"):
+                    add(f"H3_L{st}_M{amp}_S{fine}_{al}", "H3_intensity_per_horizon", comp(("long", "medium", "short"), long_strengths=(st,), med_amp=amp, align=al, fine=fine))
+    for al in ("with", "against"):
+        for bm in (3.0, 5.0):
+            for vh in ("none", "fast"):
+                add(f"H4_spike_at_reversal_{al}_x{bm:g}_{vh}", "H4_vol_spike_at_long_reversal",
+                    comp(("long", "medium", "short"), long_legs=("trend_up", "trend_down"), long_strengths=("medium", "medium"), sw=(0.5,), align=al, bursts=2, burst_mult=bm, at_switch=True, vol=vh))
+    for js in (2.0, 4.0):
+        for ag in (False, True):
+            for fr in (0.3, 0.7):
+                add(f"H5_gap{js:g}_{'against' if ag else 'with'}_medium_{fr:g}", "H5_gap_vs_medium_swing",
+                    comp(("long", "medium", "short"), jumps=[{"sigma": js, "frac": fr, "against_medium": ag}]))
+    knobs = {"act": (0.0, 1.0), "n_legs": (1.0, 3.999), "seq": (0.0, 1.0), "s1": (0.0, 1.0), "s2": (0.0, 1.0), "sw": (0.25, 0.75), "amp": (0.0, 1.0), "align": (0.0, 1.0),
+             "fine": (0.0, 1.0), "bursts": (0.0, 4.999), "bmult": (2.0, 5.0), "jump": (0.0, 4.5), "jag": (0.0, 1.0), "vol": (0.0, 1.0), "sratio": (1.5, 3.0), "pers": (0.90, 0.98)}
+    u = H.lhs(n_lhs, len(knobs), seed)
+    regs = list(H.L1)
+    for i in range(n_lhs):
+        x = {k: lo + (hi - lo) * u[i, j] for j, (k, (lo, hi)) in enumerate(knobs.items())}
+        sub = subsets[min(int(x["act"] * len(subsets)), len(subsets) - 1)]
+        rng = np.random.default_rng(int(x["seq"] * 1e6))
+        nl = int(x["n_legs"])
+        legs = [regs[int(rng.integers(0, 3))]]
+        while len(legs) < nl:
+            cnd = regs[int(rng.integers(0, 3))]
+            if cnd != legs[-1]:
+                legs.append(cnd)
+        stl = [STRENGTHS[min(int(x["s1" if k_ == 0 else "s2"] * 3), 2)] for k_ in range(nl)]
+        sw = sorted(float(np.clip(x["sw"] + 0.2 * (k_ - (nl - 2) / 2), 0.1, 0.9)) for k_ in range(nl - 1))
+        jumps = [{"sigma": round(float(x["jump"]), 2), "frac": 0.5, "against_medium": bool(x["jag"] > 0.5)}] if x["jump"] >= 1.0 else []
+        add(f"H6_LHS_{i:02d}", "H6_LHS", comp(sub, long_legs=legs, long_strengths=stl, sw=sw, med_amp=("low", "mid", "high")[min(int(x["amp"] * 3), 2)],
+                                                  align=("with", "against", "neutral")[min(int(x["align"] * 3), 2)], fine=("low", "medium", "high")[min(int(x["fine"] * 3), 2)],
+                                                  bursts=int(x["bursts"]), burst_mult=round(float(x["bmult"]), 2), jumps=jumps, vol=H.MS_VOL[min(int(x["vol"] * 4), 3)],
+                                                  slow_ratio=round(float(x["sratio"]), 2), persistence=round(float(x["pers"]), 3)))
+    return cells + [_sym(c) for c in cells] + [_mirror(c) for c in cells]
+
+
+def intensity_coverage(cells: list, rows: list) -> str:
+    """Every intensity combination present in the queue, with cells, runs and the effective verdict."""
+    by = {r["id"]: r for r in rows}
+    groups = {}
+    for c in cells:
+        it = c.get("intensity")
+        if not it or c.get("mirror") or c.get("sym_of"):
+            continue
+        key = tuple(sorted((k, str(v)) for k, v in it.items() if k not in ("switch", "vol_at", "trend_at") or it.get("kind") == "vol_x_trend"))
+        g = groups.setdefault(key, {"cells": 0, "run": 0, "eff_pass": 0, "ids": []})
+        g["cells"] += 1
+        fam = [by.get(x) for x in (c["id"], "S_" + c["id"], "M_" + c["id"])]
+        if all(f is not None and f["n_runs"] for f in fam):
+            g["run"] += 1
+            g["eff_pass"] += int(all(f["PASS_effective"] for f in fam))
+    lines = ["| combinación de intensidad | celdas | corridas (celda + gemela + espejo) | PASS efectivo |", "| --- | ---: | ---: | ---: |"]
+    for key, g in sorted(groups.items()):
+        lines.append(f"| {', '.join(f'{k}={v}' for k, v in key)} | {g['cells']} | {g['run']} | {g['eff_pass']} |")
+    return "\n".join(lines)
+
+
 # ----------------------------------------------------------------------------- the world of a cell
 def canonical_genes(family: str = "c3") -> dict:
     """The declared canonical gene point of the strategy under test: mid-quantile margins, reverse allowed, NOP veto
@@ -265,7 +454,7 @@ def cell_world(cx, SCFG, AC, cell: dict, seed: int) -> dict:
     if cell.get("legs_gen"):
         leaf["legs"] = list(cell["legs_gen"])
     key = f"cell_{cell.get('fine_amp')}_{cell.get('fine_dens')}"
-    if cell.get("fine_amp") is not None:
+    if cell.get("fine_amp") is not None and not cell.get("ms"):
         H.L2[key] = (float(cell["fine_amp"]), float(cell["fine_dens"]))
         leaf["fine"] = key
     elif leaf["fine"] not in H.L2:
@@ -337,6 +526,17 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     view = C2.restrict(table, np.flatnonzero(cx.obs_ok & np.isin(cx.ds.period, [CAL, BLOCK])))
     gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
     strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto" in genes)
+    # the IDEAL hierarchy heads (multi-resolution ZigZag ladder on the path, hindsight = perfect) and the causal burst flag
+    bars = world.get("bars") if world.get("bars") is not None else cx.ds.bars
+    q = ZZ.ladder_quantities(bars, cx.ds.sigma)
+    world["ladder"] = q
+    zz = ZZ.to_rows(q, cx.ds.row_bar)
+    keep = np.isfinite(view["pn"])
+    for k, v in zz.items():
+        view[k] = np.where(keep.reshape((-1,) + (1,) * (np.ndim(v) - 1)), v, np.nan) if np.ndim(v) else v
+    view["risk_burst"] = ZZ.burst_rows(bars, cx.ds.sigma, cx.ds.row_bar)
+    if "mae" in table:
+        view["mae"] = np.where(keep.reshape(-1, 1, 1), table["mae"], np.nan)
     return strat, view, cells
 
 
@@ -349,12 +549,24 @@ class PolicyOracle(PolicyC3Audit):
     flag or a negative true remaining value. No strategy, no calibration, no margins: the engine truth itself. A
     witness the oracle fails is a defective witness, never a strategy defect (owner rule 2026-10-27)."""
 
+    def close_now(self, r, si, bar, pos) -> bool:
+        rem, psl = self.t["closer"].value(r, bar, pos)
+        dec = bool(rem < 0.0)                                       # truth-optimal: close iff holding is worth less than closing now
+        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, dec, False, False))
+        return dec
+
     def open_decision(self, r, with_score: bool = False):
         cap, lo = self._cap(r)
         evs, cells_ = [], []
+        if self.t.get("truth_burst") is not None and self.t["truth_burst"][r]:
+            self.log.append((int(r), float("nan"), float("nan"), False, False, -1, False, -1, -1))
+            return None
         for si in (0, 1):
             net = np.asarray(self._v("net", r, si), float)
             ok = C3.allowed_cells(net, self.cells, 0.0, C3.RR_MARGIN_SIGMA, cap, lo)
+            if self.t.get("mae") is not None:
+                m = np.asarray(self.t["mae"][r, si], float)
+                ok &= np.where(np.isfinite(m), net >= ZZ.PARAMS["risk_reward_floor"] * m, True)
             if ok.any():
                 ci = int(np.argmax(np.where(ok, net, -np.inf)))
                 evs.append(float(net[ci])); cells_.append(ci)
@@ -404,14 +616,22 @@ def oracle_view(world: dict, view: dict) -> dict:
     ov["p3"] = np.where(keep.reshape(-1, 1, 1), p3, np.nan)
     ov["net"] = np.where(keep.reshape(-1, 1, 1), net, np.nan)
     ov["pn"] = np.where(keep, truth.nop.astype(float), np.nan)
+    if truth.mae is not None:
+        ov["mae"] = np.where(keep.reshape(-1, 1, 1), truth.mae, np.nan)
+    meta = world.get("meta") or {}
+    tb = np.zeros(n, bool)
+    rb = np.asarray(world["cx"].ds.row_bar)
+    for t0, t1 in meta.get("burst_windows") or []:
+        tb |= (rb >= t0 + BURST_DETECTION_LAG) & (rb < t1)
+    ov["truth_burst"] = tb
     return ov
 
 
 def rollout_cell(world: dict, strat, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
-    pol = PolicyC3Audit(view, strat, cells, truth.e_time, truth.cost)
+    pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost)
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
-    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat}
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat, "attr": getattr(pol, "attr", [])}
 
 
 # ----------------------------------------------------------------------------- the witnesses
@@ -513,7 +733,7 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                 prev = legs[i - 1]
                 dprev = 0 if prev == "trend_up" else 1 if prev == "trend_down" else None
                 tl2 = [t for t in tl if int(t["entry_bar_abs"]) >= lo_ + LAG]
-                if dprev is not None and tl2 and lr != "range":
+                if dprev is not None and tl2 and lr != "range" and dprev != d:   # only when the coarse direction changes
                     sh_old = float(np.mean([_side(t) == dprev for t in tl2]))
                     t_old = truth_side_opportunity(truth, cx, lo_ + LAG, hi_, bars=(lo_ + LAG, hi_))["share_short_better"]
                     t_old = t_old if dprev == 1 else 1 - t_old
@@ -645,12 +865,13 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         unobs = {int(r) for r in np.flatnonzero(~cx.obs_ok)}
         bad = sum(1 for r in opens_rows if r in unobs)
         out["W12_missing"] = {"value": bad, "threshold": 0, "pass": bool(bad == 0), "desc": "opens decided on unobservable rows"}
-    if cell["vol"] in ("step_lh", "step_hl", "ramp_up", "ramp_down"):
-        mid = a + (b - a) // 2
+    if cell["vol"] in ("step_lh", "step_hl", "ramp_up", "ramp_down") or cell["vol"].startswith(("vstep_", "vramp_")):
+        vcb = (world.get("meta") or {}).get("vol_change_bar")
+        mid = int(vcb) if (vcb is not None and cell["vol"].startswith(("vstep_", "vramp_"))) else a + (b - a) // 2
         d1 = [abs(float(t["take_profit"])) * float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) < mid]
         d2 = [abs(float(t["take_profit"])) * float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) >= mid]
         ratio = (float(np.mean(d2)) / float(np.mean(d1))) if d1 and d2 else float("nan")
-        exp_up = cell["vol"] in ("step_lh", "ramp_up")
+        exp_up = cell["vol"] in ("step_lh", "ramp_up") or "_up_" in cell["vol"]
         out["W13_tpsl_track_sigma"] = {"value": ratio, "threshold": ">1" if exp_up else "<1", "pass": bool((not np.isfinite(ratio)) or (ratio > 1.0) == exp_up), "desc": "mean TP price distance second half / first half"}
     # per-side decision audit (proves the comparison)
     both = [x for x in log if x[3] and x[4]]
@@ -663,6 +884,62 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     out["summary"] = {"opens": n_open, "share_long": share_l, "share_short": share_s, "net_usd": float(roll["metrics"].get("net_profit_usd", np.nan)) if isinstance(roll["metrics"], dict) else None,
                       "early_closes": int(sum(1 for t in trades if t["exit_reason"] == "EARLY")), "tp_exits": int(sum(1 for t in trades if t["exit_reason"] == "TP")),
                       "sl_exits": int(sum(1 for t in trades if t["exit_reason"] == "SL")), "time_exits": int(sum(1 for t in trades if t["exit_reason"] == "TIME"))}
+    # W16 OPENS carry broker-side SL and TP on the correct sides of the entry
+    bad16 = [t for t in trades if not (np.isfinite(float(t["stop_loss"])) and np.isfinite(float(t["take_profit"])) and
+                                       ((int(t["direction"]) > 0 and float(t["stop_loss"]) < float(t["entry_price"]) < float(t["take_profit"])) or
+                                        (int(t["direction"]) < 0 and float(t["take_profit"]) < float(t["entry_price"]) < float(t["stop_loss"]))))]
+    out["W16_sl_tp_every_order"] = {"value": len(bad16), "threshold": 0, "pass": bool(len(bad16) == 0), "desc": "every order carries broker-side SL and TP on the correct sides of the entry"}
+    # W15 NO NEW OPENS when the possible gain is small relative to the adverse move (truth: no allowed cell with net >= k * MAE)
+    k_rr = float(ZZ.PARAMS["risk_reward_floor"])
+    high_risk_opens, n_hr_rows = 0, 0
+    if truth.mae is not None:
+        def high_risk(rr, si):
+            net_r, mae_r = truth.net[rr, si], truth.mae[rr, si]
+            if not np.isfinite(net_r).all():
+                return True
+            capr, lor = float(truth.cap[rr]), float(truth.lo[rr])
+            ok = C3.allowed_cells(net_r, cells, 0.0, C3.RR_MARGIN_SIGMA, capr, lor) & (net_r > 0) & np.where(np.isfinite(mae_r), net_r >= k_rr * mae_r, True)
+            return not bool(ok.any())
+        for t in trades:
+            rr = int(cx.rob[int(t["entry_bar_abs"]) - off]) if int(t["entry_bar_abs"]) - off >= 0 else -1
+            if rr >= 0:
+                high_risk_opens += int(high_risk(rr, _side(t)))
+        blk_rows = truth.rows[truth.period[truth.rows] == BLOCK]
+        n_hr_rows = int(sum(1 for rr in blk_rows[::7] if high_risk(rr, 0) and high_risk(rr, 1)))
+    share15 = high_risk_opens / max(n_open, 1)
+    out["W15_no_open_high_risk"] = {"value": share15, "threshold": THRESH["high_risk_open_max"], "pass": bool(share15 <= THRESH["high_risk_open_max"]),
+                                    "desc": f"share of opens at (row, side) where no allowed cell offers truth net >= {k_rr:g} x truth MAE", "n_high_risk_opens": high_risk_opens,
+                                    "high_risk_rows_sampled_1_in_7": n_hr_rows}
+    # W17 NO NEW OPENS inside high-volatility bursts (after the declared detection lag)
+    bw = (world.get("meta") or {}).get("burst_windows") or []
+    if bw:
+        inside = [t for t in trades if any(t0 + BURST_DETECTION_LAG <= int(t["entry_bar_abs"]) - off < t1 for t0, t1 in bw)]
+        cl = np.asarray((world.get("bars") if world.get("bars") is not None else cx.ds.bars)["CLOSE"], float)
+        sg = np.asarray(cx.ds.sigma, float)
+        diag = []
+        for t in inside:
+            db = int(t["entry_bar_abs"]) - off
+            w_ = int(ZZ.PARAMS["burst_window_bars"])
+            rv = float(np.sqrt(np.sum(np.diff(cl[db - w_:db + 1]) ** 2) * 24.0 / w_)) if db - w_ >= 0 else float("nan")
+            diag.append({"decision_bar": db, "window": [w for w in bw if w[0] <= db < w[1]][0], "rv_over_sigma": rv / float(sg[db]) if sg[db] > 0 else float("nan")})
+        out["W17_no_open_in_burst"] = {"value": len(inside), "threshold": 0, "pass": bool(len(inside) == 0), "desc": f"opens decided inside a burst window after {BURST_DETECTION_LAG} bars",
+                                       "n_windows": len(bw), "inside": diag}
+    # attribution: which horizon's signal triggered each behaviour (reported, not a pass / fail)
+    at = roll.get("attr") or []
+    opens_at = [x for x in at if x["chosen"] >= 0]
+    agree = [((x["zz_dir"] > 0) == (x["chosen"] == 0)) for x in opens_at if x["zz_dir"] != 0]
+    fresh = [x["fresh"] == 1.0 for x in opens_at if np.isfinite(x["fresh"])]
+    gate_counts = {}
+    for x in at:
+        if x["chosen"] < 0:
+            for g in ((x["blocked"],) if x["blocked"] else (x["gate_l"], x["gate_s"])):
+                if g:
+                    gate_counts[g] = gate_counts.get(g, 0) + 1
+    ecl = [c for c in roll["closes"] if c[5]]
+    out["attribution"] = {"opens_with_coarse_direction": float(np.mean(agree)) if agree else float("nan"), "opens_with_fresh_fine_favour": float(np.mean(fresh)) if fresh else float("nan"),
+                          "blocked_ticks_by_gate": gate_counts,
+                          "early_closes_by_trigger": {"remaining_negative": sum(1 for c in ecl if len(c) > 6 and c[6]), "sl_first_and_negative_remaining": sum(1 for c in ecl if len(c) > 7 and c[7]),
+                                                      "fine_alarm_and_weak_coarse_room": sum(1 for c in ecl if len(c) > 8 and c[8])}}
     sealed = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2")}
     v2 = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in out)}
     out["PASS_sealed"] = bool(all(v["pass"] for v in sealed.values()))
@@ -691,7 +968,8 @@ def mirror_check(trades_a: list, trades_b: list) -> dict:
 
 # ----------------------------------------------------------------------------- CLI
 def cmd_cells(a):
-    cells = build_matrix(a.n_lhs, a.seed)
+    blk = getattr(a, "block", "matrix")
+    cells = build_intensity_block() if blk == "intensity" else (build_multihorizon_block() if blk == "multihorizon" else build_matrix(a.n_lhs, a.seed))
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(cells, indent=1))
     levels = {}
@@ -708,6 +986,9 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     wit = witnesses(cell, w, roll, cells)
     # the truth-oracle control: the same witnesses on a policy that acts on the engine truth itself
     oroll = rollout_oracle(w, oracle_view(w, view), cells)
+    meta = w.get("meta") or {}
+    tps = meta.get("turning_points") or ({"long": list(meta.get("switch_bars") or [])} if meta.get("switch_bars") else None)
+    ladder_map = H.pivot_matching(w["ladder"]["pivots"], tps, H.period_bars(w["cx"].ds, BLOCK)) if tps else None
     owit = witnesses(cell, w, oroll, cells)
     defects_sealed = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
     defects_v2 = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in owit) and v["pass"] is False)
@@ -719,7 +1000,8 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     rec = {"id": cell["id"], "seed": seed, "level": cell["level"], "regime": cell["regime"], "legs": cell["legs"], "mirror_of": cell.get("mirror_of"), "quality": cell["quality"],
            "witness": w["witness"], "achieved": w["sim"]["achieved"], "strategy": strat.to_dict(), "results": wit, "PASS": wit["PASS"], "PASS_sealed": wit["PASS_sealed"], "PASS_v2": wit["PASS_v2"],
            "oracle": {k: v for k, v in owit.items() if k != "summary"} | {"summary": owit["summary"]}, "oracle_PASS_sealed": owit["PASS_sealed"], "oracle_PASS_v2": owit["PASS_v2"],
-           "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2,
+           "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2, "ladder_to_horizon": ladder_map,
+           "attribution": wit.get("attribution"), "oracle_attribution": owit.get("attribution"),
            "PASS_effective": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2"))),
            "PASS_sealed_excluding_defective_witnesses": bool(all(v["pass"] for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and k not in defects_sealed)),
            "sec": round(time.time() - t0, 1),
@@ -756,6 +1038,7 @@ def cmd_run(a):
     SCFG = S.with_variant(SCFG, C3.FULL_F3)
     from app.short_horizon.expert_guided import strategy_params as SP
     params_doc = SP.load(a.params)
+    ZZ.configure(params_doc)
     genes = SP.genes_c3(params_doc)
     params_sha = SP.sha256_of(a.params)
     (out / "PARAMS_SHA.txt").write_text(params_sha + "  " + str(a.params) + "\n")
@@ -810,7 +1093,9 @@ def cmd_report(a):
                      "PASS_effective": bool(rs) and all(r.get("PASS_effective", r["PASS"]) for r in rs),
                      "witness_defects_sealed": defects, "failing_witnesses_v2": fails_v2,
                      "failing_witnesses": fails, "share_long_mean": float(np.nanmean(sl)) if sl else None, "opens_mean": float(np.mean([r["results"]["summary"]["opens"] for r in rs if r.get("results", {}).get("summary")])) if rs else None,
-                     "errors": [r.get("error") for r in rs if r.get("error")], "expected": c["expected"], "forbidden": c["forbidden"]})
+                     "errors": [r.get("error") for r in rs if r.get("error")], "expected": c["expected"], "forbidden": c["forbidden"],
+                     "ladder_capture": (rs[0].get("ladder_to_horizon") or {}).get("capture") if rs else None, "attribution": rs[0].get("attribution") if rs else None,
+                     "oracle_attribution": rs[0].get("oracle_attribution") if rs else None})
     n_pass = sum(1 for r in rows if r["PASS"])
     n_pass_v2 = sum(1 for r in rows if r["PASS_v2"])
     n_pass_excl = sum(1 for r in rows if r["PASS_sealed_excluding_defective_witnesses"])
@@ -827,7 +1112,9 @@ def cmd_report(a):
         commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=10).stdout.strip() or None
     except Exception:
         commit = None
-    spec_doc = {"cells_sha256": spec_sha, "witness_spec": WITNESS_SPEC, "witness_code_commit": commit}
+    qdir = Path(a.cells).parent / "queue"
+    block_shas = {q.name: hashlib.sha256(q.read_bytes()).hexdigest() for q in sorted(qdir.glob("*.json"))} if qdir.exists() else {}
+    spec_doc = {"cells_sha256": spec_sha, "block_sha256": block_shas, "witness_spec": WITNESS_SPEC, "witness_code_commit": commit}
     spec_v2_sha = hashlib.sha256(json.dumps(spec_doc, sort_keys=True).encode()).hexdigest()
     doc = {"schema": "behaviour_matrix.v2", "block": BLOCK, "cells": len(rows), "run": sum(1 for r in rows if r["n_runs"]),
            "pass_sealed": n_pass, "fail_sealed": sum(1 for r in rows if r["n_runs"] and not r["PASS"]), "pass_v2": n_pass_v2, "fail_v2": sum(1 for r in rows if r["n_runs"] and not r["PASS_v2"]),
@@ -850,6 +1137,23 @@ def cmd_report(a):
                      f"{', '.join(f'{k}×{v}' for k, v in r['failing_witnesses'].items()) or ''} | {', '.join(f'{k}×{v}' for k, v in r['witness_defects_sealed'].items()) or ''} | {vd(r['PASS_v2'])} | {vd(r['PASS_effective'])} | "
                      f"{r['share_long_mean'] if r['share_long_mean'] is None else f'{r['share_long_mean']:.2f}'} | {'' if r['opens_mean'] is None else f'{r['opens_mean']:.0f}'} |")
     fails = [r for r in rows if r["n_runs"] and not r["PASS_sealed"]]
+    lines += ["", "## Cobertura de intensidades (cambios de tendencia y de volatilidad variados independientemente)", "", intensity_coverage(cells, rows)]
+    qdir = Path(a.cells).parent / "queue"
+    if qdir.exists():
+        lines += ["", "| bloque sellado | sha256 |", "| --- | --- |"] + [f"| {q.name} | `{hashlib.sha256(q.read_bytes()).hexdigest()}` |" for q in sorted(qdir.glob("*.json"))]
+    lines += ["", "## Mundos multi-horizonte: escalera ZigZag ↔ horizonte y atribución de cada comportamiento", "",
+              "| celda | nivel que captura largo (F1) | medio (F1) | corto (F1) | aperturas con la dirección gruesa | con pivote fino a favor | cierres tempranos (restante<0 / SL-primero / alarma fina) | ticks bloqueados por compuerta |",
+              "| --- | --- | --- | --- | ---: | ---: | --- | --- |"]
+    for r in rows:
+        if not r["id"].lstrip("MS_").startswith("H") or not r.get("ladder_capture"):
+            continue
+        cap = r["ladder_capture"]
+        at = r.get("attribution") or {}
+        ec = at.get("early_closes_by_trigger") or {}
+        f = lambda c: (f"{cap[c]['level']} ({cap[c]['f1']:.2f})" if cap.get(c) and cap[c].get("level") else "—")  # noqa: E731
+        lines.append(f"| {r['id']} | {f('long')} | {f('medium')} | {f('short')} | {at.get('opens_with_coarse_direction', float('nan')):.2f} | {at.get('opens_with_fresh_fine_favour', float('nan')):.2f} | "
+                     f"{ec.get('remaining_negative', 0)} / {ec.get('sl_first_and_negative_remaining', 0)} / {ec.get('fine_alarm_and_weak_coarse_room', 0)} | "
+                     f"{', '.join(f'{k}={v}' for k, v in (at.get('blocked_ticks_by_gate') or {}).items())} |")
     lines += ["", "## Celdas que fallan (defectos de la estrategia a corregir; ninguna se excluye)", ""]
     if fails:
         lines += ["| celda | testigos | errores | esperado |", "| --- | --- | --- | --- |"]
@@ -876,6 +1180,7 @@ def main():
     c = sub.add_parser("cells")
     c.add_argument("--n-lhs", type=int, default=64)
     c.add_argument("--seed", type=int, default=7)
+    c.add_argument("--block", default="matrix", choices=["matrix", "intensity", "multihorizon"])
     c.add_argument("--out", required=True)
     r = sub.add_parser("run")
     r.add_argument("--cells", required=True)
