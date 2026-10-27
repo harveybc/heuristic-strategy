@@ -51,7 +51,7 @@ BOUNDS = {
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
 META_KEYS = {"schema", "note", "defaults_are", "sealed"}
 DEFAULTS = {
-    "open_rate_l": 0.251, "open_rate_s": 0.251, "nop_veto": 0.50,
+    "open_rate_l": 0.45, "open_rate_s": 0.45, "nop_veto": 0.50,
     "close_rem_rate_l": 0.30, "close_rem_rate_s": 0.30, "close_p_l": 0.50, "close_p_s": 0.50,
     "allow_reverse": 1.0, "observe_bars": 0,
     "tp_a_l": 1.0, "tp_b_l": 0.0, "sl_c_l": 1.0, "sl_e_l": 0.0, "tp_a_s": 1.0, "tp_b_s": 0.0, "sl_c_s": 1.0, "sl_e_s": 0.0,

@@ -21,14 +21,15 @@ def test_mirror_bars_is_an_exact_price_mirror():
     idx = _idx(3000)
     bars, _ = H.synthetic_path_v2(idx, 5e-4, ("trend_up",), "mid" if "mid" in H.VOL else "low", "medium", 3, (500, 2500))
     m = H.mirror_bars(bars)
-    c0 = float(bars["CLOSE"].iloc[0])
-    assert np.allclose(m["CLOSE"].to_numpy(), 2 * c0 - bars["CLOSE"].to_numpy(), atol=1e-12)
-    assert np.allclose(m["HIGH"].to_numpy(), 2 * c0 - bars["LOW"].to_numpy(), atol=1e-12)
+    K = float(bars["HIGH"].max()) + float(bars["LOW"].min())
+    assert np.allclose(m["CLOSE"].to_numpy(), K - bars["CLOSE"].to_numpy(), atol=1e-12)
+    assert np.allclose(m["HIGH"].to_numpy(), K - bars["LOW"].to_numpy(), atol=1e-12)
+    assert float(m["LOW"].min()) >= float(bars["LOW"].min()) - 1e-12 and float(m["HIGH"].max()) <= float(bars["HIGH"].max()) + 1e-12   # stays in range
     assert np.allclose(np.diff(m["CLOSE"].to_numpy()), -np.diff(bars["CLOSE"].to_numpy()), atol=1e-12)
     assert np.all(m["HIGH"] >= m[["OPEN", "CLOSE"]].max(axis=1)) and np.all(m["LOW"] <= m[["OPEN", "CLOSE"]].min(axis=1))
     mm, _ = H.synthetic_path_v2(idx, 5e-4, ("trend_up",), "low", "medium", 3, (500, 2500), mirror=True)
     b2, _ = H.synthetic_path_v2(idx, 5e-4, ("trend_up",), "low", "medium", 3, (500, 2500), mirror=False)
-    assert np.allclose(mm["CLOSE"].to_numpy(), 2 * float(b2["CLOSE"].iloc[0]) - b2["CLOSE"].to_numpy(), atol=1e-12)
+    assert np.allclose(mm["CLOSE"].to_numpy(), float(b2["HIGH"].max()) + float(b2["LOW"].min()) - b2["CLOSE"].to_numpy(), atol=1e-12)
 
 
 def test_transitions_switch_where_declared_and_legs_have_their_drift():
@@ -107,7 +108,7 @@ def test_mirror_check_demands_identical_bars_flipped_sides_and_equal_sigma_net()
 def test_canonical_genes_come_from_the_parameter_file():
     from app.short_horizon.expert_guided import strategy_params as SP
     g = SP.genes_c3(SP.default_doc())
-    assert g["open_rate"] == pytest.approx(0.251) and g["allow_reverse"] == 1.0 and g["nop_veto"] == 0.5 and g["close_p_l"] == 0.5
+    assert g["open_rate"] == pytest.approx(0.45) and g["allow_reverse"] == 1.0 and g["nop_veto"] == 0.5 and g["close_p_l"] == 0.5
 
 
 def test_intensity_generators_vary_trend_and_volatility_independently():

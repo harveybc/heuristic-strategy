@@ -413,12 +413,13 @@ def pivot_matching(pivots_by_level: dict, turning_points: dict, block: tuple, to
 
 
 def mirror_bars(bars: pd.DataFrame) -> pd.DataFrame:
-    """The exact PRICE mirror of a path around its first close: p' = 2 c0 - p (every price change negated), HIGH' =
+    """The exact PRICE mirror of a path: p' = K - p with K = max(HIGH) + min(LOW) (every price change negated), HIGH' =
     mirror(LOW), LOW' = mirror(HIGH). The engine works in price units (sigma from squared close differences, TP / SL
     distances, spreads), so the additive mirror keeps every distance, every sigma and every range identical and flips
     every move: the strategy's trades must mirror exactly (a log mirror would change the price-unit sigma)."""
-    c0 = float(bars["CLOSE"].iloc[0])
-    f = lambda x: 2.0 * c0 - np.asarray(x, float)  # noqa: E731
+    K = float(np.nanmax(bars["HIGH"])) + float(np.nanmin(bars["LOW"]))   # reflect around the middle of the path's range: the mirror
+    f = lambda x: K - np.asarray(x, float)  # noqa: E731                     # stays inside [min, max] (around the first close a strong
+                                                                            # 3-year uptrend mirrored to prices near or below zero)
     return pd.DataFrame({"OPEN": f(bars["OPEN"]), "HIGH": f(bars["LOW"]), "LOW": f(bars["HIGH"]), "CLOSE": f(bars["CLOSE"])}, index=bars.index)
 
 

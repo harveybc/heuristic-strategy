@@ -69,10 +69,18 @@ WITNESS_SPEC = {
            "W4_early_close_justified_v2": "early closes on an SL-first detection (P(SL first) > close_p) or a negative remaining value: >= 0.95",
            "W5_reverse_v2": "reversals whose new side has truth net > 0: >= 0.90; static leg <= 1 per week",
            "W8_old_direction_after_lag_v2": "old-direction share after the lag <= max(0.40, truth old-direction opportunity + 0.10)",
+           "W8_early_close_at_switch_v2": "SL exits in [switch, switch + lag] <= max(1, 0.10 x exits there)",
+           "W13_tpsl_track_sigma_v2": "TP distance ratio / causal sigma ratio at entries in [0.5, 2]",
            "rule": "a v2 form is admitted only where the TRUTH ORACLE fails the sealed form (witness defect); otherwise the sealed form stands",
            "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-27T06:40Z (after the seal; admitted by the TRUTH ORACLE control)", "witness": "W13_tpsl_track_sigma -> v2 TP distance scales with the causal sigma at entry",
+     "defect": "the sealed form expects the TP price distance to move with the generator's volatility direction; the TRUTH ORACLE's own ratio moves against it in 16 cells (it picks smaller sigma multiples when volatility rises)",
+     "evidence": "v6: B_voldyn_ramp_up s2 oracle 0.873 (strategy 0.874); F2_trend_down_weak_mid_ramp_up s0 oracle 0.960; F2_trend_up_strong_high_ramp_down s0 oracle 1.285", "effect": "v2 admitted only where the oracle fails the sealed form"},
+    {"when": "2026-10-27T06:40Z (after the seal; admitted by the TRUTH ORACLE control)", "witness": "W8_early_close_at_switch -> v2 no stop-loss exits in the switch window",
+     "defect": "the sealed form compares early-close shares of a handful of exits before / after the switch; the TRUTH ORACLE fails it in 15 cells (with perfect heads it rarely needs an early close at all)",
+     "evidence": "v6: B_trans_down_up_middle s0 oracle [0.33, 0.00]; B_trans_range_up_late s1 oracle [1.00, 0.00]", "effect": "v2 admitted only where the oracle fails the sealed form"},
     {"when": "2026-10-27T00:40Z (before the seal)", "witness": "W2 / W7 instrumentation", "defect": "the decision row was looked up one bar off the fill bar; truth lookups returned nothing (W2 / W7 read 0.0 while every trade hit TP)",
      "evidence": "B_trend_trend_down_medium s0: 178 trades, 171 TP exits, W2 = 0.0, W7 = 0.0; after the fix both 1.0", "effect": "trades are mapped to the audited decision rows (decision_row_offset recorded)"},
     {"when": "2026-10-27T00:50Z (before the seal)", "witness": "W14 mirror cells", "defect": "the mirror cell was double-mirrored (mirrored legs AND flipped path), so twins did not share a path; and the real engine is side-asymmetric by construction (bid bars, ask-triggered shorts, swap -7 / +2.5)",
@@ -96,7 +104,9 @@ RUN_HISTORY = [
     {"run": "v4 (03:17Z)", "note": "strategy C3Z, witnesses W15-W17, intensity and multi-horizon blocks; superseded"},
     {"run": "v1-v4 SEED DEFECT", "note": "in runs v1 to v4 the synthetic path seed came from the cell id only and perfect heads add no noise, so the three seeds of a cell were IDENTICAL worlds: their per-seed agreement is not evidence of robustness"},
     {"run": "v5 (04:23Z)", "note": "seeds vary the path; close-margin floor, net-ranked sides; the ladder kept only pivots found on both the path and its mirror -- a ladder production never computes: superseded by v6"},
-    {"run": "v6", "note": "production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
+    {"run": "v6 (04:38Z)", "note": "superseded by v7: the exact mirror reflected around the first close drove strong-uptrend mirrors near or below zero price (4 errors, W14 failures); the strategy's TP<SL rule double-counted the cost already inside the engine net (W7); the canonical open rate 0.251 left dense-pivot cells under 1 open per week (W0)"},
+    {"run": "v7", "note": "mirror around the middle of the path's range; C3Z TP<SL rule without the double cost, net margin floored at 0, canonical open_rate 0.45; W13 / W8-switch corrected forms admitted only where the oracle fails the sealed form"},
+    {"run": "v6 ZigZag", "note": "production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
 ]
 BURST_DETECTION_LAG = 3             # bars the causal burst gate needs (realized vol over 6 bars > 2 sigma at a x3 burst after ~2-3 bars)
 THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_positive_open_min": 0.90, "wrong_side_max": 0.10,
@@ -770,6 +780,13 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             ec_at.append(np.mean([t["exit_reason"] == "EARLY" for t in t_a]) if t_a else np.nan)
         rb, ra = float(np.nanmean(ec_before)) if np.isfinite(np.nanmean(ec_before)) else float("nan"), float(np.nanmean(ec_at)) if np.isfinite(np.nanmean(ec_at)) else float("nan")
         out["W8_early_close_at_switch"] = {"value": [rb, ra], "threshold": THRESH["reverse_in_switch_window_min"], "pass": bool((not np.isfinite(rb)) or (not np.isfinite(ra)) or ra >= rb), "desc": "early-close share of exits before / in the switch window"}
+        sl_win, ex_win = 0, 0
+        for sw in meta["switch_bars"]:
+            t_a = [t for t in trades if sw <= int(t["exit_bar_abs"]) < sw + LAG]
+            ex_win += len(t_a)
+            sl_win += sum(1 for t in t_a if t["exit_reason"] == "SL")
+        out["W8_early_close_at_switch_v2"] = {"value": {"sl_exits_in_switch_window": sl_win, "exits_in_switch_window": ex_win}, "threshold": "SL exits in [switch, switch + lag] <= max(1, 0.10 x exits there)",
+                                              "pass": bool(sl_win <= max(1, 0.10 * ex_win)), "desc": "corrected form (admitted only where the oracle fails the sealed form): positions caught by the switch are closed early or reach TP, not the stop"}
     # W2 knowledge: truth net at the chosen cell > 0; not the worse side; cell = truth best
     pos_ok, wrong, best_cell = [], [], []
     dec = {x[0]: x for x in log}
@@ -884,6 +901,12 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         ratio = (float(np.mean(d2)) / float(np.mean(d1))) if d1 and d2 else float("nan")
         exp_up = cell["vol"] in ("step_lh", "ramp_up") or "_up_" in cell["vol"]
         out["W13_tpsl_track_sigma"] = {"value": ratio, "threshold": ">1" if exp_up else "<1", "pass": bool((not np.isfinite(ratio)) or (ratio > 1.0) == exp_up), "desc": "mean TP price distance second half / first half"}
+        s1 = [float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) < mid]
+        s2 = [float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) >= mid]
+        sr = (float(np.mean(s2)) / float(np.mean(s1))) if s1 and s2 else float("nan")
+        rel = (ratio / sr) if np.isfinite(ratio) and np.isfinite(sr) and sr > 0 else float("nan")
+        out["W13_tpsl_track_sigma_v2"] = {"value": {"tp_distance_ratio": ratio, "causal_sigma_ratio_at_entries": sr, "tp_over_sigma_ratio": rel}, "threshold": "TP distance ratio / causal sigma ratio in [0.5, 2]",
+                                          "pass": bool((not np.isfinite(rel)) or 0.5 <= rel <= 2.0), "desc": "corrected form (admitted only where the oracle fails the sealed form): TP / SL distances scale with the causal sigma at entry"}
     # per-side decision audit (proves the comparison)
     both = [x for x in log if x[3] and x[4]]
     won_l = sum(1 for x in both if x[5] == 0)

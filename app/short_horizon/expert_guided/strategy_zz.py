@@ -207,7 +207,7 @@ def net_open_margin(view: dict, rows, cells, open_rate: float) -> float:
                 ok &= np.where(np.isfinite(m), net >= PARAMS["risk_reward_floor"] * m, True)
             if ok.any():
                 vals.append(float(np.max(np.where(ok, net, -np.inf))))
-    return float(np.quantile(vals, 1.0 - float(open_rate))) if vals else float("inf")
+    return max(float(np.quantile(vals, 1.0 - float(open_rate))), 0.0) if vals else float("inf")   # never open a predicted loss
 
 
 # ----------------------------------------------------------------------------- the policy
@@ -227,7 +227,8 @@ class PolicyC3Z(C3.PolicyC3):
         net = np.asarray(self._v("net", r, si), float)
         p3 = np.asarray(self._v("p3", r, si), float)
         cap, lo = self._cap(r)
-        ok = C3.allowed_cells(net, self.cells, cost, C3.RR_MARGIN_SIGMA, cap, lo)
+        # the predicted net is the ENGINE net (every cost inside): the TP < SL rule asks net > rr_margin, not net > cost + rr_margin
+        ok = C3.allowed_cells(net, self.cells, 0.0 if PARAMS["ev_from_net"] >= 0.5 else cost, C3.RR_MARGIN_SIGMA, cap, lo)
         mae = self.t.get("mae")
         if mae is not None:
             m = np.asarray(mae[r, si], float)
