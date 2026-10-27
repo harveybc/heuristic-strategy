@@ -15,8 +15,8 @@ export CUDA_VISIBLE_DEVICES="" BEHAVIOUR_MATRIX_ALLOWED=1
 log(){ echo "$(date -u +%FT%TZ) [param-stage] $*" >> $R/LOG; }
 P0=$CODE/docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json
 OUT=$R/deap; mkdir -p $OUT
-log "waiting for the matrix to reach 100 % effective PASS"
-while true; do
+log "waiting for the matrix to reach 100 % effective PASS (FORCE_START=${FORCE_START:-0})"
+while [ "${FORCE_START:-0}" != "1" ]; do
   [ -f $R/STOP_PARAM_STAGE ] && { log "STOP_PARAM_STAGE: exit"; exit 0; }
   ok=$($PY - "$R/report/BEHAVIOUR_MATRIX.json" <<'PY'
 import json, sys
@@ -30,9 +30,9 @@ PY
   [ "$ok" = "yes" ] && break
   sleep 600
 done
-log "matrix at 100 % effective PASS: building the subset and starting DEAP"
+log "starting DEAP (FORCE_START=${FORCE_START:-0}): building the subset"
 cd $CODE
-[ -f $OUT/SUBSET.json ] || $PY tools/strategy_param_deap.py subset --cells $R/QUEUE.json --per-level ${PER_LEVEL:-1} --out $OUT/SUBSET.json > $R/logs/deap_subset.log 2>&1
+[ -f $OUT/SUBSET.json ] || $PY tools/strategy_param_deap.py subset --cells ${SUBSET_CELLS:-$R/QUEUE.json} --per-level ${PER_LEVEL:-1} --out $OUT/SUBSET.json > $R/logs/deap_subset.log 2>&1
 log "subset: $(tail -1 $R/logs/deap_subset.log | cut -c1-200)"
 $CR -q -W 43200 -m ${MEM_DEAP:-18G} -t 43200s -n deap-strategy-params -- $PY tools/strategy_param_deap.py run --subset $OUT/SUBSET.json --params $P0 \
    --admitted $R/data/admitted --csv-dir $R/data/sel15 --jobs ${JOBS_DEAP:-10} --out $OUT > $R/logs/deap_run.log 2>&1 \
@@ -40,9 +40,12 @@ $CR -q -W 43200 -m ${MEM_DEAP:-18G} -t 43200s -n deap-strategy-params -- $PY too
 for k in $(seq 0 ${MAX_RANK:-9}); do
   $PY tools/strategy_param_deap.py best --archive $OUT/ARCHIVE.jsonl --params $P0 --k $k --out $OUT/CANDIDATE_k$k.json > $R/logs/deap_best_k$k.log 2>&1 || { log "no feasible point at rank $k"; exit 2; }
   log "re-verifying rank $k on the full matrix: $(tail -1 $R/logs/deap_best_k$k.log | cut -c1-200)"
-  mkdir -p $R/results_opt_k$k $R/report_opt_k$k
-  RES=$R/results_opt_k$k PARAMS=$OUT/CANDIDATE_k$k.json REPORT=$R/report_opt_k$k REPORT_TAG=_opt_k$k ONESHOT=1 JOBS=${JOBS_VERIFY:-10} bash $R/matrix_driver_v2.sh > $R/logs/verify_k$k.log 2>&1
-  v=$($PY -c "import json; d=json.load(open('$R/report_opt_k$k/BEHAVIOUR_MATRIX.json')); print('yes' if d['run']==d['cells'] and d['fail_effective']==0 else 'no %s/%s fail_effective=%s' % (d['run'], d['cells'], d['fail_effective']))")
+  VR=$R/verify_k$k                                              # its own matrix root: never shares claims with the running matrix
+  mkdir -p $VR/queue $VR/logs $VR/report
+  ln -sfn $R/data $VR/data; ln -sfn $R/code $VR/code
+  cp $R/queue/*.json $VR/queue/
+  ROOT=$VR RES=$VR/results PARAMS=$OUT/CANDIDATE_k$k.json ONESHOT=1 JOBS=${JOBS_VERIFY:-10} bash $R/matrix_driver_v2.sh > $R/logs/verify_k$k.log 2>&1
+  v=$($PY -c "import json; d=json.load(open('$VR/report/BEHAVIOUR_MATRIX.json')); print('yes' if d['run']==d['cells'] and d['fail_effective']==0 else 'no %s/%s fail_effective=%s' % (d['run'], d['cells'], d['fail_effective']))")
   if [ "$v" = "yes" ]; then
     cp $OUT/CANDIDATE_k$k.json $OUT/STRATEGY_PARAMS_OPTIMISED.json
     log "ACCEPTED rank $k: full matrix 100 % effective PASS; sha256 $(sha256sum $OUT/STRATEGY_PARAMS_OPTIMISED.json | cut -c1-64)"

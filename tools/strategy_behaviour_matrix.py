@@ -17,6 +17,7 @@ report (BEHAVIOUR_MATRIX.json + .md).
 from __future__ import annotations
 
 import argparse
+import collections
 import dataclasses
 import hashlib
 import json
@@ -78,6 +79,13 @@ WITNESS_SPEC = {
            "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-27T11:00Z", "witness": "Z1 label generator (the trade's own net-value ZigZag): anchored start",
+     "defect": "a reversal ZigZag never confirms a pivot at the first point of its series, and the best exit of many SL-destined orders is the entry tick itself (the order declines from entry)",
+     "evidence": "smoke 2bd39110: net:0.1sigma matched P*_pre in 0.63 of the SL-destined BUY episodes of B_trend_trend_down_medium s0 with E1' = 1.0 and R = 0.0006 sigma (the closer exits optimally; the label missed)",
+     "effect": "the net path is preceded by an anchor one threshold below its first value; the label generator, not the witness, changed"},
+    {"when": "2026-10-27T11:00Z", "witness": "L_avail(t) added (coordinator's alignment with the lane's per-tick score)",
+     "defect": "the sealed L(t) measured every tick against P*_pre from the entry; the per-tick score is the best exit STILL AVAILABLE from t",
+     "evidence": "definition", "effect": "L_avail(t) = P*_exit(t) - P(t) = max(0, -A(t)) reported per tick and per episode; the closer's training target is A(t) (equivalently L_avail); the sealed witnesses keep: E2' from-entry R, E3 / E4 sign of A(t), E7 lateness vs the P*_pre tick"},
     {"when": "2026-10-27T09:20Z", "witness": "W13_v2 (TP / sigma ratio of the halves) -> TP distance = cell multiple x causal sigma, per trade",
      "defect": "the first corrected form was itself failed by the oracle", "evidence": "v7: M_F2_trend_down_strong_mid_ramp_up s0 oracle TP / sigma ratio 2.02 (> 2): the optimal policy picks larger multiples when volatility rises", "effect": "the per-trade multiple check (engine level = close[b] +- mult x sigma[b+1])"},
     {"when": "2026-10-27T09:20Z", "witness": "W10_spread_window -> v2 realized engine net of each trade opened inside the x5 window > 0",
@@ -869,8 +877,16 @@ def run_episodes(world: dict, eps: list, decide, closer) -> list:
         p_exit = float(P[exit_i]) if exit_i is not None else path["hold_net"]
         t_exit = int(bars[exit_i]) if exit_i is not None else int(path["exit_bar"])
         L = [(p_star - float(P[i])) / u / sg for i in held] + ([(p_star - p_exit) / u / sg] if exit_i is not None else [])
+        # L_avail(t) = P*_exit(t) - P(t): the best exit STILL AVAILABLE from t (executable from t, strictly before the SL
+        # for SL-destined orders, the natural exit included otherwise); = max(0, -A(t)); never an extreme before t
+        tail = np.r_[P] if e["class"] == "SL" else np.r_[P, path["hold_net"]]
+        suf = np.maximum.accumulate(tail[::-1])[::-1] if len(tail) else tail
+        ticks = held + ([exit_i] if exit_i is not None else [])
+        La = [(float(suf[i]) - float(P[i])) / u / sg for i in ticks if i < len(suf)]
         out.append({"side": si, "class": e["class"], "early": exit_i is not None, "R_pre": (p_star - p_exit) / u / sg, "t_star": t_star, "t_exit": t_exit,
                     "late_bars": t_exit - t_star, "L_curve": [float(x) for x in L], "L_mean_held": float(np.mean(L)) if L else float("nan"),
+                    "L_avail_curve": [float(x) for x in La], "L_avail_mean": float(np.mean(La)) if La else float("nan"),
+                    "L_avail_at_exit": float(La[-1]) if (La and exit_i is not None) else float("nan"),
                     "ecv_vs_hold": (p_exit - path["hold_net"]) / u / sg, "start_bar": e["start_bar"]})
     return out
 
@@ -909,8 +925,11 @@ def zigzag_exit_check(world: dict, eps: list, closer) -> dict:
         # the trade's own net-value ZigZag
         y = np.r_[P, path["hold_net"]] / u / sg
         for thr in NET_LADDER_SIGMA:
-            pv, _ = OR.reversal_pivots(y, y, thr)
-            peaks = [p for p in pv if int(p[1]) == Zg.PEAK and int(p[0]) < len(bars)]
+            # the order's value starts at the entry: an anchor one threshold below y[0] precedes it, so the entry tick
+            # itself can be a peak (a reversal ZigZag never confirms a pivot at the first point of its series)
+            yy = np.r_[y[0] - 2.0 * thr, y]
+            pv, _ = OR.reversal_pivots(yy, yy, thr)
+            peaks = [(int(p[0]) - 1, p[1], p[2]) for p in pv if int(p[1]) == Zg.PEAK and 1 <= int(p[0]) <= len(bars)]
             ok = bool(peaks) and abs(float(P[int(max(peaks, key=lambda p: p[2])[0])]) - p_star) / u / sg <= Z1_TOL_SIGMA
             bump(f"net:{thr:g}sigma", si, ok)
         # the price ladders (for comparison)
@@ -953,6 +972,8 @@ def episode_witnesses(st: dict, star: dict, hold: dict, z1: dict, ladder_q: dict
         late = np.asarray([x["late_bars"] for x in sl if x["early"]], float)
         med = float(np.median(late)) if len(late) else float("nan")
         out[f"E7_lateness_vs_Pstar_{side}"] = {"value": {"median_late_bars": med, "mean_L_held_sigma": float(np.nanmean([x["L_mean_held"] for x in sl])) if sl else float("nan"),
+                                                         "mean_L_avail_sigma": float(np.nanmean([x["L_avail_mean"] for x in sl])) if sl else float("nan"),
+                                                         "mean_L_avail_at_exit_sigma": float(np.nanmean([x["L_avail_at_exit"] for x in sl if x["early"]] or [np.nan])),
                                                          "late_hist": np.histogram(late, bins=[-1e9, -6, -2, -0.5, 0.5, 2, 6, 1e9])[0].tolist() if len(late) else []},
                                                "threshold": f"median (exit tick - P*_pre tick) <= {LATE_BARS_MAX:g} bars", "pass": bool((not len(late)) or med <= LATE_BARS_MAX), "desc": "the close is not late relative to the best exit before the SL"}
         zd = z1["declared"].get(si, float("nan"))
@@ -978,9 +999,10 @@ def exit_loss_curves(st: list, star: list, hold: list, max_bars: int = 48) -> di
     out = {}
     for name, ep in (("strategy", st), ("hold_to_SL", hold), ("O*", star)):
         for si in (0, 1):
-            curves = [x["L_curve"] for x in ep if x["side"] == si and x["class"] == "SL"]
-            m = [float(np.mean([c[k] for c in curves if len(c) > k])) if any(len(c) > k for c in curves) else float("nan") for k in range(max_bars)]
-            out[f"{name}_{'BUY' if si == 0 else 'SELL'}"] = m
+            for key, tag in (("L_curve", ""), ("L_avail_curve", "_Lavail")):
+                curves = [x[key] for x in ep if x["side"] == si and x["class"] == "SL"]
+                m = [float(np.mean([c[k] for c in curves if len(c) > k])) if any(len(c) > k for c in curves) else float("nan") for k in range(max_bars)]
+                out[f"{name}_{'BUY' if si == 0 else 'SELL'}{tag}"] = m
     return out
 
 
@@ -1384,20 +1406,24 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     return out
 
 
-def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov) -> dict:
+def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = False) -> dict:
     """The exit-optimality layer of one cell (sealed EXIT_SPEC): normal-run E0-E5 against the hold oracle and O*,
     initial-state episodes at closer qualities 1.00 / 0.85 / 0.70 with E1' / E2' / E7 / E8 / Z1, the exit-loss curves,
     the closer noise-sweep points; an E witness O* fails in this cell is defective here (Z1 and the episode counts are
     not policy witnesses and are never excused)."""
     t0 = time.time()
     closer = view["closer"].with_quality(1.0)                         # paths and oracle decisions from the perfect closer (truth)
-    sroll = rollout_oracle_star(w, ov, cells)
-    st_n, st_star, st_hold = exit_stats(w, roll, closer), exit_stats(w, sroll, closer), exit_stats(w, oroll, closer)
+    memo = w.setdefault("_exit_memo", {})                             # the oracle runs do not depend on the strategy: once per world
+    if "sroll" not in memo:
+        memo["sroll"] = rollout_oracle_star(w, ov, cells)
+        memo["st_star"], memo["st_hold"] = exit_stats(w, memo["sroll"], closer), exit_stats(w, oroll, closer)
+    sroll, st_star, st_hold = memo["sroll"], memo["st_star"], memo["st_hold"]
+    st_n = exit_stats(w, roll, closer)
     ew = exit_witnesses(st_n, st_star, st_hold)
     ew_star = exit_witnesses(st_star, st_star, st_hold)
-    eps = build_episodes(w, strat, view, cells)
+    eps = build_episodes(w, strat, view, cells, every=EPISODE_EVERY_BARS * (2 if light else 1))
     lad = {}
-    for q in CLOSER_QUALITIES:
+    for q in ((1.0,) if light else CLOSER_QUALITIES):
         vq = dict(view)
         vq["closer"] = closer.with_quality(q)
         polq = ZZ.PolicyC3Z(vq, strat, cells, w["truth"].e_time, w["truth"].cost)
@@ -1406,11 +1432,13 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov) -> dict:
     star_ep = run_episodes(w, eps, lambda r, si, bar, pos: bool(S.path_advantage(closer.path(pos), bar) >= -EPS_CLOSE), closer)
     z1 = zigzag_exit_check(w, eps, closer)
     epw = episode_witnesses(lad[1.0], star_ep, hold_ep, z1, lad)
+    if light:                                                         # the optimiser's constraint set: E8 (closer quality ladder) is not computed
+        epw = {k: v for k, v in epw.items() if not k.startswith("E8_")}
     epw_star = episode_witnesses(star_ep, star_ep, hold_ep, z1, {1.0: star_ep})
     curves = exit_loss_curves(lad[1.0], star_ep, hold_ep)
     # closer noise sweep on the normal strategy run: Sharpe / net versus the advantage head's MAE / naive
     sweep = []
-    for q in CLOSER_QUALITIES:
+    for q in (() if light else CLOSER_QUALITIES):
         vq = dict(view)
         vq["closer"] = closer.with_quality(q)
         rq = roll if q >= 0.999 else rollout_cell(w, strat, vq, cells)
@@ -1583,6 +1611,99 @@ def cmd_run(a):
     print(json.dumps({"chunk": a.chunk, "cells_run": done}))
 
 
+def exit_report_sections(recs: dict, outp: Path) -> list:
+    """The exit-optimality sections: per cell and aggregate exit mixes per side (strategy / hold oracle / O*), regret
+    distribution, tick agreement, early-close value, SL-destined episode counts, Z1 per level, the exit-loss curves and
+    the Sharpe / profit versus closer MAE / naive plot (noise-sweep style)."""
+    rows = [r for rs in recs.values() for r in rs if r.get("exit")]
+    if not rows:
+        return ["", "## Salidas (capa de salida óptima)", "", "(sin registros con capa de salida)"]
+    pct = lambda m, k: f"{100 * m.get(k, float('nan')):.0f}"  # noqa: E731
+    L = ["", "## Salidas: optimalidad del cierre (especificación sellada " + f"`{EXIT_SPEC_SHA[:16]}…`)", "",
+         f"Registros con capa de salida: {len(rows)}; PASS (regla por celda): {sum(1 for r in rows if r['exit']['PASS_effective'])}; referencia del propietario: {OWNER_EARLY_CLOSE_REFERENCE:.0%} de salidas por cierre temprano.", "",
+         "### Mezcla de salidas por lado (operaciones propias de la estrategia), % temprano / TP / SL / tiempo", "",
+         "| celda | semilla | lado | estrategia | oráculo de mantener | O* | PASS salida | testigos que fallan |", "| --- | ---: | --- | --- | --- | --- | --- | --- |"]
+    agg = {k: {si: collections.Counter() for si in ("0", "1")} for k in ("strategy", "hold_oracle", "O*")}
+    for r in sorted(rows, key=lambda x: (x["id"], x["seed"])):
+        x = r["exit"]
+        for si, side in (("0", "BUY"), ("1", "SELL")):
+            nm = x["normal_exit_mix"]
+            L.append(f"| {r['id']} | {r['seed']} | {side} | " + " | ".join("/".join(pct(nm[k][si], c) for c in ("early", "tp", "sl", "time")) for k in ("strategy", "hold_oracle", "O*"))
+                     + f" | {'PASS' if x['PASS_effective'] else 'FAIL'} | {', '.join(x['failing_effective'])} |")
+            for k in agg:
+                for c in ("early", "tp", "sl", "time"):
+                    v = nm[k][si].get(c)
+                    if v == v:
+                        agg[k][si][c] += v
+    n = max(len(rows), 1)
+    L += ["", "### Agregado (media sobre registros), % temprano / TP / SL / tiempo", "", "| lado | estrategia | oráculo de mantener | O* |", "| --- | --- | --- | --- |"]
+    for si, side in (("0", "BUY"), ("1", "SELL")):
+        L.append(f"| {side} | " + " | ".join("/".join(f"{100 * agg[k][si][c] / n:.0f}" for c in ("early", "tp", "sl", "time")) for k in ("strategy", "hold_oracle", "O*")) + " |")
+    L += ["", "### Episodios de estado inicial destinados al SL (por lado): regresión R/σ, retraso, Z1, escalera de calidad del cerrador", "",
+          "| celda | semilla | lado | SL / TP / tiempo destinados | E1′ | R medio / p90 (mantener a SL) | retraso mediano (barras) | Z1 declarado | Z1 mejor escalera de precio | R medio a calidad 1.00 / 0.85 / 0.70 | valor del cierre temprano vs SL |",
+          "| --- | ---: | --- | --- | ---: | --- | ---: | --- | --- | --- | --- |"]
+    for r in sorted(rows, key=lambda x: (x["id"], x["seed"])):
+        x, w = r["exit"], r["exit"]["witnesses"]
+        for si, side in (("0", "BUY"), ("1", "SELL")):
+            ep = x["episodes"]["by_side_class"][si]
+            e2 = w[f"E2p_regret_SL_destined_{side}"]["value"]
+            z = w[f"Z1_zigzag_exit_label_{side}"]["value"]
+            e8 = w[f"E8_closer_quality_ladder_{side}"]["value"]
+            pb = max((v for k, v in z["per_level"].items() if not k.startswith("net:") and v == v), default=float("nan"))
+            L.append(f"| {r['id']} | {r['seed']} | {side} | {ep['SL']} / {ep['TP']} / {ep['TIME']} | {w[f'E1p_closed_before_SL_{side}']['value']:.3f} | {e2['mean_R_sigma']:.3f} / {e2['p90_R_sigma']:.3f} ({e2['hold_to_SL_mean_R']:.3f}) | "
+                     f"{w[f'E7_lateness_vs_Pstar_{side}']['value']['median_late_bars']} | {z['declared_match']:.3f} | {pb:.3f} | {' / '.join(f'{v:.3f}' for v in e8['mean_R_sigma'])} | {' / '.join(f'{v:.1f}' for v in e8['early_close_value_vs_hold_to_SL'])} |")
+    # exit-loss curves (aggregate) and the closer noise sweep plot
+    curves = {}
+    for r in rows:
+        for k, v in r["exit"]["exit_loss_curves"].items():
+            curves.setdefault(k, []).append(v)
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(1, 2, figsize=(11, 4), sharey=True)
+        cols = {"strategy": "#2a78d6", "hold_to_SL": "#eb6834", "O*": "#1baf7a"}
+        for j, side in enumerate(("BUY", "SELL")):
+            for name, col in cols.items():
+                arr = np.asarray(curves.get(f"{name}_{side}", []), float)
+                if arr.size:
+                    ax[j].plot(np.nanmean(arr, axis=0), color=col, label=name, lw=2)
+            ax[j].set_title(f"{side}: episodios destinados al SL")
+            ax[j].set_xlabel("barras desde la entrada")
+            ax[j].grid(alpha=0.3)
+        ax[0].set_ylabel("pérdida de salida media L(t) (σ)")
+        ax[0].legend(frameon=False)
+        fig.tight_layout()
+        fig.savefig(outp / "exit_loss_curves.png", dpi=120)
+        plt.close(fig)
+        sw = [x for r in rows for x in r["exit"]["closer_sweep"] if x["advantage_mae_over_naive"] == x["advantage_mae_over_naive"]]
+        fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+        for j, (key, lab) in enumerate((("sharpe", "Sharpe diario anualizado"), ("net_usd", "beneficio neto USD"))):
+            xs = np.asarray([x["advantage_mae_over_naive"] for x in sw], float)
+            ys = np.asarray([x[key] for x in sw], float)
+            ax[j].scatter(xs, ys, s=14, color="#2a78d6", alpha=0.6)
+            for qv, col in ((1.0, "#1baf7a"), (0.85, "#eda100"), (0.7, "#eb6834")):
+                m = np.asarray([x["closer_quality"] == qv for x in sw])
+                if m.any():
+                    ax[j].scatter(xs[m].mean(), ys[m].mean(), s=80, color=col, edgecolor="black", label=f"calidad del cerrador {qv:.2f}")
+            ax[j].set_xlabel("MAE / MAE naive de la cabeza de ventaja del cerrador")
+            ax[j].set_ylabel(lab)
+            ax[j].grid(alpha=0.3)
+        ax[0].legend(frameon=False)
+        fig.tight_layout()
+        fig.savefig(outp / "closer_noise_sweep.png", dpi=120)
+        plt.close(fig)
+        L += ["", "### Figuras", "", "- [Curvas de pérdida de salida L(t), destinados al SL, estrategia / mantener a SL / O*](exit_loss_curves.png)",
+              "- [Sharpe y beneficio frente a MAE/naive de la cabeza de ventaja del cerrador (barrido de ruido)](closer_noise_sweep.png)"]
+    except Exception as e:
+        L += ["", f"(figuras no generadas: {e})"]
+    L += ["", "### Curvas de pérdida de salida agregadas (media de L(t) en σ por barras desde la entrada, destinados al SL)", "", "| curva | 0 | 2 | 4 | 8 | 12 | 24 |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for k, v in sorted(curves.items()):
+        arr = np.nanmean(np.asarray(v, float), axis=0)
+        L.append(f"| {k} | " + " | ".join(f"{arr[i]:.3f}" if i < len(arr) and arr[i] == arr[i] else "—" for i in (0, 2, 4, 8, 12, 24)) + " |")
+    return L
+
+
 def cmd_report(a):
     cells = json.loads(Path(a.cells).read_text())
     recs = {}
@@ -1667,6 +1788,7 @@ def cmd_report(a):
                      f"{', '.join(f'{k}×{v}' for k, v in r['failing_witnesses'].items()) or ''} | {', '.join(f'{k}×{v}' for k, v in r['witness_defects_sealed'].items()) or ''} | {vd(r['PASS_v2'])} | {vd(r['PASS_effective'])} | "
                      f"{r['share_long_mean'] if r['share_long_mean'] is None else f'{r['share_long_mean']:.2f}'} | {'' if r['opens_mean'] is None else f'{r['opens_mean']:.0f}'} |")
     fails = [r for r in rows if r["n_runs"] and not r["PASS_sealed"]]
+    lines += exit_report_sections(recs, outp)
     lines += ["", "## Historia de corridas (lo que cada versión invalidó)", "", "| corrida | nota |", "| --- | --- |"] + [f"| {x['run']} | {x['note']} |" for x in RUN_HISTORY]
     lines += ["", "## Cobertura de intensidades (cambios de tendencia y de volatilidad variados independientemente)", "", intensity_coverage(cells, rows)]
     qdir = Path(a.cells).parent / "queue"

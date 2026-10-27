@@ -46,19 +46,19 @@ OPERATING_QUALITY = 0.70
 # the genome: every STRATEGY_PARAMS coefficient the C3Z strategy consumes; the others are fixed, with the reason
 GENOME = ("open_rate_l", "nop_veto", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "observe_bars",
           "rr_margin_sigma", "ev_from_net", "close_margin_floor", "risk_reward_floor", "burst_window_bars", "burst_vol_ratio", "zz_room_tp_mult",
-          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars")
+          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars", "closer_mode", "closer_adv_margin", "tp_mode", "k_tp_protect")
 INTEGER = {"observe_bars", "burst_window_bars", "zz_fine_h", "zz_post_flip_bars"}
-BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate"}
+BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate", "closer_mode", "tp_mode"}
 TIED = {"open_rate_s": "open_rate_l"}
 FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)", "v_alpha_l": "parametric volume family: not consumed by C3Z (risk sizing)",
          "risk_pct": "execution contract (owner's sizing rule), not a strategy coefficient", "entry_cutoff_hours": "execution contract (Friday cutoff)",
          "max_entries_per_day": "execution contract (daily cap)", "confirmation_lag_bars": "a witness constant, not consumed by the strategy",
-         "open_margin_eps": "numerical guard against float ties on the quantile sample", "tp_grid": "the cell grid of the outcome heads", "sl_grid": "the cell grid of the outcome heads"}
+         "open_margin_eps": "numerical guard against float ties on the quantile sample", "forced_every_bars": "the exit audit's episode schedule, not a trading coefficient", "tp_grid": "the cell grid of the outcome heads", "sl_grid": "the cell grid of the outcome heads"}
 QUALITY_INDEPENDENT = ("W16_sl_tp_every_order", "W17_no_open_in_burst", "W0_activity", "W12_missing", "W11_cutoff")
 
 
 # ----------------------------------------------------------------------------- the declared subset
-def build_subset(cells: list, per_level: int = 1, seed: int = SEED) -> list:
+def build_subset(cells: list, per_level: int = 1, seed: int = SEED, mirror_at_quality: bool = False) -> list:
     """Stratified: per matrix level (every block / family) ``per_level`` base cells drawn with the declared seed; each
     world appears with its REAL-COST mirror (R_ = mirrored path, costs unchanged), at perfect heads and at quality 0.70."""
     rng = random.Random(seed)
@@ -74,7 +74,7 @@ def build_subset(cells: list, per_level: int = 1, seed: int = SEED) -> list:
             m["id"], m["mirror"], m["mirror_real_cost_of"] = "R_" + c["id"], True, c["id"]
             m["legs_gen"], m["legs"], m["regime"] = list(c["legs"]), [H.MIRROR[x] for x in c["legs"]], H.MIRROR[c["regime"]]
             for w in (c, m):
-                for q in (1.0, OPERATING_QUALITY):
+                for q in ((1.0, OPERATING_QUALITY) if (mirror_at_quality or w is c) else (1.0,)):
                     x = dict(w)
                     x["quality"] = q
                     x["subset_key"] = f"{w['id']}@q{q:.2f}"
@@ -98,7 +98,9 @@ class CachedWorld:
         self.cal_rows = np.flatnonzero(cx2.obs_ok & (cx2.ds.period == BM.CAL))
         ref = C3.closer_reference_sides(table, S.closer_src_of(truth))
         self.gm = C3.gene_map(view, self.cal_rows, ref, cells, truth.e_time, truth.cost)
-        orl = BM.rollout_oracle(w, BM.oracle_view(w, view), cells)    # the oracle does not depend on the candidate: once per world
+        self.ov = BM.oracle_view(w, view)
+        orl = BM.rollout_oracle(w, self.ov, cells)                     # the oracle does not depend on the candidate: once per world
+        self.oroll = orl
         owit = BM.witnesses(cell, w, orl, cells)
         self.defects = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)   # per-cell rule
         self.oracle_sharpe = float(orl["metrics"].get("sharpe_daily_sqrt365", float("nan")))
@@ -130,6 +132,11 @@ class CachedWorld:
             eff = wit.get(k + "_v2", v) if (k in self.defects and (k + "_v2") in wit) else v
             if eff["pass"] is False:
                 fails.append(k)
+        exit_fails = []
+        if perfect:                                                   # the exit layer (sealed EXIT_SPEC) is a constraint: E0-E5, EP, E1', E2', E7, Z1, E8
+            ex = BM.exit_layer_of(self.cell, self.w, strat, view, self.cells, roll, self.oroll, self.ov, light=True)
+            exit_fails = list(ex["failing_effective"])
+            fails += exit_fails
         sh = float(roll["metrics"].get("sharpe_daily_sqrt365", float("nan")))
         return {"key": self.cell["subset_key"], "sharpe": sh if math.isfinite(sh) else -10.0, "fails": fails, "opens": wit["summary"]["opens"],
                 "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"])}
@@ -318,7 +325,8 @@ def cmd_run(a):
     base = SP.load(a.params)
     meta = {"seed": SEED, "population": a.population, "generations": a.generations, "elite": ELITE, "genome": GENOME, "bounds": bounds(), "fixed": FIXED, "tied": TIED,
             "subset": a.subset, "subset_worlds": len(sub), "operating_quality": OPERATING_QUALITY, "quality_independent_constraints": QUALITY_INDEPENDENT,
-            "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads) + quality-independent witnesses (0.70)",
+            "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads, per-cell rule) incl. the sealed exit layer E0-E5 / EP / E1' / E2' / E7 / Z1 / E8, + quality-independent witnesses (0.70)",
+            "exit_spec_sha256": BM.EXIT_SPEC_SHA,
             "params_base_sha256": SP.sha256_of(a.params), "effective_rule": "per cell (corrected form only where the oracle fails the sealed form in that world)"}
     (out / "RUN_META.json").write_text(json.dumps(meta, indent=1, default=list))
     log = lambda m: (print(m, flush=True), open(out / "PROGRESS.log", "a").write(m + "\n"))  # noqa: E731
