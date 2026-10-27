@@ -94,10 +94,13 @@ class EnvConfig:
     same_direction: str = "IGNORE"
     reverse: str = "CLOSE_AND_OPEN"
     cost_mode: str = "configured"
+    execution_price_mode: str = "mid_cash_v2"
 
     def __post_init__(self):
         if self.cost_mode not in ("configured", "zero_cost"):
             raise ValueError("COST_MODE: expected configured or zero_cost")
+        if self.execution_price_mode not in ("mid_cash_v2", "bid_ask_v3"):
+            raise ValueError("EXECUTION_PRICE_MODE")
 
 
 @dataclass
@@ -245,16 +248,36 @@ class BarEnv:
         when = int(self.v[bar]) + (0 if at_open else H_NS)
         fin = sum(x["amount_usd"] for x in self._financing_events(when))
         mark = float(self.c[bar]) if price is None else float(price)
+        spread_credit = 0.
+        if self.cfg.execution_price_mode == "bid_ask_v3":
+            mark = self.quote_price(bar, mark, -p.direction, when)
+            spread_credit = p.entry_cost["spread"]
         return float(self.balance + p.direction * p.units * (mark - p.entry_price)
-                     - sum(p.entry_cost.values()) - fin)
+                     - sum(p.entry_cost.values()) + spread_credit - fin)
+
+    def quote_price(self, k, mid, quote_side, time_ns=None):
+        """+1 ask, -1 bid; MID OHLC with bar-open spread unless timestamp supplied."""
+        if quote_side not in (-1, 1):
+            raise ValueError("QUOTE_SIDE")
+        if self.cfg.execution_price_mode == "mid_cash_v2":
+            return float(mid)
+        when = int(self.v[k]) if time_ns is None else int(time_ns)
+        spread = self.cfg.profile.spread_at(when, int(self.mo[int(self.seg_of[k])]))
+        if not math.isfinite(spread) or spread < 0:
+            raise ValueError("QUOTE_SPREAD")
+        return float(mid) + quote_side * spread / 2
+
+    def entry_fill_price(self, k, direction):
+        return self.quote_price(k, self.o[k], direction)
 
     def _margin_level(self, k, at_open=True):
         p = self.pos
         when = int(self.v[k]) + (0 if at_open else H_NS)
         fin = sum(x["amount_usd"] for x in self._financing_events(when))
         threshold = self.cfg.sizing.required_margin(p.units, p.entry_price) * self.cfg.sizing.margin_closeout
+        spread_credit = p.entry_cost["spread"] if self.cfg.execution_price_mode == "bid_ask_v3" else 0.
         return p.entry_price + p.direction * (threshold - self.balance +
-                sum(p.entry_cost.values()) + fin) / p.units
+                sum(p.entry_cost.values()) - spread_credit + fin) / p.units
 
     def _risk_hit(self, k, open_only=False):
         """Nearest adverse barrier first; never assume a favorable OHLC path."""
@@ -262,8 +285,9 @@ class BarEnv:
         margin = self._margin_level(k)
         stop = max(p.sl, margin) if p.direction > 0 else min(p.sl, margin)
         margin_first = stop != p.sl
-        o = self.o[k]
-        hi, lo = (o, o) if open_only else (self.h[k], self.l[k])
+        o = self.quote_price(k, self.o[k], -p.direction)
+        hi, lo = (o, o) if open_only else (self.quote_price(k, self.h[k], -p.direction),
+                                         self.quote_price(k, self.l[k], -p.direction))
         hit = X._protect(p.direction, p.tp, stop, o, hi, lo, self.cfg.profile.limit_through)
         if hit is None:
             return None
@@ -284,16 +308,23 @@ class BarEnv:
                 "commission": units / prof.lot_units * prof.commission_per_lot_side}
 
     def _close(self, k: int, price: float, at_open: bool, reason: str, ambiguous: bool = False,
-               known_close: bool = False):
+               known_close: bool = False, quoted: bool = False):
         p, prof = self.pos, self.cfg.profile
         kind = {"SL": "SL", "TP": "TP", "MARGIN_CLOSEOUT": "SL"}.get(reason, "MARKET")
         entry_ns = int(self.v[p.entry_bar])
         exit_ns = int(self.v[k]) + (0 if at_open else H_NS)
         intrabar = not at_open and not known_close and reason in ("SL", "TP", "MARGIN_CLOSEOUT")
         fc_out = self._fill_cost(p.units, k, kind, int(self.v[k]) if intrabar else exit_ns)
+        quote_mode = self.cfg.execution_price_mode == "bid_ask_v3"
+        if quote_mode and not quoted:
+            price = self.quote_price(k, price, -p.direction, int(self.v[k]) if intrabar else exit_ns)
         events = self._financing_events(exit_ns)
         fin, rolls = sum(x["amount_usd"] for x in events), len(events)
         gross = p.direction * p.units * (price - p.entry_price)
+        quote_gross = gross
+        if quote_mode:
+            # Keep spread attribution without debiting executable quotes twice.
+            gross += p.entry_cost["spread"] + fc_out["spread"]
         entry_cost = sum(p.entry_cost.values())
         exit_cost = sum(fc_out.values()) + fin
         rec = {"block": -1, "segment": p.seg, "direction": p.direction, "units": int(p.units),
@@ -313,6 +344,11 @@ class BarEnv:
                "stop_loss": p.sl, "take_profit": p.tp, "margin_usd": p.units * p.entry_price / self.cfg.sizing.leverage,
                "percentual_order_size": self.cfg.percentual_order_size, "rel_volume": self.cfg.sizing.rel_volume}
         self.trades.append(rec)
+        if quote_mode:
+            rec.update(accounting_version="quote_side_v3", execution_price_mode="bid_ask_v3",
+                       quote_gross_usd=quote_gross, entry_spread_usd=p.entry_cost["spread"],
+                       turnover_usd=p.units * (p.entry_price + price),
+                       notional_usd=p.units * p.entry_price)
         self.balance += rec["net_usd"]
         self.counts["closes"] += 1
         self.counts["close_" + reason] += 1
@@ -331,7 +367,7 @@ class BarEnv:
             hit = self._risk_hit(k, open_only=True)
             if hit is not None:
                 reason, price, at_open, amb = hit
-                self._close(k, float(price), bool(at_open), reason, amb)
+                self._close(k, float(price), bool(at_open), reason, amb, quoted=True)
                 info["close"] = reason
                 self.decisions.append(b)
                 return info
@@ -358,22 +394,25 @@ class BarEnv:
                 ok, why = False, "LEVELS"
             units = None
             if ok:
-                units = self.cfg.sizing.order_units(self.balance, float(self.o[k]), self.cfg.percentual_order_size)
+                units = self.cfg.sizing.order_units(self.balance, self.entry_fill_price(k,want_entry), self.cfg.percentual_order_size)
                 if units is None:
                     ok, why = False, "UNITS"
             if ok:
                 tp, sl, clipped = lv
-                o = float(self.o[k])
+                o = self.entry_fill_price(k,want_entry)
+                liquidation = self.quote_price(k,self.o[k],-want_entry)
                 if not ((sl < o < tp) if want_entry > 0 else (tp < o < sl)):
                     ok, why = False, "GAP_BEYOND_LEVEL"
-                elif min(abs(sl - o), abs(tp - o)) < self.cfg.rules.min_distance:
+                elif not ((sl < liquidation < tp) if want_entry > 0 else (tp < liquidation < sl)):
+                    ok, why = False, "GAP_BEYOND_LEVEL"
+                elif min(abs(sl - o), abs(tp - o),abs(sl-liquidation),abs(tp-liquidation)) < self.cfg.rules.min_distance:
                     ok, why = False, "FILL_DISTANCE"
             if not ok:
                 self.counts["refused_" + why] += 1
                 info["refused"] = why
             else:
                 self.counts["levels_clipped"] += int(clipped)
-                self.pos = Position(want_entry, int(units), k, float(self.o[k]), sl, tp, self.decision_sigma(b),
+                self.pos = Position(want_entry, int(units), k, self.entry_fill_price(k,want_entry), sl, tp, self.decision_sigma(b),
                                     int(self.seg_of[k]), self._fill_cost(units, k, "MARKET"))
                 day = self.business_day(k)
                 self.entries_day[day] = self.entries_day.get(day, 0) + 1
@@ -385,7 +424,7 @@ class BarEnv:
             hit = self._risk_hit(k)
             if hit is not None:
                 reason, price, at_open, amb = hit
-                self._close(k, float(price), bool(at_open), reason, amb)
+                self._close(k, float(price), bool(at_open), reason, amb, quoted=True)
                 info["close"] = reason
         # A rollover at this close can itself breach the margin threshold.
         if self.pos is not None:
@@ -410,11 +449,15 @@ class BarEnv:
     # ------------------------------------------------------------------ results
     def result(self) -> dict:
         self.flatten_at_end()
+        quote_mode = self.cfg.execution_price_mode == "bid_ask_v3"
+        spreads = np.array([self.cfg.profile.spread_at(int(t)+H_NS,int(self.mo[s]))
+                            for t,s in zip(self.v,self.seg_of)]) if quote_mode else None
         res = X._account(self.bars, self.trades, self.split, self.cfg.capital, self.decisions,
                          self.counts["refused_GAP_BEYOND_LEVEL"], orders_submitted=self.counts["entries"],
-                         margin_closeout=self.cfg.sizing.margin_closeout, close_time_equity=True)
+                         margin_closeout=self.cfg.sizing.margin_closeout, close_time_equity=True,
+                         liquidation_spreads=spreads)
         m = dict(res.metrics)
-        m.update(cost_mode=self.cfg.cost_mode, accounting_version="event_costs_v2")
+        m.update(cost_mode=self.cfg.cost_mode, accounting_version="quote_side_v3" if quote_mode else "event_costs_v2")
         m.update({f"n_{k}": int(v) for k, v in self.counts.items()})
         dec_v = self.v[np.asarray(self.decisions, int) + 1] if self.decisions else np.array([], np.int64)
         weeks = {tuple(pd.Timestamp(int(t), tz="UTC").isocalendar()[:2]) for t in dec_v}

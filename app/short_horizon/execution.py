@@ -394,7 +394,7 @@ def _entry_bars(v, lo, hi, cutoff):
 
 
 def _account(bars, trades, split, initial_capital, evaluated, refused, orders_submitted=None, unfilled=0,
-             margin_closeout=0.5, close_time_equity=False):
+             margin_closeout=0.5, close_time_equity=False, liquidation_spreads=None):
     ts = bars.index
     a, b = (pd.Timestamp(x) for x in split)
     sel = np.flatnonzero((ts >= a) & (ts < b))
@@ -427,6 +427,10 @@ def _account(bars, trades, split, initial_capital, evaluated, refused, orders_su
                 cash[at] -= event["amount_usd"]
         if j > i:
             unreal[i:j] = t["direction"] * t["units"] * (close[first + i:first + j] - t["entry_price"])
+            if t.get("execution_price_mode") == "bid_ask_v3":
+                if liquidation_spreads is None:
+                    raise ValueError("LIQUIDATION_SPREADS_REQUIRED")
+                unreal[i:j] += t["entry_spread_usd"] - t["units"] * liquidation_spreads[first+i:first+j] / 2
         in_pos[i:j + 1] = True
         intervals.append((t["entry_time"], t["exit_time"], t["units"]))
     equity = pd.Series(initial_capital + np.cumsum(cash) + unreal, index=mark_ts)
