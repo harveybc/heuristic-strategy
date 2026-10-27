@@ -7,11 +7,11 @@
 set -u
 R=$1; OUT=$R/deap; J=${JOBS_DEAP:-6}; resumed=0; t_ref=$(date +%s)   # stall clock: from the arming / the resume, not from an old ARCHIVE
 log(){ echo "$(date -u +%FT%TZ) [param-watchdog] $*" >> $R/LOG; }
-n0=$(grep -c "DEAP FAILED" $R/LOG)
-log "armed: DEAP FAILED lines so far $n0; stall limit 20 min; one resume with workers - 2"
+n0=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG)
+log "armed: stage failure lines so far $n0; stall limit 20 min; one resume with workers - 2"
 while [ ! -f $OUT/RESULT.json ]; do
   sleep 60
-  n=$(grep -c "DEAP FAILED" $R/LOG)
+  n=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG)
   m=$(stat -c %Y $OUT/ARCHIVE.jsonl 2>/dev/null || echo 0); [ "$m" -lt "$t_ref" ] && m=$t_ref
   age=$(( $(date +%s) - m ))
   running=$(pgrep -fc "strategy_param_deap.py run --subset $OUT/SUBSET.json")
@@ -24,7 +24,7 @@ while [ ! -f $OUT/RESULT.json ]; do
     touch $R/DEAP_GAVE_UP; log "ALERT: second failure after the resume: DEAP_GAVE_UP written, no further resume"; exit 1
   fi
   pkill -TERM -f "strategy_param_deap.py run --subset $OUT/SUBSET.json"; sleep 30
-  J=$(( J > 4 ? J - 2 : 2 )); resumed=1; n0=$(grep -c "DEAP FAILED" $R/LOG); t_ref=$(date +%s)
+  J=$(( J > 4 ? J - 2 : 2 )); resumed=1; n0=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG); t_ref=$(date +%s)
   log "resuming the stage from the checkpoint with $J workers"
   FORCE_START=1 JOBS_DEAP=$J MEM_DEAP=${MEM_DEAP:-15G} CODE=${CODE:-$R/code} JOBS_VERIFY=${JOBS_VERIFY:-10} setsid nohup bash $R/code/tools/clean_round_chain/run_strategy_param_stage.sh $R >> $R/logs/param_stage_resume.log 2>&1 < /dev/null &
 done
