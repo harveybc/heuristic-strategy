@@ -40,7 +40,7 @@ DEFAULT_LEVELS = ("rev800", "rev400", "rev200", "rev100", "rev60", "rev20", "rev
 ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60", "rev20", "rev15"), "fine": ("3", "rev10", "rev8", "rev5")}
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
-PARAMS = {"risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+PARAMS = {"ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
           "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5}
 
 
@@ -56,12 +56,32 @@ def configure(doc: dict):
 
 
 # ----------------------------------------------------------------------------- the ladder quantities (ideal head outputs)
-def level_pivots(h, l, spec: str):
-    """[(bar, PEAK|VALLEY, level)] of one ladder member on a path: reversal ZigZags in pips, the expert MetaTrader ZigZag
-    (Depth 3 / Deviation 40.7 / Backstep 0) for '3'."""
+def _raw_pivots(h, l, spec: str):
     if spec.startswith("rev"):
         return OR.reversal_pivots(h, l, float(spec[3:]) * Z.PIP)[0]
     return Z.hindsight_pivots(h, l, Z.Params(depth=int(spec), deviation_pips=EXPERT.deviation_pips, backstep=EXPERT.backstep))
+
+
+def level_pivots(h, l, spec: str):
+    """[(bar, PEAK|VALLEY, level)] of one ladder member on a path: reversal ZigZags in pips, the expert MetaTrader ZigZag
+    (Depth 3 / Deviation 40.7 / Backstep 0) for '3'. MIRROR-SYMMETRIC: the underlying implementations decide their first
+    pivot asymmetrically (highs are examined before lows), which made rev400 and Depth-3 differ between a path and its
+    exact mirror (behaviour matrix W14); only the pivots found on BOTH the path and its mirror are kept, with the
+    peak / valley alternation restored."""
+    h, l = np.asarray(h, float), np.asarray(l, float)
+    k = 2.0 * float(np.nanmax(h))
+    p1 = _raw_pivots(h, l, spec)
+    p2 = _raw_pivots(k - l, k - h, spec)
+    mirror_bars_kind = {(int(b), -int(kd)) for b, kd, _ in p2}
+    keep = [p for p in p1 if (int(p[0]), int(p[1])) in mirror_bars_kind]
+    out = []
+    for p in keep:
+        if out and int(out[-1][1]) == int(p[1]):                 # restore alternation: keep the more extreme of two same-kind pivots
+            if (int(p[1]) == Z.PEAK and p[2] > out[-1][2]) or (int(p[1]) == Z.VALLEY and p[2] < out[-1][2]):
+                out[-1] = p
+            continue
+        out.append(p)
+    return out
 
 
 def _level_arrays(o, h, l, c, sigma, piv):
@@ -178,6 +198,26 @@ def burst_rows(bars, sigma, row_bar, window: int | None = None, ratio: float | N
     return np.where(ok, flag[np.where(ok, rb, 0)], False)
 
 
+def net_open_margin(view: dict, rows, cells, open_rate: float) -> float:
+    """The pooled open margin on the NET reference (ev_from_net): the (1 - open_rate) quantile, over the calibration rows
+    and both sides, of the best allowed cell's predicted net (risk-reward floor applied) -- the same rule C3 applies to
+    its EV reference."""
+    vals = []
+    for r in np.asarray(rows, np.int64):
+        for si in (0, 1):
+            net = view["net"][r, si]
+            if not np.all(np.isfinite(net)):
+                continue
+            cap, lo = view.get("cap"), view.get("lo")
+            ok = C3.allowed_cells(net, cells, 0.0, C3.RR_MARGIN_SIGMA, float(cap[r]) if cap is not None else float("nan"), float(lo[r]) if lo is not None else float("nan"))
+            if view.get("mae") is not None:
+                m = view["mae"][r, si]
+                ok &= np.where(np.isfinite(m), net >= PARAMS["risk_reward_floor"] * m, True)
+            if ok.any():
+                vals.append(float(np.max(np.where(ok, net, -np.inf))))
+    return float(np.quantile(vals, 1.0 - float(open_rate))) if vals else float("inf")
+
+
 # ----------------------------------------------------------------------------- the policy
 class PolicyC3Z(C3.PolicyC3):
     """C3 + the hierarchy gates and close rule above. ``log`` (per flat decision) and ``closes`` (per positioned check)
@@ -204,7 +244,10 @@ class PolicyC3Z(C3.PolicyC3):
             return -1, float("nan"), "rr_floor_or_band"
         ci = int(np.argmax(np.where(ok, net, -np.inf)))
         tp, sl = float(self.cells[ci][0]), float(self.cells[ci][1])
-        ev = float(p3[0]) * tp - float(p3[1]) * sl + float(p3[2]) * float(self.e_time[si]) - float(cost)
+        if PARAMS["ev_from_net"] >= 0.5:
+            ev = float(net[ci])                                    # the engine net of the chosen cell (every cost inside) ranks the sides
+        else:
+            ev = float(p3[0]) * tp - float(p3[1]) * sl + float(p3[2]) * float(self.e_time[si]) - float(cost)
         return ci, ev, ""
 
     def open_decision(self, r, with_score: bool = False):
@@ -259,7 +302,7 @@ class PolicyC3Z(C3.PolicyC3):
         if not self.s.early_close:
             return False
         rem, psl = self.t["closer"].value(r, bar, pos)
-        mar = self.s.close_margin_l if si == 0 else self.s.close_margin_s
+        mar = max(self.s.close_margin_l if si == 0 else self.s.close_margin_s, PARAMS["close_margin_floor"])   # never close a position worth holding
         p = self.s.close_p_l if si == 0 else self.s.close_p_s
         trig_rem = bool(rem < -mar)
         trig_sl = bool(psl > p and rem < PARAMS["close_p_requires_rem_below"])

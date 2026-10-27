@@ -537,6 +537,8 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     view["risk_burst"] = ZZ.burst_rows(bars, cx.ds.sigma, cx.ds.row_bar)
     if "mae" in table:
         view["mae"] = np.where(keep.reshape(-1, 1, 1), table["mae"], np.nan)
+    if ZZ.PARAMS["ev_from_net"] >= 0.5:                          # the pooled margin on the net reference (same quantile rule as C3)
+        strat = dataclasses.replace(strat, open_margin=ZZ.net_open_margin(view, cal_rows, cells, float(genes["open_rate"])))
     return strat, view, cells
 
 

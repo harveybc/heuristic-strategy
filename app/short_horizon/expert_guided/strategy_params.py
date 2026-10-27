@@ -18,6 +18,8 @@ Keys (quantile genes are mapped to absolute thresholds on the calibration block 
   rr_margin_sigma                 TP < SL cells allowed only when net > cost + this
   confirmation_lag_bars           declared coarse-switch confirmation lag
   open_margin_eps                 an open needs EV > margin + eps (sigma): removes float knife-edges on the quantile sample
+  ev_from_net                     C3Z: rank the sides by the chosen cell's predicted engine net (1) or by the p3 x cell EV (0)
+  close_margin_floor              C3Z: the remaining-value close margin is never below this (a negative mapped margin closed positions worth holding)
   risk_reward_floor               C3Z: a cell is allowed only when its predicted net >= floor x its predicted MAE
   burst_window_bars, burst_vol_ratio   C3Z: no open while realized vol over the window (24 h scale) > ratio x causal sigma
   zz_room_tp_mult                 C3Z: the coarse ZigZag room must pay mult x the cell's TP
@@ -43,7 +45,7 @@ BOUNDS = {
     "v_alpha_s": [0.0, 1.0], "v_beta_s": [-1.0, 1.0], "v_gamma_s": [0.0, 1.0], "v_delta_s": [0.0, 1.0], "v_min": [0.0, 0.5],
     "risk_pct": [0.0025, 0.03], "entry_cutoff_hours": [4.0, 48.0], "max_entries_per_day": [1, 6], "rr_margin_sigma": [0.0, 0.5],
     "confirmation_lag_bars": [24, 480], "open_margin_eps": [0.0, 1e-3],
-    "risk_reward_floor": [0.0, 3.0], "burst_window_bars": [2, 48], "burst_vol_ratio": [1.2, 6.0], "zz_room_tp_mult": [0.0, 3.0], "zz_fine_h": [1, 48],
+    "ev_from_net": [0.0, 1.0], "close_margin_floor": [0.0, 2.0], "risk_reward_floor": [0.0, 3.0], "burst_window_bars": [2, 48], "burst_vol_ratio": [1.2, 6.0], "zz_room_tp_mult": [0.0, 3.0], "zz_fine_h": [1, 48],
     "zz_timing_gate": [0.0, 1.0], "zz_nop_gate": [0.0, 1.0], "zz_close_room": [-2.0, 5.0], "close_p_requires_rem_below": [-1.0, 1.0], "zz_theta_f": [0.0, 1.0],
 }
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
@@ -56,7 +58,7 @@ DEFAULTS = {
     "v_alpha_l": 1.0, "v_beta_l": 0.0, "v_gamma_l": 0.0, "v_delta_l": 0.0, "v_alpha_s": 1.0, "v_beta_s": 0.0, "v_gamma_s": 0.0, "v_delta_s": 0.0, "v_min": 0.0,
     "risk_pct": 0.01, "entry_cutoff_hours": 24.0, "max_entries_per_day": 4, "rr_margin_sigma": 0.10, "confirmation_lag_bars": 120,
     "tp_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "sl_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "open_margin_eps": 1e-6,
-    "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+    "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
     "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5,
 }
 

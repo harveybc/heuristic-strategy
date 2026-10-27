@@ -593,12 +593,12 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
         import re as _re
         import zlib
         base_id = _re.sub(r"^(M_|S_)+", "", leaf["id"])
-        bars, meta = synthetic_path_ms(ds.bars.index, base_sd, leaf["ms"], zlib.crc32(base_id.encode()) & 0xFFFF, period_bars(ds, calendar_period), mirror=bool(leaf.get("mirror")))
+        bars, meta = synthetic_path_ms(ds.bars.index, base_sd, leaf["ms"], (zlib.crc32(base_id.encode()) & 0xFFFF) + 7919 * int(seed), period_bars(ds, calendar_period), mirror=bool(leaf.get("mirror")))
     elif leaf.get("legs"):
         import zlib
         import re as _re
         base_id = _re.sub(r"^(M_|S_)+", "", leaf["id"])                       # the twins share the base cell's generator seed: an EXACT mirror
-        seed_v2 = zlib.crc32(base_id.encode()) & 0xFFFF
+        seed_v2 = (zlib.crc32(base_id.encode()) & 0xFFFF) + 7919 * int(seed)   # the run seed varies the path (twins run seed 0 = the base cell's seed 0)
         block = period_bars(ds, calendar_period)
         bars, meta = synthetic_path_v2(ds.bars.index, base_sd, tuple(leaf["legs"]), leaf["vol"], leaf["fine"], seed_v2, block, leaf.get("switch_fracs") or None,
                                        leaf.get("persistence"), mirror=bool(leaf.get("mirror")), strength=leaf.get("strength", "medium"), jump=leaf.get("jump"),
