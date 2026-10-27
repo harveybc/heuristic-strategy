@@ -79,7 +79,7 @@ WITNESS_SPEC = {
            "rule": "a v2 form is admitted only in the cells where the TRUTH ORACLE fails the sealed form; everywhere else the sealed form governs; both verdicts are reported",
            "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
-WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c) early closes >= O*'s early closes there",
+WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c') every strategy trade alive in the window: O*'s exit rule (close when A(t) >= -EPS_CLOSE) replayed on that SAME trade; wherever it closes the trade inside the window, the strategy early-closed it inside the window or earlier at a tick with A(t) >= -EPS_CLOSE; zero misses",
                       "rule": "admitted where VALIDITY_SPEC admits a corrected form for W8_early_close_at_switch (DEFECT, SEALED_UNVALIDATED or REPLAY_CONFLICT); it replaces v2 for that witness"}
 TIMING_EXIT_WITNESSES = ("W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W8_early_close_at_switch")
 VALIDITY_SPEC = {
@@ -92,6 +92,10 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-27T14:45Z (coordinator ruling)", "witness": "W8_early_close_at_switch_v3 condition (c) -> (c')",
+     "defect": "(c) count compared O*'s own trades; replaced by a same-trade replay",
+     "evidence": "v10: B_trans_up_down_early s1, B_trans_up_pause_up_late s1, B_trans_up_range_early s1, S_ / M_B_trans_down_range_middle s0 failed (c) with every in-window exit a TP fill whose best earlier close had A between -0.088 and -0.248 sigma (nothing the strategy could close without a destructive close) while O* early-closed 1-2 of ITS OWN, different trades in the window",
+     "effect": "(c'): O*'s exit rule replayed on each strategy trade alive in the window; zero misses; (a) and (b) unchanged; re-sealed (new SPEC_V3_SHA); v10 records keep the count form (they carry trades but not the per-tick A paths, so (c') cannot be recomputed from them)"},
     {"when": "2026-10-27T12:40Z (coordinator ruling; E4 wins a demonstrated conflict)", "witness": "W8_early_close_at_switch -> v3 (stronger than v2), and the VALIDITY_SPEC (vacuous controls)",
      "defect": "the sealed W8 (early-close share in the switch window >= before) can only be met by closing TP-bound trades early at A(t) well below -EPS_CLOSE, which the sealed E4 forbids; the hold oracle passes the sealed W8 only vacuously (0 early closes before and after)",
      "evidence": "engine replay at the canonical point, every in-window exit that is not early is a TP fill: B_trans_up_range_late s0 BUY 6969-7058 TP +2.52 sigma, best earlier A -0.197; B_trans_down_range_middle s0 SELL 4618-4712 TP +2.53, best A -0.106; "
@@ -146,6 +150,8 @@ RUN_HISTORY = [
     {"run": "v10 (2026-10-27)", "note": "canonical point changed in STRATEGY_PARAMS (no code change; every key is already in the DEAP genome): allow_reverse 0 (a close, then a fresh open; the 13-26 reversals per world all fell outside the switch windows), zz_counter_net_frac 1.2 (the strong-net exception against the coarse leg no longer fires), zz_room_tp_mult 1.75 (the coarse room must pay 1.75 x TP). Local check on 23 worlds at perfect heads (W witnesses, no exit layer), bracketed by room 1.5 / 2.0: failing worlds 14 -> 10 / 9, every W1 / W5 / W8-old failure gone at 1.75, mean daily Sharpe 10.41 -> 10.47 / 10.39, mean net -18 % (the reversals were profitable). Left: W8 early close at the switch (each in-window exit that is not early is a TP fill whose every earlier close had A(t) between -0.11 and -0.50 sigma: closing it early is a destructive close under the sealed E4) and W7 best cell 0.69 in one H3 world"},
     {"run": "v10 restart (2026-10-27T12:39Z)", "note": "the re-sealed spec v3 (W8 switch v3, VALIDITY_SPEC: vacuous control passes do not validate, O* as a second control for the timing / exit witnesses) needs the O* witnesses and the W8 replay in every record; the 36 records run 12:19-12:30Z lacked them and were re-run (kept as results_v10_pre_rule_superseded). allow_reverse = 0 stays in the canonical point to avoid a third full rerun: it REMOVED PROFITABLE REVERSALS (net -18 %, Sharpe unchanged on the 23-world check); it remains a DEAP gene, and justified reversals can now pass W5 non-vacuously where O* validates it"},
     {"run": "v10 tie fix (2026-10-27T14:30Z)", "note": "mirror defect found by v9 / v10 (E6 in 7 / 10 mirror records, W14 in 2 / 4): equal engine nets of two cells differ by float rounding between a world and its exact mirror (1.0 vs 0.9999999999999922 at B_trend_trend_down_strong row 8151), so np.argmax chose SL 0.75 in one world and SL 0.5 in the other; every cell choice (C3 best_cell_ev, C3Z side_choice and forced entry, the episode envelope, the truth oracle) now resolves ties within 1e-9 sigma by the declared grid order (C3.argmax_cell). Records carry strategy_code_sha256; those before the fix are kept as defect discovery"},
+    {"run": "mirror tie fix accepted (coordinator 2026-10-27)", "note": "d57c462 accepted WITHOUT a DEAP restart as an explicit exception, not a precedent: it only breaks exact ties (within 1e-9 sigma) by the grid order; the re-verification runs on the fixed code; any other strategy-code change restarts the DEAP"},
+    {"run": "v3 (c') re-seal (2026-10-27T14:45Z)", "note": "W8 switch v3 condition (c) replaced by the same-trade replay (c') before the DEAP-point re-verification; v10 canonical records keep the count form (no per-tick A paths stored)"},
     {"run": "v6 ZigZag", "note":"production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
 ]
 KNOWN_TEST_FAILURES = [   # failed before the v10 / v3 changes, listed by name and cause (coordinator 2026-10-27: never hidden); all FIXED the same day (status)
@@ -1484,41 +1490,53 @@ def attach_events(out: dict, roll: dict, world: dict) -> None:
 
 
 def w8_switch_v3(world: dict, roll: dict, sroll: dict, closer) -> dict:
-    """W8_early_close_at_switch_v3 (coordinator ruling 2026-10-27, admitted only by VALIDITY_SPEC): in every window
+    """W8_early_close_at_switch_v3 (coordinator rulings 2026-10-27; admitted only by VALIDITY_SPEC), per window
     [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every
-    earlier held tick (O* would also have held it); (c) early closes >= O*'s early closes there. ``conflict_shown``:
-    the window holds at least one non-early exit and (b) holds, i.e. meeting the sealed form means a destructive close
-    under the sealed E4."""
+    earlier held tick (O* would also have held it); (c') for EVERY strategy trade alive in the window, O*'s exit rule
+    (close when A(t) >= -EPS_CLOSE) is replayed on that SAME trade: wherever it closes the trade inside the window, the
+    strategy early-closed it inside the window, or earlier at a tick with A(t) >= -EPS_CLOSE; zero misses.
+    ``conflict_shown``: the window holds at least one non-early exit and (b) holds, i.e. meeting the sealed form means a
+    destructive close under the sealed E4. (``sroll`` is no longer read: the count form of (c) compared O*'s own trades.)"""
     sw = (world.get("meta") or {}).get("switch_bars") or []
     pp = roll.get("positions") or {}
-    sl_n, held_ok, n_non_early, early_s, early_o, rows = 0, True, 0, 0, 0, []
+    closes = roll.get("closes") or []
+    sl_n, held_ok, n_non_early, rows, misses, n_alive = 0, True, 0, [], [], 0
     for s_ in sw:
-        win = [t for t in roll["trades"] if s_ <= int(t["exit_bar_abs"]) < s_ + LAG]
-        early_s += sum(1 for t in win if t["exit_reason"] == "EARLY")
-        early_o += sum(1 for t in sroll["trades"] if s_ <= int(t["exit_bar_abs"]) < s_ + LAG and t["exit_reason"] == "EARLY")
-        for t in win:
-            if t["exit_reason"] == "SL":
-                sl_n += 1
-            if t["exit_reason"] == "EARLY":
-                continue
-            n_non_early += 1
+        w0, w1 = int(s_), int(s_) + LAG
+        for t in roll["trades"]:
+            eb, xb = int(t["entry_bar_abs"]), int(t["exit_bar_abs"])
             si = 0 if int(t["direction"]) > 0 else 1
-            pos = pp.get((int(t["entry_bar_abs"]), si))
-            best = float("nan")
-            if pos is not None:
-                path = closer.path(pos)
-                aa = [S.path_advantage(path, b) for b in range(int(t["entry_bar_abs"]), int(t["exit_bar_abs"]))]
-                aa = [x for x in aa if np.isfinite(x)]
-                best = float(max(aa)) if aa else float("nan")
-            ok = bool(np.isfinite(best) and best < -EPS_CLOSE)
-            held_ok &= ok
-            rows.append({"switch": int(s_), "entry": int(t["entry_bar_abs"]), "exit": int(t["exit_bar_abs"]), "reason": t["exit_reason"], "side": "BUY" if si == 0 else "SELL",
-                         "best_A_of_an_earlier_close_sigma": best, "Ostar_would_hold": ok})
+            pos = pp.get((eb, si))
+            path = closer.path(pos) if pos is not None else None
+            adv = (lambda b: S.path_advantage(path, b)) if path is not None else (lambda b: float("nan"))
+            if w0 <= xb < w1:                                          # (a) / (b): the exits in the window
+                if t["exit_reason"] == "SL":
+                    sl_n += 1
+                if t["exit_reason"] != "EARLY":
+                    n_non_early += 1
+                    aa = [adv(b) for b in range(eb, xb)]
+                    aa = [x for x in aa if np.isfinite(x)]
+                    best = float(max(aa)) if aa else float("nan")
+                    ok = bool(np.isfinite(best) and best < -EPS_CLOSE)
+                    held_ok &= ok
+                    rows.append({"switch": w0, "entry": eb, "exit": xb, "reason": t["exit_reason"], "side": "BUY" if si == 0 else "SELL",
+                                 "best_A_of_an_earlier_close_sigma": best, "Ostar_would_hold": ok})
+            if eb < w1 and xb > w0:                                    # (c'): every trade alive in the window, O*'s rule on the same trade
+                n_alive += 1
+                tau = next((b for b in range(eb, xb) if np.isfinite(adv(b)) and adv(b) >= -EPS_CLOSE), None)
+                if tau is None or not (w0 <= tau < w1):
+                    continue
+                dec = [int(c[1]) for c in closes if int(c[2]) == si and c[5] and eb <= int(c[1]) < xb]
+                dt = min(dec) if (dec and t["exit_reason"] == "EARLY") else None
+                ok_c = dt is not None and ((w0 <= dt < w1) or (dt < w0 and np.isfinite(adv(dt)) and adv(dt) >= -EPS_CLOSE))
+                if not ok_c:
+                    misses.append({"switch": w0, "entry": eb, "exit": xb, "reason": t["exit_reason"], "side": "BUY" if si == 0 else "SELL", "Ostar_close_tick": int(tau), "strategy_close_tick": dt})
     n_win = sum(1 for s_ in sw for t in roll["trades"] if s_ <= int(t["exit_bar_abs"]) < s_ + LAG)
-    return {"value": {"sl_exits_in_window": sl_n, "non_early_exits": rows, "early_closes_in_window": early_s, "Ostar_early_closes_in_window": early_o},
-            "threshold": "(a) 0 SL exits in [switch, switch + lag]; (b) every non-early exit there had A(t) < -EPS_CLOSE at every earlier held tick; (c) early closes there >= O*'s",
-            "pass": bool(sl_n == 0 and held_ok and early_s >= early_o), "conflict_shown": bool(n_non_early > 0 and held_ok), "events": n_win,
-            "desc": "corrected form v3 (coordinator ruling 2026-10-27; E4 wins the demonstrated conflict): admitted only where VALIDITY_SPEC admits a corrected form"}
+    return {"value": {"sl_exits_in_window": sl_n, "non_early_exits": rows, "trades_alive_in_window": n_alive, "Ostar_same_trade_misses": misses},
+            "threshold": "(a) 0 SL exits in [switch, switch + lag]; (b) every non-early exit there had A(t) < -EPS_CLOSE at every earlier held tick; "
+                         "(c') every trade alive in the window that O*'s rule (A >= -EPS_CLOSE) closes inside it was early-closed by the strategy inside it or earlier at A >= -EPS_CLOSE: 0 misses",
+            "pass": bool(sl_n == 0 and held_ok and not misses), "conflict_shown": bool(n_non_early > 0 and held_ok), "events": n_win, "form": "v3c'",
+            "desc": "corrected form v3 with the same-trade (c') (coordinator rulings 2026-10-27; E4 wins the demonstrated conflict): admitted only where VALIDITY_SPEC admits a corrected form"}
 
 
 def validity(wit: dict, hold: dict, ostar: dict | None) -> dict:

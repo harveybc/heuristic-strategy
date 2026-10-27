@@ -253,3 +253,27 @@ def test_spec_v3_is_resealed_with_the_validity_rule():
     import hashlib
     assert BM.SPEC_V3_SHA == hashlib.sha256(json.dumps(doc, sort_keys=True).encode()).hexdigest()
     assert any("v3" in x["witness"] and "-0.497" in x["evidence"] for x in BM.WITNESS_CHANGELOG)
+
+
+def test_w8_switch_v3_c_prime_replays_ostar_on_the_same_trade():
+    """(c') coordinator ruling 2026-10-27: O*'s exit rule replayed on each strategy trade alive in the window; a trade O*
+    would close inside the window must have been early-closed by the strategy there (or earlier at A >= -EPS_CLOSE)."""
+    import types
+    lag = BM.LAG
+    sw = 1000
+    # one LONG trade alive across the switch; its path peaks at bar sw + 5 (O* closes there: A >= -EPS_CLOSE)
+    bars = np.arange(990, sw + 40)
+    P = np.where(bars <= sw + 5, (bars - 990) * 1.0, (sw + 5 - 990) - (bars - sw - 5) * 2.0)
+    path = {"bars": bars, "P": P.astype(float), "hold_net": float(P[-1] - 5), "units": 1, "sigma": 1.0}
+    closer = types.SimpleNamespace(path=lambda pos: path)
+    world = {"meta": {"switch_bars": [sw]}}
+    trade = lambda reason, xb: {"entry_bar_abs": 990, "exit_bar_abs": xb, "direction": 1, "exit_reason": reason}  # noqa: E731
+    pos = {(990, 0): object()}
+    held = {"trades": [trade("TIME", sw + 40)], "positions": pos, "closes": []}
+    r = BM.w8_switch_v3(world, held, None, closer)
+    assert not r["pass"] and len(r["value"]["Ostar_same_trade_misses"]) == 1      # O* closes at sw + 5, the strategy held: a miss
+    closed = {"trades": [trade("EARLY", sw + 6)], "positions": pos, "closes": [(0, sw + 5, 0, 0.0, 0.0, True)]}
+    r = BM.w8_switch_v3(world, closed, None, closer)
+    assert r["pass"] and not r["value"]["Ostar_same_trade_misses"] and r["value"]["trades_alive_in_window"] == 1
+    late = {"trades": [trade("EARLY", sw + lag + 3)], "positions": pos, "closes": [(0, sw + lag + 2, 0, 0.0, 0.0, True)]}
+    assert not BM.w8_switch_v3(world, late, None, closer)["pass"]                 # closed only after the window: a miss
