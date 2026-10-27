@@ -20,7 +20,7 @@ def test_gene_bounds_per_family():
 
 
 def _strategy(tp="param", vol="param", **over):
-    g = {"open_margin_l": -9, "open_margin_s": -9, "close_margin_l": 9, "close_margin_s": 9, "close_p_l": 2, "close_p_s": 2, "allow_reverse": 0.0, "nop_veto": 9,
+    g = {"open_margin": -9, "close_margin_l": 9, "close_margin_s": 9, "close_p_l": 2, "close_p_s": 2, "allow_reverse": 0.0, "nop_veto": 9,
          "observe_bars": 0.0, "tp_a_l": 1.0, "tp_b_l": 0.5, "sl_c_l": 1.0, "sl_e_l": 1.0, "tp_a_s": 0.75, "tp_b_s": 0.0, "sl_c_s": 0.75, "sl_e_s": 0.0,
          "v_alpha_l": 0.5, "v_beta_l": 0.5, "v_gamma_l": 0.5, "v_delta_l": 0.5, "v_alpha_s": 0.2, "v_beta_s": 0.0, "v_gamma_s": 0.0, "v_delta_s": 0.0, "v_min": 0.1}
     g.update(over)
@@ -59,7 +59,7 @@ def test_param_volume_formula_and_v_min():
     # short side: alpha 0.2 only -> v 0.2 >= v_min 0.1 -> order; with v_min 0.3 the short order is refused
     o = pol.open_decision_full(0, None, None)
     assert o is not None and o[1] == E.LONG and 0 < o[4] <= 1.0
-    s3 = _strategy(v_min=0.3, open_margin_l=9.0)          # long blocked by the margin, short's v 0.2 < v_min -> no order
+    s3 = _strategy(v_min=0.3, open_margin=9.0)            # both sides blocked by the pooled margin -> no order
     assert SF.PolicyFull(_table(), s3, C3.CELLS, (0.0, 0.0), 0.1).open_decision_full(0, None, None) is None
 
 
@@ -71,9 +71,9 @@ def test_strategy_round_trip_and_gene_map_copies_coefficients():
     bounds = SF.gene_bounds("param", "param")
     rules = {k: (k, None, "copy") for k in bounds if k not in SF.THRESHOLD_GENES}
     from app.short_horizon.expert_guided import action_contract as ACT
-    gm = ACT.GeneMap({"x": np.arange(10.0)}, {"open_margin_l": ("open_rate_l", "x", "upper_rate"), **rules})
-    out = gm.to_absolute({"open_rate_l": 0.1, "tp_a_l": 1.3, "v_min": 0.2, "observe_bars": 2.0})
-    assert out["tp_a_l"] == 1.3 and out["v_min"] == 0.2 and out["observe_bars"] == 2.0 and out["open_margin_l"] == pytest.approx(np.quantile(np.arange(10.0), 0.9))
+    gm = ACT.GeneMap({"x": np.arange(10.0)}, {"open_margin": ("open_rate", "x", "upper_rate"), **rules})
+    out = gm.to_absolute({"open_rate": 0.1, "tp_a_l": 1.3, "v_min": 0.2, "observe_bars": 2.0})
+    assert out["tp_a_l"] == 1.3 and out["v_min"] == 0.2 and out["observe_bars"] == 2.0 and out["open_margin"] == pytest.approx(np.quantile(np.arange(10.0), 0.9))
 
 
 class _Env:

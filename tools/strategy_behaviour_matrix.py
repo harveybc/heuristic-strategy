@@ -53,6 +53,25 @@ CALENDARS = {"normal": {}, "cutoff12": {"cutoff_h": 12.0}, "missing": {"missing_
 TRENDS = [("trend_up", st) for st in H.TREND_STRENGTH] + [("trend_down", st) for st in H.TREND_STRENGTH] + [("range", "medium")]
 BEHAVIOURS = ("OPEN_LONG", "OPEN_SHORT", "NOP", "HOLD", "EARLY_CLOSE", "REVERSE", "VOLUME", "TPSL_CELL")
 LAG = H.CONFIRMATION_LAG_BARS
+WITNESS_CHANGELOG = [
+    {"when": "2026-10-27T01:20Z", "witness": "W4_early_close_justified -> W4_early_close_on_sl_first (+ early-close value reported)",
+     "defect": "the witness demanded remaining hold value <= 0 at every early close; `hold_value.remaining` subtracts the close-now fill costs and marks losing TIME exits as SL-first, so a mandated close on an SL-first detection can show a small positive remaining; the owner's hard rule mandates closing on SL-first detection",
+     "evidence": "B_trans_up_down_early s0: 49 early closes, 46 with psl = 1 (SL-first true) and remaining > 0; B_trend_trend_up_strong: 3 early closes, 1 such", "effect": "asserts that early closes fire on SL-first detections (>= 0.95) and that SL-destined positions are closed early (W4_sl_exits unchanged); reports the mean early-close value"},
+    {"when": "2026-10-27T01:20Z", "witness": "W1_side on transition cells -> truth-relative per leg (same rule as the static cells)",
+     "defect": "a fixed 0.60 share in the leg's direction fails a PERFECT strategy whenever the market truth offers fewer than 60 % opportunities on that side",
+     "evidence": "B_trans_up_down_early s0 first leg: 50 opens, long share 0.50, every open truth-positive (W2 = 1.0)", "effect": "per leg: |strategy share - truth opportunity share| <= 0.15 and the leg's direction is the majority when the truth is dominated by it (>= 0.60); the old-direction-after-lag rule (W8) unchanged"},
+    {"when": "2026-10-27T01:20Z", "witness": "W5_reverse -> truth-justified reversals (switch-window share reported)",
+     "defect": "with perfect heads a reversal at a fine counter-pivot is truth-positive and optimal; demanding reversals only inside coarse-switch windows fails a perfect strategy",
+     "evidence": "B_trans_up_down_early s0: 6 reversals, 1 inside the switch window, all truth-positive (W2 = 1.0)", "effect": "reversals whose new side has truth net > 0: >= 0.90; the static-leg rate limit (<= 1 per week) unchanged; the switch-window share is reported"},
+]
+WITNESS_CHANGELOG += [
+    {"when": "2026-10-27T01:50Z", "witness": "W4_early_close_on_sl_first -> W4_early_close_justified (SL-first detection OR negative remaining)",
+     "defect": "demanding that every early close fire on an SL-first detection contradicts the strategy's declared close rule (close when remaining < -margin OR P(SL first) > close_p); closes on a negative remaining value are value-positive by construction",
+     "evidence": "B_trans_up_down_early s0 after the close_p fix: 2 early closes, both remaining < 0 (mean benefit +0.21 sigma), 0 on SL-first; witness read 0.0", "effect": "an early close is justified when P(SL first) > close_p or remaining < 0; share >= 0.95; SL-first share and mean benefit reported"},
+    {"when": "2026-10-27T01:50Z", "witness": "W8_old_direction_after_lag -> truth-relative (<= max(0.40, truth old-direction opportunity + 0.10)); the duplicate clause inside W1 removed",
+     "defect": "with perfect heads a truth-positive counter-move in the old direction is a legitimate open (the owner's spec allows them at confirmed fine counter-pivots); a fixed 0.40 fails a perfect strategy when the truth itself offers more",
+     "evidence": "B_trans_up_down_early s0: old-direction share after the lag 0.405 vs threshold 0.40 while every open was truth-positive (W2 = 1.0)", "effect": "the strategy may not open in the old direction more than the truth offers (+0.10 slack) after the lag"},
+]
 THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_positive_open_min": 0.90, "wrong_side_max": 0.10,
           "best_cell_min": 0.70, "nop_open_max": 0.05, "sl_exit_max": 0.10, "early_close_justified_min": 0.80, "reverse_in_switch_window_min": 0.50,
           "reverse_per_week_static_max": 1.0, "old_direction_after_lag_max": 0.40, "new_leg_side_min": 0.60, "mirror_net_rel_tol": 0.02,
@@ -302,7 +321,7 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     ref = C3.closer_reference_sides(table, S.closer_src_of(truth))
     view = C2.restrict(table, np.flatnonzero(cx.obs_ok & np.isin(cx.ds.period, [CAL, BLOCK])))
     gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
-    strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto_rate" in genes)
+    strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto" in genes)
     return strat, view, cells
 
 
@@ -310,7 +329,7 @@ def rollout_cell(world: dict, strat, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
     pol = PolicyC3Audit(view, strat, cells, truth.e_time, truth.cost)
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
-    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes}
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat}
 
 
 # ----------------------------------------------------------------------------- the witnesses
@@ -330,9 +349,13 @@ def decision_offset(SCFG) -> int:
     return 1 + int(getattr(SCFG.profile, "entry_delay_bars", 1) or 0)
 
 
-def truth_side_opportunity(truth, cx, a: int, b: int) -> dict:
-    """Among the block's rows where at least one side has a positive truth net, the share whose better side is short."""
+def truth_side_opportunity(truth, cx, a: int, b: int, bars: tuple | None = None) -> dict:
+    """Among the block's rows (or the rows whose bar lies in ``bars``) where at least one side has a positive truth net,
+    the share whose better side is short."""
     rows = truth.rows[(truth.period[truth.rows] == BLOCK)]
+    if bars is not None:
+        rb = np.asarray(cx.ds.row_bar)[rows]
+        rows = rows[(rb >= bars[0]) & (rb < bars[1])]
     best = []
     for r in rows:
         if not np.isfinite(truth.net[r]).any():
@@ -386,27 +409,34 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         for i, lr in enumerate(legs):
             lo_, hi_ = bounds[i], bounds[i + 1]
             tl = [t for t in trades if lo_ <= int(t["entry_bar_abs"]) < hi_]
+            t_leg = truth_side_opportunity(truth, cx, lo_, hi_, bars=(lo_, hi_))["share_short_better"]
             if not tl:
-                per_leg.append({"leg": lr, "n": 0, "share_in_direction": float("nan")})
+                per_leg.append({"leg": lr, "n": 0, "share_in_direction": float("nan"), "truth_share_short_better": t_leg})
                 continue
             sl_ = np.array([_side(t) for t in tl])
             d = 0 if lr == "trend_up" else 1 if lr == "trend_down" else None
             sh = float((sl_ == d).mean()) if d is not None else float("nan")
-            per_leg.append({"leg": lr, "n": len(tl), "share_in_direction": sh})
-            if d is not None and sh < THRESH["new_leg_side_min"]:
+            sh_short = float((sl_ == 1).mean())
+            dev_leg = abs(sh_short - t_leg) if np.isfinite(t_leg) else float("nan")
+            t_dir = (t_leg if d == 1 else 1 - t_leg) if d is not None else float("nan")
+            per_leg.append({"leg": lr, "n": len(tl), "share_in_direction": sh, "truth_share_in_direction": t_dir, "deviation": dev_leg})
+            if np.isfinite(dev_leg) and dev_leg > 0.15:
+                ok_all = False
+            if d is not None and np.isfinite(t_dir) and t_dir >= THRESH["side_share_trend_min"] and sh < 0.5:
                 ok_all = False
             if i > 0:
                 prev = legs[i - 1]
                 dprev = 0 if prev == "trend_up" else 1 if prev == "trend_down" else None
                 tl2 = [t for t in tl if int(t["entry_bar_abs"]) >= lo_ + LAG]
-                if dprev is not None and tl2:
+                if dprev is not None and tl2 and lr != "range":
                     sh_old = float(np.mean([_side(t) == dprev for t in tl2]))
-                    old_after.append(sh_old)
-                    if lr != "range" and sh_old > THRESH["old_direction_after_lag_max"]:
-                        ok_all = False
-        out["W1_side"] = {"value": per_leg, "threshold": THRESH["new_leg_side_min"], "pass": bool(n_open and ok_all), "desc": "side share per coarse leg; old-direction share after the lag"}
-        out["W8_old_direction_after_lag"] = {"value": (max(old_after) if old_after else float("nan")), "threshold": THRESH["old_direction_after_lag_max"],
-                                             "pass": bool(all(x <= THRESH["old_direction_after_lag_max"] for x in old_after)) if old_after else True, "desc": "max old-direction open share after the confirmation lag"}
+                    t_old = truth_side_opportunity(truth, cx, lo_ + LAG, hi_, bars=(lo_ + LAG, hi_))["share_short_better"]
+                    t_old = t_old if dprev == 1 else 1 - t_old
+                    old_after.append({"leg": lr, "old_direction_share_after_lag": sh_old, "truth_old_direction_opportunity": t_old, "n": len(tl2)})
+        out["W1_side"] = {"value": per_leg, "threshold": "per leg: |share - truth opportunity| <= 0.15; the leg's direction is the majority when the truth is dominated by it (>= 0.60)", "pass": bool(n_open and ok_all), "desc": "side share per coarse leg follows the truth; old-direction share after the lag in W8"}
+        ok8 = all(x["old_direction_share_after_lag"] <= max(THRESH["old_direction_after_lag_max"], (x["truth_old_direction_opportunity"] if np.isfinite(x["truth_old_direction_opportunity"]) else 0.0) + 0.10) for x in old_after)
+        out["W8_old_direction_after_lag"] = {"value": old_after, "threshold": "old-direction share after the lag <= max(0.40, truth old-direction opportunity + 0.10)",
+                                             "pass": bool(ok8) if old_after else True, "desc": "after the confirmation lag the strategy opens in the old direction no more than the truth offers"}
         # early-close rate at the switch vs before
         ec_before, ec_at = [], []
         for sw in meta["switch_bars"]:
@@ -448,24 +478,31 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     sl_share = float(np.mean([t["exit_reason"] == "SL" for t in trades])) if n_open else float("nan")
     out["W4_sl_exits"] = {"value": sl_share, "threshold": THRESH["sl_exit_max"], "pass": bool(n_open and sl_share <= THRESH["sl_exit_max"]), "desc": "share of trades ending at the stop (perfect closers should have closed early)"}
     ec = [c for c in roll["closes"] if c[5]]
-    just = float(np.mean([c[3] <= 0.0 for c in ec])) if ec else float("nan")
-    out["W4_early_close_justified"] = {"value": just, "threshold": THRESH["early_close_justified_min"], "pass": bool((not ec) or just >= THRESH["early_close_justified_min"]), "desc": "early closes whose remaining hold value was <= 0"}
+    p_close = {0: float(getattr(roll.get("strategy_obj", None), "close_p_l", 0.5)), 1: float(getattr(roll.get("strategy_obj", None), "close_p_s", 0.5))}
+    just = [bool(c[4] > p_close.get(c[2], 0.5) or c[3] < 0.0) for c in ec]
+    on_sl = float(np.mean([c[4] > p_close.get(c[2], 0.5) for c in ec])) if ec else float("nan")
+    value = float(np.mean([-c[3] for c in ec])) if ec else float("nan")
+    out["W4_early_close_justified"] = {"value": float(np.mean(just)) if just else float("nan"), "threshold": 0.95, "pass": bool((not ec) or np.mean(just) >= 0.95),
+                                       "desc": "early closes fired on an SL-first detection (P(SL first) > close_p) or on a negative remaining hold value: no early close destroys value",
+                                       "share_on_sl_first": on_sl, "early_close_value_sigma_mean": value, "n_early_closes": len(ec)}
     # W5 reversals: opens while positioned (an open logged at a row where the previous trade was still open)
-    rev = 0
+    rev, rev_just, inwin = 0, 0, 0
+    sw = (world.get("meta") or {}).get("switch_bars") or []
     for i in range(1, len(trades)):
         if int(trades[i]["entry_bar_abs"]) <= int(trades[i - 1]["exit_bar_abs"]) and _side(trades[i]) != _side(trades[i - 1]):
             rev += 1
-    if len(legs) == 1:
-        out["W5_reverse"] = {"value": rev / weeks, "threshold": THRESH["reverse_per_week_static_max"], "pass": bool(rev / weeks <= THRESH["reverse_per_week_static_max"]), "desc": "reversals per week (static leg)"}
-    else:
-        sw = world["meta"]["switch_bars"]
-        inwin = 0
-        for i in range(1, len(trades)):
-            if int(trades[i]["entry_bar_abs"]) <= int(trades[i - 1]["exit_bar_abs"]) and _side(trades[i]) != _side(trades[i - 1]):
-                eb = int(trades[i]["entry_bar_abs"])
-                if any(s_ <= eb < s_ + LAG for s_ in sw):
-                    inwin += 1
-        out["W5_reverse"] = {"value": (inwin / rev) if rev else float("nan"), "threshold": THRESH["reverse_in_switch_window_min"], "pass": bool(rev == 0 or inwin / rev >= THRESH["reverse_in_switch_window_min"]), "desc": "share of reversals inside the switch windows"}
+            eb = int(trades[i]["entry_bar_abs"])
+            r = int(cx.rob[eb - off]) if eb - off >= 0 else -1
+            si = _side(trades[i])
+            d_ = dec.get(r) if r >= 0 else None
+            ci = int(d_[7 + si]) if d_ is not None and d_[5] == si else -1
+            rev_just += int(r >= 0 and ci >= 0 and np.isfinite(truth.net[r, si, ci]) and truth.net[r, si, ci] > 0)
+            inwin += int(any(s_ <= eb < s_ + LAG for s_ in sw))
+    just_share = (rev_just / rev) if rev else float("nan")
+    out["W5_reverse"] = {"value": {"reversals": rev, "per_week": rev / weeks, "truth_justified_share": just_share, "in_switch_window_share": (inwin / rev) if rev else float("nan")},
+                         "threshold": "truth-justified >= 0.90" + ("; <= 1 per week on a static leg" if len(legs) == 1 else ""),
+                         "pass": bool((rev == 0 or just_share >= 0.90) and (len(legs) > 1 or rev / weeks <= THRESH["reverse_per_week_static_max"])),
+                         "desc": "reversals open the side the truth says is positive; rate-limited on static legs; switch-window share reported"}
     # W6 volume: risk-sized units exact (engine formula)
     sig = np.asarray(cx.ds.sigma, float)
     vol_ok = []
@@ -542,7 +579,8 @@ def mirror_check(trades_a: list, trades_b: list) -> dict:
         net_dev.append(abs(na - nb))
         bound.append(THRESH["mirror_net_rel_tol"] * max(abs(na), abs(nb), 0.05))
     ok = (len(trades_a) == len(trades_b)) and bars_ok == n and side_ok == n and all(d <= b_ for d, b_ in zip(net_dev, bound))
-    return {"pass": bool(ok), "n_a": len(trades_a), "n_b": len(trades_b), "bars_match": bars_ok, "sides_flipped": side_ok,
+    return {"pass": bool(ok), "value": {"n_a": len(trades_a), "n_b": len(trades_b), "bars_match": bars_ok, "sides_flipped": side_ok, "max_net_discrepancy_sigma": float(max(net_dev)) if net_dev else 0.0},
+            "threshold": "same trade count, every entry / exit bar equal, every side flipped, |net discrepancy| <= 2 % in sigma units", "n_a": len(trades_a), "n_b": len(trades_b), "bars_match": bars_ok, "sides_flipped": side_ok,
             "max_net_discrepancy_ex_financing_sigma": float(max(net_dev)) if net_dev else 0.0, "max_allowed_sigma": float(max(bound)) if bound else 0.0,
             "financing_asymmetry_usd": float(sum(abs(float(ta.get("financing_usd", 0.0)) - float(tb.get("financing_usd", 0.0))) for ta, tb in zip(trades_a[:n], trades_b[:n])))}
 
@@ -653,8 +691,13 @@ def cmd_report(a):
     import hashlib
     spec_sha = hashlib.sha256(Path(a.cells).read_bytes()).hexdigest()
     psha = (Path(a.results) / "PARAMS_SHA.txt").read_text().split()[0] if (Path(a.results) / "PARAMS_SHA.txt").exists() else None
+    import subprocess
+    try:
+        commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=10).stdout.strip() or None
+    except Exception:
+        commit = None
     doc = {"schema": "behaviour_matrix.v1", "block": BLOCK, "cells": len(rows), "run": sum(1 for r in rows if r["n_runs"]), "pass": n_pass, "fail": sum(1 for r in rows if r["n_runs"] and not r["PASS"]),
-           "spec_sha256": spec_sha, "strategy_params_sha256": psha, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
+           "spec_sha256": spec_sha, "strategy_params_sha256": psha, "witness_code_commit": commit, "witness_changelog": WITNESS_CHANGELOG, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
     outp = Path(a.out)
     outp.mkdir(parents=True, exist_ok=True)
     (outp / "BEHAVIOUR_MATRIX.json").write_text(json.dumps(doc, indent=1, default=float))

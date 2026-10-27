@@ -82,7 +82,10 @@ EARLY_CLOSE_MIN_SHARE = 0.05                   # A4-7 (exec_variants.early_close
 # EVs over the calibration rows), so both sides clear the same absolute margin and the higher EV wins; per-side open rates
 # (v1.3) let the search privilege a side through its own quantile scale (cheat smoke: short rate at the 0.50 bound ->
 # short margin -0.72 vs long -0.06 -> 73 % shorts). Per-side CLOSE thresholds stay (closers see their own order).
-GENES_Q = ("open_rate", "close_rem_rate_l", "close_rem_rate_s", "close_p_rate_l", "close_p_rate_s", "allow_reverse", "nop_veto_rate")
+GENES_Q = ("open_rate", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto")
+# close_p_* and nop_veto are ABSOLUTE calibrated-probability thresholds (behaviour matrix 2026-10-27: a quantile over a
+# saturated reference -- perfect closers give P(SL first) in {1e-6, 1 - 1e-6} -- mapped close_p to 1e-6 and closed every
+# short position, nop_veto to 1.0 and never vetoed)
 SIDE_SYMMETRY_RULE = ("open: EV_L and EV_S are computed by the same function with mirrored inputs and compared against ONE absolute margin; the higher EV "
                       "wins; ties -> no privileged side (HOLD); the NOP veto, the gate and the activity rule see no side; witness = the swap test "
                       "(mirrored head outputs must mirror the actions) and the per-tick decision ledger (EV_L, EV_S, margin, winner, reason)")
@@ -90,7 +93,7 @@ SIDE_SYMMETRY_RULE = ("open: EV_L and EV_S are computed by the same function wit
 # DAYS carry a qualifying signal, not the trade count; with full_f3's 24 h cutoff (~4 eligible days/week) a 0.30 ceiling
 # left no probe point with an activity lower bound >= 2.0 (smoke: best 2.67/week mean, bound below 2.0)
 Q_BOUNDS = {"open_rate": [0.002, 0.50], "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60],
-            "close_p_rate_l": [0.0, 0.60], "close_p_rate_s": [0.0, 0.60], "allow_reverse": [0.0, 1.0], "nop_veto_rate": [0.0, 0.50]}
+            "close_p_l": [0.30, 0.95], "close_p_s": [0.30, 0.95], "allow_reverse": [0.0, 1.0], "nop_veto": [0.30, 0.95]}
 GENES = ("open_margin", "close_margin_l", "close_margin_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto")
 SPECIALISTS, OPENERS, CLOSERS, SIDE_OF = C2.SPECIALISTS, C2.OPENERS, C2.CLOSERS, C2.SIDE_OF
 NET_BOUND, REM_BOUND, GEOMETRY, N_GEO = C2.NET_BOUND, C2.REM_BOUND, C2.GEOMETRY, C2.N_GEO
@@ -646,8 +649,8 @@ def gene_map(view: dict, rows, closer_ref: dict, cells, e_time, cost) -> ACT.Gen
     refs["nop_score"] = view["pn"][r]
     rules = {"open_margin": ("open_rate", "open_score", "upper_rate"),
              "close_margin_l": ("close_rem_rate_l", "rem_ref_l", "neg_lower_rate"), "close_margin_s": ("close_rem_rate_s", "rem_ref_s", "neg_lower_rate"),
-             "close_p_l": ("close_p_rate_l", "psl_ref_l", "upper_rate"), "close_p_s": ("close_p_rate_s", "psl_ref_s", "upper_rate"),
-             "allow_reverse": ("allow_reverse", None, "copy"), "nop_veto": ("nop_veto_rate", "nop_score", "upper_rate")}
+             "close_p_l": ("close_p_l", None, "copy"), "close_p_s": ("close_p_s", None, "copy"),
+             "allow_reverse": ("allow_reverse", None, "copy"), "nop_veto": ("nop_veto", None, "copy")}
     return ACT.GeneMap(refs, rules, "C3: ONE open margin on the pooled EV reference (both sides, calibration flat rows); per-side closer references on the exploration visits of that side")
 
 
@@ -822,8 +825,8 @@ def default_contract(architecture: dict | None = None) -> dict:
         "open_margin": "quantile(EV over the allowed cells POOLED over both sides, calibration flat rows, 1 - open_rate): one absolute margin for both sides",
         "close_margin_l": "-quantile(predicted remaining value, calibration LONG positioned visits, close_rem_rate_l)",
         "close_margin_s": "-quantile(predicted remaining value, calibration SHORT positioned visits, close_rem_rate_s)",
-        "close_p_l": "quantile(calibrated P(SL first), calibration LONG positioned visits, 1 - close_p_rate_l)",
-        "close_p_s": "quantile(calibrated P(SL first), calibration SHORT positioned visits, 1 - close_p_rate_s)"})
+        "close_p_l": "absolute threshold on calibrated P(SL first) (gene close_p_l in [0.30, 0.95])",
+        "close_p_s": "absolute threshold on calibrated P(SL first) (gene close_p_s in [0.30, 0.95])"})
     for k in ("open_margin_l", "open_margin_s", "close_margin", "close_p"):
         st["gene_map"].pop(k, None)
     st["side_symmetry"] = SIDE_SYMMETRY_RULE

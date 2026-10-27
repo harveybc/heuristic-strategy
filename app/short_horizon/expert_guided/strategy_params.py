@@ -4,8 +4,10 @@ and DEAP tunes the same keys later -- always re-validating on the synthetic beha
 
 Keys (quantile genes are mapped to absolute thresholds on the calibration block by the frozen gene map):
   open_rate_l, open_rate_s        open-margin quantiles per side (C3 b27781e ties them: ONE pooled margin, so they must be equal)
-  nop_veto_rate                   NOP-veto quantile (null = no veto)
-  close_rem_rate_l/_s, close_p_rate_l/_s   per-side early-close quantiles (remaining value, P(SL first))
+  nop_veto                        ABSOLUTE threshold on calibrated P(NOP) (null = no veto)
+  close_rem_rate_l/_s             per-side early-close quantiles on the remaining value
+  close_p_l/_s                    per-side ABSOLUTE thresholds on calibrated P(SL first) (a quantile over a saturated
+                                  reference mapped to 1e-6 under perfect closers: behaviour matrix 2026-10-27)
   allow_reverse                   reversal permission (>= 0.5 = allowed)
   observe_bars                    best-of-day observation window (0 = first qualifying signal)
   tp_a_l, tp_b_l, sl_c_l, sl_e_l, tp_a_s, ... parametric TP / SL coefficients per side (family 'param')
@@ -24,8 +26,8 @@ import json
 from pathlib import Path
 
 BOUNDS = {
-    "open_rate_l": [0.002, 0.50], "open_rate_s": [0.002, 0.50], "nop_veto_rate": [0.0, 0.50],
-    "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60], "close_p_rate_l": [0.0, 0.60], "close_p_rate_s": [0.0, 0.60],
+    "open_rate_l": [0.002, 0.50], "open_rate_s": [0.002, 0.50], "nop_veto": [0.30, 0.95],
+    "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60], "close_p_l": [0.30, 0.95], "close_p_s": [0.30, 0.95],
     "allow_reverse": [0.0, 1.0], "observe_bars": [0, 3],
     "tp_a_l": [0.25, 2.0], "tp_b_l": [-1.5, 1.5], "sl_c_l": [0.5, 2.5], "sl_e_l": [-1.5, 1.5],
     "tp_a_s": [0.25, 2.0], "tp_b_s": [-1.5, 1.5], "sl_c_s": [0.5, 2.5], "sl_e_s": [-1.5, 1.5],
@@ -37,8 +39,8 @@ BOUNDS = {
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
 META_KEYS = {"schema", "note", "defaults_are", "sealed"}
 DEFAULTS = {
-    "open_rate_l": 0.251, "open_rate_s": 0.251, "nop_veto_rate": 0.25,
-    "close_rem_rate_l": 0.30, "close_rem_rate_s": 0.30, "close_p_rate_l": 0.30, "close_p_rate_s": 0.30,
+    "open_rate_l": 0.251, "open_rate_s": 0.251, "nop_veto": 0.50,
+    "close_rem_rate_l": 0.30, "close_rem_rate_s": 0.30, "close_p_l": 0.50, "close_p_s": 0.50,
     "allow_reverse": 1.0, "observe_bars": 0,
     "tp_a_l": 1.0, "tp_b_l": 0.0, "sl_c_l": 1.0, "sl_e_l": 0.0, "tp_a_s": 1.0, "tp_b_s": 0.0, "sl_c_s": 1.0, "sl_e_s": 0.0,
     "v_alpha_l": 1.0, "v_beta_l": 0.0, "v_gamma_l": 0.0, "v_delta_l": 0.0, "v_alpha_s": 1.0, "v_beta_s": 0.0, "v_gamma_s": 0.0, "v_delta_s": 0.0, "v_min": 0.0,
@@ -61,7 +63,7 @@ def validate(doc: dict) -> dict:
         raise StrategyParamsError(f"STRATEGY_PARAMS_MISSING_KEY:{missing}")
     for k, (lo, hi) in BOUNDS.items():
         v = doc[k]
-        if v is None and k == "nop_veto_rate":
+        if v is None and k == "nop_veto":
             continue
         if not isinstance(v, (int, float)) or isinstance(v, bool) or not (lo <= float(v) <= hi):
             raise StrategyParamsError(f"STRATEGY_PARAMS_OUT_OF_BOUNDS:{k}={v} not in [{lo}, {hi}]")
@@ -90,9 +92,9 @@ def sha256_of(path) -> str:
 def genes_c3(doc: dict) -> dict:
     """The C3 quantile gene vector from the parameter file (pooled open_rate as C3 declares it)."""
     g = {"open_rate": float(doc["open_rate_l"]), "close_rem_rate_l": float(doc["close_rem_rate_l"]), "close_rem_rate_s": float(doc["close_rem_rate_s"]),
-         "close_p_rate_l": float(doc["close_p_rate_l"]), "close_p_rate_s": float(doc["close_p_rate_s"]), "allow_reverse": float(doc["allow_reverse"])}
-    if doc.get("nop_veto_rate") is not None:
-        g["nop_veto_rate"] = float(doc["nop_veto_rate"])
+         "close_p_l": float(doc["close_p_l"]), "close_p_s": float(doc["close_p_s"]), "allow_reverse": float(doc["allow_reverse"])}
+    if doc.get("nop_veto") is not None:
+        g["nop_veto"] = float(doc["nop_veto"])
     return g
 
 

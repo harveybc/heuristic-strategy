@@ -860,35 +860,35 @@
     0.0,
     0.6
    ],
-   "close_p_rate_l": [
-    0.0,
-    0.6
-   ],
-   "close_p_rate_s": [
-    0.0,
-    0.6
-   ],
    "allow_reverse": [
     0.0,
     1.0
    ],
-   "nop_veto_rate": [
-    0.0,
-    0.5
+   "close_p_l": [
+    0.3,
+    0.95
+   ],
+   "close_p_s": [
+    0.3,
+    0.95
+   ],
+   "nop_veto": [
+    0.3,
+    0.95
    ]
   },
   "gene_space": "calibration_quantile",
   "gene_map": {
    "open_margin": "quantile(EV over the allowed cells POOLED over both sides, calibration flat rows, 1 - open_rate): one absolute margin for both sides",
    "allow_reverse": "gene >= 0.5",
-   "nop_veto": "quantile(calibrated pNOP, calibration flat rows, 1 - nop_veto_rate)",
+   "nop_veto": "absolute threshold on calibrated P(NOP) (gene nop_veto in [0.30, 0.95])",
    "positioned_visits": "the round-0 INNER_A exploration visits (TP / SL drawn from the grid; NO expert position): strategy-free",
    "frozen": "on the calibration block before the search; recorded in the strategy doc (gene_map)",
    "feasibility_probe": "corners of the continuous genes + the q-max point + the side-balance corner (both open rates at their maximum); no point VALID under the activity CI and side rules with >= 1 agent close -> STRATEGY_SPACE_INFEASIBLE",
    "close_margin_l": "-quantile(predicted remaining value, calibration LONG positioned visits, close_rem_rate_l)",
    "close_margin_s": "-quantile(predicted remaining value, calibration SHORT positioned visits, close_rem_rate_s)",
-   "close_p_l": "quantile(calibrated P(SL first), calibration LONG positioned visits, 1 - close_p_rate_l)",
-   "close_p_s": "quantile(calibrated P(SL first), calibration SHORT positioned visits, 1 - close_p_rate_s)"
+   "close_p_l": "absolute threshold on calibrated P(SL first) (gene close_p_l in [0.30, 0.95])",
+   "close_p_s": "absolute threshold on calibrated P(SL first) (gene close_p_s in [0.30, 0.95])"
   },
   "rule": "flat: per side, the ALLOWED cell (TP >= SL, or predicted net > cost + rr_margin) with the highest predicted net; EV = P(TP first) * TP - P(SL first) * SL + P(TIME) * E[net | TIME] - cost (probabilities of the 3-class head at the reference cell, temperature-calibrated); open the side with the higher EV among those with EV > open_margin (one pooled margin; exact tie -> no trade) and (veto kept) pNOP <= nop_veto; 'no trade' is valid; positioned: CLOSE when the closer's predicted remaining < -close_margin_side OR calibrated P(SL first) > close_p_side (per-side thresholds), then reverse when allow_reverse and the open rule names the other side",
   "threshold_targets": {

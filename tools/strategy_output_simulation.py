@@ -117,12 +117,28 @@ def spearman(a, b) -> float:
 
 
 class Noise:
-    """Deterministic noise per (key, seed) with an optional within-day shared component (block noise, rho_day)."""
+    """Deterministic noise per (key, seed) with an optional within-day shared component (block noise, rho_day).
+    ``side_swap`` (the mirror twin of a world) draws side s from the key of side 1 - s, so the simulated heads of the
+    mirror are the exact mirror of the original's (behaviour matrix W14)."""
 
-    def __init__(self, seed: int, rho_day: float = 0.0):
-        self.seed, self.rho = int(seed), float(rho_day)
+    def __init__(self, seed: int, rho_day: float = 0.0, side_swap: bool = False):
+        self.seed, self.rho, self.side_swap = int(seed), float(rho_day), bool(side_swap)
+
+    @staticmethod
+    def _swap(key):
+        k = tuple(key)
+        if k and k[0] in ("open", "net") and len(k) >= 3:
+            return k[:2] + (1 - int(k[2]),) + k[3:]
+        if k and k[0] == "close" and len(k) >= 2:
+            inner = k[1:]
+            if inner and inner[0] == "vis" and len(inner) >= 3:
+                return ("close", "vis", inner[1], 1 - int(inner[2])) + tuple(inner[3:])
+            if len(inner) >= 2 and isinstance(inner[1], (int, np.integer)) and inner[1] in (-1, 1):   # pos_key: (bar, direction, entry_bar, tp, sl)
+                return ("close", inner[0], -int(inner[1])) + tuple(inner[2:])
+        return k
 
     def _rng(self, *key):
+        key = self._swap(key) if self.side_swap else tuple(key)
         h = hashlib.sha256(json.dumps([self.seed] + [str(k) for k in key]).encode()).digest()
         return np.random.default_rng(int.from_bytes(h[:8], "little"))
 
@@ -340,10 +356,10 @@ def fit_closer_cal(truth: Truth, q: Quality, noise: Noise) -> dict:
             "rows": int(ok.sum()), "auc_latent": auc_of(z, y)}
 
 
-def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float = 0.0, regime_dec_mask=None, nets_from=None) -> tuple:
+def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float = 0.0, regime_dec_mask=None, nets_from=None, side_swap: bool = False) -> tuple:
     """The C3 table on every observable row: ``net`` (n, 2, cells), ``p3`` (n, 2, 3), ``pn`` (n,), ``closer``, ``cap``, ``lo``;
     plus the achieved qualities on the calibration block and the decision block (AUC / Spearman / MAE)."""
-    noise = Noise(seed, rho_day)
+    noise = Noise(seed, rho_day, side_swap)
     n, nc = len(truth.period), len(truth.cells)
     rows = truth.rows
     cal = truth.period == CAL_BLOCK
@@ -748,10 +764,10 @@ def run_config(cx, SCFG, truth: Truth, AC, q: Quality, seeds, variant: str, out_
                     ref = C3.closer_reference_sides(table, closer_src_of(truth))
                     if fam is None:
                         gm_ = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
-                        st_a = C3.StrategyC3.from_genes(gm_.to_absolute(sa_genes), "nop_veto_rate" in sa_genes)
+                        st_a = C3.StrategyC3.from_genes(gm_.to_absolute(sa_genes), "nop_veto" in sa_genes)
                     else:
                         gm_ = SF.gene_map_full(view, cal_rows, ref, cells, truth.e_time, truth.cost, AC["strategy"]["genes"])
-                        st_a = SF.StrategyFull.from_genes(gm_.to_absolute(sa_genes), "nop_veto_rate" in sa_genes, tpf, vf, float(getattr(SCFG.variant, "risk_pct", 0.01)))
+                        st_a = SF.StrategyFull.from_genes(gm_.to_absolute(sa_genes), "nop_veto" in sa_genes, tpf, vf, float(getattr(SCFG.variant, "risk_pct", 0.01)))
                     if rec.get("early_close_disabled"):
                         st_a = st_a.no_early_close()
                     da = evaluate(cx, SCFG, table, st_a, cells, truth.e_time, truth.cost, DEC_BLOCK, sig, AC, SCFG.capital, False, None, Pol, roll)

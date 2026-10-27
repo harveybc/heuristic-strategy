@@ -160,7 +160,8 @@ class PolicyFull(C3.PolicyC3):
             tp, sl, ev = self.levels(r, si, bar, env)
             if not np.isfinite(ev):
                 continue
-            mar = s.open_margin_l if si == 0 else s.open_margin_s
+            pooled = getattr(s, "open_margin", None)                      # C3 b27781e: ONE pooled open margin (side symmetry)
+            mar = getattr(s, "open_margin_l", pooled) if si == 0 else getattr(s, "open_margin_s", pooled)
             if ev > mar and (best is None or ev > best[0]):
                 v = self.volume(r, si, sl, bar, env)
                 if v < max(self.full.v_min, 1e-9):

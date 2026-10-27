@@ -107,4 +107,4 @@ def test_mirror_check_demands_identical_bars_flipped_sides_and_equal_sigma_net()
 def test_canonical_genes_come_from_the_parameter_file():
     from app.short_horizon.expert_guided import strategy_params as SP
     g = SP.genes_c3(SP.default_doc())
-    assert g["open_rate"] == pytest.approx(0.251) and g["allow_reverse"] == 1.0 and "nop_veto_rate" in g
+    assert g["open_rate"] == pytest.approx(0.251) and g["allow_reverse"] == 1.0 and g["nop_veto"] == 0.5 and g["close_p_l"] == 0.5

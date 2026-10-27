@@ -65,10 +65,10 @@ def test_ratio_ci_known_answer_and_tolerance_verdict():
 
 
 def test_ablations_per_family():
-    st = C3.StrategyC3(0.1, 0.1, 0.0, 0.0, 0.9, 0.9, False, 0.8, True)
+    st = C3.StrategyC3(0.1, 0.0, 0.0, 0.9, 0.9, False, 0.8, True)
     assert I.ablate(st, "early_close", "c3").early_close is False and I.ablate(st, "nop_veto", "c3").nop_veto is None
     assert I.applies("nop_veto", "c3", "perbar", st) and not I.applies("volume", "c3", "perbar", st)
-    g = {"open_margin_l": 0, "open_margin_s": 0, "close_margin_l": 0, "close_margin_s": 0, "close_p_l": 1, "close_p_s": 1, "allow_reverse": 0, "nop_veto": 0.8,
+    g = {"open_margin": 0, "close_margin_l": 0, "close_margin_s": 0, "close_p_l": 1, "close_p_s": 1, "allow_reverse": 0, "nop_veto": 0.8,
          "observe_bars": 2, "v_alpha_l": 0.3, "v_beta_l": 0.5, "v_gamma_l": 0.2, "v_delta_l": 0.1, "v_alpha_s": 0.3, "v_beta_s": 0.5, "v_gamma_s": 0.2, "v_delta_s": 0.1, "v_min": 0.1}
     sf = SF.StrategyFull.from_genes(g, True, "cell", "param")
     assert I.applies("volume", "param", "perbar", sf) and I.applies("best_of_day", "param", "perbar", sf)

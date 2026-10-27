@@ -423,7 +423,7 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
     truth = S.build_truth(cx2, S2, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
                           mirror_exploration=bool(leaf.get("mirror")))
     q = S.quality_for(leaf["variant"], float(leaf["quality"]))
-    table, sim = S.simulate_table(cx2, S2, truth, q, seed)
+    table, sim = S.simulate_table(cx2, S2, truth, q, seed, side_swap=bool(leaf.get("mirror")))
     wit = transition_witness(bars, base_sd, meta) if meta is not None else leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"])
     return {"cx": cx2, "scfg": S2, "truth": truth, "table": table, "sim": sim, "witness": wit, "period": calendar_period, "meta": meta}
 
@@ -457,11 +457,11 @@ def _leaf_scorer(w, fam, bounds, cells, AC):
     min_opw = float(AC["strategy"]["calibration_min_trades_per_week"])
     if fam is None:
         gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
-        make = lambda g, _gm=gm: C3.StrategyC3.from_genes(_gm.to_absolute(g), "nop_veto_rate" in g)  # noqa: E731
+        make = lambda g, _gm=gm: C3.StrategyC3.from_genes(_gm.to_absolute(g), "nop_veto" in g)  # noqa: E731
         Pol, roll = S.PolicyC3PerBar, ACT.rollout_with_trades
     else:
         gm = SF.gene_map_full(view, cal_rows, ref, cells, truth.e_time, truth.cost, bounds)
-        make = lambda g, _gm=gm: SF.StrategyFull.from_genes(_gm.to_absolute(g), "nop_veto_rate" in g, fam[0], fam[1])  # noqa: E731
+        make = lambda g, _gm=gm: SF.StrategyFull.from_genes(_gm.to_absolute(g), "nop_veto" in g, fam[0], fam[1])  # noqa: E731
         Pol, roll = S.policy_factory(S.PolicyFullPerBar, SCFG), SF.rollout_with_volume
     score = S.score_fn(cx, SCFG, cells, truth.e_time, truth.cost, AC, S.SEL_BLOCK, sig, min_opw, Pol, roll)
     return (score, view, make)

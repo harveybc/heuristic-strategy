@@ -16,7 +16,7 @@ def test_committed_file_loads_and_is_the_canonical_default():
     for k, v in SP.DEFAULTS.items():
         assert doc[k] == v, k
     g = SP.genes_c3(doc)
-    assert set(g) == {"open_rate", "close_rem_rate_l", "close_rem_rate_s", "close_p_rate_l", "close_p_rate_s", "allow_reverse", "nop_veto_rate"}
+    assert set(g) == {"open_rate", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto"}
     assert len(SP.sha256_of(FILE)) == 64
 
 
@@ -34,6 +34,6 @@ def test_unknown_missing_out_of_bounds_and_tied_keys_are_refused():
         SP.validate({**base, "tp_grid": [0.5, 9.0]})
     with pytest.raises(SP.StrategyParamsError, match="TIED_KEYS"):
         SP.validate({**base, "open_rate_s": 0.4})
-    assert SP.validate({**base, "nop_veto_rate": None})["nop_veto_rate"] is None
+    assert SP.validate({**base, "nop_veto": None})["nop_veto"] is None
     full = SP.genes_full(base, "param", "param")
     assert "tp_a_l" in full and "v_min" in full and "observe_bars" in full
