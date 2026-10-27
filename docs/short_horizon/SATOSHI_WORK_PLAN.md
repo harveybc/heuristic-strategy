@@ -337,3 +337,18 @@ Cada retorno de carril: (1) mover el carril de §3 a §2 con su veredicto y link
   ≥ 8 folds, expectativa por trade, libro de lecturas, spec v11), F3 ejecución (mejor señal del día, reversión,
   tamaño por riesgo, corte del viernes). Después: F4 líneas base + dimensionalidad + evaluador en `feature_selector`;
   F5 control sintético a 5 semillas como PUERTA antes de datos reales; cadena en el 4090.
+
+## 2026-10-27 — ORDEN DEL PROPIETARIO: TODO DETENIDO hasta que la estrategia pase la matriz de comportamiento sintética
+
+Todo experimento anterior queda INVÁLIDO (estrategia no simulada). Único trabajo autorizado:
+
+| # | tarea | estado | automatización |
+| --- | --- | --- | --- |
+| M1 | Generadores sintéticos de todas las combinaciones: tendencia (dirección×fuerza, 7), transiciones (24 + 1–4 tramos), volatilidad (3) × dinámica (7), estructura fina (9), saltos (5), spread (3), calendario (3); calendario real, 3 años por celda, espejo exacto | en construcción (F9) | `tools/strategy_hierarchy.py` + matriz |
+| M2 | Matriz de 505 celdas (×2 espejo ×3 semillas = 3 030 corridas) con comportamiento esperado y prohibido ESCRITO ANTES; testigos por celda (lados, NOP, conocimiento, cierre temprano, reversión, volumen, TP/SL vs σ, saltos, spread, corte, transiciones, gemelo espejo) | en construcción (F9) | `BEHAVIOUR_MATRIX.{json,md}` |
+| M3 | Corrida con CABEZAS PERFECTAS en dragon: 8 trozos × 1500M bajo crispdm (12 de 20 GB), reanudable por celda, ~4.5 h | tras M1–M2 | driver de trozos con bandera STOP |
+| M4 | Toda celda que FALLE = defecto de la estrategia → arreglo → re-corrida → listado causa/arreglo; objetivo 100 % PASA | tras M3 | mismo driver |
+| M5 | Sólo después: escalera de calidad, barridos, optimización en dos etapas, informe y solicitud de auditoría | detenido | — |
+
+Comando de parada de lo residual (sólo mi carril): `bash /var/tmp/strategy-sim-20261026-r2/stop_round2.sh` en dragon.
+Causa raíz hallada: deriva 0.35 sd/h del generador colapsaba el camino (14 450 niveles cortos rechazados); corregida a 0.03.
