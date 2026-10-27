@@ -1,14 +1,37 @@
 {
- "decisions": 103,
- "entry_decisions": 81,
- "by_model": {},
+ "decisions": 104,
+ "entry_decisions": 82,
+ "by_model": {
+  "baseline_momentum24": {
+   "resolved_hits": 1,
+   "up_rate": 0.0,
+   "log_loss": 0.5978370007556204,
+   "brier": 0.2025,
+   "accuracy": 1.0
+  },
+  "baseline_prior": {
+   "resolved_hits": 1,
+   "up_rate": 0.0,
+   "log_loss": 0.6931471805599453,
+   "brier": 0.25,
+   "accuracy": null
+  },
+  "llama3.2:3b": {
+   "resolved_hits": 1,
+   "up_rate": 0.0,
+   "log_loss": 2.0898959995836948,
+   "brier": 0.76790169,
+   "accuracy": 0.0
+  }
+ },
  "status_counts": {
-  "FINAL": 46,
+  "FINAL": 47,
   "PENDING": 35
  },
  "outcome_counts": {
   "TIMEOUT": 46,
-  "NaN": 35
+  "NaN": 35,
+  "LOWER": 1
  },
- "scored_utc": "2026-10-27 20:12:29.541321+00:00"
+ "scored_utc": "2026-10-27 21:12:30.015302+00:00"
 }
