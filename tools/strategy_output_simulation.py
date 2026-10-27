@@ -1015,6 +1015,17 @@ def cmd_report(a):
     print(json.dumps({"rows": int(len(df)), "out": str(out)}))
 
 
+def stop_requested(out_path) -> bool:
+    """Owner STOP flag (2026-10-27): a file named STOP in the work root (any ancestor of the output path, three levels up)
+    makes every NEW job of the lane exit before doing anything; running jobs finish their current file."""
+    from pathlib import Path as _P
+    p = _P(str(out_path)).resolve()
+    for q in [p] + list(p.parents)[:3]:
+        if (q / "STOP").exists():
+            return True
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1045,6 +1056,9 @@ def main():
     rp.add_argument("--hier", default=None, help="the two-stage directory (CATALOG.json, STAGE_A_<family>.json, *_leaves.json)")
     rp.add_argument("--contracts", default=None, help="where STRATEGY_PARAMS_FROZEN_v1.json is written")
     a = ap.parse_args()
+    if stop_requested(a.out):
+        print("STOP flag present in the work root: nothing started (owner order 2026-10-27)")
+        raise SystemExit(75)
     {"truth": cmd_truth, "run": cmd_run, "report": cmd_report}[a.cmd](a)
 
 

@@ -98,6 +98,215 @@ def synthetic_path(index, base_sd: float, regime: str, vol: str, fine: str, seed
     return pd.DataFrame({"OPEN": o, "HIGH": hi, "LOW": lo, "CLOSE": c}, index=index)
 
 
+
+# ----------------------------------------------------------------------------- L1b: transitions and varying volatility (owner 2026-10-27)
+SEQUENCES = {"up_down": ("trend_up", "trend_down"), "down_up": ("trend_down", "trend_up"), "up_range": ("trend_up", "range"),
+             "range_up": ("range", "trend_up"), "down_range": ("trend_down", "range"), "range_down": ("range", "trend_down"),
+             "up_pause_up": ("trend_up", "range", "trend_up"), "down_pause_down": ("trend_down", "range", "trend_down")}
+SWITCH_POS = {"early": 0.25, "middle": 0.5, "late": 0.75}
+VOL_PROCESSES = ("step_lh", "step_hl", "garch09", "garch097", "ramp_up", "ramp_down")
+CONFIRMATION_LAG_BARS = 120          # declared coarse confirmation lag: five trading days of hourly bars after a coarse switch
+MIRROR = {"trend_up": "trend_down", "trend_down": "trend_up", "range": "range"}
+EXPECT_TRANSITION = {"old_direction_open_share_after_lag_max": 0.40, "new_leg_side_share_min": 0.60, "early_close_rate_ratio_min": 1.0,
+                     "dd_at_switch_bound": "DD in [switch, switch + lag] with early close <= DD without early close (the intervention ratio)",
+                     "lag_bars": CONFIRMATION_LAG_BARS}
+
+
+def vol_multiplier(n: int, vol: str, block: tuple, switch_frac: float = 0.5) -> np.ndarray:
+    """Per-bar sd multiplier of the volatility PROCESS: a constant level (VOL), a step low<->high at the switch
+    position inside the block, or a ramp across the block; the GARCH kinds carry their clustering in the innovation."""
+    a, b = int(block[0]), int(block[1])
+    m = np.ones(n)
+    if vol in VOL:
+        m[:] = VOL[vol]
+    elif vol in ("step_lh", "step_hl"):
+        sw = a + int(switch_frac * (b - a))
+        lo_, hi_ = (VOL["low"], VOL["high"]) if vol == "step_lh" else (VOL["high"], VOL["low"])
+        m[:sw], m[sw:] = lo_, hi_
+    elif vol in ("ramp_up", "ramp_down"):
+        lo_, hi_ = (VOL["low"], VOL["high"]) if vol == "ramp_up" else (VOL["high"], VOL["low"])
+        m[:a] = lo_
+        m[a:b] = np.linspace(lo_, hi_, max(b - a, 1))
+        m[b:] = hi_
+    return m
+
+
+TREND_STRENGTH = {"weak": 0.5, "medium": 1.0, "strong": 2.0}     # multiples of TREND_DRIFT_SD (0.015 / 0.03 / 0.06 sd per hour)
+
+
+def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, seed: int, block: tuple, switch_fracs=None,
+                      persistence: float | None = None, start: float = 1.10, mirror: bool = False, strength: str = "medium", jump: dict | None = None):
+    """Multi-leg hourly OHLC on the real calendar: coarse legs (regimes) switching at ``switch_fracs`` of the scoring
+    block (the first leg runs from the start of the index, the last to its end), a volatility process (constant level,
+    step, ramp, GARCH clustering with the given persistence), the L2 fine oscillation, and optionally the exact log
+    mirror of the whole path (negated log returns; HIGH/LOW swapped and mirrored). Returns (bars, meta)."""
+    rng = np.random.default_rng(seed)
+    n = len(index)
+    a, b = int(block[0]), int(block[1])
+    legs = tuple(legs)
+    if switch_fracs is None:
+        switch_fracs = [(i + 1) / len(legs) for i in range(len(legs) - 1)]
+    switches = [a + int(float(f) * (b - a)) for f in switch_fracs]
+    bounds = [0] + switches + [n]
+    regime_at = np.empty(n, object)
+    for i, reg in enumerate(legs):
+        regime_at[bounds[i]:bounds[i + 1]] = reg
+    pers = persistence if persistence is not None else {"garch09": 0.90, "garch097": 0.97}.get(vol, 0.92)
+    alpha = 0.08
+    beta = max(0.0, pers - alpha)
+    omega = max(1e-6, 1.0 - alpha - beta)
+    mult = vol_multiplier(n, vol, block, switch_fracs[0] if switch_fracs else 0.5)
+    amp, dens = L2[fine]
+    h = np.ones(n)
+    eps = np.zeros(n)
+    z = rng.standard_normal(n)
+    for t in range(1, n):
+        prev = eps[t - 1] / (base_sd * mult[t - 1])
+        h[t] = omega + alpha * prev * prev + beta * h[t - 1]
+        eps[t] = base_sd * mult[t] * math.sqrt(h[t]) * z[t]
+    drift = np.zeros(n)
+    d = 0.0
+    zn = rng.standard_normal(n)
+    for t in range(n):
+        k = L1[regime_at[t]] * TREND_STRENGTH[strength]
+        d = 0.98 * d + 0.02 * (k * TREND_DRIFT_SD * base_sd) + 0.02 * base_sd * zn[t]
+        drift[t] = d
+    logp = np.log(start) + np.cumsum(drift + eps)
+    anchor = None
+    for t in range(1, n):
+        if regime_at[t] == "range":
+            if anchor is None or regime_at[t - 1] != "range":
+                anchor = logp[t - 1]
+            logp[t] = logp[t] - 0.03 * (logp[t - 1] - anchor)
+        else:
+            anchor = None
+    osc = np.zeros(n)
+    t = 0
+    while t < n:
+        per = int(max(4, rng.integers(6, 19) / dens))
+        seg = min(per, n - t)
+        a_ = amp * base_sd * float(np.mean(mult[t:t + seg])) * rng.uniform(0.8, 1.2)
+        osc[t:t + seg] = a_ * np.sin(2 * np.pi * np.arange(seg) / per)
+        t += seg
+    logp = logp + osc
+    jump_bar = None
+    if jump and float(jump.get("sigma", 0)) > 0:                    # an overnight gap of k sigma at a bar inside the block, with or against the coarse leg
+        jump_bar = a + int(float(jump.get("frac", 0.5)) * (b - a))
+        leg_sign = L1[regime_at[jump_bar]] if L1[regime_at[jump_bar]] != 0 else 1.0
+        sign = leg_sign if not jump.get("against") else -leg_sign
+        logp[jump_bar:] += sign * float(jump["sigma"]) * base_sd * float(mult[jump_bar]) * math.sqrt(24.0)
+    c = np.exp(logp)
+    intr = np.abs(rng.standard_normal(n)) * base_sd * mult * 0.6
+    o = np.r_[c[0], c[:-1]]
+    hi = np.maximum(o, c) * (1 + intr)
+    lo = np.minimum(o, c) * (1 - intr)
+    bars = pd.DataFrame({"OPEN": o, "HIGH": hi, "LOW": lo, "CLOSE": c}, index=index)
+    if mirror:
+        bars = mirror_bars(bars)
+    meta = {"switch_bars": [int(x) for x in switches], "switch_fracs": [float(f) for f in switch_fracs], "legs": list(legs), "vol": vol,
+            "persistence": float(pers), "block": [a, b], "mirror": bool(mirror), "strength": strength, "jump_bar": jump_bar, "jump": jump}
+    return bars, meta
+
+
+def mirror_bars(bars: pd.DataFrame) -> pd.DataFrame:
+    """The exact log mirror of a price path around its first close: log p' = 2 log c0 - log p (negated log returns),
+    HIGH' = mirror(LOW), LOW' = mirror(HIGH), so every bar's range is preserved and every move flips sign."""
+    c0 = float(bars["CLOSE"].iloc[0])
+    f = lambda x: (c0 * c0) / np.asarray(x, float)  # noqa: E731
+    return pd.DataFrame({"OPEN": f(bars["OPEN"]), "HIGH": f(bars["LOW"]), "LOW": f(bars["HIGH"]), "CLOSE": f(bars["CLOSE"])}, index=bars.index)
+
+
+def transition_witness(bars: pd.DataFrame, base_sd: float, meta: dict) -> dict:
+    """Per coarse leg (inside the block): realised drift sign against the leg's regime (mirrored legs expect the mirrored
+    sign); per vol segment: sd ratio; the fine-pivot density; the switch bars."""
+    r = np.r_[0.0, np.diff(np.log(bars["CLOSE"].to_numpy(float)))]
+    a, b = meta["block"]
+    bounds = [a] + list(meta["switch_bars"]) + [b]
+    legs = []
+    for i, reg in enumerate(meta["legs"]):
+        seg = r[bounds[i]:bounds[i + 1]]
+        exp = L1[reg] * (-1.0 if meta.get("mirror") else 1.0)
+        legs.append({"regime": reg, "bars": [int(bounds[i]), int(bounds[i + 1])], "drift_sign": float(np.sign(seg.sum())) if len(seg) else 0.0,
+                     "expected_drift_sign": exp, "sd_ratio": float(seg.std() / base_sd) if len(seg) > 2 else float("nan")})
+    mid = a + (b - a) // 2
+    vol_ratio = float(r[mid:b].std() / max(r[a:mid].std(), 1e-12)) if b - a > 4 else float("nan")
+    vol = meta["vol"]
+    exp_vol = {"step_lh": ">1", "ramp_up": ">1", "step_hl": "<1", "ramp_down": "<1"}.get(vol, "~1 (clustering, no level change)")
+    return {"legs": legs, "switch_bars": list(meta["switch_bars"]), "vol_second_over_first_half": vol_ratio, "expected_vol_ratio": exp_vol,
+            "fine_pivots_per_100_bars": float(100.0 * fine_pivot_count(bars, base_sd) / max(len(r), 1)), "mirror": bool(meta.get("mirror"))}
+
+
+def expected_transition_text(legs: tuple, switch_fracs, vol: str, mirror: bool = False) -> str:
+    legs_s = " -> ".join(MIRROR[x] if mirror else x for x in legs)
+    return (f"coarse legs {legs_s} switching at {', '.join(f'{f:.2f}' for f in switch_fracs)} of the block; after each switch the strategy stops "
+            f"opening in the old direction within {CONFIRMATION_LAG_BARS} bars (old-direction share of opens <= 0.40 after the lag at quality >= 0.7), "
+            f"early closes rise at the switch (rate in [switch, switch + lag] >= rate before), side shares follow the new leg (>= 0.60), "
+            f"and the drawdown around the switch with early close is bounded by the no-early-close counterfactual; volatility process {vol}")
+
+
+TRANSITION_KNOBS = {"n_legs": (2.0, 4.999), "seq_seed": (0.0, 1.0), "switch_spread": (0.2, 0.8), "persistence": (0.85, 0.98), "ramp": (-1.0, 1.0),
+                    "fine_amp": (0.4, 2.0), "fine_dens": (0.5, 2.0), "quality": (0.5, 1.0), "cost_mult": (1.0, 3.0), "cap": (1, 4), "cutoff_h": (12.0, 24.0),
+                    "risk_pct": (0.005, 0.02)}
+
+
+def catalog_transitions(n_lhs: int = 24, seed: int = 1) -> list:
+    """L1b leaves: T1 every ordered regime pair (and the paused same-direction pairs) x switch position x fine structure;
+    T2 the volatility processes on each static regime; T3 the quality ladder on the middle-switch pairs; T4 Latin-hypercube
+    multi-leg blocks over the transition knobs; and the exact mirror of every T1 and T3 leaf."""
+    leaves = []
+    for name, legs in SEQUENCES.items():
+        for pos, f in SWITCH_POS.items():
+            fr = [f] if len(legs) == 2 else [max(0.05, f - 0.12), min(0.95, f + 0.12)]
+            for fine in L2:
+                leaves.append({"id": f"T1_{name}_{pos}_{fine}", "level": "L1b_T1", "legs": list(legs), "switch_fracs": fr, "vol": "garch09", "fine": fine,
+                               "regime": legs[-1], "variant": "base", "quality": OPERATING_QUALITY, "exec": {},
+                               "expected": expected_transition_text(legs, fr, "garch09"), "witness": "transition_witness: per-leg drift sign, vol ratio, switch bars",
+                               "expect": EXPECT_TRANSITION})
+    for reg in L1:
+        for vp in VOL_PROCESSES:
+            leaves.append({"id": f"T2_{reg}_{vp}", "level": "L1b_T2", "legs": [reg], "switch_fracs": [], "vol": vp, "fine": "medium", "regime": reg,
+                           "variant": "base", "quality": OPERATING_QUALITY, "exec": {},
+                           "expected": f"static {reg} under volatility process {vp}: openers keep paying; sizing (risk) and the per-bar cost gate adapt to the new sigma; activity >= 2/wk",
+                           "witness": "transition_witness: vol second/first half ratio", "expect": {}})
+    for name, legs in SEQUENCES.items():
+        fr = [0.5] if len(legs) == 2 else [0.38, 0.62]
+        for q in (0.5, 0.6, 0.8, 1.0):
+            leaves.append({"id": f"T3_{name}_q{q:.1f}", "level": "L1b_T3", "legs": list(legs), "switch_fracs": fr, "vol": "garch09", "fine": "medium",
+                           "regime": legs[-1], "variant": "base", "quality": q, "exec": {},
+                           "expected": expected_transition_text(legs, fr, "garch09") + f"; at quality {q:.1f} (chance must not pay, oracle must)",
+                           "witness": "transition_witness + achieved head quality", "expect": EXPECT_TRANSITION})
+    u = lhs(n_lhs, len(TRANSITION_KNOBS), seed)
+    regs = list(L1)
+    for i in range(n_lhs):
+        x = {k: lo + (hi - lo) * u[i, j] for j, (k, (lo, hi)) in enumerate(TRANSITION_KNOBS.items())}
+        n_legs = int(x["n_legs"])
+        rng = np.random.default_rng(int(x["seq_seed"] * 1e6))
+        legs = [regs[int(rng.integers(0, 3))]]
+        while len(legs) < n_legs:
+            cand = regs[int(rng.integers(0, 3))]
+            if cand != legs[-1]:
+                legs.append(cand)
+        centre = 0.5
+        spread = x["switch_spread"]
+        fr = sorted(float(np.clip(centre + spread * (k_ / (n_legs - 1) - 0.5), 0.08, 0.92)) for k_ in range(n_legs - 1)) if n_legs > 1 else []
+        vol = "ramp_up" if x["ramp"] > 0.5 else "ramp_down" if x["ramp"] < -0.5 else "garch09"
+        fine = "high" if x["fine_amp"] > 1.4 else "low" if x["fine_amp"] < 0.7 else "medium"
+        leaves.append({"id": f"T4_{i:02d}", "level": "L1b_T4", "legs": legs, "switch_fracs": fr, "vol": vol, "persistence": round(x["persistence"], 3), "fine": fine,
+                       "regime": legs[-1], "variant": "base", "quality": round(x["quality"], 3),
+                       "exec": {"cost_mult": round(x["cost_mult"], 2), "cap": int(round(x["cap"])), "cutoff_h": round(x["cutoff_h"], 1), "risk_pct": round(x["risk_pct"], 4)},
+                       "knobs": {k: round(v, 4) for k, v in x.items()}, "expected": expected_transition_text(legs, fr, vol),
+                       "witness": "transition_witness + the leaf's own fitness archive", "expect": EXPECT_TRANSITION})
+    mirrors = []
+    for x in leaves:
+        if x["level"] in ("L1b_T1", "L1b_T3"):
+            m = dict(x)
+            m["id"], m["mirror_of"], m["level"], m["mirror"] = "M_" + x["id"], x["id"], x["level"] + "_mirror", True
+            m["regime"] = MIRROR[x["regime"]]
+            m["expected"] = expected_transition_text(tuple(x["legs"]), x["switch_fracs"], x["vol"], mirror=True) + "; EXACT mirror of " + x["id"] + ": trades must mirror (side-symmetry witness)"
+            mirrors.append(m)
+    return leaves + mirrors
+
+
 def fine_pivot_count(bars: pd.DataFrame, base_sd: float, mult: float = 2.0) -> int:
     """Fine ZigZag pivots: reversals of at least ``mult`` x base_sd x price (the fine-structure density witness)."""
     from app.short_horizon.expert_guided import oracle as OR
@@ -154,7 +363,7 @@ def catalog(n_lhs: int = 24, seed: int = 0) -> list:
                        "exec": {"cost_mult": round(x["cost_mult"], 2), "cap": int(round(x["cap"])), "cutoff_h": round(x["cutoff_h"], 1), "risk_pct": round(x["risk_pct"], 4)},
                        "knobs": {k: round(v, 4) for k, v in x.items()}, "expected": "the robust region must keep this leaf's fitness within 5 % of its best",
                        "witness": "leaf_witness + the leaf's own fitness archive"})
-    return leaves
+    return leaves + catalog_transitions(n_lhs, seed + 1)
 
 
 # ----------------------------------------------------------------------------- Stage A
@@ -164,7 +373,16 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period: tuple, seed: int)
     ds = cx_real.ds
     r = np.diff(np.log(ds.bars["CLOSE"].to_numpy(float)))
     base_sd = float(np.nanstd(r))
-    bars = synthetic_path(ds.bars.index, base_sd, leaf["regime"], leaf["vol"], leaf["fine"], seed)
+    meta = None
+    if leaf.get("legs"):
+        import zlib
+        base_id = leaf.get("mirror_of") or leaf["id"]
+        seed_v2 = zlib.crc32(base_id.encode()) & 0xFFFF                      # the mirror twin shares the generator seed: an EXACT mirror
+        block = cx_real.ds.meta["periods"][calendar_period] if isinstance(calendar_period, str) else calendar_period
+        bars, meta = synthetic_path_v2(ds.bars.index, base_sd, tuple(leaf["legs"]), leaf["vol"], leaf["fine"], seed_v2, block, leaf.get("switch_fracs") or None,
+                                       leaf.get("persistence"), mirror=bool(leaf.get("mirror")), strength=leaf.get("strength", "medium"), jump=leaf.get("jump"))
+    else:
+        bars = synthetic_path(ds.bars.index, base_sd, leaf["regime"], leaf["vol"], leaf["fine"], seed)
     from tools.expert_guided_e1t import Ctx
     sigma, sigma_rule = Z.causal_sigma(bars), Z.causal_range_sigma(bars)
     ds2 = dataclasses.replace(ds, bars=bars, sigma=sigma, sigma_rule=sigma_rule)
@@ -177,13 +395,25 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period: tuple, seed: int)
         S2 = dataclasses.replace(S2, profile=S2.profile.scaled(float(ex["cost_mult"])))
     if ex.get("cap"):
         S2 = dataclasses.replace(S2, max_entries_per_day=int(ex["cap"]))
+    if ex.get("spread") == "spike":
+        S2 = S.scfg_for("spike", S2)
+    elif ex.get("spread") == "x5":
+        from tools.strategy_intervention import SpreadWindowProfile
+        a_, b_ = (cx_real.ds.meta["periods"][calendar_period] if isinstance(calendar_period, str) else calendar_period)
+        mid = int(cx2.v[a_ + (b_ - a_) // 2])
+        S2 = dataclasses.replace(S2, profile=SpreadWindowProfile(**dataclasses.asdict(S2.profile), window_t0_ns=mid, window_hours=24.0, factor=5.0))
+    if ex.get("missing_runs"):
+        from tools.strategy_intervention import missing_runs_mask
+        a_, b_ = (cx_real.ds.meta["periods"][calendar_period] if isinstance(calendar_period, str) else calendar_period)
+        cx2.obs_ok = cx2.obs_ok & missing_runs_mask(cx2, (a_, b_), 8, 6, 24, seed)
     if ex.get("cutoff_h") or ex.get("risk_pct"):
         S2 = dataclasses.replace(S2, variant=dataclasses.replace(xv, entry_cutoff_hours_before_flat=float(ex.get("cutoff_h", xv.entry_cutoff_hours_before_flat or 24.0)),
                                                                  risk_pct=float(ex.get("risk_pct", xv.risk_pct))))
     truth = S.build_truth(cx2, S2, "synthetic", AC["outcomes"]["cells"], AC, only_periods=(S.CAL_BLOCK, S.SEL_BLOCK))
     q = S.quality_for(leaf["variant"], float(leaf["quality"]))
     table, sim = S.simulate_table(cx2, S2, truth, q, seed)
-    return {"cx": cx2, "scfg": S2, "truth": truth, "table": table, "sim": sim, "witness": leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"]), "period": calendar_period}
+    wit = transition_witness(bars, base_sd, meta) if meta is not None else leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"])
+    return {"cx": cx2, "scfg": S2, "truth": truth, "table": table, "sim": sim, "witness": wit, "period": calendar_period, "meta": meta}
 
 
 def composite(c: dict, scales: dict) -> float:
@@ -486,6 +716,17 @@ def cmd_robust_region(a):
     print(json.dumps({"family": a.family, "points": region["points"], "tolerance_used": region.get("tolerance_used"), "at_5pct": region.get("at_5pct", {}).get("points"), "box": region["box"]}))
 
 
+def stop_requested(out_path) -> bool:
+    """Owner STOP flag (2026-10-27): a file named STOP in the work root (any ancestor of the output path, three levels up)
+    makes every NEW job of the lane exit before doing anything; running jobs finish their current file."""
+    from pathlib import Path as _P
+    p = _P(str(out_path)).resolve()
+    for q in [p] + list(p.parents)[:3]:
+        if (q / "STOP").exists():
+            return True
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -511,6 +752,9 @@ def main():
     r.add_argument("--catalog", required=True)
     r.add_argument("--out", required=True)
     a = ap.parse_args()
+    if stop_requested(a.out):
+        print("STOP flag present in the work root: nothing started (owner order 2026-10-27)")
+        raise SystemExit(75)
     {"catalog": cmd_catalog, "stage-a": cmd_stage_a, "robust-region": cmd_robust_region}[a.cmd](a)
 
 

@@ -329,6 +329,17 @@ def summarize(out: dict) -> dict:
     return final
 
 
+def stop_requested(out_path) -> bool:
+    """Owner STOP flag (2026-10-27): a file named STOP in the work root (any ancestor of the output path, three levels up)
+    makes every NEW job of the lane exit before doing anything; running jobs finish their current file."""
+    from pathlib import Path as _P
+    p = _P(str(out_path)).resolve()
+    for q in [p] + list(p.parents)[:3]:
+        if (q / "STOP").exists():
+            return True
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--run", required=True, help="a RUN_*.json of the simulation")
@@ -339,6 +350,9 @@ def main():
     ap.add_argument("--draws", type=int, default=6)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
+    if stop_requested(a.out):
+        print("STOP flag present in the work root: nothing started (owner order 2026-10-27)")
+        raise SystemExit(75)
     run = json.loads(Path(a.run).read_text())
     AC = S.contract_for_sim(a.contract)
     cx, SCFG = S.load_fold(run["fold"], a.admitted, a.csv_dir)
