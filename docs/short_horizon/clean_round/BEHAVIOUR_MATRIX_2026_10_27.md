@@ -81,17 +81,28 @@ esperado/prohibido) se **sella** por su sha256 antes de correr y se registra en 
 | el veto NOP tenía el mismo defecto: cuantil sobre P(NOP) saturada → umbral 1.0 → nunca vetaba | 0 ticks vetados | `nop_veto` absoluto (0.50): 2 682 de 3 021 ticks vetados en la misma celda |
 | filo de navaja de punto flotante: el margen de apertura es un **cuantil muestral** de la referencia de EV, la fila que lo define queda exactamente sobre él y una diferencia de 1e-7 (orden del ajuste Platt) decidió una entrada una barra distinta entre un mundo y su espejo | gemela y espejo 167/169 barras iguales | una apertura exige EV > margen + ε, ε = 1e-6 σ (`open_margin_eps` en `STRATEGY_PARAMS.json`): 155/155 barras iguales, discrepancia de neto 3e-14 σ |
 
-## 5. Defectos de testigos corregidos antes/después del sellado (registro)
+## 5. Testigos sellados, control con el oráculo de la verdad y formas corregidas
 
-Los testigos no se adaptan a la estrategia. Tres testigos resultaron **mal definidos** y se corrigieron con evidencia
-registrada en `BEHAVIOUR_MATRIX.json` (`witness_changelog`): W4 (exigía valor restante ≤ 0 en cada cierre temprano,
-contradiciendo la regla declarada de cierre y la regla dura del propietario; ahora: P(SL primero) > umbral o valor
-restante < 0), W1/W8 en transiciones (cuotas fijas de 0.60 / 0.40 que una estrategia perfecta no alcanza cuando la
-propia verdad ofrece menos oportunidades; ahora relativas a la verdad), W5 (exigía reversiones sólo en ventanas de
-corte; con cabezas perfectas una reversión en un contrapivote fino positivo es óptima; ahora: justificadas por la
-verdad). Antes del sellado se corrigieron además dos defectos de instrumentación: la fila de decisión se buscaba una
-barra desplazada (W2/W7 leían 0.0 con el 100 % de los trades en TP) y el espejo se aplicaba dos veces (tramos espejados
-y camino invertido).
+Los testigos **no se adaptan a la estrategia**. Cada celda corre, además de la estrategia, un **oráculo de la verdad**:
+la política que actúa sobre la verdad del motor sin estrategia alguna (por lado, la celda permitida con mayor neto
+verdadero; abre el lado de mayor neto cuando es positivo; cerrado el lado cuando la verdad dice SL-primero o valor
+restante negativo; reversión permitida). Los mismos testigos se evalúan sobre el oráculo **antes** de leer el
+resultado de la estrategia: un testigo que el oráculo falla es un **testigo defectuoso** (WITNESS_DEFECT, automático
+por celda), nunca un defecto de la estrategia. Cada fila del reporte lleva el veredicto bajo la **especificación
+sellada original** (celdas `e07bbe73…`, testigos del commit del sellado) y bajo la **especificación re-sellada v2**
+(celdas + definiciones de testigos + commit, sha propio), más el veredicto **efectivo** (forma sellada salvo en las
+celdas donde el oráculo falla esa forma, entonces la forma corregida). Formas corregidas y su evidencia (del oráculo,
+no de la estrategia): W1 en transiciones (el oráculo abre en la dirección del tramo sólo en la medida de las
+oportunidades de la verdad: 0.52 largos en un tramo alcista con 0.47 de oportunidad), W5 (el oráculo revierte en
+contrapivotes finos positivos fuera de las ventanas de corte: 3 reversiones, 0 en ventana, 3/3 justificadas), W8 (el
+oráculo abre en la dirección vieja tras el retardo 0.41–0.44 con oportunidades 0.34–0.41, por encima del 0.40 fijo). La
+relajación de W8 hecha tras el 0.405 de la estrategia fue **revertida** por adaptar la prueba al resultado; la forma
+corregida descansa sólo en el oráculo. W4 (cierres tempranos con valor restante ≤ 0) **permanece sellado**: el oráculo
+lo cumple (8–11 cierres por gemela, todos con valor restante ≤ 0); su forma corregida se calcula y reporta pero nunca
+se admite. Antes del sellado se corrigieron dos defectos de instrumentación (fila de decisión desplazada una barra;
+espejo aplicado dos veces), registrados en el `witness_changelog` del JSON. El sha sellado original cubre sólo la lista
+de celdas; la lista de celdas cambió después del sellado al corregir el espejo (`legs_gen`), por lo que el reporte
+muestra tres sha: el sellado original, el de las celdas actuales y el de la especificación v2.
 
 ## 6. Resultado (generado)
 
