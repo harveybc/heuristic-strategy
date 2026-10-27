@@ -95,14 +95,20 @@ def test_policy_opens_the_side_with_the_higher_ev_and_respects_per_side_margins_
     t["net"][0, 0, :] = [0.3, 0.1]
     t["net"][0, 1, :] = [0.4, 0.2]
     t["p3"][0, 1, :] = [0.8, 0.1, 0.1]                           # short EV 0.8 - 0.1 - 0.02 - 0.05 = 0.63; long 0.5 - 0.3 - 0.02 - 0.05 = 0.13
-    s = C3.StrategyC3(0.1, 0.1, 0.0, 0.0, 1.0, 1.0, False, None)
-    pol = C3.PolicyC3(t, s, cells, (-0.2, -0.2), 0.05)
-    assert pol.open_decision(0) == (E.SHORT, 1.0, 1.0)
-    s2 = C3.StrategyC3(0.1, 0.7, 0.0, 0.0, 1.0, 1.0, False, None)   # the short margin above its EV: the long opens
-    assert C3.PolicyC3(t, s2, cells, (-0.2, -0.2), 0.05).open_decision(0) == (E.LONG, 1.0, 1.0)
+    s = C3.StrategyC3(0.1, 0.0, 0.0, 1.0, 1.0, False, None)
+    pol = C3.PolicyC3(t, s, cells, (-0.2, -0.2), 0.05, record=True)
+    assert pol.open_decision(0) == (E.SHORT, 1.0, 1.0)             # both clear the ONE margin; the higher EV wins
+    assert pol.ledger[-1]["reason"] == "both_cleared_short_higher" and pol.ledger[-1]["both_cleared"]
+    s2 = C3.StrategyC3(0.3, 0.0, 0.0, 1.0, 1.0, False, None)       # margin between the two EVs: only the short clears
+    pol2 = C3.PolicyC3(t, s2, cells, (-0.2, -0.2), 0.05, record=True)
+    assert pol2.open_decision(0) == (E.SHORT, 1.0, 1.0) and pol2.ledger[-1]["reason"] == "only_short_cleared"
+    s4 = C3.StrategyC3(0.7, 0.0, 0.0, 1.0, 1.0, False, None)       # margin above both: no trade
+    assert C3.PolicyC3(t, s4, cells, (-0.2, -0.2), 0.05).open_decision(0) is None
     t["pn"][0] = 0.9
-    s3 = C3.StrategyC3(0.1, 0.1, 0.0, 0.0, 1.0, 1.0, False, 0.5)
-    assert C3.PolicyC3(t, s3, cells, (-0.2, -0.2), 0.05).open_decision(0) is None
+    s3 = C3.StrategyC3(0.1, 0.0, 0.0, 1.0, 1.0, False, 0.5)
+    pol3 = C3.PolicyC3(t, s3, cells, (-0.2, -0.2), 0.05, record=True)
+    assert pol3.open_decision(0) is None and pol3.ledger[-1]["reason"] == "nop_veto"
+    assert pol3.ledger_summary()["nop_veto"] == 1
 
 
 class _Closer:
@@ -116,7 +122,7 @@ class _Closer:
 def test_closers_use_their_own_side_threshold_and_the_early_close_switch():
     t = _table()
     t["closer"] = _Closer(rem=-0.5, psl=0.3)
-    s = C3.StrategyC3(9, 9, 0.2, 9.0, 1.0, 1.0, False, None)         # long closes on remaining < -0.2; short never
+    s = C3.StrategyC3(9, 0.2, 9.0, 1.0, 1.0, False, None)            # long closes on remaining < -0.2; short never
     pol = C3.PolicyC3(t, s, [(1.0, 1.0), (0.5, 0.5)], (0, 0), 0.0)
     assert pol.close_now(0, 0, 0, None) is True and pol.close_now(0, 1, 0, None) is False
     off = s.no_early_close()
@@ -132,8 +138,9 @@ def test_gene_map_and_strategy_from_genes_are_per_side():
     view["net"][:, 1, 0] = 0.2
     ref = {"rem_ref_l": np.linspace(-1, 1, 5), "rem_ref_s": np.linspace(-2, 2, 5), "psl_ref_l": np.linspace(0.1, 0.5, 5), "psl_ref_s": np.linspace(0.5, 0.9, 5)}
     gm = C3.gene_map(view, rows, ref, cells, (-0.1, -0.1), 0.05)
-    g = gm.to_absolute({"open_rate_l": 0.5, "open_rate_s": 0.5, "close_rem_rate_l": 0.0, "close_rem_rate_s": 0.0, "close_p_rate_l": 0.0,
+    g = gm.to_absolute({"open_rate": 0.5, "close_rem_rate_l": 0.0, "close_rem_rate_s": 0.0, "close_p_rate_l": 0.0,
                         "close_p_rate_s": 0.0, "allow_reverse": 1.0, "nop_veto_rate": 0.5})
+    assert gm.refs["open_score"].shape[0] == 12                              # pooled: 6 long + 6 short EVs, one margin
     st = C3.StrategyC3.from_genes(g, True)
     assert st.close_margin_l == 1.0 and st.close_margin_s == 2.0 and st.close_p_l == 0.5 and st.close_p_s == 0.9 and st.allow_reverse
     assert set(gm.rules) == set(C3.GENES) and st.early_close is True
@@ -299,7 +306,8 @@ def test_policy_call_returns_a_best_of_day_gate_over_the_scored_policy():
     cells = [(1.0, 1.0), (0.5, 0.5)]
     t = _table(cells=cells)
     t["net"][0, 0, :] = [0.3, 0.1]
-    s = C3.StrategyC3(-9, -9, 0.0, 0.0, 1.0, 1.0, False, None)
+    t["p3"][0, 1, :] = [0.3, 0.5, 0.2]                           # the short side's EV is lower: the long wins (no tie)
+    s = C3.StrategyC3(-9, 0.0, 0.0, 1.0, 1.0, False, None)
     pol = C3.PolicyC3(t, s, cells, (-0.2, -0.2), 0.05)
     g = pol(None)
     assert isinstance(g, XV.BestOfDayGate) and g.observe_bars == 1 and pol.last_gate is g
@@ -319,7 +327,8 @@ def test_cells_outside_the_per_bar_effective_band_are_not_selectable():
     t = _table(cells=cells)
     t["net"][0, 0, :] = net
     t["cap"], t["lo"] = np.array([1.5] * 4), np.array([0.75] * 4)
-    s = C3.StrategyC3(-9, 9, 0.0, 0.0, 1.0, 1.0, False, None)
+    t["p3"][0, 1, :] = [0.3, 0.5, 0.2]                           # the short side's EV is lower: the long wins (no tie)
+    s = C3.StrategyC3(-9, 0.0, 0.0, 1.0, 1.0, False, None)
     assert C3.PolicyC3(t, s, cells, (0, 0), 0.0).open_decision(0) == (E.LONG, 1.0, 1.0)
 
 
@@ -491,3 +500,69 @@ def test_mean_tables_to_raw_and_calibrate_round_trip():
     cal = {"open_l": {"T": 1.0}, "open_s": {"T": 1.0}, "nop": {"a": 1.0, "b": 0.0}}
     back = C3.calibrate_table(raw, cal)
     assert np.allclose(back["p3"], m["p3"]) and np.allclose(back["pn"], m["pn"]) and "cap" in back
+
+
+
+# ----------------------------------------------------------------------------- side symmetry (owner alert 2026-10-26)
+def _mirror_table(t):
+    m = {"net": t["net"][:, ::-1, :].copy(), "p3": t["p3"][:, ::-1, :].copy(), "pn": t["pn"].copy()}
+    for k in ("cap", "lo"):
+        if k in t:
+            m[k] = t[k]
+    return m
+
+
+def test_swap_witness_mirrored_head_outputs_mirror_the_actions_exactly():
+    """Feed the strategy the mirrored outputs (open_l <-> open_s nets and probabilities, close_l <-> close_s thresholds)
+    on the same rows: every emitted open must mirror (LONG <-> SHORT, same cell, same EV score); HOLDs stay HOLDs."""
+    rng = np.random.default_rng(7)
+    cells = [(0.5, 0.5), (1.0, 1.0), (1.5, 1.0), (0.75, 1.5)]
+    n = 400
+    t = {"net": rng.normal(0, 0.5, (n, 2, len(cells))), "p3": rng.dirichlet([2, 2, 1], (n, 2)), "pn": rng.uniform(0, 1, n),
+         "cap": np.full(n, 2.0), "lo": np.full(n, 0.1)}
+    e_time = (-0.1, -0.1)                                          # mirrored inputs need mirrored constants: same value per side
+    s = C3.StrategyC3(0.05, 0.1, 0.3, 0.6, 0.8, True, 0.9)
+    pol = C3.PolicyC3(t, s, cells, e_time, 0.05, record=True)
+    polm = C3.PolicyC3(_mirror_table(t), s.mirrored(), cells, e_time, 0.05, record=True)
+    opens = 0
+    for r in range(n):
+        a, b = pol.open_decision(r, with_score=True), polm.open_decision(r, with_score=True)
+        if a is None:
+            assert b is None
+            continue
+        opens += 1
+        assert b is not None and b[0] == (E.SHORT if a[0] == E.LONG else E.LONG) and (b[1], b[2]) == (a[1], a[2]) and abs(a[3] - b[3]) < 1e-12
+    assert opens > 50
+    L, M = pol.ledger_summary(), polm.ledger_summary()
+    assert L["both_cleared"] == M["both_cleared"] and L["both_cleared_long_won"] == M["both_cleared_short_won"] and L["only_long_cleared"] == M["only_short_cleared"]
+    assert abs(L["mean_ev_l"] - M["mean_ev_s"]) < 1e-12
+    # the closers mirror too: the long closer of the mirrored policy is the original short closer
+    class _Cl:
+        def __init__(self, rem, psl):
+            self.rem, self.psl = rem, psl
+
+        def value(self, r, bar, pos):
+            return self.rem[r], self.psl[r]
+    rem, psl = rng.normal(0, 0.3, n), rng.uniform(0, 1, n)
+    t["closer"] = _Cl(rem, psl)
+    tm = _mirror_table(t)
+    tm["closer"] = _Cl(rem, psl)
+    pol, polm = C3.PolicyC3(t, s, cells, e_time, 0.05), C3.PolicyC3(tm, s.mirrored(), cells, e_time, 0.05)
+    for r in range(n):
+        assert pol.close_now(r, 0, 0, None) == polm.close_now(r, 1, 0, None) and pol.close_now(r, 1, 0, None) == polm.close_now(r, 0, 0, None)
+
+
+def test_exact_ev_tie_privileges_no_side():
+    cells = [(1.0, 1.0)]
+    t = _table(n=2, cells=cells)
+    t["net"][0] = 0.3
+    s = C3.StrategyC3(-9, 0.0, 0.0, 1.0, 1.0, False, None)
+    pol = C3.PolicyC3(t, s, cells, (0.0, 0.0), 0.0, record=True)
+    assert pol.open_decision(0) is None and pol.ledger[-1]["reason"] == "tie" and pol.ledger_summary()["ties"] == 1
+
+
+def test_contract_declares_the_side_symmetry_rule_and_one_open_gene():
+    d = C3.default_contract()
+    assert d["strategy"]["side_symmetry"] == C3.SIDE_SYMMETRY_RULE and list(d["strategy"]["genes"]) == list(C3.GENES_Q) and "open_rate" in d["strategy"]["genes"]
+    bad = ACT.seal(dict(copy.deepcopy(d), identity=None, strategy=dict(d["strategy"], side_symmetry="none")))
+    assert any(e.startswith("C3_CONTRACT_SIDE_SYMMETRY") for e in C3.validate(bad))

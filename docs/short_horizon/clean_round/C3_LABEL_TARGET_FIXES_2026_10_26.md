@@ -72,6 +72,14 @@ E3-M completo (284 s): entrenamiento → calibración → estrategia congelada �
 - `tools/expert_guided_sanity_gate.py unit` (con ensamble y auditoría): **PASS**, sin causas.
 - Suite completa `tests/*.py`: 500 pasan (45 de C3), 1 omitida.
 
+## Simetría de lados (alerta del propietario 2026-10-26: los modelos de Musashi sólo compran)
+
+**Causa del 73 % de cortos en el smoke, con números** (unidad `DIAGNOSTIC_cheat_c3_smoke`, 3 épocas): no era el orden de evaluación, ni la puerta, ni el veto NOP, ni la calibración (T = 0.25 en ambos lados; prior de clases casi simétrico: TRAIN TP/SL/TIME largo 2 242 / 2 248 / 558, corto 2 170 / 2 322 / 553). Era la **estrategia v1.3 con tasas de apertura POR LADO**: cada lado mapeaba su gen a un cuantil de SU PROPIA distribución de EV; la referencia corta era más baja (EV_S p50 −0.72 frente a EV_L p50 −0.17, porque a 3 épocas las celdas elegidas y los netos difieren por lado), el gen corto tocó su cota (`open_rate_s` 0.499) y quedó un margen absoluto de **−0.715 para cortos frente a −0.059 para largos**: el corto abría casi siempre, el largo casi nunca. La alineación con la trampa lo confirma como ruido de 3 épocas, no como señal: sólo el 10–28 % de los largos y el 44 % de los cortos coincidían con el signo de la trampa (base 33 % / 67 %).
+
+**Arreglo (en el contrato, identidad nueva):** UN solo gen de apertura (`open_rate`) mapeado sobre la distribución de EV **agrupada de los dos lados**; ambos lados deben superar el MISMO margen absoluto y gana el EV mayor; empate exacto → no operar; el veto NOP, la puerta mejor-del-día y la regla de actividad no ven el lado. Los umbrales de cierre siguen por lado (cada cerrador ve su propia orden). Regla declarada en `strategy.side_symmetry` y verificada por el validador.
+
+**Testigos:** (1) prueba de intercambio (`test_swap_witness_mirrored_head_outputs_mirror_the_actions_exactly`): con las salidas de las cabezas espejadas (open_l ↔ open_s netos y probabilidades, cerradores intercambiados) sobre las mismas filas, cada acción se espeja exactamente (LONG ↔ SHORT, misma celda, misma puntuación EV) y los contadores del libro se espejan; (2) **libro de decisiones por barra** (`PolicyC3(record=True)`: EV_L, EV_S, margen, quién ganó y por qué; resumen por periodo en `E3M.json → action_contract.side_ledger`: decisiones planas, "ambos superan", victorias por lado, sólo-largo, sólo-corto, ninguno, veto, empates); (3) `test_exact_ev_tie_privileges_no_side`.
+
 ## Controles (DIAGNOSTIC, wf2022, 1 semilla, CPU, `full_f3`)
 
 **No lanzados** (orden del propietario 2026-10-26: la prueba de la estrategia con salidas simuladas, carril F9, va antes; los controles esperan los parámetros congelados de la Fase 0). La cola está preparada (`queue_c3.sh`: trampa y sintético × {residual_tcn por defecto, u control}, contra C2 v1.3 y el oráculo); las tablas de resultados de 25 celdas bajo `full_f3` ya existen para el store trampa (16 838 filas elegibles) y el sintético.

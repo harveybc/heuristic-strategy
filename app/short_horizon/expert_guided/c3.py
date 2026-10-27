@@ -12,7 +12,7 @@ What changes, each tied to the register:
 * A2-9 / A4-10  the grid is bounded by the engine's effective cap (p1 2.09 sigma on TRAIN: 2.0 is never clipped) and
   extended below 0.75 sigma (0.5); TP >= SL cells exist in every row (RR >= 1).
 * A4-5 / A2-8  the open rule is decision-theoretic with the RIGHT probabilities:
-  EV = P(TP first) * TP - P(SL first) * SL + P(TIME) * E[net | TIME] - cost > open_margin_side, where the cell is the one
+  EV = P(TP first) * TP - P(SL first) * SL + P(TIME) * E[net | TIME] - cost > open_margin (ONE pooled margin), where the cell is the one
   with the highest predicted net among the ALLOWED cells (TP >= SL, or predicted net > cost + ``RR_MARGIN_SIGMA``);
   "no trade" is a valid answer; activity (>= 2 trades/week) stays a VALIDITY criterion, never forced into negative EV.
 * A2-4 / A2-6 / A4-6  closers see the causal geometry of their own order (as C2G) and are trained WITHOUT the
@@ -78,13 +78,20 @@ BEST_OF_DAY = {"observe_bars": 1, "rule": "A4-2: causal secretary rule per busin
                                             "(observe 3 was infeasible under full_f3's 24 h cutoff: the 1 entry/day cap leaves ~4 slots/week and the "
                                             "secretary rule loses the day whenever the best signal fell inside the window; smoke 2026-10-26: best 1.26/wk)"}
 EARLY_CLOSE_MIN_SHARE = 0.05                   # A4-7 (exec_variants.early_close_ok): agent closes >= 5 % of exits AND value LCB >= 0
-GENES_Q = ("open_rate_l", "open_rate_s", "close_rem_rate_l", "close_rem_rate_s", "close_p_rate_l", "close_p_rate_s", "allow_reverse", "nop_veto_rate")
+# ONE open rate (side symmetry, owner alert 2026-10-26): the margin is a quantile of the POOLED EV reference (both sides'
+# EVs over the calibration rows), so both sides clear the same absolute margin and the higher EV wins; per-side open rates
+# (v1.3) let the search privilege a side through its own quantile scale (cheat smoke: short rate at the 0.50 bound ->
+# short margin -0.72 vs long -0.06 -> 73 % shorts). Per-side CLOSE thresholds stay (closers see their own order).
+GENES_Q = ("open_rate", "close_rem_rate_l", "close_rem_rate_s", "close_p_rate_l", "close_p_rate_s", "allow_reverse", "nop_veto_rate")
+SIDE_SYMMETRY_RULE = ("open: EV_L and EV_S are computed by the same function with mirrored inputs and compared against ONE absolute margin; the higher EV "
+                      "wins; ties -> no privileged side (HOLD); the NOP veto, the gate and the activity rule see no side; witness = the swap test "
+                      "(mirrored head outputs must mirror the actions) and the per-tick decision ledger (EV_L, EV_S, margin, winner, reason)")
 # open rates up to 0.50 (2026-10-26): under the 1 entry/day cap + the best-of-day gate the open rate governs how many
 # DAYS carry a qualifying signal, not the trade count; with full_f3's 24 h cutoff (~4 eligible days/week) a 0.30 ceiling
 # left no probe point with an activity lower bound >= 2.0 (smoke: best 2.67/week mean, bound below 2.0)
-Q_BOUNDS = {"open_rate_l": [0.002, 0.50], "open_rate_s": [0.002, 0.50], "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60],
+Q_BOUNDS = {"open_rate": [0.002, 0.50], "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60],
             "close_p_rate_l": [0.0, 0.60], "close_p_rate_s": [0.0, 0.60], "allow_reverse": [0.0, 1.0], "nop_veto_rate": [0.0, 0.50]}
-GENES = ("open_margin_l", "open_margin_s", "close_margin_l", "close_margin_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto")
+GENES = ("open_margin", "close_margin_l", "close_margin_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto")
 SPECIALISTS, OPENERS, CLOSERS, SIDE_OF = C2.SPECIALISTS, C2.OPENERS, C2.CLOSERS, C2.SIDE_OF
 NET_BOUND, REM_BOUND, GEOMETRY, N_GEO = C2.NET_BOUND, C2.REM_BOUND, C2.GEOMETRY, C2.N_GEO
 CALIBRATION_METHOD = "temperature_multiclass_openers+platt_binary"
@@ -171,8 +178,7 @@ class StrategyC3:
     """Per-side open margins on the EV reference, per-side close thresholds (remaining value and P(SL first)) each
     mapped on the positioned rows of its own side (A4-6), reverse permission, optional NOP veto, and the early-close
     switch (False only when the calibration-block benefit test fails: flagged)."""
-    open_margin_l: float
-    open_margin_s: float
+    open_margin: float
     close_margin_l: float
     close_margin_s: float
     close_p_l: float
@@ -183,8 +189,12 @@ class StrategyC3:
 
     @classmethod
     def from_genes(cls, g: dict, veto: bool):
-        return cls(float(g["open_margin_l"]), float(g["open_margin_s"]), float(g["close_margin_l"]), float(g["close_margin_s"]),
+        return cls(float(g["open_margin"]), float(g["close_margin_l"]), float(g["close_margin_s"]),
                    float(g["close_p_l"]), float(g["close_p_s"]), bool(float(g["allow_reverse"]) >= 0.5), float(g["nop_veto"]) if veto else None, True)
+
+    def mirrored(self):
+        """The same strategy with the sides swapped (the swap witness): one open margin, per-side close thresholds swapped."""
+        return dataclasses.replace(self, close_margin_l=self.close_margin_s, close_margin_s=self.close_margin_l, close_p_l=self.close_p_s, close_p_s=self.close_p_l)
 
     def to_dict(self):
         return dataclasses.asdict(self)
@@ -193,17 +203,20 @@ class StrategyC3:
         return dataclasses.replace(self, early_close=False)
 
 
-NO_TRADE = StrategyC3(1e9, 1e9, 0.0, 0.0, 1.0, 1.0, False, None, True)
+NO_TRADE = StrategyC3(1e9, 0.0, 0.0, 1.0, 1.0, False, None, True)
+TIE_EPS = 1e-12
 
 
 class PolicyC3:
     """Frozen upper layer over a C3 table (``net`` (n, 2, cells), ``p3`` (n, 2, 3), ``pn``, ``closer``):
     policy(cx) -> f(bar, r, st, env) -> (action, tp, sl). A blank row raises, as C2."""
 
-    def __init__(self, table: dict, strategy: StrategyC3, cells=CELLS, e_time=(0.0, 0.0), cost: float = 0.0, observe_bars: int = BEST_OF_DAY["observe_bars"]):
+    def __init__(self, table: dict, strategy: StrategyC3, cells=CELLS, e_time=(0.0, 0.0), cost: float = 0.0, observe_bars: int = BEST_OF_DAY["observe_bars"],
+                 record: bool = False):
         self.t, self.s, self.cells = table, strategy, [tuple(c) for c in cells]
         self.e_time, self.cost, self.observe = (float(e_time[0]), float(e_time[1])), float(cost), int(observe_bars)
         self.last_gate = None
+        self.record, self.ledger = bool(record), []          # per-tick decision ledger (flat decisions): EV_L, EV_S, margin, winner, reason
 
     def _cap(self, r):
         cap, lo = self.t.get("cap"), self.t.get("lo")
@@ -215,22 +228,61 @@ class PolicyC3:
             raise ValueError(f"C3_ROW_OUTSIDE_TABLE:{f}:{r}")
         return x
 
+    def side_evs(self, r):
+        """(EV_L, cell_L, EV_S, cell_S) at row r: the same function on each side's own outputs (no side is privileged)."""
+        cap, lo = self._cap(r)
+        out = []
+        for si in (0, 1):
+            ci, ev = best_cell_ev(self._v("net", r, si), self._v("p3", r, si), self.cells, self.e_time[si], self.cost, cap=cap, lo=lo)
+            out += [ev if (ci >= 0 and np.isfinite(ev)) else float("nan"), ci]
+        return tuple(out)
+
     def open_decision(self, r, with_score: bool = False):
         s = self.s
+        rec = {"row": int(r), "ev_l": float("nan"), "ev_s": float("nan"), "margin": s.open_margin, "winner": "none", "reason": ""} if self.record else None
         if s.nop_veto is not None and float(self._v("pn", r)) > s.nop_veto:
+            if rec is not None:
+                rec["reason"] = "nop_veto"
+                self.ledger.append(rec)
             return None
-        best = None
-        cap, lo = self._cap(r)
-        for si, d in ((0, E.LONG), (1, E.SHORT)):
-            ci, ev = best_cell_ev(self._v("net", r, si), self._v("p3", r, si), self.cells, self.e_time[si], self.cost, cap=cap, lo=lo)
-            if ci < 0 or not np.isfinite(ev):
-                continue
-            mar = s.open_margin_l if si == 0 else s.open_margin_s
-            if ev > mar and (best is None or ev > best[0]):
-                best = (ev, d, self.cells[ci][0], self.cells[ci][1])
+        ev_l, ci_l, ev_s, ci_s = self.side_evs(r)
+        cl = bool(np.isfinite(ev_l) and ev_l > s.open_margin)
+        cs = bool(np.isfinite(ev_s) and ev_s > s.open_margin)
+        if rec is not None:
+            rec.update(ev_l=float(ev_l), ev_s=float(ev_s), cleared_l=cl, cleared_s=cs, both_cleared=cl and cs)
+        if cl and cs:
+            if abs(ev_l - ev_s) <= TIE_EPS:                 # exact tie: no privileged side
+                best, why = None, "tie"
+            elif ev_l > ev_s:
+                best, why = (ev_l, E.LONG, ci_l), "both_cleared_long_higher"
+            else:
+                best, why = (ev_s, E.SHORT, ci_s), "both_cleared_short_higher"
+        elif cl:
+            best, why = (ev_l, E.LONG, ci_l), "only_long_cleared"
+        elif cs:
+            best, why = (ev_s, E.SHORT, ci_s), "only_short_cleared"
+        else:
+            best, why = None, "none_cleared"
+        if rec is not None:
+            rec["reason"] = why
+            rec["winner"] = "none" if best is None else ("long" if best[1] == E.LONG else "short")
+            self.ledger.append(rec)
         if best is None:
             return None
-        return best[1:] + (best[0],) if with_score else best[1:]
+        ev, d, ci = best
+        out = (d, self.cells[ci][0], self.cells[ci][1])
+        return out + (ev,) if with_score else out
+
+    def ledger_summary(self) -> dict:
+        L = self.ledger
+        n = len(L)
+        both = [x for x in L if x.get("both_cleared")]
+        c = lambda k: sum(1 for x in L if x["reason"] == k)  # noqa: E731
+        return {"flat_decisions": n, "both_cleared": len(both), "both_cleared_long_won": sum(1 for x in both if x["winner"] == "long"),
+                "both_cleared_short_won": sum(1 for x in both if x["winner"] == "short"), "only_long_cleared": c("only_long_cleared"),
+                "only_short_cleared": c("only_short_cleared"), "none_cleared": c("none_cleared"), "nop_veto": c("nop_veto"), "ties": c("tie"),
+                "mean_ev_l": float(np.nanmean([x["ev_l"] for x in L])) if n else float("nan"), "mean_ev_s": float(np.nanmean([x["ev_s"] for x in L])) if n else float("nan"),
+                "margin": float(self.s.open_margin), "rule": SIDE_SYMMETRY_RULE}
 
     def close_now(self, r, si, bar, pos) -> bool:
         if not self.s.early_close:
@@ -588,13 +640,15 @@ def closer_reference_sides(table: dict, src: dict) -> dict:
 def gene_map(view: dict, rows, closer_ref: dict, cells, e_time, cost) -> ACT.GeneMap:
     r = np.asarray(rows, np.int64)
     refs = dict(closer_ref)
-    refs["open_score_l"], refs["open_score_s"] = ev_rows(view, r, 0, cells, e_time[0], cost), ev_rows(view, r, 1, cells, e_time[1], cost)
+    ev_l, ev_s = ev_rows(view, r, 0, cells, e_time[0], cost), ev_rows(view, r, 1, cells, e_time[1], cost)
+    refs["open_score"] = np.r_[ev_l, ev_s]                      # POOLED: one margin for both sides (side symmetry)
+    refs["open_score_l"], refs["open_score_s"] = ev_l, ev_s      # reported only (the per-side distributions)
     refs["nop_score"] = view["pn"][r]
-    rules = {"open_margin_l": ("open_rate_l", "open_score_l", "upper_rate"), "open_margin_s": ("open_rate_s", "open_score_s", "upper_rate"),
+    rules = {"open_margin": ("open_rate", "open_score", "upper_rate"),
              "close_margin_l": ("close_rem_rate_l", "rem_ref_l", "neg_lower_rate"), "close_margin_s": ("close_rem_rate_s", "rem_ref_s", "neg_lower_rate"),
              "close_p_l": ("close_p_rate_l", "psl_ref_l", "upper_rate"), "close_p_s": ("close_p_rate_s", "psl_ref_s", "upper_rate"),
              "allow_reverse": ("allow_reverse", None, "copy"), "nop_veto": ("nop_veto_rate", "nop_score", "upper_rate")}
-    return ACT.GeneMap(refs, rules, "C3: per-side EV references on calibration flat rows; per-side closer references on the exploration visits of that side")
+    return ACT.GeneMap(refs, rules, "C3: ONE open margin on the pooled EV reference (both sides, calibration flat rows); per-side closer references on the exploration visits of that side")
 
 
 # ----------------------------------------------------------------------------- the early-close benefit test
@@ -718,9 +772,9 @@ def head_outputs(cells) -> dict:
     return {
         "open_l.decision": {"encoding": "softmax_ce", "classes": list(CLASSES_OPEN), "range": "3 probabilities in [0, 1], sum 1",
                             "calibration": "temperature scaling on INNER_A (argmax-preserving)",
-                            "consumed_by": "EV = P(TP)*TP_cell - P(SL)*SL_cell + P(TIME)*E[net|TIME] - cost (probabilities at the reference cell); OPEN_LONG iff EV > open_margin_l (quantile gene) and the gate places it"},
+                            "consumed_by": "EV = P(TP)*TP_cell - P(SL)*SL_cell + P(TIME)*E[net|TIME] - cost (probabilities at the reference cell); OPEN_LONG iff EV_L > open_margin (ONE pooled quantile gene) and EV_L > EV_S when both clear, and the gate places it"},
         "open_s.decision": {"encoding": "softmax_ce", "classes": list(CLASSES_OPEN), "range": "3 probabilities in [0, 1], sum 1",
-                            "calibration": "temperature scaling on INNER_A (argmax-preserving)", "consumed_by": "as open_l for OPEN_SHORT with open_margin_s"},
+                            "calibration": "temperature scaling on INNER_A (argmax-preserving)", "consumed_by": "as open_l for OPEN_SHORT (same margin; the higher EV wins; exact tie -> HOLD)"},
         "open_l.continuous": {"encoding": "bounded_sigmoid", "outputs": n, "range": f"each in [{NET_BOUND[0]:g}, {NET_BOUND[1]:g}] sigma (predicted engine net per unit / sigma)",
                               "calibration": "none (Huber-fitted regression; order-preserving)",
                               "consumed_by": "cell choice only: argmax over the ALLOWED cells (TP >= SL, or net > cost + rr_margin; inside the per-bar band); never thresholded into an action by itself"},
@@ -765,19 +819,19 @@ def default_contract(architecture: dict | None = None) -> dict:
     doc["calibration"] = {"method": CALIBRATION_METHOD, "fit_block": "INNER_A", "ece_bins": 15, "heads": [f"{m}.decision" for m in SPECIALISTS],
                           "openers": "temperature scaling on the 3-class logits (argmax-preserving), NLL on a declared grid", "closers_and_nop": "platt_binary"}
     st = ACT.v13_strategy_block(doc["strategy"], Q_BOUNDS, {
-        "open_margin_l": "quantile(long EV over the allowed cells, calibration flat rows, 1 - open_rate_l)",
-        "open_margin_s": "quantile(short EV over the allowed cells, calibration flat rows, 1 - open_rate_s)",
+        "open_margin": "quantile(EV over the allowed cells POOLED over both sides, calibration flat rows, 1 - open_rate): one absolute margin for both sides",
         "close_margin_l": "-quantile(predicted remaining value, calibration LONG positioned visits, close_rem_rate_l)",
         "close_margin_s": "-quantile(predicted remaining value, calibration SHORT positioned visits, close_rem_rate_s)",
         "close_p_l": "quantile(calibrated P(SL first), calibration LONG positioned visits, 1 - close_p_rate_l)",
         "close_p_s": "quantile(calibrated P(SL first), calibration SHORT positioned visits, 1 - close_p_rate_s)"})
-    for k in ("open_margin", "close_margin", "close_p"):
+    for k in ("open_margin_l", "open_margin_s", "close_margin", "close_p"):
         st["gene_map"].pop(k, None)
+    st["side_symmetry"] = SIDE_SYMMETRY_RULE
     st["gene_map"]["positioned_visits"] = "the round-0 INNER_A exploration visits (TP / SL drawn from the grid; NO expert position): strategy-free"
     st["name"] = "c3_ev_per_side"
     st["rule"] = ("flat: per side, the ALLOWED cell (TP >= SL, or predicted net > cost + rr_margin) with the highest predicted net; "
                   "EV = P(TP first) * TP - P(SL first) * SL + P(TIME) * E[net | TIME] - cost (probabilities of the 3-class head at the reference "
-                  "cell, temperature-calibrated); open the better side when EV > open_margin_side and (veto kept) pNOP <= nop_veto; 'no trade' "
+                  "cell, temperature-calibrated); open the side with the higher EV among those with EV > open_margin (one pooled margin; exact tie -> no trade) and (veto kept) pNOP <= nop_veto; 'no trade' "
                   "is valid; positioned: CLOSE when the closer's predicted remaining < -close_margin_side OR calibrated P(SL first) > "
                   "close_p_side (per-side thresholds), then reverse when allow_reverse and the open rule names the other side")
     st["ev_rule"] = {"formula": "P(TP)*TP - P(SL)*SL + P(TIME)*E[net|TIME] - cost", "probabilities": f"3-class head at {list(REF)}",
@@ -786,7 +840,7 @@ def default_contract(architecture: dict | None = None) -> dict:
                      "rr_floor": {"rule": "TP >= SL always allowed; TP < SL only when predicted net > cost + rr_margin", "rr_margin_sigma": RR_MARGIN_SIGMA},
                      "activity": "a VALIDITY criterion (>= 2.0 trades/week lower CI bound on calibration); never a reason to open at negative EV"}
     st["threshold_targets"] = {"close_p_l": "close_l.SL_FIRST", "close_p_s": "close_s.SL_FIRST", "nop_veto": "nop.NOP"}
-    st["value_targets"] = {"open_margin_l": "open_l.value:net_", "open_margin_s": "open_s.value:net_",
+    st["value_targets"] = {"open_margin": "open_l.value:net_|open_s.value:net_",
                            "close_margin_l": "close_l.value:remaining_sigma", "close_margin_s": "close_s.value:remaining_sigma"}
     st["early_close_benefit"] = dict(EARLY_CLOSE_BENEFIT)
     doc["strategy"] = st
@@ -878,6 +932,8 @@ def validate(doc: dict) -> list:
     if s.get("gene_space") != ACT.GENE_SPACE_Q or tuple(genes) != GENES_Q or genes != Q_BOUNDS:
         errs.append(f"C3_CONTRACT_GENES:{list(genes)}")
     errs += [f"C3_CONTRACT_{e}" for e in ACT.v13_rule_errors(s, True)]
+    if s.get("side_symmetry") != SIDE_SYMMETRY_RULE:
+        errs.append("C3_CONTRACT_SIDE_SYMMETRY")
     ev = s.get("ev_rule") or {}
     if float((ev.get("rr_floor") or {}).get("rr_margin_sigma", -1)) != RR_MARGIN_SIGMA:
         errs.append("C3_CONTRACT_EV_RULE")
@@ -1161,6 +1217,14 @@ def run_e3m(ctx: dict) -> dict:
             gate_stats[p] = dict(c.last_gate.stats) if c.last_gate is not None else None
             rec["musashi_contract"][p] = summary(cx.rollout(p, c(cx), MCFG)[0])
         rec["action_contract"]["best_of_day_gate"] = gate_stats
+        led_ = {}
+        for p in DEV:
+            if p == DEC:
+                RL.record(ledger_path, f"{fold}/{DEC}", out.name, f"seed {seed} side ledger", "FULL", "e3m_c3", note="per-tick decision ledger replay")
+            pl = PolicyC3(table, c.s, cells, e_time, cost, record=True)
+            cx.rollout(p, pl(cx), SCFG)
+            led_[p] = pl.ledger_summary()
+        rec["action_contract"]["side_ledger"] = led_
         for f, bf in extra["strategy"]["by_fitness"].items():
             if bf["strategy"] is not None:
                 cf = PolicyC3(table, strategy_from_dict(bf["strategy"]), cells, e_time, cost)

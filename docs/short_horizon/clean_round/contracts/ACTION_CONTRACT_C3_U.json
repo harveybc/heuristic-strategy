@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_f2f3bf19f37b146a",
+ "identity": "action_1bab89cf872561dc",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -848,11 +848,7 @@
  },
  "strategy": {
   "genes": {
-   "open_rate_l": [
-    0.002,
-    0.5
-   ],
-   "open_rate_s": [
+   "open_rate": [
     0.002,
     0.5
    ],
@@ -883,27 +879,25 @@
   },
   "gene_space": "calibration_quantile",
   "gene_map": {
+   "open_margin": "quantile(EV over the allowed cells POOLED over both sides, calibration flat rows, 1 - open_rate): one absolute margin for both sides",
    "allow_reverse": "gene >= 0.5",
    "nop_veto": "quantile(calibrated pNOP, calibration flat rows, 1 - nop_veto_rate)",
    "positioned_visits": "the round-0 INNER_A exploration visits (TP / SL drawn from the grid; NO expert position): strategy-free",
    "frozen": "on the calibration block before the search; recorded in the strategy doc (gene_map)",
    "feasibility_probe": "corners of the continuous genes + the q-max point + the side-balance corner (both open rates at their maximum); no point VALID under the activity CI and side rules with >= 1 agent close -> STRATEGY_SPACE_INFEASIBLE",
-   "open_margin_l": "quantile(long EV over the allowed cells, calibration flat rows, 1 - open_rate_l)",
-   "open_margin_s": "quantile(short EV over the allowed cells, calibration flat rows, 1 - open_rate_s)",
    "close_margin_l": "-quantile(predicted remaining value, calibration LONG positioned visits, close_rem_rate_l)",
    "close_margin_s": "-quantile(predicted remaining value, calibration SHORT positioned visits, close_rem_rate_s)",
    "close_p_l": "quantile(calibrated P(SL first), calibration LONG positioned visits, 1 - close_p_rate_l)",
    "close_p_s": "quantile(calibrated P(SL first), calibration SHORT positioned visits, 1 - close_p_rate_s)"
   },
-  "rule": "flat: per side, the ALLOWED cell (TP >= SL, or predicted net > cost + rr_margin) with the highest predicted net; EV = P(TP first) * TP - P(SL first) * SL + P(TIME) * E[net | TIME] - cost (probabilities of the 3-class head at the reference cell, temperature-calibrated); open the better side when EV > open_margin_side and (veto kept) pNOP <= nop_veto; 'no trade' is valid; positioned: CLOSE when the closer's predicted remaining < -close_margin_side OR calibrated P(SL first) > close_p_side (per-side thresholds), then reverse when allow_reverse and the open rule names the other side",
+  "rule": "flat: per side, the ALLOWED cell (TP >= SL, or predicted net > cost + rr_margin) with the highest predicted net; EV = P(TP first) * TP - P(SL first) * SL + P(TIME) * E[net | TIME] - cost (probabilities of the 3-class head at the reference cell, temperature-calibrated); open the side with the higher EV among those with EV > open_margin (one pooled margin; exact tie -> no trade) and (veto kept) pNOP <= nop_veto; 'no trade' is valid; positioned: CLOSE when the closer's predicted remaining < -close_margin_side OR calibrated P(SL first) > close_p_side (per-side thresholds), then reverse when allow_reverse and the open rule names the other side",
   "threshold_targets": {
    "close_p_l": "close_l.SL_FIRST",
    "close_p_s": "close_s.SL_FIRST",
    "nop_veto": "nop.NOP"
   },
   "value_targets": {
-   "open_margin_l": "open_l.value:net_",
-   "open_margin_s": "open_s.value:net_",
+   "open_margin": "open_l.value:net_|open_s.value:net_",
    "close_margin_l": "close_l.value:remaining_sigma",
    "close_margin_s": "close_s.value:remaining_sigma"
   },
@@ -953,6 +947,7 @@
   "side_rule": "side balance: a strategy point whose entries on the calibration block put more than 90 % on one side violates the constraint (violation = share - 0.90), handled by Deb constraint domination together with the activity violation (sum); such points are archived and never selectable",
   "front_min": 5,
   "fitness_diversity": "reported per (arm, fold): selectable front size and distinct points chosen across the variants; fewer than 5 selectable front points = FRONT_TOO_SMALL, and the final search is rerun once with the escalated budget (declared)",
+  "side_symmetry": "open: EV_L and EV_S are computed by the same function with mirrored inputs and compared against ONE absolute margin; the higher EV wins; ties -> no privileged side (HOLD); the NOP veto, the gate and the activity rule see no side; witness = the swap test (mirrored head outputs must mirror the actions) and the per-tick decision ledger (EV_L, EV_S, margin, winner, reason)",
   "name": "c3_ev_per_side",
   "ev_rule": {
    "formula": "P(TP)*TP - P(SL)*SL + P(TIME)*E[net|TIME] - cost",
@@ -1050,7 +1045,7 @@
    ],
    "range": "3 probabilities in [0, 1], sum 1",
    "calibration": "temperature scaling on INNER_A (argmax-preserving)",
-   "consumed_by": "EV = P(TP)*TP_cell - P(SL)*SL_cell + P(TIME)*E[net|TIME] - cost (probabilities at the reference cell); OPEN_LONG iff EV > open_margin_l (quantile gene) and the gate places it"
+   "consumed_by": "EV = P(TP)*TP_cell - P(SL)*SL_cell + P(TIME)*E[net|TIME] - cost (probabilities at the reference cell); OPEN_LONG iff EV_L > open_margin (ONE pooled quantile gene) and EV_L > EV_S when both clear, and the gate places it"
   },
   "open_s.decision": {
    "encoding": "softmax_ce",
@@ -1061,7 +1056,7 @@
    ],
    "range": "3 probabilities in [0, 1], sum 1",
    "calibration": "temperature scaling on INNER_A (argmax-preserving)",
-   "consumed_by": "as open_l for OPEN_SHORT with open_margin_s"
+   "consumed_by": "as open_l for OPEN_SHORT (same margin; the higher EV wins; exact tie -> HOLD)"
   },
   "open_l.continuous": {
    "encoding": "bounded_sigmoid",
