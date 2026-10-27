@@ -58,7 +58,7 @@ QUALITY_INDEPENDENT = ("W16_sl_tp_every_order", "W17_no_open_in_burst", "W0_acti
 
 
 # ----------------------------------------------------------------------------- the declared subset
-def build_subset(cells: list, per_level: int = 1, seed: int = SEED, mirror_at_quality: bool = False) -> list:
+def build_subset(cells: list, per_level: int = 1, seed: int = SEED, mirror_at_quality: bool = False, mirrors: bool = False) -> list:
     """Stratified: per matrix level (every block / family) ``per_level`` base cells drawn with the declared seed; each
     world appears with its REAL-COST mirror (R_ = mirrored path, costs unchanged), at perfect heads and at quality 0.70."""
     rng = random.Random(seed)
@@ -73,7 +73,7 @@ def build_subset(cells: list, per_level: int = 1, seed: int = SEED, mirror_at_qu
             m = dict(c)
             m["id"], m["mirror"], m["mirror_real_cost_of"] = "R_" + c["id"], True, c["id"]
             m["legs_gen"], m["legs"], m["regime"] = list(c["legs"]), [H.MIRROR[x] for x in c["legs"]], H.MIRROR[c["regime"]]
-            for w in (c, m):
+            for w in ((c, m) if mirrors else (c,)):                  # both trade directions are already in every world's BUY and SELL episodes
                 for q in ((1.0, OPERATING_QUALITY) if (mirror_at_quality or w is c) else (1.0,)):
                     x = dict(w)
                     x["quality"] = q
@@ -104,6 +104,10 @@ class CachedWorld:
         owit = BM.witnesses(cell, w, orl, cells)
         self.defects = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)   # per-cell rule
         self.oracle_sharpe = float(orl["metrics"].get("sharpe_daily_sqrt365", float("nan")))
+        # memory: what an evaluation never reads again (the raw head table -- the view holds its restricted copy -- and the
+        # exploration visits, consumed by the gene map and the closer references above); ~270 MB per world before
+        self.w.pop("table", None)
+        self.w["truth"].xvis = {}
 
     def evaluate(self, params: dict) -> dict:
         ZZ.configure(params)
