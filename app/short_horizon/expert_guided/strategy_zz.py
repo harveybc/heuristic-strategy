@@ -40,7 +40,7 @@ DEFAULT_LEVELS = ("rev800", "rev400", "rev200", "rev100", "rev60", "rev20", "rev
 ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60", "rev20", "rev15"), "fine": ("3", "rev10", "rev8", "rev5")}
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
-PARAMS = {"ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+PARAMS = {"observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
           "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5}
 
 
@@ -110,17 +110,24 @@ def _level_arrays(o, h, l, c, sigma, piv):
     return out
 
 
-def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | None = None, theta_f: float | None = None,
-                      theta_mae: float = 0.5, theta_vol: float = 0.25) -> dict:
-    """Per bar (hindsight; the IDEAL head outputs): coarse room / direction / tau, fine counter-pivot within h / tau /
-    fresh favourable leg, f*, votes, NOP hard / graded, plus the per-level pivots (for the ladder-to-horizon mapping)."""
-    h = int(PARAMS["zz_fine_h"] if h is None else h)
-    theta_f = float(PARAMS["zz_theta_f"] if theta_f is None else theta_f)
+def ladder_levels(bars, sigma, levels=DEFAULT_LEVELS) -> dict:
+    """The per-level part of the ladder (pivots and per-bar leg arrays): independent of every strategy coefficient,
+    computed once per world and cached by the parameter optimiser."""
     o, hi, lo, c = (np.asarray(bars[k], float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
     sig = np.asarray(sigma, float)
-    n = len(c)
     piv = {r: level_pivots(hi, lo, r) for r in levels}
-    arr = {r: _level_arrays(o, hi, lo, c, sig, piv[r]) for r in levels}
+    return {"pivots": piv, "arr": {r: _level_arrays(o, hi, lo, c, sig, piv[r]) for r in levels}, "levels": tuple(levels), "n": len(c)}
+
+
+def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | None = None, theta_f: float | None = None,
+                      theta_mae: float = 0.5, theta_vol: float = 0.25, cached: dict | None = None) -> dict:
+    """Per bar (hindsight; the IDEAL head outputs): coarse room / direction / tau, fine counter-pivot within h / tau /
+    fresh favourable leg, f*, votes, NOP hard / graded, plus the per-level pivots (for the ladder-to-horizon mapping).
+    ``cached`` = ladder_levels(...) of the same path (the aggregation below is the only part that depends on h / theta_f)."""
+    h = int(PARAMS["zz_fine_h"] if h is None else h)
+    theta_f = float(PARAMS["zz_theta_f"] if theta_f is None else theta_f)
+    lv = cached if cached is not None else ladder_levels(bars, sigma, levels)
+    piv, arr, levels, n = lv["pivots"], lv["arr"], lv["levels"], lv["n"]
     coarse = [r for r in roles["coarse"] if r in arr]
     fine = [r for r in roles["fine"] if r in arr]
     room = np.nanmax(np.stack([arr[r]["room"] for r in coarse]), axis=0) if coarse else np.full((n, 2), np.nan)

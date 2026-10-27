@@ -640,7 +640,7 @@ def oracle_view(world: dict, view: dict) -> dict:
 
 def rollout_cell(world: dict, strat, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
-    pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost)
+    pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost, observe_bars=int(round(ZZ.PARAMS.get("observe_bars", 0))))
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
     return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat, "attr": getattr(pol, "attr", [])}
 
