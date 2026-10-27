@@ -127,8 +127,10 @@ class Noise:
     @staticmethod
     def _swap(key):
         k = tuple(key)
-        if k and k[0] in ("open", "net", "mae") and len(k) >= 3:
+        if k and k[0] in ("open", "net", "mae", "mfe") and len(k) >= 3:
             return k[:2] + (1 - int(k[2]),) + k[3:]
+        if k and k[0] == "adv" and len(k) >= 3:                     # ("adv", bar, direction, entry_bar, tp, sl)
+            return ("adv", k[1], -int(k[2])) + tuple(k[3:])
         if k and k[0] == "close" and len(k) >= 2:
             inner = k[1:]
             if inner and inner[0] == "vis" and len(inner) >= 3:
@@ -169,6 +171,7 @@ class Truth:
     xvis: dict                  # exploration visits per block: row, bar, side, remaining, sl_first, key (hold-value truth)
     stamp: dict
     mae: np.ndarray | None = None   # (n, 2, cells) engine maximum adverse excursion in sigma (NaN unknown); the MAE head's truth
+    mfe: np.ndarray | None = None   # (n, 2, cells) engine maximum favourable excursion in sigma; the protective-TP head's truth
 
 
 def load_fold(fold: str, admitted: str, csv_dir: str):
@@ -219,6 +222,7 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
     hit3 = et["hit"][:, :, ref].astype(np.int64)
     net = et["net_sigma"].astype(float)
     mae_t = et["mae"].astype(float) if "mae" in et else None
+    mfe_t = et["mfe"].astype(float) if "mfe" in et else None
     # reality-based NOP: no allowed cell on either side has a true net above the cost (A2-8: open only with positive EV)
     nop = np.ones(n, np.int64)
     for r in (rows if rows_sel is None else rows_sel):
@@ -247,7 +251,7 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
                    "censored": xt["censored"], "exit_bar": xt["exit_bar"]}
     return Truth(fold, [list(c) for c in cells], ref, rows, np.asarray(cx.ds.period), day, hit3, net, nop, e_time, cost, cap, lo, xvis,
                  {"entry_table": et["stamp"], "refused": {k: int(v_) for k, v_ in et["refused"].items()}, "explore_seed": explore_seed,
-                  "exploration_prior": list(EXPLORATION_PRIOR)}, mae=mae_t)
+                  "exploration_prior": list(EXPLORATION_PRIOR)}, mae=mae_t, mfe=mfe_t)
 
 
 def save_truth(path: Path, t: Truth):
@@ -285,6 +289,45 @@ class Quality:
 
     def side(self, si: int) -> float:
         return self.open if si == 0 or self.open_s is None else self.open_s
+
+
+ADV_SCALE_SIGMA = 1.0            # declared scale of the advantage head's noise (sigma units of the trade)
+
+
+def trade_path(env, pos) -> dict:
+    """The exit path of an open position, from the ENGINE: P(t) = net (USD, every cost) if closed by a decision at bar t
+    (fill at the open of t + 1), for every decision bar t from the entry bar to the bar before the natural exit, and the
+    natural exit (first of SL / TP / cutoff) if held. No recovery after an SL hit counts (the path ends at the exit)."""
+    import dataclasses as _dc
+    e = int(pos.entry_bar)
+    OC._clean(env)
+    env.pos = _dc.replace(pos)
+    complete = OC._hold_to_close(env, e)
+    th = env.trades[-1]
+    x = int(th["exit_bar_abs"])
+    bars, vals = [], []
+    for t in range(e, min(x, env.last)):
+        OC._clean(env)
+        env.pos = _dc.replace(pos)
+        env.step(t, E.CLOSE)
+        bars.append(t)
+        vals.append(float(env.trades[-1]["net_usd"]))
+    OC._clean(env)
+    u = max(int(pos.units), 1)
+    sg = float(pos.sigma)
+    return {"bars": np.asarray(bars, np.int64), "P": np.asarray(vals, float), "hold_net": float(th["net_usd"]), "hold_reason": th["close_reason"],
+            "exit_bar": x, "complete": bool(complete), "units": u, "sigma": sg}
+
+
+def path_advantage(path: dict, bar: int) -> float:
+    """A(t) = P(close now) - max_{t' > t} P(t') (the best continuation, the natural exit included), in sigma units of
+    the trade; NaN when t is not a decision bar of the path."""
+    b = path["bars"]
+    i = int(np.searchsorted(b, bar))
+    if i >= len(b) or int(b[i]) != int(bar):
+        return float("nan")
+    cont = np.r_[path["P"][i + 1:], path["hold_net"]]
+    return float((path["P"][i] - np.max(cont)) / path["units"] / path["sigma"])
 
 
 class SimCloser:
@@ -333,11 +376,46 @@ class SimCloser:
     def value(self, r, bar, pos):
         k = pos_key(pos, bar)
         if k not in self.cache:
-            o = OC.hold_value(self.env, pos, int(bar))
-            self.cache[k] = (float(o["remaining"]), int(o["sl_first"]))
+            pk = ("path", int(pos.entry_bar), int(pos.direction), round(float(pos.tp), 7), round(float(pos.sl), 7))
+            path = self.cache.get(pk)
+            i = int(np.searchsorted(path["bars"], int(bar))) if path is not None else -1
+            if path is not None and i < len(path["bars"]) and int(path["bars"][i]) == int(bar):
+                # the same numbers hold_value computes (hold-to-exit net minus close-now net), read off the cached engine path
+                rem = (path["hold_net"] - float(path["P"][i])) / path["units"] / path["sigma"]
+                slf = 1 if path["hold_reason"] == "SL" else (0 if path["hold_reason"] == "TP" else int(path["hold_net"] < 0))
+                self.cache[k] = (float(rem), int(slf))
+            else:
+                o = OC.hold_value(self.env, pos, int(bar))
+                self.cache[k] = (float(o["remaining"]), int(o["sl_first"]))
         rem_true, slf = self.cache[k]
         x, p, _ = self.simulate(rem_true, slf, k, int(self.t.day[r]), int(r))
         return x, p
+
+    def path(self, pos) -> dict:
+        k = ("path", int(pos.entry_bar), int(pos.direction), round(float(pos.tp), 7), round(float(pos.sl), 7))
+        if k not in self.cache:
+            self.cache[k] = trade_path(self.env, pos)
+        return self.cache[k]
+
+    def advantage(self, r, bar, pos) -> float:
+        """The closer's ADVANTAGE head (hindsight target, never an observation): A(t) in sigma units with the closer's
+        quality, rho = sin(pi (level - 1/2)) and the conditional-mean output (a perfect head returns A exactly)."""
+        a = path_advantage(self.path(pos), int(bar))
+        if not np.isfinite(a):
+            return float("nan")
+        rho = rho_of_level(self._quality(r))
+        if rho >= 1.0:
+            return a
+        e = self.noise.draw(("adv", int(bar), int(pos.direction), int(pos.entry_bar), round(float(pos.tp), 7), round(float(pos.sl), 7)), int(self.t.day[r]), 1)
+        noisy = a + sigma_for_rho(rho, ADV_SCALE_SIGMA) * float(e[0])
+        return float((rho ** 2) * noisy)
+
+    def with_quality(self, close_level: float):
+        """The same closer (same truth, same noise stream, shared path cache) at another closer quality level."""
+        c = SimCloser.__new__(SimCloser)
+        c.__dict__.update(self.__dict__)
+        c.q = dataclasses.replace(self.q, close=float(close_level))
+        return c
 
     def restricted(self, keep):
         return self
@@ -373,6 +451,8 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
     t = {"net": np.full((n, 2, nc), np.nan), "p3": np.full((n, 2, 3), np.nan), "pn": np.full(n, np.nan), "cap": truth.cap, "lo": truth.lo}
     if truth.mae is not None:
         t["mae"] = np.full((n, 2, nc), np.nan)
+    if truth.mfe is not None:
+        t["mfe"] = np.full((n, 2, nc), np.nan)
     lat = {"tp": np.full((n, 2), np.nan), "sl": np.full((n, 2), np.nan), "nop": np.full(n, np.nan)}
     sd_net = float(np.nanstd(truth.net[cal])) if np.isfinite(truth.net[cal]).any() else 1.0
     mu_net = float(np.nanmean(truth.net[cal])) if np.isfinite(truth.net[cal]).any() else 0.0   # the calibration-block naive (the regression's shrinkage target)
@@ -409,6 +489,14 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
                     mum = float(np.nanmean(truth.mae[cal])) if np.isfinite(truth.mae[cal]).any() else 0.0
                     rn = xm + sigma_for_rho(qn, sdm) * em
                     t["mae"][r, si, :] = np.maximum(0.0, mum + (qn ** 2) * (rn - mum))
+            if truth.mfe is not None:
+                xf = truth.mfe[r, si]
+                if np.all(np.isfinite(xf)):
+                    ef = noise.draw(("mfe", int(r), si), day, nc)
+                    sdf = float(np.nanstd(truth.mfe[cal])) if np.isfinite(truth.mfe[cal]).any() else 1.0
+                    muf = float(np.nanmean(truth.mfe[cal])) if np.isfinite(truth.mfe[cal]).any() else 0.0
+                    rf = xf + sigma_for_rho(qn, sdf) * ef
+                    t["mfe"][r, si, :] = np.maximum(0.0, muf + (qn ** 2) * (rf - muf))
         e = noise.draw(("nop", int(r)), day, 1)
         lat["nop"][r] = beta_for_auc(qnp) * (1.0 if truth.nop[r] else -1.0) + e[0]
     # calibration on the calibration block only (Platt per binary latent), then the 3-class probabilities

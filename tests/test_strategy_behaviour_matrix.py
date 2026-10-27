@@ -189,3 +189,34 @@ def test_multiscale_world_components_are_planted_and_the_ladder_reads_them():
     assert len(cells) == 3 * len(base) and all(c["ms"] for c in base)
     assert {c["intensity"]["active"] for c in base if c["level"] == "H1_active_horizons"} == {"long", "medium", "short", "long+medium", "long+short", "medium+short", "long+medium+short"}
     assert all(any("NO NEW OPENS" in e for e in c["expected"]) and any("EARLY CLOSE" in e for e in c["expected"]) and any("OPENS" in e for e in c["expected"]) for c in base)
+
+
+def test_exit_advantage_and_path_definitions():
+    """P(t), P*, A(t): the advantage is the close-now value minus the best continuation (the natural exit included),
+    in sigma units of the trade; the sealed exit spec carries every definition and threshold."""
+    from tools import strategy_output_simulation as S
+    path = {"bars": np.array([10, 11, 12, 13]), "P": np.array([5.0, 9.0, 7.0, 3.0]), "hold_net": -20.0, "units": 10, "sigma": 0.5, "hold_reason": "SL", "exit_bar": 14}
+    assert S.path_advantage(path, 10) == pytest.approx((5.0 - 9.0) / 10 / 0.5)
+    assert S.path_advantage(path, 11) == pytest.approx((9.0 - 7.0) / 10 / 0.5)        # the best exit: A >= 0
+    assert S.path_advantage(path, 13) == pytest.approx((3.0 + 20.0) / 10 / 0.5)       # close before the SL
+    assert np.isnan(S.path_advantage(path, 99))
+    assert set(BM.EXIT_SPEC["witnesses_per_side"]) >= {"E0", "E1", "E2", "E3", "E4", "E5", "E6", "E1'", "E2'", "E7", "Z1", "E8", "EP"}
+    assert len(BM.EXIT_SPEC_SHA) == 64 and BM.EPS_CLOSE == 0.02
+
+
+def test_episode_replay_scores_regret_lateness_and_the_loss_curve():
+    """run_episodes on a hand-made path: a closer that closes at the best tick has R = 0 and lateness 0; one that
+    holds to the SL has R = P*_pre - SL loss; L(t) is P*_pre - P(t) over the held ticks."""
+    class _C:
+        def path(self, pos):
+            return {"bars": np.array([0, 1, 2, 3]), "P": np.array([1.0, 4.0, 2.0, 0.0]), "hold_net": -6.0, "units": 1, "sigma": 1.0, "hold_reason": "SL", "exit_bar": 4}
+    class _CX:
+        rob = np.arange(10)
+        obs_ok = np.ones(10, bool)
+    world = {"cx": _CX()}
+    eps = [{"pos": None, "side": 0, "class": "SL", "start_bar": 0}]
+    best = BM.run_episodes(world, eps, lambda r, si, bar, pos: bar == 1, _C())[0]
+    hold = BM.run_episodes(world, eps, lambda r, si, bar, pos: False, _C())[0]
+    assert best["R_pre"] == pytest.approx(0.0) and best["late_bars"] == 0 and best["early"]
+    assert hold["R_pre"] == pytest.approx(4.0 + 6.0) and not hold["early"]
+    assert best["L_curve"] == [pytest.approx(3.0), pytest.approx(0.0)]

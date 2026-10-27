@@ -24,6 +24,7 @@ Every coefficient lives in STRATEGY_PARAMS.json (strategy_params.py); this modul
 """
 from __future__ import annotations
 
+import dataclasses
 import math
 
 import numpy as np
@@ -40,7 +41,7 @@ DEFAULT_LEVELS = ("rev800", "rev400", "rev200", "rev100", "rev60", "rev20", "rev
 ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60", "rev20", "rev15"), "fine": ("3", "rev10", "rev8", "rev5")}
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
-PARAMS = {"zz_post_flip_bars": 240.0, "zz_counter_net_frac": 0.8, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 0.8, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
           "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5}
 
 
@@ -221,7 +222,7 @@ class PolicyC3Z(C3.PolicyC3):
 
     def __init__(self, table, strategy, cells=C3.CELLS, e_time=(0.0, 0.0), cost: float = 0.0, observe_bars: int = 0):
         super().__init__(table, strategy, cells, e_time, cost, observe_bars)
-        self.log, self.closes, self.attr = [], [], []
+        self.log, self.closes, self.attr, self.positions = [], [], [], {}
 
     def _cost_at(self, r):
         c = self.t.get("cost_row")
@@ -241,6 +242,10 @@ class PolicyC3Z(C3.PolicyC3):
             return -1, float("nan"), "rr_floor_or_band"
         ci = int(np.argmax(np.where(ok, net, -np.inf)))
         tp, sl = float(self.cells[ci][0]), float(self.cells[ci][1])
+        self._tp_order = tp
+        mfe = self.t.get("mfe")
+        if PARAMS["tp_mode"] >= 0.5 and mfe is not None and np.isfinite(mfe[r, si, ci]):
+            self._tp_order = max(tp, PARAMS["k_tp_protect"] * float(mfe[r, si, ci]))   # protective envelope beyond the predicted excursion
         if PARAMS["ev_from_net"] >= 0.5:
             ev = float(net[ci])                                    # the engine net of the chosen cell (every cost inside) ranks the sides
         else:
@@ -254,10 +259,11 @@ class PolicyC3Z(C3.PolicyC3):
         vetoed = s.nop_veto is not None and float(self._v("pn", r)) > s.nop_veto
         burst = bool(self.t.get("risk_burst") is not None and self.t["risk_burst"][r])
         nop_hard = bool(PARAMS["zz_nop_gate"] >= 0.5 and self.t.get("zz_nop_hard") is not None and self.t["zz_nop_hard"][r] == 1.0)
-        evs, cis, cleared = [float("nan")] * 2, [-1, -1], [False, False]
+        evs, cis, cleared, tps = [float("nan")] * 2, [-1, -1], [False, False], [float("nan")] * 2
         for si in (0, 1):                                        # C3 (reality judge): cell, EV, pooled margin, risk-reward floor
             ci, ev, why = self.side_choice(r, si, cost)
             cis[si], evs[si] = ci, ev
+            tps[si] = getattr(self, "_tp_order", float("nan")) if ci >= 0 else float("nan")
             if ci < 0:
                 gates[si] = why
                 continue
@@ -295,13 +301,21 @@ class PolicyC3Z(C3.PolicyC3):
         if chosen < 0:
             return None
         d = E.LONG if chosen == 0 else E.SHORT
-        out = (d, self.cells[cis[chosen]][0], self.cells[cis[chosen]][1])
+        out = (d, tps[chosen] if np.isfinite(tps[chosen]) else self.cells[cis[chosen]][0], self.cells[cis[chosen]][1])
         return out + (evs[chosen],) if with_score else out
 
     def close_now(self, r, si, bar, pos) -> bool:
+        self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))
         if not self.s.early_close:
             return False
-        rem, psl = self.t["closer"].value(r, bar, pos)
+        cl = self.t["closer"]
+        if PARAMS["closer_mode"] >= 0.5 and hasattr(cl, "advantage"):
+            a = cl.advantage(r, bar, pos)                         # close when P(t) - V_hat(t) >= -margin (the advantage head)
+            dec = bool(np.isfinite(a) and a >= -PARAMS["closer_adv_margin"])
+            rem, psl = cl.value(r, bar, pos)
+            self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, False, False, False, float(a), "advantage"))
+            return dec
+        rem, psl = cl.value(r, bar, pos)
         mar = max(self.s.close_margin_l if si == 0 else self.s.close_margin_s, PARAMS["close_margin_floor"])   # never close a position worth holding
         p = self.s.close_p_l if si == 0 else self.s.close_p_s
         trig_rem = bool(rem < -mar)
@@ -311,5 +325,40 @@ class PolicyC3Z(C3.PolicyC3):
         weak = bool(room is not None and np.isfinite(room[r, si]) and room[r, si] < PARAMS["zz_close_room"])
         trig_zz = alarm and weak and bool(rem < PARAMS["close_p_requires_rem_below"])   # the alarm never overrides a positive remaining value
         dec = trig_rem or trig_sl or trig_zz
-        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, trig_rem, trig_sl, trig_zz))
+        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, trig_rem, trig_sl, trig_zz, float("nan"), "legacy"))
         return dec
+
+
+class PolicyForced(PolicyC3Z):
+    """FORCED ENTRY (exit audit independent of the opener): at every observable decision bar on the schedule
+    (bar // every_bars changes), open the side that alternates with the schedule index, whatever the heads say, with
+    the strategy's own TP / SL envelope for that side (cell or protective TP; the best band-allowed cell by predicted
+    net, or 1 / 1 sigma when none is allowed); every exit is the strategy's closer (or the broker SL / TP / cutoff)."""
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.last_slot = -1
+
+    def open_decision(self, r, with_score: bool = False):
+        rb = self.t.get("row_bar")
+        bar = int(rb[r]) if rb is not None else int(r)
+        every = max(int(PARAMS["forced_every_bars"]), 1)
+        slot = bar // every
+        if slot == self.last_slot:
+            return None
+        self.last_slot = slot
+        si = int(slot % 2)
+        net = np.asarray(self._v("net", r, si), float)
+        cap, lo = self._cap(r)
+        ok = C3.allowed_cells(net, self.cells, 0.0, 1e9, cap, lo) | np.zeros(len(self.cells), bool)
+        if ok.any():
+            ci = int(np.argmax(np.where(ok, net, -np.inf)))
+            tp, sl = float(self.cells[ci][0]), float(self.cells[ci][1])
+            mfe = self.t.get("mfe")
+            if PARAMS["tp_mode"] >= 0.5 and mfe is not None and np.isfinite(mfe[r, si, ci]):
+                tp = max(tp, PARAMS["k_tp_protect"] * float(mfe[r, si, ci]))
+        else:
+            ci, tp, sl = -1, 1.0, 1.0
+        self.log.append((int(r), float("nan"), float("nan"), si == 0, si == 1, si, False, ci if si == 0 else -1, ci if si == 1 else -1))
+        out = (E.LONG if si == 0 else E.SHORT, tp, sl)
+        return out + (0.0,) if with_score else out

@@ -37,6 +37,8 @@ from app.short_horizon.expert_guided import action_contract as ACT  # noqa: E402
 from app.short_horizon.expert_guided import c2 as C2  # noqa: E402
 from app.short_horizon.expert_guided import c3 as C3  # noqa: E402
 from app.short_horizon.expert_guided import env as E  # noqa: E402
+from app.short_horizon.expert_guided import outcomes as OC  # noqa: E402
+from app.short_horizon.expert_guided import oracle as OR  # noqa: E402
 from app.short_horizon.expert_guided import strategy_zz as ZZ  # noqa: E402
 from tools import strategy_hierarchy as H  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
@@ -115,6 +117,38 @@ RUN_HISTORY = [
     {"run": "v7 design", "note": "mirror around the middle of the path's range; C3Z TP<SL rule without the double cost, net margin floored at 0, canonical open_rate 0.45; W13 / W8-switch corrected forms admitted only where the oracle fails the sealed form"},
     {"run": "v6 ZigZag", "note": "production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
 ]
+EPS_CLOSE = 0.02                    # sigma units of the trade: the A(t) tie rule (close when A(t) >= -EPS_CLOSE)
+CLOSER_QUALITIES = (1.0, 0.85, 0.70)
+OWNER_EARLY_CLOSE_REFERENCE = 0.72  # the owner's historical share of exits by early close in the only strategies that were ever positive
+EXIT_SPEC = {
+    "definitions": {"P(t)": "engine net (USD, every cost: spread, commission, financing, slippage) if the open trade is closed by a decision at bar t (fill at the open of t+1)",
+                    "P*": "max of P(t) over the allowed decision bars t in [entry, natural exit) and the natural exit (first of SL / TP / cutoff); no recovery after an SL hit",
+                    "R": "exit regret P* - P(exit), USD and sigma units (/ units / sigma at entry)",
+                    "P*_pre": "SL-destined episodes: max P(t) over the decision bars strictly before the SL hit; TP / time episodes: the natural exit included",
+                    "L(t)": "P*_pre - P(t) at every held tick (USD, sigma): the closer's hindsight training target, never an input",
+                    "Z1 label generator": "the trade's own ZigZag: reversal pivots of the cost-inclusive net path y(t) = P(t) / (units sigma), thresholds 2 / 1 / 0.5 / 0.25 / 0.1 sigma, declared = 0.1 sigma; price ladders (high / low and close) scored for comparison",
+                    "A(t)": "P(close now) - max_{t' > t} P(t') with the natural exit as the last continuation; close when A(t) >= -EPS_CLOSE",
+                    "EPS_CLOSE": EPS_CLOSE},
+    "controls": {"hold oracle": "the truth oracle: best truth cell, close only when the remaining hold value is negative", "O*": "the same opens as the truth oracle, exit exactly when A(t) >= -EPS_CLOSE (R = 0 by construction)"},
+    "runs": {"normal": "the strategy's own opens", "forced": "a forced open every forced_every_bars bars with alternating sides, the strategy's TP / SL envelope; the exit policy alone is judged",
+             "closer_quality": list(CLOSER_QUALITIES)},
+    "witnesses_per_side": {"E0": "exit mix early / TP / SL / time (strategy, hold oracle, O*) with the owner's 0.72 early-close reference: reported",
+                           "E1": "SL-destined trades (natural exit at SL) closed early before the SL: share >= 0.95",
+                           "E2": "exit regret: mean R / sigma <= 0.10 and p90 R / sigma <= 0.30 (hold oracle's regret reported next to it)",
+                           "E3": "per-tick decision: close / hold agrees with sign(A(t) + EPS_CLOSE) on >= 0.95 of the held ticks",
+                           "E4": "no destructive close: closes with A(t) < -EPS_CLOSE <= 0.05 of the closes (their mean cost in sigma reported)",
+                           "E5": "early-close share >= the O* early-close share - 0.10",
+                           "E6": "mirror: the zero-cost twin and its exact mirror have equal exit mixes and mean R (sides swapped) within 1e-9 sigma",
+                           "EP": "initial-state episodes every 12 bars (densified to every 6 / 3) both sides with the strategy's envelope: >= 30 SL-destined per side",
+                           "E1'": "SL-destined episodes closed before the SL: >= 0.95",
+                           "E2'": "SL-destined episodes: mean (P*_pre - P(exit)) / sigma <= 0.10 and p90 <= 0.30",
+                           "E7": "SL-destined episodes closed early: median (exit tick - P*_pre tick) <= 2 bars",
+                           "Z1": "the ZigZag exit label reproduces P*_pre within 0.05 sigma in >= 0.95 of SL-destined episodes",
+                           "E8": "episodes at closer quality 0.85 and 0.70: mean R / sigma non-increasing in quality and early-close value versus holding to SL > 0, per side"},
+    "verdict": "every E witness per side (BUY and SELL); the cell fails if either side fails; an E witness O* fails in a cell is defective THERE (reported, not counted)",
+}
+EXIT_SPEC["episodes"] = {"every_bars": 12, "min_sl_destined_per_side": 30, "late_bars_max": 2.0, "z1_tol_sigma": 0.05, "net_ladder_sigma": [2.0, 1.0, 0.5, 0.25, 0.1]}
+EXIT_SPEC_SHA = hashlib.sha256(json.dumps(EXIT_SPEC, sort_keys=True).encode()).hexdigest()
 BURST_DETECTION_LAG = 3             # bars the causal burst gate needs (realized vol over 6 bars > 2 sigma at a x3 burst after ~2-3 bars)
 THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_positive_open_min": 0.90, "wrong_side_max": 0.10,
           "best_cell_min": 0.70, "nop_open_max": 0.05, "sl_exit_max": 0.10, "early_close_justified_min": 0.80, "reverse_in_switch_window_min": 0.50,
@@ -512,6 +546,7 @@ class PolicyC3Audit(S.PolicyC3PerBar):
         super().__init__(*a, **k)
         self.log = []
         self.closes = []
+        self.positions = {}
 
     def open_decision(self, r, with_score: bool = False):
         s = self.s
@@ -578,6 +613,7 @@ class PolicyOracle(PolicyC3Audit):
     witness the oracle fails is a defective witness, never a strategy defect (the coordinator's binding rule of 2026-10-27)."""
 
     def close_now(self, r, si, bar, pos) -> bool:
+        self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))
         rem, psl = self.t["closer"].value(r, bar, pos)
         dec = bool(rem < 0.0)                                       # truth-optimal: close iff holding is worth less than closing now
         self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, dec, False, False))
@@ -615,11 +651,351 @@ class PolicyOracle(PolicyC3Audit):
         return out + (evs[chosen],) if with_score else out
 
 
+class PolicyOracleStar(PolicyOracle):
+    """O*: the truth oracle's opens, and the exit exactly when A(t) >= -EPS_CLOSE on the trade's engine path."""
+
+    def close_now(self, r, si, bar, pos) -> bool:
+        self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))
+        cl = self.t["closer"]
+        a = S.path_advantage(cl.path(pos), int(bar))
+        dec = bool(np.isfinite(a) and a >= -EPS_CLOSE)
+        self.closes.append((int(r), int(bar), int(si), float("nan"), float("nan"), dec, False, False, False, float(a), "oracle_star"))
+        return dec
+
+
+class PolicyForcedHold(ZZ.PolicyForced):
+    """Forced opens, the hold oracle's exit (close only when the true remaining hold value is negative)."""
+
+    def close_now(self, r, si, bar, pos) -> bool:
+        rem, psl = self.t["closer"].value(r, bar, pos)
+        dec = bool(rem < 0.0)
+        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, dec, False, False, float("nan"), "hold_oracle"))
+        return dec
+
+
+class PolicyForcedStar(ZZ.PolicyForced):
+    """Forced opens, the O* exit."""
+
+    def close_now(self, r, si, bar, pos) -> bool:
+        a = S.path_advantage(self.t["closer"].path(pos), int(bar))
+        dec = bool(np.isfinite(a) and a >= -EPS_CLOSE)
+        self.closes.append((int(r), int(bar), int(si), float("nan"), float("nan"), dec, False, False, False, float(a), "oracle_star"))
+        return dec
+
+
+def rollout_with(world: dict, Pol, strat, view, cells) -> dict:
+    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    pol = Pol(view, strat, cells, truth.e_time, truth.cost, observe_bars=0) if issubclass(Pol, ZZ.PolicyC3Z) else Pol(view, strat, cells, truth.e_time, truth.cost)
+    m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat, "attr": getattr(pol, "attr", []), "positions": getattr(pol, "positions", {})}
+
+
+def _position_of(t) -> "E.Position":
+    """The engine position of a ledger trade (entry state), for the exit path."""
+    return E.Position(int(t["direction"]), int(t["units"]), int(t["entry_bar_abs"]), float(t["entry_price"]), float(t["stop_loss"]), float(t["take_profit"]),
+                      float(t.get("sigma_entry", np.nan)), int(t.get("segment", t.get("seg", 0)) or 0), dict(t.get("entry_cost") or {}))
+
+
+def exit_stats(world: dict, roll: dict, closer) -> dict:
+    """Per side (0 = BUY, 1 = SELL): exit mix, SL-destined handling, exit regret R / sigma, per-tick agreement with
+    sign(A + EPS_CLOSE), destructive closes, early-close value. Paths come from the ENGINE (closer.path, cached)."""
+    paths = getattr(closer, "_paths_by_trade", None)
+    out = {}
+    trades = roll["trades"]
+    pos_of = {}
+    for t in trades:
+        k = (int(t["entry_bar_abs"]), 0 if int(t["direction"]) > 0 else 1)
+        pos_of[k] = t
+    side_trades = {0: [], 1: []}
+    for t in trades:
+        side_trades[0 if int(t["direction"]) > 0 else 1].append(t)
+    pp = roll.get("positions") or {}
+    per_side = {}
+    for si in (0, 1):
+        ts = side_trades[si]
+        n = len(ts)
+        mix = {"early": 0, "tp": 0, "sl": 0, "time": 0}
+        sl_dest, sl_dest_early, regrets, ecv = 0, 0, [], 0.0
+        for t in ts:
+            reason = t["exit_reason"]
+            mix["early" if reason == "EARLY" else ("tp" if reason == "TP" else ("sl" if reason == "SL" else "time"))] += 1
+            pos = pp.get((int(t["entry_bar_abs"]), si))
+            if pos is None:
+                continue
+            path = closer.path(pos)
+            u, sg = path["units"], path["sigma"]
+            pstar = max(float(np.max(path["P"])) if len(path["P"]) else -np.inf, path["hold_net"])
+            regrets.append((pstar - float(t["net_usd"])) / u / sg)
+            if path["hold_reason"] == "SL":
+                sl_dest += 1
+                sl_dest_early += int(reason == "EARLY")
+            if reason == "EARLY":
+                ecv += (float(t["net_usd"]) - path["hold_net"]) / u / sg
+        # per-tick agreement and destructive closes, from the closes log of that side
+        agree, n_ticks, destructive, n_closes, dcost = 0, 0, 0, 0, []
+        for c in roll["closes"]:
+            if int(c[2]) != si:
+                continue
+            bar = int(c[1])
+            t = next((x for x in ts if int(x["entry_bar_abs"]) <= bar < int(x["exit_bar_abs"])), None)
+            pos = pp.get((int(t["entry_bar_abs"]), si)) if t is not None else None
+            if pos is None:
+                continue
+            a = S.path_advantage(closer.path(pos), bar)
+            if not np.isfinite(a):
+                continue
+            n_ticks += 1
+            truth_close = a >= -EPS_CLOSE
+            agree += int(bool(c[5]) == truth_close)
+            if c[5]:
+                n_closes += 1
+                if not truth_close:
+                    destructive += 1
+                    dcost.append(-a)
+        R = np.asarray(regrets, float)
+        per_side[si] = {"n": n, "mix": {k: (v / n if n else float("nan")) for k, v in mix.items()}, "counts": mix,
+                        "sl_destined": sl_dest, "sl_destined_closed_early": sl_dest_early,
+                        "R_mean": float(R.mean()) if len(R) else float("nan"), "R_p90": float(np.quantile(R, 0.9)) if len(R) else float("nan"),
+                        "R_hist": np.histogram(R, bins=[-1e9, 0.01, 0.05, 0.1, 0.3, 1.0, 1e9])[0].tolist() if len(R) else [],
+                        "agreement": agree / n_ticks if n_ticks else float("nan"), "held_ticks": n_ticks,
+                        "destructive_share": destructive / n_closes if n_closes else 0.0, "destructive_mean_cost_sigma": float(np.mean(dcost)) if dcost else 0.0, "closes": n_closes,
+                        "early_close_value_sigma": float(ecv)}
+    return per_side
+
+
+def exit_witnesses(stats: dict, star: dict, hold: dict) -> dict:
+    """E0-E5 per side from the exit stats of a run, the O* run and the hold-oracle run of the same configuration."""
+    out = {}
+    for si, side in ((0, "BUY"), (1, "SELL")):
+        st, os_, ho = stats[si], star[si], hold[si]
+        out[f"E0_exit_mix_{side}"] = {"value": {"strategy": st["mix"], "hold_oracle": ho["mix"], "O*": os_["mix"], "owner_reference_early": OWNER_EARLY_CLOSE_REFERENCE, "n": st["n"]},
+                                      "threshold": "reported", "desc": "exit mix per side"}
+        e1 = st["sl_destined_closed_early"] / st["sl_destined"] if st["sl_destined"] else float("nan")
+        out[f"E1_sl_destined_closed_early_{side}"] = {"value": e1, "n_sl_destined": st["sl_destined"], "threshold": 0.95, "pass": bool((not st["sl_destined"]) or e1 >= 0.95),
+                                                      "desc": "SL-destined trades closed early before the SL"}
+        out[f"E2_exit_regret_{side}"] = {"value": {"mean_R_sigma": st["R_mean"], "p90_R_sigma": st["R_p90"], "hold_oracle_mean_R": ho["R_mean"], "O*_mean_R": os_["R_mean"], "R_hist": st["R_hist"]},
+                                         "threshold": "mean <= 0.10 and p90 <= 0.30", "pass": bool((not st["n"]) or (st["R_mean"] <= 0.10 and st["R_p90"] <= 0.30)), "desc": "exit regret P* - P(exit)"}
+        out[f"E3_tick_agreement_{side}"] = {"value": st["agreement"], "held_ticks": st["held_ticks"], "threshold": 0.95, "pass": bool((not st["held_ticks"]) or st["agreement"] >= 0.95),
+                                            "desc": "close / hold agrees with sign(A(t) + EPS_CLOSE)"}
+        out[f"E4_no_destructive_close_{side}"] = {"value": st["destructive_share"], "mean_cost_sigma": st["destructive_mean_cost_sigma"], "closes": st["closes"], "threshold": 0.05,
+                                                  "pass": bool(st["destructive_share"] <= 0.05), "desc": "closes with A(t) < -EPS_CLOSE"}
+        se, oe = st["mix"]["early"], os_["mix"]["early"]
+        out[f"E5_early_close_vs_Ostar_{side}"] = {"value": {"strategy": se, "O*": oe}, "threshold": "strategy >= O* - 0.10",
+                                                  "pass": bool((not st["n"]) or (not np.isfinite(oe)) or se >= oe - 0.10), "desc": "early-close share relative to the truth's optimal stopping"}
+    return out
+
+
+# ----------------------------------------------------------------------------- initial-state exit episodes
+EPISODE_EVERY_BARS = 12
+EPISODE_MIN_SL_DESTINED = 30
+LATE_BARS_MAX = 2.0
+Z1_TOL_SIGMA = 0.05
+
+
+def _envelope(pol, r, si):
+    """The strategy's TP / SL envelope for side si at row r (the cell or protective TP rule), whatever the opener says."""
+    net = np.asarray(pol._v("net", r, si), float)
+    cap, lo = pol._cap(r)
+    ok = C3.allowed_cells(net, pol.cells, 0.0, 1e9, cap, lo)
+    if not ok.any():
+        return 1.0, 1.0
+    ci = int(np.argmax(np.where(ok, net, -np.inf)))
+    tp, sl = float(pol.cells[ci][0]), float(pol.cells[ci][1])
+    mfe = pol.t.get("mfe")
+    if ZZ.PARAMS["tp_mode"] >= 0.5 and mfe is not None and np.isfinite(mfe[r, si, ci]):
+        tp = max(tp, ZZ.PARAMS["k_tp_protect"] * float(mfe[r, si, ci]))
+    return tp, sl
+
+
+def build_episodes(world: dict, strat, view, cells, every: int = EPISODE_EVERY_BARS) -> list:
+    """Initial-state episodes: at every ``every``-th observable decision bar of the block, one BUY and one SELL order
+    opened on a clean engine with the strategy's envelope; each is an independent episode. Start ticks are densified
+    (every // 2, then every // 4) until each side has >= EPISODE_MIN_SL_DESTINED SL-destined episodes."""
+    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    env = OC.make_env(cx, SCFG)
+    a, b = H.period_bars(cx.ds, BLOCK)
+    pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost)
+    closer = view["closer"]
+    eps, seen = [], set()
+    for step in (every, max(every // 2, 1), max(every // 4, 1)):
+        for bar in range(a, b - 2, step):
+            r = int(cx.rob[bar])
+            if r < 0 or not cx.obs_ok[r] or not np.isfinite(view["pn"][r]):
+                continue
+            for si in (0, 1):
+                if (bar, si) in seen:
+                    continue
+                seen.add((bar, si))
+                tp, sl = _envelope(pol, r, si)
+                OC._clean(env)
+                info = env.step(bar, E.LONG if si == 0 else E.SHORT, tp, sl)
+                if not info["entry"] or env.pos is None:
+                    continue
+                pos = dataclasses.replace(env.pos)
+                path = closer.path(pos)
+                eps.append({"start_bar": bar, "side": si, "pos": pos, "class": {"SL": "SL", "TP": "TP"}.get(path["hold_reason"], "TIME")})
+        n_sl = [sum(1 for e in eps if e["side"] == si and e["class"] == "SL") for si in (0, 1)]
+        if min(n_sl) >= EPISODE_MIN_SL_DESTINED:
+            break
+    OC._clean(env)
+    return eps
+
+
+def run_episodes(world: dict, eps: list, decide, closer) -> list:
+    """Replay each episode with a close rule ``decide(r, si, bar, pos) -> bool`` along the trade's engine path; the
+    first close fills at the next open, otherwise the natural exit. Per episode: P*_pre and its tick, the exit tick, R,
+    the L(t) curve over the held ticks (sigma units)."""
+    cx = world["cx"]
+    out = []
+    for e in eps:
+        pos, si = e["pos"], e["side"]
+        path = closer.path(pos)
+        bars, P = path["bars"], path["P"]
+        u, sg = path["units"], path["sigma"]
+        pre = np.r_[P] if e["class"] == "SL" else np.r_[P, path["hold_net"]]        # strictly before the SL hit
+        i_star = int(np.argmax(pre)) if len(pre) else -1
+        p_star = float(pre[i_star]) if len(pre) else float("nan")
+        t_star = int(bars[i_star]) if 0 <= i_star < len(bars) else int(path["exit_bar"])
+        exit_i, held = None, []
+        for i, t in enumerate(bars):
+            r = int(cx.rob[int(t)])
+            if r < 0 or not cx.obs_ok[r]:
+                held.append(i)
+                continue
+            if decide(r, si, int(t), pos):
+                exit_i = i
+                break
+            held.append(i)
+        p_exit = float(P[exit_i]) if exit_i is not None else path["hold_net"]
+        t_exit = int(bars[exit_i]) if exit_i is not None else int(path["exit_bar"])
+        L = [(p_star - float(P[i])) / u / sg for i in held] + ([(p_star - p_exit) / u / sg] if exit_i is not None else [])
+        out.append({"side": si, "class": e["class"], "early": exit_i is not None, "R_pre": (p_star - p_exit) / u / sg, "t_star": t_star, "t_exit": t_exit,
+                    "late_bars": t_exit - t_star, "L_curve": [float(x) for x in L], "L_mean_held": float(np.mean(L)) if L else float("nan"),
+                    "ecv_vs_hold": (p_exit - path["hold_net"]) / u / sg, "start_bar": e["start_bar"]})
+    return out
+
+
+NET_LADDER_SIGMA = (2.0, 1.0, 0.5, 0.25, 0.1)   # reversal thresholds of the trade's own net-value ZigZag, in sigma of the trade
+
+
+def zigzag_exit_check(world: dict, eps: list, closer) -> dict:
+    """Z1: per ladder level, the ZigZag-derived exit of each SL-destined episode (the most favourable pivot inside
+    [entry, SL bar)) and whether its engine net is within Z1_TOL_SIGMA of P*_pre.
+    Declared label generator: the trade's OWN ZigZag -- reversal pivots of its cost-inclusive executable net path
+    y(t) = P(t) / (units x sigma) with the SL exit as the last point -- at the finest level (0.1 sigma). The price
+    ladders (the high / low ladder and the close-price ladder of the path) are scored too: they locate the price
+    extreme, not the cost-inclusive optimum (spread by hour, financing at each rollover), which is why they are not
+    the generator."""
+    from app.short_horizon import zigzag as Zg
+    piv_hl = (world.get("ladder") or {}).get("pivots") or {}
+    bars_df = world.get("bars") if world.get("bars") is not None else world["cx"].ds.bars
+    cl = np.asarray(bars_df["CLOSE"], float)
+    price_ladders = {f"close:{lvl}": ZZ.level_pivots(cl, cl, lvl) for lvl in piv_hl} | {f"hl:{lvl}": pv for lvl, pv in piv_hl.items()}
+    counts = {}
+    def bump(lvl, si, ok):
+        c = counts.setdefault(lvl, {0: [0, 0], 1: [0, 0]})
+        c[si][1] += 1
+        c[si][0] += int(ok)
+    for e in eps:
+        if e["class"] != "SL":
+            continue
+        pos, si = e["pos"], e["side"]
+        path = closer.path(pos)
+        bars, P = path["bars"], path["P"]
+        if not len(bars):
+            continue
+        u, sg = path["units"], path["sigma"]
+        p_star = float(np.max(P))
+        # the trade's own net-value ZigZag
+        y = np.r_[P, path["hold_net"]] / u / sg
+        for thr in NET_LADDER_SIGMA:
+            pv, _ = OR.reversal_pivots(y, y, thr)
+            peaks = [p for p in pv if int(p[1]) == Zg.PEAK and int(p[0]) < len(bars)]
+            ok = bool(peaks) and abs(float(P[int(max(peaks, key=lambda p: p[2])[0])]) - p_star) / u / sg <= Z1_TOL_SIGMA
+            bump(f"net:{thr:g}sigma", si, ok)
+        # the price ladders (for comparison)
+        want = Zg.PEAK if si == 0 else Zg.VALLEY
+        for lvl, pv in price_ladders.items():
+            pb = np.array([int(p[0]) for p in pv], np.int64)
+            pk = np.array([int(p[1]) for p in pv], np.int64)
+            pl = np.array([float(p[2]) for p in pv], float)
+            m = (pb >= int(bars[0])) & (pb < int(path["exit_bar"])) & (pk == want) if len(pb) else np.zeros(0, bool)
+            ok = False
+            if m.any():
+                j = np.flatnonzero(m)[int(np.argmax(pl[m]) if si == 0 else np.argmin(pl[m]))]
+                k = int(np.searchsorted(bars, pb[j]))
+                ok = k < len(bars) and abs(float(P[k]) - p_star) / u / sg <= Z1_TOL_SIGMA
+            bump(lvl, si, ok)
+    res = {lvl: {si: (v[si][0] / v[si][1] if v[si][1] else float("nan")) for si in (0, 1)} for lvl, v in counts.items()}
+    declared = f"net:{NET_LADDER_SIGMA[-1]:g}sigma"
+    best = {si: max(((lvl, v[si]) for lvl, v in res.items() if np.isfinite(v[si])), key=lambda x: x[1], default=(None, float("nan"))) for si in (0, 1)}
+    coarsest_ok = {si: next((f"net:{t:g}sigma" for t in NET_LADDER_SIGMA if res.get(f"net:{t:g}sigma", {}).get(si, 0) >= 0.95), None) for si in (0, 1)}
+    return {"per_level": res, "declared_level": declared, "declared": res.get(declared, {0: float("nan"), 1: float("nan")}), "best": best, "coarsest_level_reaching_0.95": coarsest_ok}
+
+
+def episode_witnesses(st: dict, star: dict, hold: dict, z1: dict, ladder_q: dict) -> dict:
+    """E1', E2', E7, Z1 on the SL-destined episodes, E3-E5 on all episodes, per side; E8 the closer-quality ladder."""
+    out = {}
+    for si, side in ((0, "BUY"), (1, "SELL")):
+        sl = [x for x in st if x["side"] == si and x["class"] == "SL"]
+        allx = [x for x in st if x["side"] == si]
+        n_sl = len(sl)
+        cls = {c: sum(1 for x in allx if x["class"] == c) for c in ("SL", "TP", "TIME")}
+        out[f"EP_counts_{side}"] = {"value": cls, "threshold": f">= {EPISODE_MIN_SL_DESTINED} SL-destined", "pass": bool(n_sl >= EPISODE_MIN_SL_DESTINED), "desc": "initial-state episodes by truth class"}
+        e1 = float(np.mean([x["early"] for x in sl])) if sl else float("nan")
+        out[f"E1p_closed_before_SL_{side}"] = {"value": e1, "n": n_sl, "threshold": 0.95, "pass": bool(n_sl and e1 >= 0.95), "desc": "SL-destined episodes closed before the SL"}
+        R = np.asarray([x["R_pre"] for x in sl], float)
+        Rh = np.asarray([x["R_pre"] for x in hold if x["side"] == si and x["class"] == "SL"], float)
+        Rs = np.asarray([x["R_pre"] for x in star if x["side"] == si and x["class"] == "SL"], float)
+        out[f"E2p_regret_SL_destined_{side}"] = {"value": {"mean_R_sigma": float(R.mean()) if len(R) else float("nan"), "p90_R_sigma": float(np.quantile(R, 0.9)) if len(R) else float("nan"),
+                                                           "hold_to_SL_mean_R": float(Rh.mean()) if len(Rh) else float("nan"), "O*_mean_R": float(Rs.mean()) if len(Rs) else float("nan")},
+                                                 "threshold": "mean <= 0.10 and p90 <= 0.30", "pass": bool(len(R) and R.mean() <= 0.10 and np.quantile(R, 0.9) <= 0.30), "desc": "L at the exit = P*_pre - P(exit)"}
+        late = np.asarray([x["late_bars"] for x in sl if x["early"]], float)
+        med = float(np.median(late)) if len(late) else float("nan")
+        out[f"E7_lateness_vs_Pstar_{side}"] = {"value": {"median_late_bars": med, "mean_L_held_sigma": float(np.nanmean([x["L_mean_held"] for x in sl])) if sl else float("nan"),
+                                                         "late_hist": np.histogram(late, bins=[-1e9, -6, -2, -0.5, 0.5, 2, 6, 1e9])[0].tolist() if len(late) else []},
+                                               "threshold": f"median (exit tick - P*_pre tick) <= {LATE_BARS_MAX:g} bars", "pass": bool((not len(late)) or med <= LATE_BARS_MAX), "desc": "the close is not late relative to the best exit before the SL"}
+        zd = z1["declared"].get(si, float("nan"))
+        out[f"Z1_zigzag_exit_label_{side}"] = {"value": {"declared_level": z1["declared_level"], "declared_match": zd, "best_level": z1["best"][si][0], "best_match": z1["best"][si][1],
+                                                         "coarsest_net_level_reaching_0.95": z1.get("coarsest_level_reaching_0.95", {}).get(si),
+                                                         "per_level": {lvl: v[si] for lvl, v in z1["per_level"].items()}},
+                                               "threshold": f">= 0.95 of SL-destined episodes within {Z1_TOL_SIGMA:g} sigma of P*_pre (declared generator: the trade's own net-value ZigZag at the finest level)",
+                                               "pass": bool(np.isfinite(zd) and zd >= 0.95), "desc": "the multi-resolution ZigZag reproduces the optimal exit before the SL"}
+        # quality ladder of the closer on the SL-destined episodes
+        qs = sorted(ladder_q, reverse=True)
+        means = [float(np.mean([x["R_pre"] for x in ladder_q[q] if x["side"] == si and x["class"] == "SL"] or [np.nan])) for q in qs]
+        ecv = [float(np.sum([x["ecv_vs_hold"] for x in ladder_q[q] if x["side"] == si and x["class"] == "SL" and x["early"]])) for q in qs]
+        mono = all((not np.isfinite(means[i])) or (not np.isfinite(means[i + 1])) or means[i] <= means[i + 1] + 1e-9 for i in range(len(means) - 1))
+        out[f"E8_closer_quality_ladder_{side}"] = {"value": {"qualities": qs, "mean_R_sigma": means, "early_close_value_vs_hold_to_SL": ecv,
+                                                             "E1p": [float(np.mean([x["early"] for x in ladder_q[q] if x["side"] == si and x["class"] == "SL"] or [np.nan])) for q in qs]},
+                                                   "threshold": "mean R non-increasing in closer quality and early-close value vs holding to SL > 0 at every quality",
+                                                   "pass": bool(mono and all(v > 0 for v in ecv[1:])), "desc": "the closer degrades gracefully"}
+    return out
+
+
+def exit_loss_curves(st: list, star: list, hold: list, max_bars: int = 48) -> dict:
+    """Mean L(t) versus bars since entry for the SL-destined episodes (strategy / hold-to-SL / O*), per side."""
+    out = {}
+    for name, ep in (("strategy", st), ("hold_to_SL", hold), ("O*", star)):
+        for si in (0, 1):
+            curves = [x["L_curve"] for x in ep if x["side"] == si and x["class"] == "SL"]
+            m = [float(np.mean([c[k] for c in curves if len(c) > k])) if any(len(c) > k for c in curves) else float("nan") for k in range(max_bars)]
+            out[f"{name}_{'BUY' if si == 0 else 'SELL'}"] = m
+    return out
+
+
 def rollout_oracle(world: dict, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
     pol = PolicyOracle(view, ORACLE_STRATEGY, cells, truth.e_time, truth.cost)
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
-    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": ORACLE_STRATEGY}
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": ORACLE_STRATEGY, "positions": pol.positions}
+
+
+def rollout_oracle_star(world: dict, view, cells) -> dict:
+    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    pol = PolicyOracleStar(view, ORACLE_STRATEGY, cells, truth.e_time, truth.cost)
+    m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": ORACLE_STRATEGY, "positions": pol.positions}
 
 
 def oracle_view(world: dict, view: dict) -> dict:
@@ -629,6 +1005,8 @@ def oracle_view(world: dict, view: dict) -> dict:
     oracle fails is defective, not the strategy)."""
     truth = world["truth"]
     ov = dict(view)
+    if hasattr(view.get("closer"), "with_quality"):
+        ov["closer"] = view["closer"].with_quality(1.0)              # the oracles always read the PERFECT closer (truth), whatever the cell's closer quality
     n = len(truth.period)
     p3 = np.full((n, 2, 3), np.nan)
     net = np.full_like(truth.net, np.nan)
@@ -659,7 +1037,7 @@ def rollout_cell(world: dict, strat, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
     pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost, observe_bars=int(round(ZZ.PARAMS.get("observe_bars", 0))))
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
-    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat, "attr": getattr(pol, "attr", [])}
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat, "attr": getattr(pol, "attr", []), "positions": getattr(pol, "positions", {})}
 
 
 # ----------------------------------------------------------------------------- the witnesses
@@ -996,13 +1374,76 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     out["attribution"] = {"opens_with_coarse_direction": float(np.mean(agree)) if agree else float("nan"), "opens_with_fresh_fine_favour": float(np.mean(fresh)) if fresh else float("nan"),
                           "blocked_ticks_by_gate": gate_counts,
                           "early_closes_by_trigger": {"remaining_negative": sum(1 for c in ecl if len(c) > 6 and c[6]), "sl_first_and_negative_remaining": sum(1 for c in ecl if len(c) > 7 and c[7]),
-                                                      "fine_alarm_and_weak_coarse_room": sum(1 for c in ecl if len(c) > 8 and c[8])}}
+                                                      "fine_alarm_and_weak_coarse_room": sum(1 for c in ecl if len(c) > 8 and c[8]),
+                                                      "advantage_head": sum(1 for c in ecl if len(c) > 10 and c[10] == "advantage")}}
     sealed = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2")}
     v2 = {k: v for k, v in out.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in out)}
     out["PASS_sealed"] = bool(all(v["pass"] for v in sealed.values()))
     out["PASS_v2"] = bool(all(v["pass"] for v in v2.values()))
     out["PASS"] = out["PASS_sealed"]
     return out
+
+
+def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov) -> dict:
+    """The exit-optimality layer of one cell (sealed EXIT_SPEC): normal-run E0-E5 against the hold oracle and O*,
+    initial-state episodes at closer qualities 1.00 / 0.85 / 0.70 with E1' / E2' / E7 / E8 / Z1, the exit-loss curves,
+    the closer noise-sweep points; an E witness O* fails in this cell is defective here (Z1 and the episode counts are
+    not policy witnesses and are never excused)."""
+    t0 = time.time()
+    closer = view["closer"].with_quality(1.0)                         # paths and oracle decisions from the perfect closer (truth)
+    sroll = rollout_oracle_star(w, ov, cells)
+    st_n, st_star, st_hold = exit_stats(w, roll, closer), exit_stats(w, sroll, closer), exit_stats(w, oroll, closer)
+    ew = exit_witnesses(st_n, st_star, st_hold)
+    ew_star = exit_witnesses(st_star, st_star, st_hold)
+    eps = build_episodes(w, strat, view, cells)
+    lad = {}
+    for q in CLOSER_QUALITIES:
+        vq = dict(view)
+        vq["closer"] = closer.with_quality(q)
+        polq = ZZ.PolicyC3Z(vq, strat, cells, w["truth"].e_time, w["truth"].cost)
+        lad[q] = run_episodes(w, eps, polq.close_now, closer)
+    hold_ep = run_episodes(w, eps, lambda r, si, bar, pos: bool(closer.value(r, bar, pos)[0] < 0.0), closer)
+    star_ep = run_episodes(w, eps, lambda r, si, bar, pos: bool(S.path_advantage(closer.path(pos), bar) >= -EPS_CLOSE), closer)
+    z1 = zigzag_exit_check(w, eps, closer)
+    epw = episode_witnesses(lad[1.0], star_ep, hold_ep, z1, lad)
+    epw_star = episode_witnesses(star_ep, star_ep, hold_ep, z1, {1.0: star_ep})
+    curves = exit_loss_curves(lad[1.0], star_ep, hold_ep)
+    # closer noise sweep on the normal strategy run: Sharpe / net versus the advantage head's MAE / naive
+    sweep = []
+    for q in CLOSER_QUALITIES:
+        vq = dict(view)
+        vq["closer"] = closer.with_quality(q)
+        rq = roll if q >= 0.999 else rollout_cell(w, strat, vq, cells)
+        pred, true = [], []
+        for c in rq["closes"]:
+            if len(c) > 9 and np.isfinite(c[9]):
+                t = next((x for x in rq["trades"] if int(x["entry_bar_abs"]) <= int(c[1]) < int(x["exit_bar_abs"]) and (0 if int(x["direction"]) > 0 else 1) == int(c[2])), None)
+                pos = (rq.get("positions") or {}).get((int(t["entry_bar_abs"]), int(c[2]))) if t is not None else None
+                if pos is not None:
+                    a_t = S.path_advantage(closer.path(pos), int(c[1]))
+                    if np.isfinite(a_t):
+                        pred.append(float(c[9])); true.append(a_t)
+        pred, true = np.asarray(pred), np.asarray(true)
+        mae = float(np.mean(np.abs(pred - true))) if len(true) else float("nan")
+        naive = float(np.mean(np.abs(true - np.mean(true)))) if len(true) else float("nan")
+        sweep.append({"closer_quality": q, "sharpe": float(rq["metrics"].get("sharpe_daily_sqrt365", np.nan)), "net_usd": float(rq["metrics"].get("net_profit_usd", np.nan)),
+                      "advantage_mae_sigma": mae, "advantage_mae_over_naive": (mae / naive) if naive and naive > 0 else float("nan"), "ticks": int(len(true))})
+    allw = {**ew, **epw}
+    allw_star = {**ew_star, **epw_star}
+    never_excused = ("Z1_", "EP_counts")
+    defects = sorted(k for k, v in allw_star.items() if isinstance(v, dict) and v.get("pass") is False and not k.startswith(never_excused))
+    eff_fail = sorted(k for k, v in allw.items() if isinstance(v, dict) and v.get("pass") is False and k not in defects)
+    sealed_fail = sorted(k for k, v in allw.items() if isinstance(v, dict) and v.get("pass") is False)
+    summ = {si: {"n": len([x for x in lad[1.0] if x["side"] == si]), "early": float(np.mean([x["early"] for x in lad[1.0] if x["side"] == si] or [np.nan])),
+                 "mean_R": float(np.mean([x["R_pre"] for x in lad[1.0] if x["side"] == si] or [np.nan]))} for si in (0, 1)}
+    return {"witnesses": allw, "oracle_star_witnesses": {k: v for k, v in allw_star.items() if isinstance(v, dict) and "pass" in v},
+            "defects_by_Ostar": defects, "failing_sealed": sealed_fail, "failing_effective": eff_fail, "PASS_sealed": not sealed_fail, "PASS_effective": not eff_fail,
+            "episodes": {"n": len(eps), "by_side_class": {si: {c: sum(1 for e in eps if e["side"] == si and e["class"] == c) for c in ("SL", "TP", "TIME")} for si in (0, 1)}},
+            "episode_summary": summ, "exit_loss_curves": curves, "closer_sweep": sweep,
+            "normal_exit_mix": {"strategy": {si: st_n[si]["mix"] for si in (0, 1)}, "hold_oracle": {si: st_hold[si]["mix"] for si in (0, 1)}, "O*": {si: st_star[si]["mix"] for si in (0, 1)}},
+            "episode_exit_mix": {name: {si: {c: float(np.mean([x["class"] == c and (not x["early"]) for x in ep if x["side"] == si] or [np.nan])) for c in ("SL", "TP", "TIME")} | {"early": float(np.mean([x["early"] for x in ep if x["side"] == si] or [np.nan]))} for si in (0, 1)}
+                                 for name, ep in (("strategy", lad[1.0]), ("hold_oracle", hold_ep), ("O*", star_ep))},
+            "sec": round(time.time() - t0, 1)}
 
 
 def mirror_check(trades_a: list, trades_b: list) -> dict:
@@ -1042,7 +1483,9 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     roll = rollout_cell(w, strat, view, cells)
     wit = witnesses(cell, w, roll, cells)
     # the truth-oracle control: the same witnesses on a policy that acts on the engine truth itself
-    oroll = rollout_oracle(w, oracle_view(w, view), cells)
+    ov = oracle_view(w, view)
+    oroll = rollout_oracle(w, ov, cells)
+    exit_layer = exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov)
     meta = w.get("meta") or {}
     tps = meta.get("turning_points") or ({"long": list(meta.get("switch_bars") or [])} if meta.get("switch_bars") else None)
     ladder_map = H.pivot_matching(w["ladder"]["pivots"], tps, H.period_bars(w["cx"].ds, BLOCK)) if tps else None
@@ -1059,15 +1502,30 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "oracle": {k: v for k, v in owit.items() if k != "summary"} | {"summary": owit["summary"]}, "oracle_PASS_sealed": owit["PASS_sealed"], "oracle_PASS_v2": owit["PASS_v2"],
            "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2, "ladder_to_horizon": ladder_map,
            "attribution": wit.get("attribution"), "oracle_attribution": owit.get("attribution"),
-           "PASS_effective": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2"))),
+           "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA,
+           "PASS_effective": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2"))
+                                  and exit_layer["PASS_effective"]),
            "PASS_sealed_excluding_defective_witnesses": bool(all(v["pass"] for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and k not in defects_sealed)),
            "sec": round(time.time() - t0, 1),
            "trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll["trades"]]}
     key = cell.get("mirror_of") or cell["id"]
     twin_trades.setdefault(key, {})[cell["id"]] = roll["trades"]
+    twin_exit = twin_trades.setdefault("__exit__", {})
+    twin_exit.setdefault(key, {})[cell["id"]] = exit_layer["episode_summary"]
     if cell.get("mirror_of") and cell["mirror_of"] in twin_trades.get(key, {}):
         rec["results"]["W14_mirror"] = mirror_check(twin_trades[key][cell["mirror_of"]], roll["trades"])
         rec["results"]["W14_mirror"]["desc"] = "exact mirror of the twin's ledger"
+        ea = (twin_exit.get(key) or {}).get(cell["mirror_of"])
+        eb = rec["exit"]["episode_summary"]
+        if ea is not None:
+            dmax = max(abs(ea[0]["early"] - eb[1]["early"]), abs(ea[1]["early"] - eb[0]["early"]), abs(ea[0]["mean_R"] - eb[1]["mean_R"]), abs(ea[1]["mean_R"] - eb[0]["mean_R"]),
+                       abs(ea[0]["n"] - eb[1]["n"]), abs(ea[1]["n"] - eb[0]["n"]))
+            e6 = {"value": {"max_discrepancy": dmax}, "threshold": 1e-9, "pass": bool(dmax <= 1e-9), "desc": "episode exit mix and mean R of the zero-cost twin and its exact mirror (sides swapped)"}
+            rec["exit"]["witnesses"]["E6_exit_mirror"] = e6
+            if not e6["pass"]:
+                rec["exit"]["failing_effective"].append("E6_exit_mirror"); rec["exit"]["failing_sealed"].append("E6_exit_mirror")
+                rec["exit"]["PASS_effective"] = rec["exit"]["PASS_sealed"] = False
+                rec["PASS_effective"] = False
         rec["PASS"] = bool(rec["PASS"] and rec["results"]["W14_mirror"]["pass"])
         rec["PASS_sealed"] = bool(rec["PASS_sealed"] and rec["results"]["W14_mirror"]["pass"])
         rec["PASS_v2"] = bool(rec["PASS_v2"] and rec["results"]["W14_mirror"]["pass"])

@@ -18,6 +18,10 @@ Keys (quantile genes are mapped to absolute thresholds on the calibration block 
   rr_margin_sigma                 TP < SL cells allowed only when net > cost + this
   confirmation_lag_bars           declared coarse-switch confirmation lag
   open_margin_eps                 an open needs EV > margin + eps (sigma): removes float knife-edges on the quantile sample
+  closer_mode                     C3Z: 1 = close when the advantage head says P(t) - V_hat(t) >= -closer_adv_margin; 0 = the legacy closer rules
+  closer_adv_margin               C3Z: the advantage close margin (sigma units of the trade)
+  tp_mode, k_tp_protect           C3Z: 0 = the cell's TP; 1 = protective TP = max(cell TP, k x predicted MFE) (broker TP / SL always on the order)
+  forced_every_bars               the forced-entry exit audit: one forced open per this many bars, sides alternating (not a trading coefficient)
   zz_post_flip_bars               C3Z: for this many bars after the coarse direction flips, an open against it needs a fresh fine pivot (no strong-net exception)
   zz_counter_net_frac             C3Z: an open against the coarse leg passes the room gate when its predicted net >= frac x TP
   ev_from_net                     C3Z: rank the sides by the chosen cell's predicted engine net (1) or by the p3 x cell EV (0)
@@ -47,7 +51,7 @@ BOUNDS = {
     "v_alpha_s": [0.0, 1.0], "v_beta_s": [-1.0, 1.0], "v_gamma_s": [0.0, 1.0], "v_delta_s": [0.0, 1.0], "v_min": [0.0, 0.5],
     "risk_pct": [0.0025, 0.03], "entry_cutoff_hours": [4.0, 48.0], "max_entries_per_day": [1, 6], "rr_margin_sigma": [0.0, 0.5],
     "confirmation_lag_bars": [24, 480], "open_margin_eps": [0.0, 1e-3],
-    "zz_post_flip_bars": [0, 960], "zz_counter_net_frac": [0.0, 2.0], "ev_from_net": [0.0, 1.0], "close_margin_floor": [0.0, 2.0], "risk_reward_floor": [0.0, 3.0], "burst_window_bars": [2, 48], "burst_vol_ratio": [1.2, 6.0], "zz_room_tp_mult": [0.0, 3.0], "zz_fine_h": [1, 48],
+    "closer_mode": [0.0, 1.0], "closer_adv_margin": [0.0, 1.0], "tp_mode": [0.0, 1.0], "k_tp_protect": [1.0, 4.0], "forced_every_bars": [6, 96], "zz_post_flip_bars": [0, 960], "zz_counter_net_frac": [0.0, 2.0], "ev_from_net": [0.0, 1.0], "close_margin_floor": [0.0, 2.0], "risk_reward_floor": [0.0, 3.0], "burst_window_bars": [2, 48], "burst_vol_ratio": [1.2, 6.0], "zz_room_tp_mult": [0.0, 3.0], "zz_fine_h": [1, 48],
     "zz_timing_gate": [0.0, 1.0], "zz_nop_gate": [0.0, 1.0], "zz_close_room": [-2.0, 5.0], "close_p_requires_rem_below": [-1.0, 1.0], "zz_theta_f": [0.0, 1.0],
 }
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
@@ -60,7 +64,7 @@ DEFAULTS = {
     "v_alpha_l": 1.0, "v_beta_l": 0.0, "v_gamma_l": 0.0, "v_delta_l": 0.0, "v_alpha_s": 1.0, "v_beta_s": 0.0, "v_gamma_s": 0.0, "v_delta_s": 0.0, "v_min": 0.0,
     "risk_pct": 0.01, "entry_cutoff_hours": 24.0, "max_entries_per_day": 4, "rr_margin_sigma": 0.10, "confirmation_lag_bars": 120,
     "tp_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "sl_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "open_margin_eps": 1e-6,
-    "zz_post_flip_bars": 240, "zz_counter_net_frac": 0.8, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+    "closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24, "zz_post_flip_bars": 240, "zz_counter_net_frac": 0.8, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
     "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5,
 }
 
