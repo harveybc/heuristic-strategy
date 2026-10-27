@@ -209,10 +209,12 @@ def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, s
 
 
 def mirror_bars(bars: pd.DataFrame) -> pd.DataFrame:
-    """The exact log mirror of a price path around its first close: log p' = 2 log c0 - log p (negated log returns),
-    HIGH' = mirror(LOW), LOW' = mirror(HIGH), so every bar's range is preserved and every move flips sign."""
+    """The exact PRICE mirror of a path around its first close: p' = 2 c0 - p (every price change negated), HIGH' =
+    mirror(LOW), LOW' = mirror(HIGH). The engine works in price units (sigma from squared close differences, TP / SL
+    distances, spreads), so the additive mirror keeps every distance, every sigma and every range identical and flips
+    every move: the strategy's trades must mirror exactly (a log mirror would change the price-unit sigma)."""
     c0 = float(bars["CLOSE"].iloc[0])
-    f = lambda x: (c0 * c0) / np.asarray(x, float)  # noqa: E731
+    f = lambda x: 2.0 * c0 - np.asarray(x, float)  # noqa: E731
     return pd.DataFrame({"OPEN": f(bars["OPEN"]), "HIGH": f(bars["LOW"]), "LOW": f(bars["HIGH"]), "CLOSE": f(bars["CLOSE"])}, index=bars.index)
 
 
@@ -417,7 +419,8 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
     if ex.get("cutoff_h") or ex.get("risk_pct"):
         S2 = dataclasses.replace(S2, variant=dataclasses.replace(xv, entry_cutoff_hours_before_flat=float(ex.get("cutoff_h", xv.entry_cutoff_hours_before_flat or 24.0)),
                                                                  risk_pct=float(ex.get("risk_pct", xv.risk_pct))))
-    truth = S.build_truth(cx2, S2, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK))
+    truth = S.build_truth(cx2, S2, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
+                          mirror_exploration=bool(leaf.get("mirror")))
     q = S.quality_for(leaf["variant"], float(leaf["quality"]))
     table, sim = S.simulate_table(cx2, S2, truth, q, seed)
     wit = transition_witness(bars, base_sd, meta) if meta is not None else leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"])

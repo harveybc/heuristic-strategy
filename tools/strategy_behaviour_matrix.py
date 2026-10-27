@@ -104,13 +104,23 @@ def _cell(cid: str, level: str, cfg: dict, family: str = "c3") -> dict:
             "expected": expected, "forbidden": forbidden, "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)", "mirror": False}
 
 
+def _sym(cell: dict) -> dict:
+    """The base cell with SYMMETRIC financing (both swap rates at their mean): the mirror pair isolates the strategy's
+    side symmetry from the declared swap asymmetry (long -7 vs short +2.5 per lot per rollover)."""
+    m = dict(cell)
+    m["id"], m["sym_of"], m["exec"] = "S_" + cell["id"], cell["id"], {**(cell.get("exec") or {}), "financing_symmetric": True}
+    m["expected"] = list(cell["expected"]) + ["same behaviours as " + cell["id"] + " with symmetric financing; its mirror M_" + cell["id"] + " must mirror it EXACTLY"]
+    return m
+
+
 def _mirror(cell: dict) -> dict:
     m = dict(cell)
-    m["id"], m["mirror_of"], m["mirror"] = "M_" + cell["id"], cell["id"], True
+    m["id"], m["mirror_of"], m["mirror"] = "M_" + cell["id"], "S_" + cell["id"], True
+    m["exec"] = {**(cell.get("exec") or {}), "financing_symmetric": True}
     m["legs"] = [H.MIRROR[x] for x in cell["legs"]]
     m["regime"] = H.MIRROR[cell["regime"]]
     sw = {"OPEN_LONG": "OPEN_SHORT", "OPEN_SHORT": "OPEN_LONG"}
-    m["expected"] = [sw.get(x.split(" ")[0], x.split(" ")[0]) + x[len(x.split(" ")[0]):] for x in cell["expected"]] + ["EXACT MIRROR of " + cell["id"] + ": same entry / exit bars, sides flipped, net equal up to the financing asymmetry"]
+    m["expected"] = [sw.get(x.split(" ")[0], x.split(" ")[0]) + x[len(x.split(" ")[0]):] for x in cell["expected"]] + ["EXACT MIRROR of S_" + cell["id"] + " (symmetric financing): same entry / exit bars, sides flipped, net equal in sigma units"]
     m["forbidden"] = [sw.get(x.split(" ")[0], x.split(" ")[0]) + x[len(x.split(" ")[0]):] for x in cell["forbidden"]]
     if cell.get("jump"):
         m["jump"] = dict(cell["jump"])                       # the mirror flips the path, so with / against is preserved relative to the mirrored leg
@@ -200,7 +210,7 @@ def build_matrix(n_lhs: int = 64, seed: int = 7, fine_full: bool = True) -> list
             ex["cutoff_h"] = round(x["cutoff_h"], 1)
         add(f"LHS_{i:02d}", "LHS", legs=legs, strength=st, switch_fracs=fr, vol=vol, persistence=round(x["persistence"], 3), fine="lhs",
             fine_amp=round(x["fine_amp"], 2), fine_dens=round(x["fine_dens"], 2), jump=gap, exec=ex)
-    return cells + [_mirror(c) for c in cells]
+    return cells + [_sym(c) for c in cells] + [_mirror(c) for c in cells]
 
 
 # ----------------------------------------------------------------------------- the world of a cell
@@ -225,7 +235,12 @@ def cell_world(cx, SCFG, AC, cell: dict, seed: int) -> dict:
         leaf["fine"] = "medium"
     if leaf["vol"] == "mid":
         H.VOL["mid"] = 1.0
-    w = H.leaf_world(cx, SCFG, AC, leaf, BLOCK, seed, periods=(CAL, BLOCK))
+    SC = SCFG
+    if (cell.get("exec") or {}).get("financing_symmetric"):
+        prof = SCFG.profile
+        mean_swap = 0.5 * (float(prof.swap_long_per_lot) + float(prof.swap_short_per_lot))
+        SC = dataclasses.replace(SCFG, profile=dataclasses.replace(prof, swap_long_per_lot=mean_swap, swap_short_per_lot=mean_swap))
+    w = H.leaf_world(cx, SC, AC, leaf, BLOCK, seed, periods=(CAL, BLOCK))
     H.L2.pop(key, None)
     return w
 
@@ -300,6 +315,25 @@ def _cell_index(t, cells) -> int:
     return -1
 
 
+def decision_offset(SCFG) -> int:
+    """Bars between the decision row and the fill bar: the profile's entry delay plus the next-open fill."""
+    return 1 + int(getattr(SCFG.profile, "entry_delay_bars", 1) or 0)
+
+
+def truth_side_opportunity(truth, cx, a: int, b: int) -> dict:
+    """Among the block's rows where at least one side has a positive truth net, the share whose better side is short."""
+    rows = truth.rows[(truth.period[truth.rows] == BLOCK)]
+    best = []
+    for r in rows:
+        if not np.isfinite(truth.net[r]).any():
+            continue
+        l_ = float(np.nanmax(truth.net[r, 0])) if np.isfinite(truth.net[r, 0]).any() else -np.inf
+        s_ = float(np.nanmax(truth.net[r, 1])) if np.isfinite(truth.net[r, 1]).any() else -np.inf
+        if max(l_, s_) > 0:
+            best.append(1 if s_ > l_ else 0)
+    return {"rows_with_opportunity": len(best), "share_short_better": float(np.mean(best)) if best else float("nan")}
+
+
 def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     """Every behaviour assertion of the cell, measured: value, threshold, pass. Perfect-head thresholds."""
     cx, truth, SCFG = world["cx"], world["truth"], world["scfg"]
@@ -309,6 +343,8 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     weeks = max((b - a) / (24 * 5), 1e-9)
     out = {}
     n_open = len(trades)
+    off = decision_offset(SCFG)
+    truth_opp = truth_side_opportunity(truth, cx, a, b)
     sides = np.array([_side(t) for t in trades], int)
     share_l = float((sides == 0).mean()) if n_open else float("nan")
     share_s = 1.0 - share_l if n_open else float("nan")
@@ -316,13 +352,23 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     legs = cell["legs"]
     # W1 sides vs the coarse leg (last leg's regime for static cells; per leg for transitions)
     if len(legs) == 1:
+        # the sides must FOLLOW THE TRUTH: the strategy's short share within 0.15 of the truth's share of short-better
+        # opportunities, and the trend direction dominant whenever the truth is dominated by it (>= 0.60)
+        t_short = truth_opp["share_short_better"]
+        dev = abs(share_s - t_short) if n_open and np.isfinite(t_short) else float("nan")
+        follow = bool(n_open and np.isfinite(dev) and dev <= 0.15)
         if reg == "trend_up":
-            out["W1_side"] = {"value": share_l, "threshold": THRESH["side_share_trend_min"], "pass": bool(n_open and share_l >= THRESH["side_share_trend_min"]), "desc": "OPEN_LONG share"}
+            dom_ok = (share_l >= 0.5) if (1 - t_short) >= THRESH["side_share_trend_min"] else True
+            out["W1_side"] = {"value": {"share_long": share_l, "truth_share_long_better": 1 - t_short, "deviation": dev}, "threshold": "|dev| <= 0.15; long is the majority of opens when the truth is long-dominated (>= 0.60)",
+                              "pass": bool(follow and dom_ok), "desc": "OPEN_LONG share follows the truth's opportunities"}
         elif reg == "trend_down":
-            out["W1_side"] = {"value": share_s, "threshold": THRESH["side_share_trend_min"], "pass": bool(n_open and share_s >= THRESH["side_share_trend_min"]), "desc": "OPEN_SHORT share"}
+            dom_ok = (share_s >= 0.5) if t_short >= THRESH["side_share_trend_min"] else True
+            out["W1_side"] = {"value": {"share_short": share_s, "truth_share_short_better": t_short, "deviation": dev}, "threshold": "|dev| <= 0.15; short is the majority of opens when the truth is short-dominated (>= 0.60)",
+                              "pass": bool(follow and dom_ok), "desc": "OPEN_SHORT share follows the truth's opportunities"}
         else:
             mn = min(share_l, share_s) if n_open else float("nan")
-            out["W1_side"] = {"value": mn, "threshold": THRESH["side_share_range_min"], "pass": bool(n_open and mn >= THRESH["side_share_range_min"]), "desc": "min side share (range)"}
+            out["W1_side"] = {"value": {"min_side_share": mn, "truth_share_short_better": t_short, "deviation": dev}, "threshold": "min side >= 0.25; |dev| <= 0.15",
+                              "pass": bool(follow and n_open and mn >= THRESH["side_share_range_min"]), "desc": "both sides traded (range), following the truth"}
     else:
         meta = world["meta"]
         bounds = [a] + list(meta["switch_bars"]) + [b]
@@ -362,25 +408,30 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         out["W8_early_close_at_switch"] = {"value": [rb, ra], "threshold": THRESH["reverse_in_switch_window_min"], "pass": bool((not np.isfinite(rb)) or (not np.isfinite(ra)) or ra >= rb), "desc": "early-close share of exits before / in the switch window"}
     # W2 knowledge: truth net at the chosen cell > 0; not the worse side; cell = truth best
     pos_ok, wrong, best_cell = [], [], []
+    dec = {x[0]: x for x in log}
+    matched = 0
     for t in trades:
-        r = int(cx.rob[int(t["entry_bar_abs"]) - 1]) if int(t["entry_bar_abs"]) - 1 >= 0 else -1
+        r = int(cx.rob[int(t["entry_bar_abs"]) - off]) if int(t["entry_bar_abs"]) - off >= 0 else -1
         rr = r if r >= 0 and np.isfinite(truth.net[r]).any() else -1
         if rr < 0:
             continue
         si = _side(t)
-        ci = _cell_index(t, cells)
+        d_ = dec.get(rr)
+        ci = int(d_[7 + si]) if d_ is not None and d_[5] == si else _cell_index(t, cells)
+        matched += int(d_ is not None and d_[5] == si)
         net_c = float(truth.net[rr, si, ci]) if ci >= 0 else float("nan")
         other = float(np.nanmax(truth.net[rr, 1 - si])) if np.isfinite(truth.net[rr, 1 - si]).any() else float("nan")
         mine = float(np.nanmax(truth.net[rr, si])) if np.isfinite(truth.net[rr, si]).any() else float("nan")
         pos_ok.append(bool(np.isfinite(net_c) and net_c > 0))
         wrong.append(bool(np.isfinite(other) and np.isfinite(mine) and other > mine + 0.10))
         best_cell.append(bool(ci >= 0 and np.isfinite(mine) and net_c >= mine - 1e-9))
-    out["W2_truth_positive_open"] = {"value": float(np.mean(pos_ok)) if pos_ok else float("nan"), "threshold": THRESH["truth_positive_open_min"], "pass": bool(pos_ok and np.mean(pos_ok) >= THRESH["truth_positive_open_min"]), "desc": "opened trades with truth net > 0 at the chosen cell"}
+    out["W2_truth_positive_open"] = {"value": float(np.mean(pos_ok)) if pos_ok else float("nan"), "threshold": THRESH["truth_positive_open_min"], "pass": bool(pos_ok and np.mean(pos_ok) >= THRESH["truth_positive_open_min"]), "desc": "opened trades with truth net > 0 at the chosen cell",
+                                     "decisions_matched_to_trades": matched, "decision_row_offset": off}
     out["W2_wrong_side"] = {"value": float(np.mean(wrong)) if wrong else float("nan"), "threshold": THRESH["wrong_side_max"], "pass": bool(wrong) and float(np.mean(wrong)) <= THRESH["wrong_side_max"], "desc": "opens on the side whose truth best net is lower by > 0.10 sigma"}
     out["W7_best_cell"] = {"value": float(np.mean(best_cell)) if best_cell else float("nan"), "threshold": THRESH["best_cell_min"], "pass": bool(best_cell) and float(np.mean(best_cell)) >= THRESH["best_cell_min"], "desc": "chosen TP/SL cell = the truth's best cell"}
     # W3 NOP respected: opens on truth-NOP rows
     nop_rows = {int(r) for r in truth.rows if truth.nop[r] == 1 and truth.period[r] == BLOCK}
-    opens_rows = [int(cx.rob[int(t["entry_bar_abs"]) - 1]) for t in trades if int(t["entry_bar_abs"]) - 1 >= 0]
+    opens_rows = [int(cx.rob[int(t["entry_bar_abs"]) - off]) for t in trades if int(t["entry_bar_abs"]) - off >= 0]
     nop_opens = sum(1 for r in opens_rows if r in nop_rows)
     out["W3_nop"] = {"value": (nop_opens / max(n_open, 1)), "threshold": THRESH["nop_open_max"], "pass": bool(nop_opens / max(n_open, 1) <= THRESH["nop_open_max"]), "desc": "share of opens on truth-NOP rows"}
     # W4 closes: SL exits share; early closes justified (closer's remaining value <= 0 at the close)
@@ -437,7 +488,7 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         ins = [t for t in trades if t0 <= int(cx.v[int(t["entry_bar_abs"])]) < t1]
         okk = []
         for t in ins:
-            r = int(cx.rob[int(t["entry_bar_abs"]) - 1])
+            r = int(cx.rob[int(t["entry_bar_abs"]) - off])
             ci = _cell_index(t, cells)
             okk.append(bool(r >= 0 and ci >= 0 and np.isfinite(truth.net[r, _side(t), ci]) and truth.net[r, _side(t), ci] > 0))
         out["W10_spread_window"] = {"value": float(np.mean(okk)) if okk else float("nan"), "threshold": 1.0, "pass": bool((not okk) or all(okk)), "desc": "opens inside the x5 window have truth net > 0 (cost included)", "n_inside": len(ins)}
@@ -477,12 +528,12 @@ def mirror_check(trades_a: list, trades_b: list) -> dict:
     for ta, tb in zip(trades_a[:n], trades_b[:n]):
         bars_ok += int(int(ta["entry_bar_abs"]) == int(tb["entry_bar_abs"]) and int(ta["exit_bar_abs"]) == int(tb["exit_bar_abs"]))
         side_ok += int(int(ta["direction"]) == -int(tb["direction"]))
-        na, nb = float(ta["net_usd"]) - float(ta.get("financing_usd", 0.0)), float(tb["net_usd"]) - float(tb.get("financing_usd", 0.0))
+        na, nb = float(ta["net_sigma"]) - float(ta.get("financing_sigma", 0.0)), float(tb["net_sigma"]) - float(tb.get("financing_sigma", 0.0))
         net_dev.append(abs(na - nb))
-        bound.append(THRESH["mirror_net_rel_tol"] * max(abs(na), abs(nb), 1.0))
+        bound.append(THRESH["mirror_net_rel_tol"] * max(abs(na), abs(nb), 0.05))
     ok = (len(trades_a) == len(trades_b)) and bars_ok == n and side_ok == n and all(d <= b_ for d, b_ in zip(net_dev, bound))
     return {"pass": bool(ok), "n_a": len(trades_a), "n_b": len(trades_b), "bars_match": bars_ok, "sides_flipped": side_ok,
-            "max_net_discrepancy_ex_financing_usd": float(max(net_dev)) if net_dev else 0.0, "max_allowed_usd": float(max(bound)) if bound else 0.0,
+            "max_net_discrepancy_ex_financing_sigma": float(max(net_dev)) if net_dev else 0.0, "max_allowed_sigma": float(max(bound)) if bound else 0.0,
             "financing_asymmetry_usd": float(sum(abs(float(ta.get("financing_usd", 0.0)) - float(tb.get("financing_usd", 0.0))) for ta, tb in zip(trades_a[:n], trades_b[:n])))}
 
 
@@ -503,6 +554,11 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     strat, view, cells = strategy_for(w, genes, AC)
     roll = rollout_cell(w, strat, view, cells)
     wit = witnesses(cell, w, roll, cells)
+    sig = np.asarray(w["cx"].ds.sigma, float)
+    for t in roll["trades"]:
+        s_ = float(sig[int(t["entry_bar_abs"])])
+        t["net_sigma"] = float(t["net_usd"]) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else float("nan")
+        t["financing_sigma"] = float(t.get("financing_usd", 0.0)) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else 0.0
     rec = {"id": cell["id"], "seed": seed, "level": cell["level"], "regime": cell["regime"], "legs": cell["legs"], "mirror_of": cell.get("mirror_of"), "quality": cell["quality"],
            "witness": w["witness"], "achieved": w["sim"]["achieved"], "strategy": strat.to_dict(), "results": wit, "PASS": wit["PASS"], "sec": round(time.time() - t0, 1),
            "trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll["trades"]]}
@@ -521,9 +577,10 @@ def cmd_run(a):
     cells = json.loads(Path(a.cells).read_text())
     if a.ids:
         keep = set(a.ids.split(","))
-        cells = [c for c in cells if c["id"] in keep or c.get("mirror_of") in keep]
+        cells = [c for c in cells if c["id"] in keep or c.get("sym_of") in keep or (c.get("mirror_of") or "").replace("S_", "", 1) in keep]
     # chunking keeps a cell and its mirror in the same chunk (the mirror check needs both ledgers)
-    base = [c for c in cells if not c["mirror"]]
+    base = [c for c in cells if not c["mirror"] and not c.get("sym_of")]
+    syms = {c["sym_of"]: c for c in cells if c.get("sym_of")}
     mirrors = {c["mirror_of"]: c for c in cells if c["mirror"]}
     k, n = (int(x) for x in a.chunk.split("/"))
     mine = [c for i, c in enumerate(base) if i % n == k]
@@ -532,13 +589,19 @@ def cmd_run(a):
     AC = S.contract_for_sim(a.contract)
     cx, SCFG = S.load_fold(a.fold, a.admitted, a.csv_dir)
     SCFG = S.with_variant(SCFG, C3.FULL_F3)
-    genes = json.loads(Path(a.genes).read_text()) if a.genes else canonical_genes()
+    from app.short_horizon.expert_guided import strategy_params as SP
+    params_doc = SP.load(a.params)
+    genes = SP.genes_c3(params_doc)
+    params_sha = SP.sha256_of(a.params)
+    (out / "PARAMS_SHA.txt").write_text(params_sha + "  " + str(a.params) + "\n")
     seeds = [int(x) for x in a.seeds.split(",")]
     done = 0
     for c in mine:
         for seed in seeds:
             twin = {}
-            for cc in (c, mirrors.get(c["id"])):
+            sc = syms.get(c["id"])
+            trio = [c] + ([sc, mirrors.get(sc["id"])] if sc is not None and seed == seeds[0] else [])
+            for cc in trio:
                 if cc is None:
                     continue
                 p = out / f"CELL_{cc['id']}_s{seed}.json"
@@ -573,17 +636,21 @@ def cmd_report(a):
                 if isinstance(v, dict) and v.get("pass") is False:
                     fails[k] = fails.get(k, 0) + 1
         sl = [r["results"]["summary"]["share_long"] for r in rs if r.get("results", {}).get("summary")]
-        rows.append({"id": c["id"], "level": c["level"], "regime": c["regime"], "legs": c["legs"], "mirror": c["mirror"], "n_runs": len(rs), "PASS": bool(rs) and all(passes),
+        rows.append({"id": c["id"], "level": c["level"], "regime": c["regime"], "legs": c["legs"], "mirror": c["mirror"], "sym": bool(c.get("sym_of")), "n_runs": len(rs), "PASS": bool(rs) and all(passes),
                      "failing_witnesses": fails, "share_long_mean": float(np.nanmean(sl)) if sl else None, "opens_mean": float(np.mean([r["results"]["summary"]["opens"] for r in rs if r.get("results", {}).get("summary")])) if rs else None,
                      "errors": [r.get("error") for r in rs if r.get("error")], "expected": c["expected"], "forbidden": c["forbidden"]})
     n_pass = sum(1 for r in rows if r["PASS"])
+    import hashlib
+    spec_sha = hashlib.sha256(Path(a.cells).read_bytes()).hexdigest()
+    psha = (Path(a.results) / "PARAMS_SHA.txt").read_text().split()[0] if (Path(a.results) / "PARAMS_SHA.txt").exists() else None
     doc = {"schema": "behaviour_matrix.v1", "block": BLOCK, "cells": len(rows), "run": sum(1 for r in rows if r["n_runs"]), "pass": n_pass, "fail": sum(1 for r in rows if r["n_runs"] and not r["PASS"]),
-           "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
+           "spec_sha256": spec_sha, "strategy_params_sha256": psha, "thresholds": THRESH, "behaviours": BEHAVIOURS, "rows": rows}
     outp = Path(a.out)
     outp.mkdir(parents=True, exist_ok=True)
     (outp / "BEHAVIOUR_MATRIX.json").write_text(json.dumps(doc, indent=1, default=float))
     lines = ["# Matriz de comportamiento (cabezas perfectas, estrategia C3, motor real)", "",
-             f"Celdas: {len(rows)} (cada una con su espejo exacto); corridas: {doc['run']}; PASS: {n_pass}; FAIL: {doc['fail']}; bloque sostenido: `{BLOCK}` del fold.", "",
+             f"Celdas: {len(rows)} (cada una con su gemela de financiación simétrica y su espejo exacto); corridas: {doc['run']}; PASS: {n_pass}; FAIL: {doc['fail']}; bloque sostenido: `{BLOCK}` del fold.",
+             f"Especificación sellada: sha256 `{spec_sha}` del archivo de celdas; parámetros de la estrategia: sha256 `{psha}` (`STRATEGY_PARAMS.json`).", "",
              "| celda | nivel | tramos | régimen | espejo | corridas | PASS | testigos que fallan | cuota largos | aperturas |", "| --- | --- | --- | --- | --- | ---: | --- | --- | ---: | ---: |"]
     for r in rows:
         lines.append(f"| {r['id']} | {r['level']} | {' → '.join(r['legs'])} | {r['regime']} | {'sí' if r['mirror'] else ''} | {r['n_runs']} | {'PASS' if r['PASS'] else ('FAIL' if r['n_runs'] else '—')} | "
@@ -624,7 +691,7 @@ def main():
     r.add_argument("--contract", default=str(S.CONTRACT))
     r.add_argument("--chunk", default="0/1", help="k/n: this job's share of the base cells (mirrors travel with their twin)")
     r.add_argument("--seeds", default="0,1,2")
-    r.add_argument("--genes", default=None, help="JSON of quantile genes (default: the canonical point)")
+    r.add_argument("--params", default=str(ROOT / "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"), help="every strategy coefficient (validated; sha recorded)")
     r.add_argument("--ids", default=None)
     r.add_argument("--force", action="store_true")
     r.add_argument("--out", required=True)

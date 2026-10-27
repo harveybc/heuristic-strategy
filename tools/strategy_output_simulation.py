@@ -171,9 +171,21 @@ def pos_key(pos, bar: int) -> tuple:
     return (int(bar), int(pos.direction), int(pos.entry_bar), round(float(pos.tp), 7), round(float(pos.sl), 7))
 
 
-def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 0, progress=None, only_periods=None) -> Truth:
+def mirrored_policy(f):
+    """The same exploration draws with LONG and SHORT swapped: a mirrored world explores the mirrored visits, so the
+    closer references of the mirror twin are the exact mirror of the original's (side-symmetry witness)."""
+    swap = {E.LONG: E.SHORT, E.SHORT: E.LONG}
+
+    def g(bar, r, st, env):
+        a, tp, sl = f(bar, r, st, env)
+        return swap.get(a, a), tp, sl
+    return g
+
+
+def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 0, progress=None, only_periods=None, mirror_exploration: bool = False) -> Truth:
     """``only_periods``: restrict the entry table to the rows of these periods (Stage A synthetic worlds score the
-    selection block only); the exploration visits and the NOP truth follow the same restriction."""
+    selection block only); the exploration visits and the NOP truth follow the same restriction. ``mirror_exploration``
+    swaps the exploration's LONG / SHORT draws (the mirror twin of a world)."""
     cells = [tuple(c) for c in cells]
     rows_sel = None
     if only_periods:
@@ -209,7 +221,8 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
     for p in (CAL_BLOCK, SEL_BLOCK, DEC_BLOCK):
         if p in xvis or (only_periods and p not in only_periods):
             continue
-        vis = OC.visit_positions(cx, p, C3.prior_random_cells(cx, list(EXPLORATION_PRIOR), explore_seed, cells), SCFG)
+        xpol = C3.prior_random_cells(cx, list(EXPLORATION_PRIOR), explore_seed, cells)
+        vis = OC.visit_positions(cx, p, mirrored_policy(xpol) if mirror_exploration else xpol, SCFG)
         xt = OC.exit_table(cx, SCFG, vis)
         keys = [pos_key(pos, bar) for _, bar, pos in vis if OC.make_env(cx, SCFG).first <= bar < OC.make_env(cx, SCFG).last] if False else None
         xvis[p] = {"row": xt["row"], "bar": xt["bar"], "side": xt["side"], "remaining": xt["remaining"], "sl_first": xt["sl_first"],
