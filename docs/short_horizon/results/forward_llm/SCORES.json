@@ -1,14 +1,14 @@
 {
- "decisions": 98,
- "entry_decisions": 76,
+ "decisions": 99,
+ "entry_decisions": 77,
  "by_model": {},
  "status_counts": {
   "FINAL": 46,
-  "PENDING": 30
+  "PENDING": 31
  },
  "outcome_counts": {
   "TIMEOUT": 46,
-  "NaN": 30
+  "NaN": 31
  },
- "scored_utc": "2026-10-27 15:12:27.945446+00:00"
+ "scored_utc": "2026-10-27 16:12:28.780723+00:00"
 }
