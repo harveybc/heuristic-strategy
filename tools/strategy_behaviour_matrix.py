@@ -79,6 +79,8 @@ WITNESS_SPEC = {
            "rule": "a v2 form is admitted only in the cells where the TRUTH ORACLE fails the sealed form; everywhere else the sealed form governs; both verdicts are reported",
            "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
+WITNESS_SPEC["v3_W4"] = {"W4_early_close_justified_v3": "every early close had remaining hold value <= EPS_CLOSE",
+                         "rule": "admitted per cell where O* fails W4 v2 (VALIDITY_SPEC machinery); the owner's tie rule applied once with the same EPS_CLOSE as E3 / E4"}
 WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c') every strategy trade alive in the window: O*'s exit rule (close when A(t) >= -EPS_CLOSE) replayed on that SAME trade; wherever it closes the trade inside the window, the strategy early-closed it inside the window or earlier at a tick with A(t) >= -EPS_CLOSE; zero misses",
                       "rule": "admitted where VALIDITY_SPEC admits a corrected form for W8_early_close_at_switch (DEFECT, SEALED_UNVALIDATED or REPLAY_CONFLICT); it replaces v2 for that witness"}
 TIMING_EXIT_WITNESSES = ("W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W8_early_close_at_switch")
@@ -92,6 +94,10 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-28T00:00Z (coordinator ruling: a demonstrated tie-band conflict with the sealed E3 / E4)", "witness": "W4_early_close_justified -> v3: every early close had remaining hold value <= EPS_CLOSE",
+     "defect": "the sealed W4 (remaining <= 0) and v2 (SL-first or remaining < 0) are failed by the exit truth itself: O* closes when A(t) >= -EPS_CLOSE, and A(t) >= -EPS_CLOSE implies remaining = hold - now <= best continuation - now <= EPS_CLOSE, so its closes in the tie band have 0 < remaining <= EPS_CLOSE; the DEAP drove closer_adv_margin to 0.0065 < EPS_CLOSE to meet v2, and the strategy then held ticks O* closes (W8 failures)",
+     "evidence": "records with O* early closes: O* fails the sealed W4 in 2323 of 2788 and W4 v2 in 2754 of 2788 (v2 median 0.625, min 0.167); in the run-2 DEAP-point records v2 passed for O* in 1 of 250",
+     "effect": "W4_v3 = every early close had remaining <= EPS_CLOSE (the owner's rule 'empate: aplicar una regla explicita y consistente' applied once, the same EPS everywhere), admitted per cell where O* fails W4 v2; closer_adv_margin bounds unchanged; spec re-sealed; DEAP run 3"},
     {"when": "2026-10-27T23:30Z (instrument defect)", "witness": "E1-E4 normal run: trades censored by the end of the block",
      "defect": "the last trade of a run is flattened at the block's last bar (FORCED_FLAT), but its engine path (closer.path) runs on past the block and may end at the SL, so the trade was counted SL-destined and 'not closed early' although the run itself closed it at a profit; its regret and ticks also read prices beyond the run",
      "evidence": "DEAP-point re-verification: B_vol_low s0 BUY 9273-9306 FORCED_FLAT +0.23 sigma, B_trend_trend_up_medium s0 SELL 9283-9306 +0.46, B_fine_medium_high s0 BUY 9244-9306 +0.90, B_voldyn_ramp_down s1 SELL 9247-9306 +0.87: each the only 'SL-destined trade not closed early' of its side (E1 0.944 / 0.947 against 0.95); O* had 0 SL-destined trades there",
@@ -1288,6 +1294,10 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                                        "desc": "SEALED: early closes whose remaining hold value was <= 0", "share_on_sl_first": on_sl, "early_close_value_sigma_mean": value, "n_early_closes": len(ec)}
     out["W4_early_close_justified_v2"] = {"value": float(np.mean(just_v2)) if ec else float("nan"), "threshold": 0.95, "pass": bool((not ec) or np.mean(just_v2) >= 0.95),
                                           "desc": "corrected form: early closes fired on an SL-first detection (P(SL first) > close_p) or on a negative remaining value", "n_early_closes": len(ec)}
+    just_v3 = [bool(c[3] <= EPS_CLOSE) for c in ec]
+    out["W4_early_close_justified_v3"] = {"value": float(np.mean(just_v3)) if ec else float("nan"), "threshold": "every early close", "pass": bool((not ec) or all(just_v3)),
+                                          "desc": "corrected form v3 (owner's tie rule applied once, same EPS everywhere): every early close had remaining hold value <= EPS_CLOSE; admitted where O* fails v2",
+                                          "n_early_closes": len(ec), "worst_remaining_sigma": float(max((c[3] for c in ec), default=float("nan")))}
     # W5 reversals: opens while positioned (an open logged at a row where the previous trade was still open)
     rev, rev_just, inwin = 0, 0, 0
     sw = (world.get("meta") or {}).get("switch_bars") or []
@@ -1564,6 +1574,8 @@ def validity(wit: dict, hold: dict, ostar: dict | None) -> dict:
         valid = [nm for nm, c in ctr if isinstance(c.get(k), dict) and c[k].get("pass") is True and (c[k].get("events") is None or c[k]["events"] > 0)]
         st = "DEFECT" if fails else ("VALIDATED" if valid else "SEALED_UNVALIDATED")
         corr = (k + "_v3") if (k + "_v3") in wit else ((k + "_v2") if (k + "_v2") in wit else None)
+        if k == "W4_early_close_justified" and corr == k + "_v3" and not (ostar is not None and isinstance(ostar.get(k + "_v2"), dict) and ostar[k + "_v2"].get("pass") is False):
+            corr = k + "_v2"                                          # W4_v3 is admitted only where O* fails W4 v2 (coordinator ruling 2026-10-27)
         if st == "VALIDATED" and v["pass"] is False and corr and wit[corr].get("conflict_shown"):
             st = "REPLAY_CONFLICT"
         form = corr if (st != "VALIDATED" and corr) else k
@@ -1644,6 +1656,7 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
             "defects_by_Ostar": defects, "sealed_unvalidated": e_unvalidated, "failing_sealed": sealed_fail, "failing_effective": eff_fail, "PASS_sealed": not sealed_fail, "PASS_effective": not eff_fail,
             "episodes": {"n": len(eps), "by_side_class": {si: {c: sum(1 for e in eps if e["side"] == si and e["class"] == c) for c in ("SL", "TP", "TIME")} for si in (0, 1)}},
             "episode_summary": summ, "exit_loss_curves": curves, "closer_sweep": sweep,
+            "censored_by_block_end": {"strategy": {si: st_n[si].get("censored_by_block_end", 0) for si in (0, 1)}, "hold_oracle": {si: st_hold[si].get("censored_by_block_end", 0) for si in (0, 1)}, "O*": {si: st_star[si].get("censored_by_block_end", 0) for si in (0, 1)}},
             "normal_exit_mix": {"strategy": {si: st_n[si]["mix"] for si in (0, 1)}, "hold_oracle": {si: st_hold[si]["mix"] for si in (0, 1)}, "O*": {si: st_star[si]["mix"] for si in (0, 1)}},
             "episode_exit_mix": {name: {si: {c: float(np.mean([x["class"] == c and (not x["early"]) for x in ep if x["side"] == si] or [np.nan])) for c in ("SL", "TP", "TIME")} | {"early": float(np.mean([x["early"] for x in ep if x["side"] == si] or [np.nan]))} for si in (0, 1)}
                                  for name, ep in (("strategy", lad[1.0]), ("hold_oracle", hold_ep), ("O*", star_ep))},

@@ -181,6 +181,17 @@ def lavail_table(recs: list) -> list:
     return L
 
 
+def censored_table(recs: list) -> list:
+    """Trades flattened by the end of the block (censored from E1-E4, kept in the exit mix), per side and per cell."""
+    rows = [(r["id"], r["seed"], (r.get("exit") or {}).get("censored_by_block_end", {}).get("strategy")) for r in recs]
+    rows = [(i, s_, c) for i, s_, c in rows if c and (c.get("0", c.get(0, 0)) or c.get("1", c.get(1, 0)))]
+    tot = [sum(int(c.get("0", c.get(0, 0))) for _, _, c in rows), sum(int(c.get("1", c.get(1, 0))) for _, _, c in rows)]
+    L = [f"Operaciones censuradas por el fin del bloque (estrategia): BUY {tot[0]}, SELL {tot[1]}, en {len(rows)} registros.", "",
+         "| registro | semilla | BUY | SELL |", "| --- | ---: | ---: | ---: |"]
+    L += [f"| {i} | {s_} | {c.get('0', c.get(0, 0))} | {c.get('1', c.get(1, 0))} |" for i, s_, c in sorted(rows)]
+    return L
+
+
 def failing_list(recs: list, cap: int = 400) -> tuple:
     bad = [(r["id"], r["seed"], governing_fails(r), (r.get("validity") or {}).get("per_witness", {})) for r in recs if governing_fails(r)]
     L = ["| registro | semilla | testigos que fallan (forma gobernante) | estado de validez / forma gobernante | causa registrada |", "| --- | ---: | --- | --- | --- |"]
@@ -299,6 +310,7 @@ def main():
          "", f"### Todos los registros que fallan, punto canónico ({n_fail_c})", ""] + fail_c_L + [
          "", "## 5. Cierre temprano (titular)", "", "### Mezcla de salidas por lado, punto DEAP (media sobre registros)", ""] + side_L_o + [
          "", "### Mezcla de salidas por lado, punto canónico", ""] + side_L_c + [
+         "", "### Operaciones censuradas por el fin del bloque, punto DEAP", ""] + censored_table(ro) + [
          "", "### Episodios de estado inicial destinados al SL, punto DEAP", ""] + episode_table(ro) + [""] + BM.exit_headline_tables([r for r in ro if r.get("exit")]) + [
          "### Curvas L_avail(t) por barras desde la entrada (destinados al SL, punto DEAP)", ""] + lavail_table(ro) + [
          "", "## 6. DEAP", "",

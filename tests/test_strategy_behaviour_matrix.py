@@ -277,3 +277,16 @@ def test_w8_switch_v3_c_prime_replays_ostar_on_the_same_trade():
     assert r["pass"] and not r["value"]["Ostar_same_trade_misses"] and r["value"]["trades_alive_in_window"] == 1
     late = {"trades": [trade("EARLY", sw + lag + 3)], "positions": pos, "closes": [(0, sw + lag + 2, 0, 0.0, 0.0, True)]}
     assert not BM.w8_switch_v3(world, late, None, closer)["pass"]                 # closed only after the window: a miss
+
+
+def test_w4_v3_is_admitted_only_where_ostar_fails_w4_v2():
+    w = lambda p, e=5: {"value": 0, "pass": p, "events": e}  # noqa: E731
+    strat = {"W4_early_close_justified": w(False), "W4_early_close_justified_v2": w(False), "W4_early_close_justified_v3": w(True)}
+    hold = {"W4_early_close_justified": w(True, 4)}
+    ostar_fails_v2 = {"W4_early_close_justified": w(False), "W4_early_close_justified_v2": w(False)}
+    ostar_passes_v2 = {"W4_early_close_justified": w(False), "W4_early_close_justified_v2": w(True)}
+    a = BM.validity(strat, hold, ostar_fails_v2)["per_witness"]["W4_early_close_justified"]
+    b = BM.validity(strat, hold, ostar_passes_v2)["per_witness"]["W4_early_close_justified"]
+    assert a["status"] == "DEFECT" and a["governing_form"] == "W4_early_close_justified_v3" and a["pass"]
+    assert b["status"] == "DEFECT" and b["governing_form"] == "W4_early_close_justified_v2" and not b["pass"]
+    assert any("W4_early_close_justified -> v3" in x["witness"] and "2754 of 2788" in x["evidence"] for x in BM.WITNESS_CHANGELOG)

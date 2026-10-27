@@ -40,7 +40,7 @@ $CR -q -W 43200 -m ${MEM_DEAP:-18G} -t 43200s -n deap-strategy-params -- $PY too
 for k in $(seq 0 ${MAX_RANK:-9}); do
   $PY tools/strategy_param_deap.py best --archive $OUT/ARCHIVE.jsonl --params $P0 --k $k --allow-infeasible --out $OUT/CANDIDATE_k$k.json > $R/logs/deap_best_k$k.log 2>&1 || { log "no feasible point at rank $k"; exit 2; }
   log "re-verifying rank $k on the full matrix: $(tail -1 $R/logs/deap_best_k$k.log | cut -c1-200)"
-  VR=$R/verify_k$k                                              # its own matrix root: never shares claims with the running matrix
+  VR=$R/${VERIFY_PREFIX:-verify}_k$k                             # its own matrix root: never shares claims with the running matrix (VERIFY_PREFIX per DEAP run)
   mkdir -p $VR/queue $VR/logs $VR/report
   ln -sfn $R/data $VR/data; ln -sfn $R/code $VR/code
   cp $R/queue/*.json $VR/queue/
