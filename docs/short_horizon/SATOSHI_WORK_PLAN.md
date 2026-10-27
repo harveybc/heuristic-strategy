@@ -352,3 +352,36 @@ Todo experimento anterior queda INVÁLIDO (estrategia no simulada). Único traba
 
 Comando de parada de lo residual (sólo mi carril): `bash /var/tmp/strategy-sim-20261026-r2/stop_round2.sh` en dragon.
 Causa raíz hallada: deriva 0.35 sd/h del generador colapsaba el camino (14 450 niveles cortos rechazados); corregida a 0.03.
+
+## 2026-10-27 (mañana) — ORDEN DEL PROPIETARIO: el CIERRE TEMPRANO ÓPTIMO es la prioridad de todo el sistema
+
+El cierre temprano es la acción de cierre más usada: en las únicas estrategias con resultado positivo, cerca del 72 % de las salidas fueron cierres tempranos. Es casi imposible predecir con precisión el TP y el SL; en cambio, el sistema debe aprender a leer los patrones que lo acercan a la salida óptima antes del SL. Toda estrategia, simulación u optimización que no pruebe esto es inválida.
+
+**Defecto medido (matriz v7, 1 660 celdas, cabezas perfectas):** la estrategia cerraba 0.9 % por cierre temprano, 91.2 % por TP, 0 % por SL y 7.9 % por tiempo; el oráculo de control, 4.7 % / 90.8 % / 0 % / 4.5 %. Causa: el abridor perfecto elige un TP alcanzable y el oráculo mantenía hasta la salida natural. La matriz nunca probó el cierre temprano.
+
+**Definiciones (comunes con el carril de Musashi, aprobadas por el propietario).** Todas son netas de spread, comisión, financiación y deslizamiento, en USD y en σ.
+- P(t): resultado neto si se cierra en el tick ejecutable t.
+- P*_salida(t): máximo de P(τ) sobre los τ ejecutables desde t y estrictamente antes del primer SL. Si el TP o el corte obligatorio terminan antes la orden, el máximo se toma antes de ese evento. Nunca se usan el pivote de apertura, un extremo anterior a t ni una recuperación posterior al SL.
+- L(t) = P*_salida(t) − P(t): pérdida por tick frente a la mejor salida todavía disponible. Es la retroalimentación del RLHF para los cerradores: retrospectiva, nunca observación.
+- A(t) = P(t) − mejor continuación: positivo, cerrar; negativo, mantener; el empate tiene una regla explícita (EPS_CLOSE).
+- R = P* − P(salida): error de salida respecto al óptimo completo, reportado aparte.
+
+**Implementación (heuristic-strategy, rama satoshi/expert-guided-rl-20261019, commit e1386df, especificación de salida sellada sha 2bd39110…):**
+- Oráculo de parada óptima O*, junto al oráculo de mantener.
+- Cabeza ideal del cerrador: ventaja y excursión máxima favorable (MFE), con escalera de calidad.
+- C3Z cierra cuando P(t) − V̂(t) ≥ −margen. Tiene un modo de TP protector: el SL y el TP siempre están en el bróker y el cierre real lo hace el cerrador.
+- Episodios de estado inicial con orden abierta, BUY y SELL, cada 12 barras, en TODA celda, con al menos 30 episodios destinados al SL por lado.
+- Testigos por lado, sellados: E0–E6, EP, E1′, E2′, E7, Z1 y E8.
+- Curvas de pérdida por tick hasta el SL y barrido de ruido del cerrador.
+
+**Orden de ejecución, toda automatizada:**
+
+| # | tarea | estado |
+| --- | --- | --- |
+| X1 | Prueba corta de salidas en 6 celdas (alza, baja, cambio temprano, rampa de vol, choque 3σ, multi-horizonte) | corriendo |
+| X2 | DEAP sólo Sharpe (pob ≥ 16, gen ≥ 30) sobre los episodios de estado inicial más los mundos normales; restricciones = testigos de salida por lado | arranca en paralelo apenas X1 corra sin errores (orden del propietario) |
+| X3 | Matriz completa v9 con episodios de estado inicial; cada defecto se arregla en la estrategia | en paralelo con X2 |
+| X4 | Re-verificación del punto DEAP en la matriz v9 completa (hasta el rango 9) | tras X2 y X3 |
+| X5 | Informe detallado y solicitud de auditoría a Musashi; enlaces al propietario | tras X4 |
+
+Idea del propietario para después: una wiki (posiblemente en GitHub) con estos detalles finos del sistema.
