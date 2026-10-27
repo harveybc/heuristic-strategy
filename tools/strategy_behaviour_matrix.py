@@ -145,6 +145,7 @@ RUN_HISTORY = [
     {"run": "v9 (2026-10-27T10:33Z)", "note": "sealed exit spec, episodes in every cell; superseded by v10 after 161 records: the known transition defects (W1 side share 0.58-0.60 in trend legs, W5 reversals all outside the switch windows, W8 old-direction share 0.44 after the lag) were fixed in the canonical parameters instead of being rediscovered"},
     {"run": "v10 (2026-10-27)", "note": "canonical point changed in STRATEGY_PARAMS (no code change; every key is already in the DEAP genome): allow_reverse 0 (a close, then a fresh open; the 13-26 reversals per world all fell outside the switch windows), zz_counter_net_frac 1.2 (the strong-net exception against the coarse leg no longer fires), zz_room_tp_mult 1.75 (the coarse room must pay 1.75 x TP). Local check on 23 worlds at perfect heads (W witnesses, no exit layer), bracketed by room 1.5 / 2.0: failing worlds 14 -> 10 / 9, every W1 / W5 / W8-old failure gone at 1.75, mean daily Sharpe 10.41 -> 10.47 / 10.39, mean net -18 % (the reversals were profitable). Left: W8 early close at the switch (each in-window exit that is not early is a TP fill whose every earlier close had A(t) between -0.11 and -0.50 sigma: closing it early is a destructive close under the sealed E4) and W7 best cell 0.69 in one H3 world"},
     {"run": "v10 restart (2026-10-27T12:39Z)", "note": "the re-sealed spec v3 (W8 switch v3, VALIDITY_SPEC: vacuous control passes do not validate, O* as a second control for the timing / exit witnesses) needs the O* witnesses and the W8 replay in every record; the 36 records run 12:19-12:30Z lacked them and were re-run (kept as results_v10_pre_rule_superseded). allow_reverse = 0 stays in the canonical point to avoid a third full rerun: it REMOVED PROFITABLE REVERSALS (net -18 %, Sharpe unchanged on the 23-world check); it remains a DEAP gene, and justified reversals can now pass W5 non-vacuously where O* validates it"},
+    {"run": "v10 tie fix (2026-10-27T14:30Z)", "note": "mirror defect found by v9 / v10 (E6 in 7 / 10 mirror records, W14 in 2 / 4): equal engine nets of two cells differ by float rounding between a world and its exact mirror (1.0 vs 0.9999999999999922 at B_trend_trend_down_strong row 8151), so np.argmax chose SL 0.75 in one world and SL 0.5 in the other; every cell choice (C3 best_cell_ev, C3Z side_choice and forced entry, the episode envelope, the truth oracle) now resolves ties within 1e-9 sigma by the declared grid order (C3.argmax_cell). Records carry strategy_code_sha256; those before the fix are kept as defect discovery"},
     {"run": "v6 ZigZag", "note":"production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
 ]
 KNOWN_TEST_FAILURES = [   # failed before the v10 / v3 changes, listed by name and cause (coordinator 2026-10-27: never hidden); all FIXED the same day (status)
@@ -197,6 +198,8 @@ THRESH = {"side_share_trend_min": 0.60, "side_share_range_min": 0.25, "truth_pos
           "high_risk_open_max": 0.05}
 SPEC_V3["thresholds"] = THRESH
 SPEC_V3_SHA = hashlib.sha256(json.dumps(SPEC_V3, sort_keys=True).encode()).hexdigest()   # the re-sealed witness specification (forms + validity rule + exit spec + thresholds)
+STRATEGY_CODE_FILES = ("app/short_horizon/expert_guided/c3.py", "app/short_horizon/expert_guided/strategy_zz.py", "tools/strategy_behaviour_matrix.py", "tools/strategy_output_simulation.py")
+STRATEGY_CODE_SHA = hashlib.sha256(b"".join((ROOT / f).read_bytes() for f in STRATEGY_CODE_FILES)).hexdigest()   # recorded per record: which strategy / witness code produced it
 
 
 # ----------------------------------------------------------------------------- the matrix definition
@@ -674,7 +677,7 @@ class PolicyOracle(PolicyC3Audit):
                 m = np.asarray(self.t["mae"][r, si], float)
                 ok &= np.where(np.isfinite(m), net >= ZZ.PARAMS["risk_reward_floor"] * m, True)
             if ok.any():
-                ci = int(np.argmax(np.where(ok, net, -np.inf)))
+                ci = C3.argmax_cell(net, ok)
                 evs.append(float(net[ci])); cells_.append(ci)
             else:
                 evs.append(float("nan")); cells_.append(-1)
@@ -842,7 +845,7 @@ def _envelope(pol, r, si):
     ok = C3.allowed_cells(net, pol.cells, 0.0, 1e9, cap, lo)
     if not ok.any():
         return 1.0, 1.0
-    ci = int(np.argmax(np.where(ok, net, -np.inf)))
+    ci = C3.argmax_cell(net, ok)
     tp, sl = float(pol.cells[ci][0]), float(pol.cells[ci][1])
     mfe = pol.t.get("mfe")
     if ZZ.PARAMS["tp_mode"] >= 0.5 and mfe is not None and np.isfinite(mfe[r, si, ci]):
@@ -1681,7 +1684,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "oracle": {k: v for k, v in owit.items() if k != "summary"} | {"summary": owit["summary"]}, "oracle_PASS_sealed": owit["PASS_sealed"], "oracle_PASS_v2": owit["PASS_v2"],
            "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2, "ladder_to_horizon": ladder_map,
            "attribution": wit.get("attribution"), "oracle_attribution": owit.get("attribution"),
-           "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA,
+           "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres,
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
            "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))

@@ -577,3 +577,14 @@ def test_contract_declares_the_side_symmetry_rule_and_one_open_gene():
     assert d["strategy"]["side_symmetry"] == C3.SIDE_SYMMETRY_RULE and list(d["strategy"]["genes"]) == list(C3.GENES_Q) and "open_rate" in d["strategy"]["genes"]
     bad = ACT.seal(dict(copy.deepcopy(d), identity=None, strategy=dict(d["strategy"], side_symmetry="none")))
     assert any(e.startswith("C3_CONTRACT_SIDE_SYMMETRY") for e in C3.validate(bad))
+
+
+def test_cell_ties_resolve_by_grid_order_so_a_world_and_its_exact_mirror_choose_the_same_cell():
+    """Behaviour matrix v10: equal engine nets that differ by float rounding between a world and its exact mirror
+    (1.0 vs 0.9999999999999922) chose (1.0, 0.75) in one and (1.0, 0.5) in the other (E6 / W14 failures)."""
+    ok = np.ones(4, bool)
+    a = np.array([0.5, 0.9999999999999922, 0.9999999999999925, 0.2])
+    b = np.array([0.5, 1.0000000000000027, 1.0000000000000027, 0.2])
+    assert C3.argmax_cell(a, ok) == C3.argmax_cell(b, ok) == 1
+    assert C3.argmax_cell(np.array([0.1, 0.3, 0.3 + 1e-6]), np.ones(3, bool)) == 2          # a real difference still wins
+    assert C3.argmax_cell(np.array([0.9, 0.3]), np.array([False, True])) == 1               # only allowed cells

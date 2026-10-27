@@ -240,7 +240,7 @@ class PolicyC3Z(C3.PolicyC3):
             ok &= np.where(np.isfinite(m), net >= PARAMS["risk_reward_floor"] * m, True)
         if not ok.any():
             return -1, float("nan"), "rr_floor_or_band"
-        ci = int(np.argmax(np.where(ok, net, -np.inf)))
+        ci = C3.argmax_cell(net, ok)
         tp, sl = float(self.cells[ci][0]), float(self.cells[ci][1])
         self._tp_order = tp
         mfe = self.t.get("mfe")
@@ -352,7 +352,7 @@ class PolicyForced(PolicyC3Z):
         cap, lo = self._cap(r)
         ok = C3.allowed_cells(net, self.cells, 0.0, 1e9, cap, lo) | np.zeros(len(self.cells), bool)
         if ok.any():
-            ci = int(np.argmax(np.where(ok, net, -np.inf)))
+            ci = C3.argmax_cell(net, ok)
             tp, sl = float(self.cells[ci][0]), float(self.cells[ci][1])
             mfe = self.t.get("mfe")
             if PARAMS["tp_mode"] >= 0.5 and mfe is not None and np.isfinite(mfe[r, si, ci]):

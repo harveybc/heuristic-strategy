@@ -139,6 +139,18 @@ def allowed_cells(net, cells, cost: float, rr_margin: float = RR_MARGIN_SIGMA, c
     return ok
 
 
+CELL_TIE_EPS = 1e-9   # sigma: cells whose values differ by less are a tie, resolved by the declared cell order
+
+
+def argmax_cell(values, ok) -> int:
+    """The allowed cell with the highest value; a TIE (within CELL_TIE_EPS) goes to the first cell in the declared grid
+    order. Without the tolerance, equal engine nets that differ by float rounding (1.0 vs 0.9999999999999922 between a
+    world and its exact mirror) chose different SLs in the two worlds (behaviour matrix v10, E6 / W14 mirror failures)."""
+    x = np.where(np.asarray(ok, bool), np.asarray(values, float), -np.inf)
+    m = float(np.max(x))
+    return int(np.flatnonzero(x >= m - CELL_TIE_EPS)[0]) if np.isfinite(m) else int(np.argmax(x))
+
+
 def best_cell_ev(net, p3, cells, e_time: float, cost: float, rr_margin: float = RR_MARGIN_SIGMA, cap: float = float("nan"), lo: float = float("nan")):
     """(cell index or -1, EV) of one (row, side): the allowed cell with the highest predicted net, valued by the
     decision-theoretic rule EV = P(TP)*TP - P(SL)*SL + P(TIME)*E[net|TIME] - cost (A4-5 / A2-8)."""
@@ -148,7 +160,7 @@ def best_cell_ev(net, p3, cells, e_time: float, cost: float, rr_margin: float = 
     ok = allowed_cells(net, cells, cost, rr_margin, cap, lo)
     if not ok.any():
         return -1, float("nan")
-    ci = int(np.argmax(np.where(ok, net, -np.inf)))
+    ci = argmax_cell(net, ok)
     tp, sl = float(cells[ci][0]), float(cells[ci][1])
     ev = float(p3[0]) * tp - float(p3[1]) * sl + float(p3[2]) * float(e_time) - float(cost)
     return ci, ev
