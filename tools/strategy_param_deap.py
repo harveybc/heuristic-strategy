@@ -46,8 +46,8 @@ OPERATING_QUALITY = 0.70
 # the genome: every STRATEGY_PARAMS coefficient the C3Z strategy consumes; the others are fixed, with the reason
 GENOME = ("open_rate_l", "nop_veto", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "observe_bars",
           "rr_margin_sigma", "ev_from_net", "close_margin_floor", "risk_reward_floor", "burst_window_bars", "burst_vol_ratio", "zz_room_tp_mult",
-          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f")
-INTEGER = {"observe_bars", "burst_window_bars", "zz_fine_h"}
+          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars")
+INTEGER = {"observe_bars", "burst_window_bars", "zz_fine_h", "zz_post_flip_bars"}
 BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate"}
 TIED = {"open_rate_s": "open_rate_l"}
 FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)", "v_alpha_l": "parametric volume family: not consumed by C3Z (risk sizing)",
@@ -100,7 +100,7 @@ class CachedWorld:
         self.gm = C3.gene_map(view, self.cal_rows, ref, cells, truth.e_time, truth.cost)
         orl = BM.rollout_oracle(w, BM.oracle_view(w, view), cells)    # the oracle does not depend on the candidate: once per world
         owit = BM.witnesses(cell, w, orl, cells)
-        self.defects = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
+        self.defects = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)   # per-cell rule
         self.oracle_sharpe = float(orl["metrics"].get("sharpe_daily_sqrt365", float("nan")))
 
     def evaluate(self, params: dict) -> dict:
@@ -319,7 +319,7 @@ def cmd_run(a):
     meta = {"seed": SEED, "population": a.population, "generations": a.generations, "elite": ELITE, "genome": GENOME, "bounds": bounds(), "fixed": FIXED, "tied": TIED,
             "subset": a.subset, "subset_worlds": len(sub), "operating_quality": OPERATING_QUALITY, "quality_independent_constraints": QUALITY_INDEPENDENT,
             "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads) + quality-independent witnesses (0.70)",
-            "params_base_sha256": SP.sha256_of(a.params)}
+            "params_base_sha256": SP.sha256_of(a.params), "effective_rule": "per cell (corrected form only where the oracle fails the sealed form in that world)"}
     (out / "RUN_META.json").write_text(json.dumps(meta, indent=1, default=list))
     log = lambda m: (print(m, flush=True), open(out / "PROGRESS.log", "a").write(m + "\n"))  # noqa: E731
     t0 = time.time()

@@ -70,11 +70,16 @@ WITNESS_SPEC = {
            "W5_reverse_v2": "reversals whose new side has truth net > 0: >= 0.90; static leg <= 1 per week",
            "W8_old_direction_after_lag_v2": "old-direction share after the lag <= max(0.40, truth old-direction opportunity + 0.10)",
            "W8_early_close_at_switch_v2": "SL exits in [switch, switch + lag] <= max(1, 0.10 x exits there)",
-           "W13_tpsl_track_sigma_v2": "TP distance ratio / causal sigma ratio at entries in [0.5, 2]",
-           "rule": "a v2 form is admitted only where the TRUTH ORACLE fails the sealed form (witness defect); otherwise the sealed form stands",
+           "W13_tpsl_track_sigma_v2": "every unclipped TP distance = cell multiple x causal sigma at the decision (|ratio - 1| <= 0.02)",
+           "W10_spread_window_v2": "every trade opened inside the x5 window ends with realized engine net > 0",
+           "rule": "a v2 form is admitted only in the cells where the TRUTH ORACLE fails the sealed form; everywhere else the sealed form governs; both verdicts are reported",
            "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-27T09:20Z", "witness": "W13_v2 (TP / sigma ratio of the halves) -> TP distance = cell multiple x causal sigma, per trade",
+     "defect": "the first corrected form was itself failed by the oracle", "evidence": "v7: M_F2_trend_down_strong_mid_ramp_up s0 oracle TP / sigma ratio 2.02 (> 2): the optimal policy picks larger multiples when volatility rises", "effect": "the per-trade multiple check (engine level = close[b] +- mult x sigma[b+1])"},
+    {"when": "2026-10-27T09:20Z", "witness": "W10_spread_window -> v2 realized engine net of each trade opened inside the x5 window > 0",
+     "defect": "the truth-table lookup mapped the oracle's x5-window entry to a row where its cell net is <= 0, although the oracle opens only positive truth nets", "evidence": "v7: B_spread_x5 s2 oracle W10 0.0 with 1 trade inside", "effect": "the realized ledger net replaces the lookup"},
     {"when": "2026-10-27T06:40Z (after the seal; admitted by the TRUTH ORACLE control)", "witness": "W13_tpsl_track_sigma -> v2 TP distance scales with the causal sigma at entry",
      "defect": "the sealed form expects the TP price distance to move with the generator's volatility direction; the TRUTH ORACLE's own ratio moves against it in 16 cells (it picks smaller sigma multiples when volatility rises)",
      "evidence": "v6: B_voldyn_ramp_up s2 oracle 0.873 (strategy 0.874); F2_trend_down_weak_mid_ramp_up s0 oracle 0.960; F2_trend_up_strong_high_ramp_down s0 oracle 1.285", "effect": "v2 admitted only where the oracle fails the sealed form"},
@@ -105,7 +110,9 @@ RUN_HISTORY = [
     {"run": "v1-v4 SEED DEFECT", "note": "in runs v1 to v4 the synthetic path seed came from the cell id only and perfect heads add no noise, so the three seeds of a cell were IDENTICAL worlds: their per-seed agreement is not evidence of robustness"},
     {"run": "v5 (04:23Z)", "note": "seeds vary the path; close-margin floor, net-ranked sides; the ladder kept only pivots found on both the path and its mirror -- a ladder production never computes: superseded by v6"},
     {"run": "v6 (04:38Z)", "note": "superseded by v7: the exact mirror reflected around the first close drove strong-uptrend mirrors near or below zero price (4 errors, W14 failures); the strategy's TP<SL rule double-counted the cost already inside the engine net (W7); the canonical open rate 0.251 left dense-pivot cells under 1 open per week (W0)"},
-    {"run": "v7", "note": "mirror around the middle of the path's range; C3Z TP<SL rule without the double cost, net margin floored at 0, canonical open_rate 0.45; W13 / W8-switch corrected forms admitted only where the oracle fails the sealed form"},
+    {"run": "v7 (06:43Z)", "note": "superseded by v8: strategy failures where the oracle passes the governing witness -- W1 in short late transition legs (the coarse-room gate was more with-trend than the truth: 0.75 vs 0.53) and W8-old after the switch; the first W13 corrected form was itself failed by the oracle; W10's table lookup was mis-mapped"},
+    {"run": "v8", "note": "C3Z: an open against the coarse leg also passes when its predicted net >= 0.8 x TP, except within 240 bars of a coarse direction flip; W13 / W10 corrected forms re-defined (admitted per cell where the oracle fails the sealed form); the governing verdict stays per cell"},
+    {"run": "v7 design", "note": "mirror around the middle of the path's range; C3Z TP<SL rule without the double cost, net margin floored at 0, canonical open_rate 0.45; W13 / W8-switch corrected forms admitted only where the oracle fails the sealed form"},
     {"run": "v6 ZigZag", "note": "production ZigZags made symmetric under price negation at the source (reversal and expert MetaTrader first-pivot rules); real-data impact: 1 pivot per fold (the expert ZigZag's first pivot at 2020-01-02 00:00), every reversal level unchanged; the matrix ladder uses the production implementation"},
 ]
 BURST_DETECTION_LAG = 3             # bars the causal burst gate needs (realized vol over 6 bars > 2 sigma at a x3 burst after ~2-3 bars)
@@ -568,7 +575,7 @@ class PolicyOracle(PolicyC3Audit):
     """The TRUTH ORACLE: at every flat decision it takes, per side, the allowed cell with the highest TRUE engine net
     and opens the side whose true net is higher when that net is positive; positioned, it closes on the true SL-first
     flag or a negative true remaining value. No strategy, no calibration, no margins: the engine truth itself. A
-    witness the oracle fails is a defective witness, never a strategy defect (owner rule 2026-10-27)."""
+    witness the oracle fails is a defective witness, never a strategy defect (the coordinator's binding rule of 2026-10-27)."""
 
     def close_now(self, r, si, bar, pos) -> bool:
         rem, psl = self.t["closer"].value(r, bar, pos)
@@ -618,7 +625,7 @@ def rollout_oracle(world: dict, view, cells) -> dict:
 def oracle_view(world: dict, view: dict) -> dict:
     """The truth as a table: one-hot outcome probabilities from the engine's hit at the reference cell, the true net per
     cell, the true NOP flag; the (perfect) closer object is shared. A policy with zero margins on this table is the
-    TRUTH ORACLE: it acts on the engine truth itself, no strategy involved (owner rule 2026-10-27: a witness the
+    TRUTH ORACLE: it acts on the engine truth itself, no strategy involved (the coordinator's binding rule of 2026-10-27: a witness the
     oracle fails is defective, not the strategy)."""
     truth = world["truth"]
     ov = dict(view)
@@ -887,6 +894,9 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             ci = _cell_index(t, cells)
             okk.append(bool(r >= 0 and ci >= 0 and np.isfinite(truth.net[r, _side(t), ci]) and truth.net[r, _side(t), ci] > 0))
         out["W10_spread_window"] = {"value": float(np.mean(okk)) if okk else float("nan"), "threshold": 1.0, "pass": bool((not okk) or all(okk)), "desc": "opens inside the x5 window have truth net > 0 (cost included)", "n_inside": len(ins)}
+        okr = [bool(float(t["net_usd"]) > 0) for t in ins]
+        out["W10_spread_window_v2"] = {"value": float(np.mean(okr)) if okr else float("nan"), "threshold": 1.0, "pass": bool((not okr) or all(okr)),
+                                       "desc": "corrected form (the table lookup at the x5 window mapped the oracle's entry to the wrong row): every trade opened inside the window ends with realized engine net > 0", "n_inside": len(ins)}
     if ex.get("cutoff_h"):
         out["W11_cutoff"] = {"value": int(roll["metrics"].get("refused_VARIANT_CUTOFF", 0)) if isinstance(roll["metrics"], dict) else None, "threshold": "engine", "pass": True, "desc": "entries inside the cutoff window are refused by the engine (count reported)"}
     if ex.get("missing_runs"):
@@ -901,12 +911,25 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         ratio = (float(np.mean(d2)) / float(np.mean(d1))) if d1 and d2 else float("nan")
         exp_up = cell["vol"] in ("step_lh", "ramp_up") or "_up_" in cell["vol"]
         out["W13_tpsl_track_sigma"] = {"value": ratio, "threshold": ">1" if exp_up else "<1", "pass": bool((not np.isfinite(ratio)) or (ratio > 1.0) == exp_up), "desc": "mean TP price distance second half / first half"}
-        s1 = [float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) < mid]
-        s2 = [float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) >= mid]
-        sr = (float(np.mean(s2)) / float(np.mean(s1))) if s1 and s2 else float("nan")
-        rel = (ratio / sr) if np.isfinite(ratio) and np.isfinite(sr) and sr > 0 else float("nan")
-        out["W13_tpsl_track_sigma_v2"] = {"value": {"tp_distance_ratio": ratio, "causal_sigma_ratio_at_entries": sr, "tp_over_sigma_ratio": rel}, "threshold": "TP distance ratio / causal sigma ratio in [0.5, 2]",
-                                          "pass": bool((not np.isfinite(rel)) or 0.5 <= rel <= 2.0), "desc": "corrected form (admitted only where the oracle fails the sealed form): TP / SL distances scale with the causal sigma at entry"}
+        cl_ = np.asarray((world.get("bars") if world.get("bars") is not None else cx.ds.bars)["CLOSE"], float)
+        dev13, n13 = [], 0
+        for t in trades:
+            db = int(t["entry_bar_abs"]) - off
+            r_ = int(cx.rob[db]) if db >= 0 else -1
+            d_ = dec.get(r_) if r_ >= 0 else None
+            si = _side(t)
+            if d_ is None or d_[5] != si or int(d_[7 + si]) < 0 or db + 1 >= len(sig):
+                continue
+            tp_m = float(cells[int(d_[7 + si])][0])
+            s_ = float(sig[db + 1])
+            capr = float(truth.cap[r_]) if np.isfinite(truth.cap[r_]) else float("inf")
+            if not (np.isfinite(s_) and s_ > 0) or tp_m > capr:
+                continue                                                  # a level the engine clips is not a sigma multiple
+            n13 += 1
+            dev13.append(abs(abs(float(t["take_profit"]) - float(cl_[db])) / (tp_m * s_) - 1.0))
+        mx = float(max(dev13)) if dev13 else float("nan")
+        out["W13_tpsl_track_sigma_v2"] = {"value": {"max_relative_deviation": mx, "trades_checked": n13}, "threshold": "every unclipped TP distance = cell multiple x causal sigma at the decision (|ratio - 1| <= 0.02)",
+                                          "pass": bool((not dev13) or mx <= 0.02), "desc": "corrected form (the first corrected form, a TP / sigma ratio of the halves, was itself failed by the oracle: the optimal policy picks larger multiples in high volatility): TP / SL price distances are sigma multiples"}
     # per-side decision audit (proves the comparison)
     both = [x for x in log if x[3] and x[4]]
     won_l = sum(1 for x in both if x[5] == 0)
@@ -1108,6 +1131,18 @@ def cmd_report(a):
     for p in sorted(Path(a.results).glob("CELL_*.json")):
         d = json.loads(p.read_text())
         recs.setdefault(d["id"], []).append(d)
+    # GOVERNING verdict: the per-cell rule (a corrected form applies only in the cells where the truth oracle fails the
+    # sealed form; elsewhere the sealed form governs) -- each record's PASS_effective as computed when the cell ran.
+    # INFORMATIONAL only: the witness-level count (corrected forms everywhere for every witness the oracle fails somewhere).
+    ORACLE_FAILED_SOMEWHERE = sorted({k for rs_ in recs.values() for r_ in rs_ for k in r_.get("witness_defects_sealed", [])})
+    for rs_ in recs.values():
+        for r_ in rs_:
+            res_ = r_.get("results") or {}
+            if not res_:
+                r_["PASS_witness_level"] = False
+                continue
+            r_["PASS_witness_level"] = bool(all((res_[k + "_v2"]["pass"] if (k in ORACLE_FAILED_SOMEWHERE and (k + "_v2") in res_) else v["pass"]) for k, v in res_.items()
+                                                if isinstance(v, dict) and "pass" in v and not k.endswith("_v2")) and (res_.get("W14_mirror") or {}).get("pass", True))
     rows = []
     for c in cells:
         rs = recs.get(c["id"], [])
@@ -1125,6 +1160,7 @@ def cmd_report(a):
                      "PASS_sealed": bool(rs) and all(passes), "PASS_v2": bool(rs) and all(passes_v2), "PASS_sealed_excluding_defective_witnesses": bool(rs) and all(r.get("PASS_sealed_excluding_defective_witnesses", r["PASS"]) for r in rs),
                      "oracle_PASS_sealed": bool(rs) and all(r.get("oracle_PASS_sealed", True) for r in rs), "oracle_PASS_v2": bool(rs) and all(r.get("oracle_PASS_v2", True) for r in rs),
                      "PASS_effective": bool(rs) and all(r.get("PASS_effective", r["PASS"]) for r in rs),
+                     "PASS_witness_level_informational": bool(rs) and all(r.get("PASS_witness_level", False) for r in rs),
                      "witness_defects_sealed": defects, "failing_witnesses_v2": fails_v2,
                      "failing_witnesses": fails, "share_long_mean": float(np.nanmean(sl)) if sl else None, "opens_mean": float(np.mean([r["results"]["summary"]["opens"] for r in rs if r.get("results", {}).get("summary")])) if rs else None,
                      "errors": [r.get("error") for r in rs if r.get("error")], "expected": c["expected"], "forbidden": c["forbidden"],
@@ -1152,6 +1188,8 @@ def cmd_report(a):
     spec_v2_sha = hashlib.sha256(json.dumps(spec_doc, sort_keys=True).encode()).hexdigest()
     doc = {"schema": "behaviour_matrix.v2", "block": BLOCK, "cells": len(rows), "run": sum(1 for r in rows if r["n_runs"]),
            "pass_sealed": n_pass, "fail_sealed": sum(1 for r in rows if r["n_runs"] and not r["PASS"]), "pass_v2": n_pass_v2, "fail_v2": sum(1 for r in rows if r["n_runs"] and not r["PASS_v2"]),
+           "effective_rule": "per cell: a corrected form applies only in the cells where the truth oracle fails the sealed form; elsewhere the sealed form governs",
+           "pass_witness_level_informational": sum(1 for r in rows if r["PASS_witness_level_informational"]), "oracle_failed_somewhere": ORACLE_FAILED_SOMEWHERE,
            "pass_sealed_excluding_defective_witnesses": n_pass_excl, "pass_effective": n_pass_eff, "fail_effective": sum(1 for r in rows if r["n_runs"] and not r["PASS_effective"]),
            "oracle_witness_defects_sealed": defect_tally,
            "pass": n_pass, "fail": sum(1 for r in rows if r["n_runs"] and not r["PASS"]),

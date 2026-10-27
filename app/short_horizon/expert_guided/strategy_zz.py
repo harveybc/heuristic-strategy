@@ -40,7 +40,7 @@ DEFAULT_LEVELS = ("rev800", "rev400", "rev200", "rev100", "rev60", "rev20", "rev
 ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60", "rev20", "rev15"), "fine": ("3", "rev10", "rev8", "rev5")}
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
-PARAMS = {"observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
+PARAMS = {"zz_post_flip_bars": 240.0, "zz_counter_net_frac": 0.8, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.0, "zz_fine_h": 6,
           "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5}
 
 
@@ -159,7 +159,10 @@ def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     m_opt = arr["3"]["mae_leg"] if "3" in arr else arr[c0]["mae_leg"]
     ls = arr["3"]["leg_sigma"] if "3" in arr else arr[c0]["leg_sigma"]
     nop_graded = (fstar < theta_f) | (np.nan_to_num(m_opt, nan=0.0) > theta_mae) | (np.nan_to_num(ls, nan=np.inf)[:, None] < theta_vol)
-    return {"room": room, "direction": direction, "tau_coarse": tau_coarse, "counter": counter, "fresh": fresh, "tau_fine": tau_fine,
+    flip_age = np.zeros(n)                                         # bars since the coarse direction last changed
+    for t in range(1, n):
+        flip_age[t] = 0.0 if direction[t] != direction[t - 1] else flip_age[t - 1] + 1.0
+    return {"room": room, "direction": direction, "tau_coarse": tau_coarse, "flip_age": flip_age, "counter": counter, "fresh": fresh, "tau_fine": tau_fine,
             "fstar": fstar, "votes": votes, "nop_hard": nop_hard, "nop_graded": nop_graded, "pivots": piv, "levels": tuple(levels), "h": h}
 
 
@@ -171,7 +174,8 @@ def to_rows(q: dict, row_bar) -> dict:
     nan2 = lambda x: np.where(ok[:, None], x[b], np.nan)  # noqa: E731
     return {"zz_room": nan2(q["room"]), "zz_dir": np.where(ok, q["direction"][b], 0.0), "zz_counter": nan2(q["counter"].astype(float)),
             "zz_fresh": nan2(q["fresh"].astype(float)), "zz_tau_fine": np.where(ok, q["tau_fine"][b], np.nan),
-            "zz_nop_hard": np.where(ok, q["nop_hard"][b].astype(float), np.nan), "zz_fstar": nan2(q["fstar"])}
+            "zz_nop_hard": np.where(ok, q["nop_hard"][b].astype(float), np.nan), "zz_fstar": nan2(q["fstar"]),
+            "zz_flip_age": np.where(ok, q["flip_age"][b], np.nan) if "flip_age" in q else np.full(len(rb), np.inf)}
 
 
 def burst_rows(bars, sigma, row_bar, window: int | None = None, ratio: float | None = None) -> np.ndarray:
@@ -271,8 +275,11 @@ class PolicyC3Z(C3.PolicyC3):
         if chosen >= 0 and not blocked:                          # the hierarchy VETOES the winner, it never redirects to the other side
             room, ctr, fr = self.t.get("zz_room"), self.t.get("zz_counter"), self.t.get("zz_fresh")
             tp = float(self.cells[cis[chosen]][0])
+            fa = self.t.get("zz_flip_age")
+            settled = bool(fa is None or not np.isfinite(fa[r]) or fa[r] > PARAMS["zz_post_flip_bars"])     # right after a coarse flip, no exception
+            strong = settled and bool(np.isfinite(evs[chosen]) and evs[chosen] >= PARAMS["zz_counter_net_frac"] * tp)   # the outcome heads say it pays most of its TP
             if room is not None and np.isfinite(room[r, chosen]) and room[r, chosen] < PARAMS["zz_room_tp_mult"] * tp \
-                    and not (fr is not None and fr[r, chosen] == 1.0):   # against the long horizon only at a confirmed fine counter-pivot
+                    and not (fr is not None and fr[r, chosen] == 1.0) and not strong:   # against the long horizon only at a confirmed fine counter-pivot or a strong predicted net
                 blocked = "coarse_room"
             elif PARAMS["zz_timing_gate"] >= 0.5 and ctr is not None and ctr[r, chosen] == 1.0:
                 blocked = "fine_counter_pivot"
