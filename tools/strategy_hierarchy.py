@@ -43,6 +43,7 @@ from app.short_horizon import zigzag as Z  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
 
 L1 = {"trend_up": +1.0, "trend_down": -1.0, "range": 0.0}
+TREND_DRIFT_SD = 0.03                            # sustained drift of a trend leg in hourly-sd units per hour (~13 %/yr at sd 7e-4)
 VOL = {"low": 0.7, "high": 1.6}                 # multiples of the real block's hourly return sd
 L2 = {"low": (1.5, 0.5), "medium": (2.5, 1.0), "high": (4.0, 2.0)}   # (oscillation amplitude in sd units, pivot density multiple)
 L4_FACTORIAL = ("base", "onesided", "opener_only", "closer_only", "nop_only", "cal12")
@@ -52,7 +53,9 @@ PIP = 1e-4
 
 # ----------------------------------------------------------------------------- synthetic generator (L1 x L2 on the real calendar)
 def synthetic_path(index, base_sd: float, regime: str, vol: str, fine: str, seed: int, start: float = 1.10) -> pd.DataFrame:
-    """Hourly OHLC on the given calendar index: drift by L1 (+/- 0.35 sd per hour as a slow AR(1) drift, 0 for range,
+    """Hourly OHLC on the given calendar index: drift by L1 (+/- TREND_DRIFT_SD sd per hour as a slow AR(1) drift: 0.03 sd
+    per hour ~ 13 % per year for an hourly sd of 7e-4 -- the first version used 0.35 sd per hour, which collapsed a
+    two-year trend path by e^-4 and made the engine refuse the short levels; see the mirror / trend witnesses), 0 for range,
     range = mean-reverting around the start), GARCH(1,1)-like volatility clustering scaled by VOL, plus an L2 fine
     oscillation (sinusoidal swings with random period 6-18 h, amplitude x and density x) that creates the fine ZigZag
     pivots. Witness: the realised drift sign, the sd ratio and the fine-pivot density match the leaf (tests)."""
@@ -71,7 +74,7 @@ def synthetic_path(index, base_sd: float, regime: str, vol: str, fine: str, seed
     if k != 0.0:
         d = 0.0
         for t in range(n):
-            d = 0.98 * d + 0.02 * (k * 0.35 * sd) + 0.05 * sd * rng.standard_normal()
+            d = 0.98 * d + 0.02 * (k * TREND_DRIFT_SD * sd) + 0.02 * sd * rng.standard_normal()
             drift[t] = d
     logp = np.log(start) + np.cumsum(drift + eps)
     if k == 0.0:                                          # range: pull towards the start level
