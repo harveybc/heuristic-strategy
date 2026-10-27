@@ -367,7 +367,16 @@ def catalog(n_lhs: int = 24, seed: int = 0) -> list:
 
 
 # ----------------------------------------------------------------------------- Stage A
-def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period: tuple, seed: int) -> dict:
+def period_bars(ds, period) -> tuple:
+    """(first bar, last bar) of a named period of the dataset (dates in the dataset's own contract) or a bar pair."""
+    if not isinstance(period, str):
+        return int(period[0]), int(period[1])
+    a, b = ds.meta["periods"][period]
+    idx = ds.bars.index
+    return int(idx.searchsorted(pd.Timestamp(a, tz="UTC"))), int(idx.searchsorted(pd.Timestamp(b, tz="UTC")))
+
+
+def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, periods: tuple | None = None) -> dict:
     """A synthetic world for one leaf: synthetic bars on the real calendar of ``calendar_period`` (and the bars around
     it), its own engine truth and simulated heads at the leaf's quality; the strategy is scored on ``calendar_period``."""
     ds = cx_real.ds
@@ -378,7 +387,7 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period: tuple, seed: int)
         import zlib
         base_id = leaf.get("mirror_of") or leaf["id"]
         seed_v2 = zlib.crc32(base_id.encode()) & 0xFFFF                      # the mirror twin shares the generator seed: an EXACT mirror
-        block = cx_real.ds.meta["periods"][calendar_period] if isinstance(calendar_period, str) else calendar_period
+        block = period_bars(ds, calendar_period)
         bars, meta = synthetic_path_v2(ds.bars.index, base_sd, tuple(leaf["legs"]), leaf["vol"], leaf["fine"], seed_v2, block, leaf.get("switch_fracs") or None,
                                        leaf.get("persistence"), mirror=bool(leaf.get("mirror")), strength=leaf.get("strength", "medium"), jump=leaf.get("jump"))
     else:
@@ -399,17 +408,16 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period: tuple, seed: int)
         S2 = S.scfg_for("spike", S2)
     elif ex.get("spread") == "x5":
         from tools.strategy_intervention import SpreadWindowProfile
-        a_, b_ = (cx_real.ds.meta["periods"][calendar_period] if isinstance(calendar_period, str) else calendar_period)
+        a_, b_ = period_bars(ds, calendar_period)
         mid = int(cx2.v[a_ + (b_ - a_) // 2])
         S2 = dataclasses.replace(S2, profile=SpreadWindowProfile(**dataclasses.asdict(S2.profile), window_t0_ns=mid, window_hours=24.0, factor=5.0))
     if ex.get("missing_runs"):
         from tools.strategy_intervention import missing_runs_mask
-        a_, b_ = (cx_real.ds.meta["periods"][calendar_period] if isinstance(calendar_period, str) else calendar_period)
-        cx2.obs_ok = cx2.obs_ok & missing_runs_mask(cx2, (a_, b_), 8, 6, 24, seed)
+        cx2.obs_ok = cx2.obs_ok & missing_runs_mask(cx2, calendar_period if isinstance(calendar_period, str) else S.SEL_BLOCK, 8, 6, 24, seed)
     if ex.get("cutoff_h") or ex.get("risk_pct"):
         S2 = dataclasses.replace(S2, variant=dataclasses.replace(xv, entry_cutoff_hours_before_flat=float(ex.get("cutoff_h", xv.entry_cutoff_hours_before_flat or 24.0)),
                                                                  risk_pct=float(ex.get("risk_pct", xv.risk_pct))))
-    truth = S.build_truth(cx2, S2, "synthetic", AC["outcomes"]["cells"], AC, only_periods=(S.CAL_BLOCK, S.SEL_BLOCK))
+    truth = S.build_truth(cx2, S2, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK))
     q = S.quality_for(leaf["variant"], float(leaf["quality"]))
     table, sim = S.simulate_table(cx2, S2, truth, q, seed)
     wit = transition_witness(bars, base_sd, meta) if meta is not None else leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"])
