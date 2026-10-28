@@ -1,0 +1,535 @@
+{
+ "manifest": "t3v2_7db1953f99ad",
+ "worker": "satoshi",
+ "units": [
+  {
+   "id": 0,
+   "name": "t3_unit_00",
+   "group": null,
+   "kind": "conv",
+   "identity": "8ee33a58ce434402",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_00.json --out <root>/out/t3_unit_00 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "f289f9a2d6cb9e0e",
+   "expected": {
+    "file": "out/t3_unit_00/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 2,
+   "name": "t3_unit_02",
+   "group": "inv.raw",
+   "kind": "per_feature",
+   "identity": "2d73ca476e4ef32a",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_02.json --out <root>/out/t3_unit_02 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "384277b45eb1dfa8",
+   "expected": {
+    "file": "out/t3_unit_02/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "name": "t3_unit_04",
+   "group": "inv.volatility",
+   "kind": "per_feature",
+   "identity": "33f77ba508bc02cd",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_04.json --out <root>/out/t3_unit_04 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "a09bf03459120ff2",
+   "expected": {
+    "file": "out/t3_unit_04/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "name": "t3_unit_06",
+   "group": "inv.momentum",
+   "kind": "per_feature",
+   "identity": "a0f4f1537e38476d",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_06.json --out <root>/out/t3_unit_06 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "fb891eb0fef52963",
+   "expected": {
+    "file": "out/t3_unit_06/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "name": "t3_unit_08",
+   "group": "calendar",
+   "kind": "per_feature",
+   "identity": "f364746c83966ce4",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_08.json --out <root>/out/t3_unit_08 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "b9a2a1cc59ddbcfb",
+   "expected": {
+    "file": "out/t3_unit_08/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "name": "t3_unit_10",
+   "group": "px.logret",
+   "kind": "per_feature",
+   "identity": "961c9f48884a73c0",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_10.json --out <root>/out/t3_unit_10 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "09872a82374b31c7",
+   "expected": {
+    "file": "out/t3_unit_10/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 12,
+   "name": "t3_unit_12",
+   "group": "px.range",
+   "kind": "per_feature",
+   "identity": "a44ef250ca895d27",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_12.json --out <root>/out/t3_unit_12 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "289dc3af64f5882a",
+   "expected": {
+    "file": "out/t3_unit_12/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 14,
+   "name": "t3_unit_14",
+   "group": "px.close_loc",
+   "kind": "per_feature",
+   "identity": "e4c239a5212023fe",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_14.json --out <root>/out/t3_unit_14 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "79676cc139262804",
+   "expected": {
+    "file": "out/t3_unit_14/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 16,
+   "name": "t3_unit_16",
+   "group": "px.er",
+   "kind": "per_feature",
+   "identity": "0d1ee3192ed38307",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_16.json --out <root>/out/t3_unit_16 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "54687212da98eade",
+   "expected": {
+    "file": "out/t3_unit_16/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 18,
+   "name": "t3_unit_18",
+   "group": "cdl",
+   "kind": "pointwise",
+   "identity": "67e44a823f502cd5",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_18.json --out <root>/out/t3_unit_18 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "dfd61603b88daa95",
+   "expected": {
+    "file": "out/t3_unit_18/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 20,
+   "name": "t3_unit_20",
+   "group": "dly.us10y",
+   "kind": "pointwise",
+   "identity": "101043a058494864",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_20.json --out <root>/out/t3_unit_20 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "1dc275463b7cb692",
+   "expected": {
+    "file": "out/t3_unit_20/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 22,
+   "name": "t3_unit_22",
+   "group": "cot.eur",
+   "kind": "pointwise",
+   "identity": "2552e4de2c1398dd",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_22.json --out <root>/out/t3_unit_22 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "064fe35f86056f61",
+   "expected": {
+    "file": "out/t3_unit_22/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 24,
+   "name": "t3_unit_24",
+   "group": "fac.fx_f1",
+   "kind": "pointwise",
+   "identity": "ccf78561146c7d85",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_24.json --out <root>/out/t3_unit_24 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "67f3f9d7b62064aa",
+   "expected": {
+    "file": "out/t3_unit_24/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 26,
+   "name": "t3_unit_26",
+   "group": "ev",
+   "kind": "pointwise",
+   "identity": "e440623db7894545",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_26.json --out <root>/out/t3_unit_26 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "7b2fb24206e49fa9",
+   "expected": {
+    "file": "out/t3_unit_26/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 28,
+   "name": "t3_unit_28",
+   "group": "act",
+   "kind": "pointwise",
+   "identity": "aa4bca8933f2792b",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_28.json --out <root>/out/t3_unit_28 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "73bbfa9bf8983a8b",
+   "expected": {
+    "file": "out/t3_unit_28/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 30,
+   "name": "t3_unit_30",
+   "group": "ssa/BidClose",
+   "kind": "per_feature",
+   "identity": "63feb19ab94d9ca9",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_30.json --out <root>/out/t3_unit_30 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "27494862335d29c3",
+   "expected": {
+    "file": "out/t3_unit_30/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 32,
+   "name": "t3_unit_32",
+   "group": "wavelet/log_close",
+   "kind": "per_feature",
+   "identity": "48381680010631a5",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_32.json --out <root>/out/t3_unit_32 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "e7fc78c9633e3195",
+   "expected": {
+    "file": "out/t3_unit_32/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 34,
+   "name": "t3_unit_34",
+   "group": "wavelet/logret_1",
+   "kind": "per_feature",
+   "identity": "aedad106a778aff7",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_34.json --out <root>/out/t3_unit_34 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "da50852988739af4",
+   "expected": {
+    "file": "out/t3_unit_34/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 36,
+   "name": "t3_unit_36",
+   "group": "hilbert/logret_1",
+   "kind": "per_feature",
+   "identity": "9ce372b271c1ebc7",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_36.json --out <root>/out/t3_unit_36 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "147d07889a8baf36",
+   "expected": {
+    "file": "out/t3_unit_36/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 38,
+   "name": "t3_unit_38",
+   "group": "strength/fx.usd_strength.ret_1",
+   "kind": "pointwise",
+   "identity": "c4ad8a72864a00e8",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_38.json --out <root>/out/t3_unit_38 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "906fe0d91200e174",
+   "expected": {
+    "file": "out/t3_unit_38/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 40,
+   "name": "t3_unit_40",
+   "group": "strength/fx.eur_strength.ret_1",
+   "kind": "per_feature",
+   "identity": "9d8616b8ce026d77",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_40.json --out <root>/out/t3_unit_40 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "b997627f5c611910",
+   "expected": {
+    "file": "out/t3_unit_40/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 42,
+   "name": "t3_unit_42",
+   "group": "px.rv",
+   "kind": "pointwise",
+   "identity": "799ac0783d19562f",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_42.json --out <root>/out/t3_unit_42 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "c03a40dd5ae8f9f7",
+   "expected": {
+    "file": "out/t3_unit_42/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  },
+  {
+   "id": 44,
+   "name": "t3_unit_44",
+   "group": "gmm/logret_1+rv_24+log_range",
+   "kind": "per_feature",
+   "identity": "9093750ac3e873ae",
+   "command": "tools/expert_guided_e3m.py run --admitted <root>/data/admitted --csv-dir <root>/data/sel15 --store <root>/data/full_pool_s_a1/full_pool_eurusd_h1.parquet --feature-list <root>/in/FEATURE_LIST_shortlist_strict.json --groups <root>/t3/groups/unit_44.json --out <root>/out/t3_unit_44 --variants FULL --units 2 --depth 2 --head 16 --dropout 0.3 --wd 0.01 --max-epochs 1000 --scaling fixed_train --nonstationary diff --split-contract consolidated --agent-state none --window 13 --stride 2 --exec-contract sac --min-orders-per-week 2.0",
+   "command_identity": "50c845a3b8ba8117",
+   "expected": {
+    "file": "out/t3_unit_44/E3M.json",
+    "arch.group_kinds": "per the unit's groups file",
+    "split_contract.arm": "consolidated",
+    "agent_state.mode": "none",
+    "labels.mode": "zigzag",
+    "exec_contract": "sac",
+    "min_orders_per_week": 2.0,
+    "seeds": [
+     20261019,
+     20261020,
+     20261021
+    ]
+   }
+  }
+ ]
+}

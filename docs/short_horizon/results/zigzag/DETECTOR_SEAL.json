@@ -1,0 +1,51 @@
+{
+ "sha256": "79fddac0094801dffe51e9c887127899aa54d04f6707ca8a9f0ecd449bfa2359",
+ "k_bars": 2,
+ "threshold": 0.6,
+ "trained_on": "DECISION_2020_2022",
+ "chosen_on": "VALIDATION_2023",
+ "confirm": "CONFIRM_2024 once",
+ "features": [
+  "ret_1",
+  "ret_3",
+  "ret_6",
+  "ret_12",
+  "ret_24",
+  "ret_48",
+  "ret_120",
+  "loc_24",
+  "dd_24",
+  "du_24",
+  "loc_120",
+  "dd_120",
+  "du_120",
+  "pk_6",
+  "pk_24",
+  "er_24",
+  "hour_s",
+  "hour_c",
+  "dow"
+ ],
+ "feature_source": "SUBSTITUTE_CAUSAL_LAKE_FEATURES_NOT_MUSASHI_MANIFEST",
+ "device": "cuda",
+ "gpu_name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+ "peak_vram_mib": 35.41015625,
+ "wall_seconds": 5.719077110290527,
+ "epochs": 30,
+ "k_bars_grid": [
+  2,
+  4
+ ],
+ "thresholds": [
+  0.4,
+  0.5,
+  0.6,
+  0.7
+ ],
+ "k_tp": 2.0,
+ "expert_params": {
+  "depth": 3,
+  "deviation_pips": 36.3,
+  "backstep": 2
+ }
+}

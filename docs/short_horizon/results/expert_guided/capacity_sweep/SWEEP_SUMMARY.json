@@ -1,0 +1,347 @@
+{
+ "rule": "Capacity (complexification) sweep summary for the temporal ladder: E1-T and E2-T per units u.\n\nReads <root>/u<U>/{e1t/E1T.json, e2t/E2T.json} (plus an optional baseline dir for u=2), and writes\nSWEEP_SUMMARY.json, SWEEP_SUMMARY.md (Spanish) and the capacity curves (Sharpe and net profit versus trainable\nparameters, TRAIN / VAL A / VAL B, seed means with min-max bars). No 2024 is read by any sweep arm.\n\nOverfitting marker (reported, never used to choose): for each family, the first u at which the seed-mean TRAIN\nSharpe rises versus the previous u while the VAL A Sharpe falls. Choice rule (fixed 2026-10-20 before any sweep\narm was read): per family, u = argmax seed-mean VAL A Sharpe among u whose 3 seeds are frequency-valid in VAL A;\nties -> smaller u. VAL B is the confirmation; 2024 is read once later, only for the chosen u.\n",
+ "results": {
+  "2": {
+   "E1-T BC+DAgger": {
+    "params": 388,
+    "TRAIN_sharpe_daily_sqrt365": [
+     -1.922848792548396,
+     -2.091999117449484,
+     -1.796101939382177
+    ],
+    "TRAIN_net_profit_usd": [
+     -9750.734576220237,
+     -9806.182288883996,
+     -9693.872153692824
+    ],
+    "TRAIN_max_drawdown_pct": [
+     98.56165265514625,
+     98.0585763899885,
+     98.9340740742649
+    ],
+    "TRAIN_trades": [
+     2179.3333333333335,
+     1772.0,
+     2426.0
+    ],
+    "TRAIN_orders_per_week": [
+     13.881104033970274,
+     11.286624203821656,
+     15.452229299363058
+    ],
+    "TRAIN_all_valid": true,
+    "INNER_A_sharpe_daily_sqrt365": [
+     -1.0564245955435865,
+     -2.444112840823043,
+     0.13542429374847442
+    ],
+    "INNER_A_net_profit_usd": [
+     -2981.2048529358144,
+     -5576.666592480915,
+     -551.1229479129415
+    ],
+    "INNER_A_max_drawdown_pct": [
+     52.86272282212085,
+     43.421306664265494,
+     68.58697129260601
+    ],
+    "INNER_A_trades": [
+     364.6666666666667,
+     295.0,
+     415.0
+    ],
+    "INNER_A_orders_per_week": [
+     14.025641025641027,
+     11.346153846153847,
+     15.961538461538462
+    ],
+    "INNER_A_all_valid": true,
+    "INNER_B_sharpe_daily_sqrt365": [
+     -3.125969910908213,
+     -4.029517767815391,
+     -2.42102662619173
+    ],
+    "INNER_B_net_profit_usd": [
+     -5214.122785103353,
+     -5997.51117887823,
+     -4520.265053826208
+    ],
+    "INNER_B_max_drawdown_pct": [
+     55.03736854976061,
+     50.069702762070975,
+     62.10236773322766
+    ],
+    "INNER_B_trades": [
+     367.3333333333333,
+     302.0,
+     412.0
+    ],
+    "INNER_B_orders_per_week": [
+     13.604938271604938,
+     11.185185185185185,
+     15.25925925925926
+    ],
+    "INNER_B_all_valid": true
+   },
+   "E2-T SAC": {
+    "params": 740,
+    "TRAIN_sharpe_daily_sqrt365": [
+     -0.6732376694540161,
+     -1.040656425202921,
+     -0.38398930264059405
+    ],
+    "TRAIN_net_profit_usd": [
+     -8198.71266253925,
+     -8493.637702247182,
+     -7916.599888922797
+    ],
+    "TRAIN_max_drawdown_pct": [
+     88.36978515529323,
+     84.90687347628595,
+     93.2608805730367
+    ],
+    "TRAIN_trades": [
+     674.6666666666666,
+     506.0,
+     901.0
+    ],
+    "TRAIN_orders_per_week": [
+     4.29723991507431,
+     3.2229299363057327,
+     5.738853503184713
+    ],
+    "TRAIN_all_valid": true,
+    "INNER_A_sharpe_daily_sqrt365": [
+     0.5829397663407269,
+     -0.6139475723968927,
+     1.8680867942858108
+    ],
+    "INNER_A_net_profit_usd": [
+     659.2415500515123,
+     -2861.1491382225786,
+     4293.764388040718
+    ],
+    "INNER_A_max_drawdown_pct": [
+     37.67768310017538,
+     28.088287715212047,
+     47.72334239829311
+    ],
+    "INNER_A_trades": [
+     108.33333333333333,
+     82.0,
+     148.0
+    ],
+    "INNER_A_orders_per_week": [
+     4.166666666666667,
+     3.1538461538461537,
+     5.6923076923076925
+    ],
+    "INNER_A_all_valid": true,
+    "INNER_B_sharpe_daily_sqrt365": [
+     -0.24751840982065568,
+     -1.162926853335313,
+     0.3313715524768008
+    ],
+    "INNER_B_net_profit_usd": [
+     -1231.2302018995736,
+     -3579.128342964159,
+     70.57440087376926
+    ],
+    "INNER_B_max_drawdown_pct": [
+     39.38228093839209,
+     25.372068535708227,
+     58.00170996472601
+    ],
+    "INNER_B_trades": [
+     107.33333333333333,
+     86.0,
+     138.0
+    ],
+    "INNER_B_orders_per_week": [
+     3.9753086419753085,
+     3.185185185185185,
+     5.111111111111111
+    ],
+    "INNER_B_all_valid": true
+   },
+   "E2-T SAC+demos": {
+    "params": 740,
+    "TRAIN_sharpe_daily_sqrt365": [
+     -0.43694453529780025,
+     -0.6156608599330624,
+     -0.3275779136467083
+    ],
+    "TRAIN_net_profit_usd": [
+     -8003.180160029059,
+     -8631.600182386008,
+     -7456.301065666725
+    ],
+    "TRAIN_max_drawdown_pct": [
+     90.20608082796086,
+     86.28164543295547,
+     94.01401297971958
+    ],
+    "TRAIN_trades": [
+     632.6666666666666,
+     506.0,
+     783.0
+    ],
+    "TRAIN_orders_per_week": [
+     4.0297239915074305,
+     3.2229299363057327,
+     4.987261146496815
+    ],
+    "TRAIN_all_valid": true,
+    "INNER_A_sharpe_daily_sqrt365": [
+     -0.016287707753589953,
+     -1.1234807787648509,
+     0.7159586690850697
+    ],
+    "INNER_A_net_profit_usd": [
+     -865.7919962095815,
+     -3993.895687074575,
+     1325.2381620540727
+    ],
+    "INNER_A_max_drawdown_pct": [
+     41.709696247436604,
+     30.483140014951598,
+     57.640596128691115
+    ],
+    "INNER_A_trades": [
+     104.0,
+     85.0,
+     130.0
+    ],
+    "INNER_A_orders_per_week": [
+     4.0,
+     3.269230769230769,
+     5.0
+    ],
+    "INNER_A_all_valid": true,
+    "INNER_B_sharpe_daily_sqrt365": [
+     -1.1428405193397924,
+     -2.490558894680847,
+     -0.07048595898312787
+    ],
+    "INNER_B_net_profit_usd": [
+     -3204.12705719194,
+     -5489.96515115039,
+     -1136.4999803852006
+    ],
+    "INNER_B_max_drawdown_pct": [
+     53.52432297943051,
+     38.70777183437069,
+     66.82084545658698
+    ],
+    "INNER_B_trades": [
+     99.0,
+     81.0,
+     122.0
+    ],
+    "INNER_B_orders_per_week": [
+     3.6666666666666665,
+     3.0,
+     4.518518518518518
+    ],
+    "INNER_B_all_valid": true
+   }
+  },
+  "4": {
+   "E1-T BC+DAgger": {
+    "params": 1100,
+    "TRAIN_sharpe_daily_sqrt365": [
+     -0.8504109304472164,
+     -1.4990215440531403,
+     -0.4882861811388045
+    ],
+    "TRAIN_net_profit_usd": [
+     -8111.247037438178,
+     -9222.636738431638,
+     -7372.160923095393
+    ],
+    "TRAIN_max_drawdown_pct": [
+     86.77755069777811,
+     80.65269785056552,
+     95.47718567961938
+    ],
+    "TRAIN_trades": [
+     2458.6666666666665,
+     2316.0,
+     2612.0
+    ],
+    "TRAIN_orders_per_week": [
+     15.660297239915073,
+     14.751592356687897,
+     16.636942675159236
+    ],
+    "TRAIN_all_valid": true,
+    "INNER_A_sharpe_daily_sqrt365": [
+     -3.554206523341923,
+     -4.39675617585871,
+     -2.5739273071001625
+    ],
+    "INNER_A_net_profit_usd": [
+     -6180.5644135052935,
+     -6825.83819176276,
+     -5473.444451507018
+    ],
+    "INNER_A_max_drawdown_pct": [
+     67.26584302414706,
+     64.5780356633743,
+     69.85052338445831
+    ],
+    "INNER_A_trades": [
+     407.0,
+     374.0,
+     446.0
+    ],
+    "INNER_A_orders_per_week": [
+     15.653846153846155,
+     14.384615384615385,
+     17.153846153846153
+    ],
+    "INNER_A_all_valid": true,
+    "INNER_B_sharpe_daily_sqrt365": [
+     -5.075332528411624,
+     -7.525762117918037,
+     -3.1289363088110145
+    ],
+    "INNER_B_net_profit_usd": [
+     -6794.3925118887555,
+     -7671.25534939129,
+     -5862.9894072562465
+    ],
+    "INNER_B_max_drawdown_pct": [
+     72.16015130384731,
+     67.29233267724499,
+     76.95526595378547
+    ],
+    "INNER_B_trades": [
+     405.0,
+     383.0,
+     429.0
+    ],
+    "INNER_B_orders_per_week": [
+     15.0,
+     14.185185185185185,
+     15.88888888888889
+    ],
+    "INNER_B_all_valid": true
+   }
+  }
+ },
+ "choice_on_inner_a": {
+  "E1-T BC+DAgger": 2,
+  "E2-T SAC": 2,
+  "E2-T SAC+demos": 2
+ },
+ "overfitting_onset_marker": {
+  "E1-T BC+DAgger": 4,
+  "E2-T SAC": null,
+  "E2-T SAC+demos": null
+ },
+ "units_done": [
+  2,
+  4
+ ]
+}

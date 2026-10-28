@@ -1,0 +1,987 @@
+{
+  "schema": "selection_support_audit.v1",
+  "ledger_sha256": "69558d89a25d8e846825d2177a5ffbb784c46529e603d2eed91941f61b70e1c7",
+  "attempt_rows": 3882,
+  "unique_units": 3882,
+  "failed_units": 0,
+  "stages": {
+    "contrast": {
+      "groups_observed": 714,
+      "groups_with_multiple_arms": 714,
+      "mismatched_or_unverifiable_groups": 0,
+      "witnesses": []
+    },
+    "encoding": {
+      "groups_observed": 72,
+      "groups_with_multiple_arms": 72,
+      "mismatched_or_unverifiable_groups": 0,
+      "witnesses": []
+    },
+    "rescue_vs_context": {
+      "comparisons": 480,
+      "mismatched_or_missing_controls": 240,
+      "witnesses": [
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|none|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|none|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s1|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s2|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s2|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|pair|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+btc|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+btc|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+btc|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+btc|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+btc|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+btc|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|none|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|none|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s1|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s2|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s2|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|pair|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eurjpy|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.usdjpy|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.audusd|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+fx.eur_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+btc|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.rv+dly.oil|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.eurjpy+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|px.atr+fx.usd_strength|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|none|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s1|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s1|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|s2|1",
+          "reference_key": "ctx|opener3|core15|1"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|pair|0",
+          "reference_key": "ctx|opener3|core15|0"
+        },
+        {
+          "key": "res|opener3|fx.usd_strength+ssa/BidClose|pair|2",
+          "reference_key": "ctx|opener3|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eurjpy|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.usdjpy|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.audusd|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+fx.eur_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+btc|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+btc|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+btc|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+btc|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+btc|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+btc|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.rv+dly.oil|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.eurjpy+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|px.atr+fx.usd_strength|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|none|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s1|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s1|2",
+          "reference_key": "ctx|hit|core15|2"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|s2|1",
+          "reference_key": "ctx|hit|core15|1"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|pair|0",
+          "reference_key": "ctx|hit|core15|0"
+        },
+        {
+          "key": "res|hit|fx.usd_strength+ssa/BidClose|pair|2",
+          "reference_key": "ctx|hit|core15|2"
+        }
+      ]
+    }
+  }
+}

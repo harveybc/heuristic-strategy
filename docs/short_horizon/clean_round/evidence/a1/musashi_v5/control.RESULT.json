@@ -1,0 +1,187 @@
+{
+  "schema": "t3_checkpoint_probe_replay.v1",
+  "state": "PASS",
+  "units": {
+    "t3_unit_00": {
+      "checkpoints": 12,
+      "exact": true,
+      "modules": {
+        "FULL_open_l_20261019": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          }
+        },
+        "FULL_open_s_20261019": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          }
+        },
+        "FULL_close_l_20261019": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": null
+          }
+        },
+        "FULL_close_s_20261019": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": null
+          }
+        },
+        "FULL_open_l_20261020": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          }
+        },
+        "FULL_open_s_20261020": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          }
+        },
+        "FULL_close_l_20261020": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": null
+          }
+        },
+        "FULL_close_s_20261020": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": null
+          }
+        },
+        "FULL_open_l_20261021": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          }
+        },
+        "FULL_open_s_20261021": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          }
+        },
+        "FULL_close_l_20261021": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": null
+          }
+        },
+        "FULL_close_s_20261021": {
+          "logits": {
+            "exact": true,
+            "max_abs_delta": 0.0
+          },
+          "reg": {
+            "exact": true,
+            "max_abs_delta": null
+          }
+        }
+      },
+      "result_sha256": "127f1e3758585cc0fb7239582b2d8c527cba6fa50aba254a93863e0e35d43549",
+      "trading": {
+        "20261019": {
+          "TRAIN": {
+            "exact": true,
+            "differences": {}
+          },
+          "INNER_A": {
+            "exact": true,
+            "differences": {}
+          },
+          "OBS_2024": {
+            "exact": true,
+            "differences": {}
+          }
+        },
+        "20261020": {
+          "TRAIN": {
+            "exact": true,
+            "differences": {}
+          },
+          "INNER_A": {
+            "exact": true,
+            "differences": {}
+          },
+          "OBS_2024": {
+            "exact": true,
+            "differences": {}
+          }
+        },
+        "20261021": {
+          "TRAIN": {
+            "exact": true,
+            "differences": {}
+          },
+          "INNER_A": {
+            "exact": true,
+            "differences": {}
+          },
+          "OBS_2024": {
+            "exact": true,
+            "differences": {}
+          }
+        }
+      },
+      "trading_exact": true
+    }
+  },
+  "count": 1,
+  "checkpoints": 12,
+  "torch_version": "2.13.0+cu130",
+  "torch_cpu_threads": 1,
+  "threshold": "exact equality; no tolerance",
+  "training_performed": false,
+  "test_scored": false,
+  "full_trading_metrics_replayed": true,
+  "scope": "saved-checkpoint forward on retained probe rows; optional native TRAIN/INNER_A/OBS_2024 rollouts"
+}

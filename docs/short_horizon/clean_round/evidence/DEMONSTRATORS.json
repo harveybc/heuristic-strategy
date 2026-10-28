@@ -1,0 +1,91 @@
+{
+ "rule": "admitted iff the demonstrator's own hindsight TRAIN replay is valid under the business rules; hindsight profit is not a criterion; confirmed replay = imitability information",
+ "contract": "consolidated",
+ "period": [
+  "2020-01-01",
+  "2023-07-01"
+ ],
+ "demonstrators": [
+  {
+   "name": "zz_d3_dev40.7_b0",
+   "spec": "3",
+   "primary": true,
+   "pivots": 7094,
+   "exec_contract": "sac",
+   "hindsight_train": {
+    "net_profit_usd": 102982606.85917026,
+    "sharpe_daily_sqrt365": 13.201304728281565,
+    "trades": 887,
+    "orders_per_week": 4.8469945355191255,
+    "max_drawdown_pct": 1.2917094830516134,
+    "win_rate": 0.9729425028184893,
+    "valid": true
+   },
+   "confirmed_train": {
+    "net_profit_usd": -5803.813094899082,
+    "sharpe_daily_sqrt365": -1.6890810781812566,
+    "trades": 885,
+    "orders_per_week": 4.836065573770492,
+    "max_drawdown_pct": 66.70429652169926,
+    "win_rate": 0.2847457627118644,
+    "valid": true
+   },
+   "admitted": true,
+   "admission": "hindsight replay valid under the business activity rules"
+  },
+  {
+   "name": "zz_d2_dev40.7_b0",
+   "spec": "2",
+   "primary": false,
+   "pivots": 9972,
+   "exec_contract": "sac",
+   "hindsight_train": {
+    "net_profit_usd": 10070576.40993004,
+    "sharpe_daily_sqrt365": 11.588381252394981,
+    "trades": 899,
+    "orders_per_week": 4.912568306010929,
+    "max_drawdown_pct": 1.291709480304368,
+    "win_rate": 0.899888765294772,
+    "valid": true
+   },
+   "confirmed_train": {
+    "net_profit_usd": -5822.593368370127,
+    "sharpe_daily_sqrt365": -2.1156592262324816,
+    "trades": 900,
+    "orders_per_week": 4.918032786885246,
+    "max_drawdown_pct": 58.41810144679952,
+    "win_rate": 0.27111111111111114,
+    "valid": true
+   },
+   "admitted": true,
+   "admission": "hindsight replay valid under the business activity rules"
+  },
+  {
+   "name": "zz_rev10pips",
+   "spec": "rev10",
+   "primary": false,
+   "pivots": 10551,
+   "exec_contract": "sac",
+   "hindsight_train": {
+    "net_profit_usd": 12722679.120810037,
+    "sharpe_daily_sqrt365": 13.303992423385358,
+    "trades": 891,
+    "orders_per_week": 4.868852459016393,
+    "max_drawdown_pct": 0.9449250368300133,
+    "win_rate": 0.9640852974186308,
+    "valid": true
+   },
+   "confirmed_train": {
+    "net_profit_usd": -4905.584137849375,
+    "sharpe_daily_sqrt365": -1.7041036020254228,
+    "trades": 894,
+    "orders_per_week": 4.885245901639344,
+    "max_drawdown_pct": 50.59105833601129,
+    "win_rate": 0.3434004474272931,
+    "valid": true
+   },
+   "admitted": true,
+   "admission": "hindsight replay valid under the business activity rules"
+  }
+ ]
+}

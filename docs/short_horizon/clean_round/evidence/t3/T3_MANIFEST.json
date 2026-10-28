@@ -1,0 +1,1295 @@
+{
+ "schema": "t3_manifest.v2",
+ "identity": "t3v2_8875abf84a63",
+ "fixed": {
+  "list": "FEATURE_LIST_shortlist_strict.json",
+  "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1",
+  "groups_file": "FEATURE_GROUPS_shortlist_strict.json",
+  "groups_sha256": "33ac83c1c524e3f1e2677515a5aaa6e412e0053197a3a85bf1bc40650839f3bb",
+  "profiles_file": "PROFILES_shortlist_strict.csv",
+  "profiles_sha256": "78edb32cfd26b200f47365540471408b7cc3b5a5b64838a0fc2e9cff862a2ad0",
+  "profiles_manifest_sha256": "5729d80722ea8ecbff538983c840348c7940b0d23d5e941f2942d65e588b866a",
+  "model": {
+   "units": 2,
+   "depth": 2,
+   "head": 16,
+   "core": null
+  },
+  "window": [
+   13,
+   2
+  ],
+  "agent_state": "none",
+  "labels": "zigzag",
+  "scaling": "fixed_train",
+  "nonstationary": "diff",
+  "split_contract": "consolidated",
+  "exec_contract": "sac",
+  "min_orders_per_week": 2.0,
+  "seeds": [
+   20261019,
+   20261020,
+   20261021
+  ],
+  "max_epochs": 1000,
+  "regularization": {
+   "dropout": 0.1,
+   "wd": 0.0001,
+   "chosen": "base",
+   "source": "T2 decision REGULARIZATION_DECISION.json (TIE_BREAK_2_SMALLER_GAP); sha256 3d8db8eb3eaee625",
+   "note": "selected by the T2 diagnostic at the E3-M default depth 1; carried to the clean-round model (depth 2) as declared"
+  }
+ },
+ "rules": "T3 v2: extractor TYPE per feature group, chosen from each group's T1 profile and decided by measurement\n(owner 2026-10-23: \"selecci\u00f3n del extractor basado en el perfil de cada grupo\"; Musashi's instructions 2026-10-22 \u00a74).\n\nProfile -> candidates and a PREREGISTERED expectation; measurement -> decision. Nothing is chosen by the profile alone.\n  candidates   every multi-column group tests BOTH alternatives against the control: `pointwise` (kernel 1, no temporal\n               mixing inside the extractor) and `per_feature` (one small causal extractor per column); a one-column\n               group tests `pointwise` (per_feature == conv there). The control is the shared causal `conv` (kernel 3).\n  expectation  written before any T3 result, from the group's TRAIN profile (Musashi's T1, manifest 5729d807):\n                 memory  = \"persistent\" if median ACF1 >= 0.9 and (median ACF24 >= 0.5 or no insignificant lag <= 48),\n                           \"near_white\" if |median ACF1| < 0.1, else \"intermediate\";\n                 redundancy = max |Spearman| inside the family: \"high\" >= 0.95, \"low\" < 0.5, else \"mid\";\n               persistent -> pointwise expected >= conv (the level carries the information; mixing slots adds little);\n               near_white -> conv / per_feature expected >= pointwise (short-term patterns live across slots);\n               high redundancy -> the shared conv expected >= per_feature (per-column extractors duplicate redundant\n               inputs); low redundancy -> per_feature expected >= shared conv. The agreement rate is REPORTED; it never\n               changes a decision.\n  decision     per group, frozen: an alternative replaces the control only when (a) its seed-mean INNER_A Sharpe exceeds\n               the control's by more than the pooled seed std of the two, and (b) its mean TRAIN-INNER_A gap is not larger\n               than the control's by more than the pooled seed std of the gaps, with the same TRAIN / INNER_A support\n               hashes and all three seeds valid; two qualifying alternatives -> the higher Sharpe; ties -> fewer\n               parameters; otherwise the control stays (a negative result also closes the unit). OBS_2024 never read.\n  combination  one confirmation unit assembling every per-group choice, 3 seeds: adopted only if its INNER_A Sharpe is\n               not below the control's by more than the pooled seed std (interaction check); otherwise the control\n               representation stays and the per-group gains are reported as not additive.\nFixed for every unit: the v4 strict list, the groups file (digest), columns and encodings of each group, the T2\nregularization decision, window, model (units 2 / depth 2 / head 16), replay contract, >= 2 orders/week (period\naverage), consolidated split, agent_state none, ZigZag labels. Duplicated information across groups (T1 annex) stays\npresent: T3 measures the extractor type CONDITIONAL on the other inputs, not the unique contribution of a group.\nIds are stable (groups-file order); odd ids -> Musashi's worker, even ids and the control -> Satoshi's.",
+ "assignment": {
+  "musashi": "odd ids",
+  "satoshi": "even ids and the control"
+ },
+ "units": [
+  {
+   "id": 0,
+   "group": null,
+   "kind": "conv",
+   "role": "control",
+   "name": "t3_unit_00",
+   "groups_file": "unit_00.json",
+   "groups_file_sha256": "aca29d10501637132f621232fb92877a04692c7f7750a8a84c6e5a4ccf57001e",
+   "worker": "satoshi",
+   "identity": "7fd91fdb3735ce5a"
+  },
+  {
+   "id": 1,
+   "group": "inv.raw",
+   "n_columns": 8,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 8,
+    "acf1_median": -0.015004832360199186,
+    "acf24_median": 0.014385663382665668,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 2.0,
+    "within_family_redundancy_max": 0.9996126660142581,
+    "fold_stability_max": 0.3238873820416253,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "near_white",
+    "redundancy": "high",
+    "expected": [
+     "conv >= pointwise",
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_01",
+   "groups_file": "unit_01.json",
+   "groups_file_sha256": "3ee27aa935927ed8fe43b7bc51fe788ac98c1ec30c1982ef4464647c5dc406ce",
+   "worker": "musashi",
+   "identity": "02508df7283513c9"
+  },
+  {
+   "id": 2,
+   "group": "inv.raw",
+   "n_columns": 8,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 8,
+    "acf1_median": -0.015004832360199186,
+    "acf24_median": 0.014385663382665668,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 2.0,
+    "within_family_redundancy_max": 0.9996126660142581,
+    "fold_stability_max": 0.3238873820416253,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "near_white",
+    "redundancy": "high",
+    "expected": [
+     "conv >= pointwise",
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_02",
+   "groups_file": "unit_02.json",
+   "groups_file_sha256": "167d2869ef39eb98c5856d94def262a0f20f8807c720aeb2d45d1af6581b6ae1",
+   "worker": "satoshi",
+   "identity": "1a5a077d56f8c082"
+  },
+  {
+   "id": 3,
+   "group": "inv.momentum",
+   "n_columns": 8,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 8,
+    "acf1_median": 0.9099252394206765,
+    "acf24_median": 0.011271481900470753,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 15.5,
+    "within_family_redundancy_max": 0.9805416128439958,
+    "fold_stability_max": 0.0891575399882788,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_03",
+   "groups_file": "unit_03.json",
+   "groups_file_sha256": "c237a4bc6e1f19f65579b8e95521db01f07a736a36f736acfd6db2afe67921a1",
+   "worker": "musashi",
+   "identity": "27c0e6b7420e4ae5"
+  },
+  {
+   "id": 4,
+   "group": "inv.momentum",
+   "n_columns": 8,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 8,
+    "acf1_median": 0.9099252394206765,
+    "acf24_median": 0.011271481900470753,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 15.5,
+    "within_family_redundancy_max": 0.9805416128439958,
+    "fold_stability_max": 0.0891575399882788,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_04",
+   "groups_file": "unit_04.json",
+   "groups_file_sha256": "b50a24c656f5c01a3a9f70fd72250b5125b306f449ac0944c5952772ff0fd58c",
+   "worker": "satoshi",
+   "identity": "94605149e83e394d"
+  },
+  {
+   "id": 5,
+   "group": "calendar",
+   "n_columns": 13,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 13,
+    "acf1_median": 0.9656229563665282,
+    "acf24_median": 0.9929784297331062,
+    "no_insignificant_lag_le_48_share": 0.15384615384615385,
+    "first_insignificant_lag_median": 6.0,
+    "within_family_redundancy_max": 0.9866776947528944,
+    "fold_stability_max": 0.014084735271134456,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "high",
+    "expected": [
+     "pointwise >= conv",
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_05",
+   "groups_file": "unit_05.json",
+   "groups_file_sha256": "cf3f18da5bd45eead1d807f0ad85ee57096d8abfd4f29bb4a0e37ee5e46822bb",
+   "worker": "musashi",
+   "identity": "bd7ff893d3150f73"
+  },
+  {
+   "id": 6,
+   "group": "calendar",
+   "n_columns": 13,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 13,
+    "acf1_median": 0.9656229563665282,
+    "acf24_median": 0.9929784297331062,
+    "no_insignificant_lag_le_48_share": 0.15384615384615385,
+    "first_insignificant_lag_median": 6.0,
+    "within_family_redundancy_max": 0.9866776947528944,
+    "fold_stability_max": 0.014084735271134456,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "high",
+    "expected": [
+     "pointwise >= conv",
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_06",
+   "groups_file": "unit_06.json",
+   "groups_file_sha256": "0c1d91a9cdfd2f67169784460630c3e2de3ac3cc80846502e874d26a4a17a4ed",
+   "worker": "satoshi",
+   "identity": "d4aa1700c57b27ed"
+  },
+  {
+   "id": 7,
+   "group": "px.logret",
+   "n_columns": 7,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.8268551753738583,
+    "acf24_median": 0.031322812165612945,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 13.0,
+    "within_family_redundancy_max": 0.7731381746281603,
+    "fold_stability_max": 0.09952028005977011,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_07",
+   "groups_file": "unit_07.json",
+   "groups_file_sha256": "b50d619496caff1009e61d1558c3ae5c744018c07e2e7c4cb86dbd9c3e12c6dc",
+   "worker": "musashi",
+   "identity": "55fec7152afd38c6"
+  },
+  {
+   "id": 8,
+   "group": "px.logret",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.8268551753738583,
+    "acf24_median": 0.031322812165612945,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 13.0,
+    "within_family_redundancy_max": 0.7731381746281603,
+    "fold_stability_max": 0.09952028005977011,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_08",
+   "groups_file": "unit_08.json",
+   "groups_file_sha256": "0aa8c354f6746044e40ab65496fa37e16de4c618416b438710d8eb5615dfa1aa",
+   "worker": "satoshi",
+   "identity": "660acd79f5548e86"
+  },
+  {
+   "id": 9,
+   "group": "px.range",
+   "n_columns": 7,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.9214313169645857,
+    "acf24_median": 0.6376336497155324,
+    "no_insignificant_lag_le_48_share": 0.42857142857142855,
+    "first_insignificant_lag_median": 10.5,
+    "within_family_redundancy_max": 0.9016223175106839,
+    "fold_stability_max": 0.4983813735941441,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "mid",
+    "expected": [
+     "pointwise >= conv"
+    ]
+   },
+   "name": "t3_unit_09",
+   "groups_file": "unit_09.json",
+   "groups_file_sha256": "f789733842ca6e9612309fceafb7e63cc88587cc7a57ff2a4b17016a3e83725c",
+   "worker": "musashi",
+   "identity": "ee7d7e22c9f09b63"
+  },
+  {
+   "id": 10,
+   "group": "px.range",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.9214313169645857,
+    "acf24_median": 0.6376336497155324,
+    "no_insignificant_lag_le_48_share": 0.42857142857142855,
+    "first_insignificant_lag_median": 10.5,
+    "within_family_redundancy_max": 0.9016223175106839,
+    "fold_stability_max": 0.4983813735941441,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "mid",
+    "expected": [
+     "pointwise >= conv"
+    ]
+   },
+   "name": "t3_unit_10",
+   "groups_file": "unit_10.json",
+   "groups_file_sha256": "d1956be68473bcc884e754b2234b1f97eb38a5a3f79931d9fb4ecd4a431fd960",
+   "worker": "satoshi",
+   "identity": "2524c6649ff8b5f4"
+  },
+  {
+   "id": 11,
+   "group": "px.close_loc",
+   "n_columns": 7,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.6680604556044443,
+    "acf24_median": 0.02072736752537461,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 8.0,
+    "within_family_redundancy_max": 0.9105222829745937,
+    "fold_stability_max": 0.10089374229796307,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_11",
+   "groups_file": "unit_11.json",
+   "groups_file_sha256": "a86763212c405aa2b9e0f3727aacbc8e876a8d144a91b3873f3f66b4b575f53b",
+   "worker": "musashi",
+   "identity": "a7d7cf8cf081fb53"
+  },
+  {
+   "id": 12,
+   "group": "px.close_loc",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.6680604556044443,
+    "acf24_median": 0.02072736752537461,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 8.0,
+    "within_family_redundancy_max": 0.9105222829745937,
+    "fold_stability_max": 0.10089374229796307,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_12",
+   "groups_file": "unit_12.json",
+   "groups_file_sha256": "68cb41ff12ce745112a7ea086ee2a299693d1cd6d8e0799a850018f69b090eab",
+   "worker": "satoshi",
+   "identity": "60bc06f616b1a787"
+  },
+  {
+   "id": 13,
+   "group": "px.er",
+   "n_columns": 7,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.6645301206464473,
+    "acf24_median": -0.009168114280759846,
+    "no_insignificant_lag_le_48_share": 0.14285714285714285,
+    "first_insignificant_lag_median": 7.5,
+    "within_family_redundancy_max": 0.5020189135451513,
+    "fold_stability_max": 0.06005494208247844,
+    "constant_columns": [
+     "px.er_1"
+    ]
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_13",
+   "groups_file": "unit_13.json",
+   "groups_file_sha256": "54feef06d83143ad71270ac3608ed05203b163606283e67b55dbbed9000044c5",
+   "worker": "musashi",
+   "identity": "546731eacfbebc12"
+  },
+  {
+   "id": 14,
+   "group": "px.er",
+   "n_columns": 7,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 7,
+    "acf1_median": 0.6645301206464473,
+    "acf24_median": -0.009168114280759846,
+    "no_insignificant_lag_le_48_share": 0.14285714285714285,
+    "first_insignificant_lag_median": 7.5,
+    "within_family_redundancy_max": 0.5020189135451513,
+    "fold_stability_max": 0.06005494208247844,
+    "constant_columns": [
+     "px.er_1"
+    ]
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_14",
+   "groups_file": "unit_14.json",
+   "groups_file_sha256": "faf889feb4e24cf8f47ff86d4a21f5c53fa1cf6bd1116bc74aff27463b97706b",
+   "worker": "satoshi",
+   "identity": "9dadab8c00253550"
+  },
+  {
+   "id": 15,
+   "group": "px.range_ratio",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": 0.5537709454555159,
+    "acf24_median": 0.3736131953430723,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 7.0,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.01996005573870754,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_15",
+   "groups_file": "unit_15.json",
+   "groups_file_sha256": "ba84d4d81e106310bbc84226e23de4b00eced97b9b12de64065cfd958206d3ac",
+   "worker": "musashi",
+   "identity": "e54e6c3227f1c3ab"
+  },
+  {
+   "id": 16,
+   "group": "px.hours_since_session_open",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": 0.9507256935138577,
+    "acf24_median": 0.04400924059529664,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 25.0,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.013239488684320197,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_16",
+   "groups_file": "unit_16.json",
+   "groups_file_sha256": "9dbd2432f988b4137c927696c22bcf810a23c4744c1ac60cd41e70cc85fc5c9e",
+   "worker": "satoshi",
+   "identity": "49040797da7d804e"
+  },
+  {
+   "id": 17,
+   "group": "cdl",
+   "n_columns": 6,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 6,
+    "acf1_median": 0.23715922525848476,
+    "acf24_median": 0.23904995566558399,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 9.0,
+    "within_family_redundancy_max": 0.627219458847742,
+    "fold_stability_max": 0.25927715910642285,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_17",
+   "groups_file": "unit_17.json",
+   "groups_file_sha256": "bc49d5d9ea15c5e5cacb594afaf2d1de395d612f9d1141409e5ebbadc4fc197a",
+   "worker": "musashi",
+   "identity": "77dec77ce4e25b99"
+  },
+  {
+   "id": 18,
+   "group": "cdl",
+   "n_columns": 6,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 6,
+    "acf1_median": 0.23715922525848476,
+    "acf24_median": 0.23904995566558399,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 9.0,
+    "within_family_redundancy_max": 0.627219458847742,
+    "fold_stability_max": 0.25927715910642285,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_18",
+   "groups_file": "unit_18.json",
+   "groups_file_sha256": "5612e0f9692e123c67f3c431434d48b760d36e0002f8a7f563a1b4462f76eb67",
+   "worker": "satoshi",
+   "identity": "76ce2caa17441806"
+  },
+  {
+   "id": 19,
+   "group": "fx.usdchf",
+   "n_columns": 4,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.8461596052290568,
+    "acf24_median": 0.04510313464634272,
+    "no_insignificant_lag_le_48_share": 0.25,
+    "first_insignificant_lag_median": 4.0,
+    "within_family_redundancy_max": 0.44864663052851345,
+    "fold_stability_max": 0.48474690524822495,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "low",
+    "expected": [
+     "per_feature >= conv"
+    ]
+   },
+   "name": "t3_unit_19",
+   "groups_file": "unit_19.json",
+   "groups_file_sha256": "dff28ecc482bb3b55c432834c667607b372e18f294725a061266495b4e1a1e3c",
+   "worker": "musashi",
+   "identity": "1ac6452a4e8de53a"
+  },
+  {
+   "id": 20,
+   "group": "fx.usdchf",
+   "n_columns": 4,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.8461596052290568,
+    "acf24_median": 0.04510313464634272,
+    "no_insignificant_lag_le_48_share": 0.25,
+    "first_insignificant_lag_median": 4.0,
+    "within_family_redundancy_max": 0.44864663052851345,
+    "fold_stability_max": 0.48474690524822495,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "low",
+    "expected": [
+     "per_feature >= conv"
+    ]
+   },
+   "name": "t3_unit_20",
+   "groups_file": "unit_20.json",
+   "groups_file_sha256": "40240f08843b37efc4695f7980277d4e2a84990bed12b87c6511100c3fb3514b",
+   "worker": "satoshi",
+   "identity": "2ebb06fbe74a1cc2"
+  },
+  {
+   "id": 21,
+   "group": "dly.gold",
+   "n_columns": 2,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 2,
+    "acf1_median": 0.9751283745402446,
+    "acf24_median": 0.40324619888892427,
+    "no_insignificant_lag_le_48_share": 0.5,
+    "first_insignificant_lag_median": 24.0,
+    "within_family_redundancy_max": 0.3831668392320548,
+    "fold_stability_max": 0.1803510008160327,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "low",
+    "expected": [
+     "pointwise >= conv",
+     "per_feature >= conv"
+    ]
+   },
+   "name": "t3_unit_21",
+   "groups_file": "unit_21.json",
+   "groups_file_sha256": "0c3335c6b70414c27e96acb02911f7e4b3b86ddfbc6f65fdb4a79b520f230e76",
+   "worker": "musashi",
+   "identity": "7b2cdf8d699b4d4c"
+  },
+  {
+   "id": 22,
+   "group": "dly.gold",
+   "n_columns": 2,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 2,
+    "acf1_median": 0.9751283745402446,
+    "acf24_median": 0.40324619888892427,
+    "no_insignificant_lag_le_48_share": 0.5,
+    "first_insignificant_lag_median": 24.0,
+    "within_family_redundancy_max": 0.3831668392320548,
+    "fold_stability_max": 0.1803510008160327,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "low",
+    "expected": [
+     "pointwise >= conv",
+     "per_feature >= conv"
+    ]
+   },
+   "name": "t3_unit_22",
+   "groups_file": "unit_22.json",
+   "groups_file_sha256": "44d60fae96782d154e488ac75f6927d034c5dcd464da89d68ca129432644e517",
+   "worker": "satoshi",
+   "identity": "0ca3457de7f05932"
+  },
+  {
+   "id": 23,
+   "group": "cot.eur",
+   "n_columns": 4,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.9957044158776234,
+    "acf24_median": 0.8989802667723984,
+    "no_insignificant_lag_le_48_share": 1.0,
+    "first_insignificant_lag_median": null,
+    "within_family_redundancy_max": 0.8608363166905857,
+    "fold_stability_max": 0.6097111454782723,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "mid",
+    "expected": [
+     "pointwise >= conv"
+    ]
+   },
+   "name": "t3_unit_23",
+   "groups_file": "unit_23.json",
+   "groups_file_sha256": "1e2ed6cbf54b39fac7a61beb647e25723b2a731a36e9e3ddb24b304f0fcd92dd",
+   "worker": "musashi",
+   "identity": "0f0f71465e692b88"
+  },
+  {
+   "id": 24,
+   "group": "cot.eur",
+   "n_columns": 4,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.9957044158776234,
+    "acf24_median": 0.8989802667723984,
+    "no_insignificant_lag_le_48_share": 1.0,
+    "first_insignificant_lag_median": null,
+    "within_family_redundancy_max": 0.8608363166905857,
+    "fold_stability_max": 0.6097111454782723,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": "mid",
+    "expected": [
+     "pointwise >= conv"
+    ]
+   },
+   "name": "t3_unit_24",
+   "groups_file": "unit_24.json",
+   "groups_file_sha256": "7eb4d5de95a348d2edb5ae045bb0b517376817fa1ca18beaf253cbcde69cd6f5",
+   "worker": "satoshi",
+   "identity": "9ab44359eaa872f8"
+  },
+  {
+   "id": 25,
+   "group": "fac.fx_f1",
+   "n_columns": 4,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.6795410321142685,
+    "acf24_median": 0.005449040648248885,
+    "no_insignificant_lag_le_48_share": 0.25,
+    "first_insignificant_lag_median": 4.0,
+    "within_family_redundancy_max": 0.8483833671530481,
+    "fold_stability_max": 0.04575746788838485,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_25",
+   "groups_file": "unit_25.json",
+   "groups_file_sha256": "9af495ccd14094957633c4d649d273ad66e6cbbab09a388322a1fd2e088f6551",
+   "worker": "musashi",
+   "identity": "6f0273747e2b9cb8"
+  },
+  {
+   "id": 26,
+   "group": "fac.fx_f1",
+   "n_columns": 4,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.6795410321142685,
+    "acf24_median": 0.005449040648248885,
+    "no_insignificant_lag_le_48_share": 0.25,
+    "first_insignificant_lag_median": 4.0,
+    "within_family_redundancy_max": 0.8483833671530481,
+    "fold_stability_max": 0.04575746788838485,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_26",
+   "groups_file": "unit_26.json",
+   "groups_file_sha256": "db528aeba22b9342640a40c82b126f8acff54d860ca86b78b83b9f45a845b0e6",
+   "worker": "satoshi",
+   "identity": "34056fd80807e5b8"
+  },
+  {
+   "id": 27,
+   "group": "ev",
+   "n_columns": 6,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 6,
+    "acf1_median": 0.7597901755082012,
+    "acf24_median": 0.9923585656448535,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 5.0,
+    "within_family_redundancy_max": 1.0,
+    "fold_stability_max": 0.002184462420551231,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_27",
+   "groups_file": "unit_27.json",
+   "groups_file_sha256": "d56c3b0795598f87c41888c5a74cd38fae3b14e99b1b371956cb87c013a95e08",
+   "worker": "musashi",
+   "identity": "a170ec48d3dcd4d2"
+  },
+  {
+   "id": 28,
+   "group": "ev",
+   "n_columns": 6,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 6,
+    "acf1_median": 0.7597901755082012,
+    "acf24_median": 0.9923585656448535,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 5.0,
+    "within_family_redundancy_max": 1.0,
+    "fold_stability_max": 0.002184462420551231,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_28",
+   "groups_file": "unit_28.json",
+   "groups_file_sha256": "d65cdb1b26d7ea60c3ddb2f303b7893921616313ef26693485ffb02dcf27bc34",
+   "worker": "satoshi",
+   "identity": "14b169bd0f42e823"
+  },
+  {
+   "id": 29,
+   "group": "act",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": 0.9730390489600592,
+    "acf24_median": 0.19908467360176554,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 30.0,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.10218620676267101,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_29",
+   "groups_file": "unit_29.json",
+   "groups_file_sha256": "c0b4fbc48cef1b4adacd3da4bae19643a6e69237708573ef57ca9c6110b779e2",
+   "worker": "musashi",
+   "identity": "9367f606e808eb1e"
+  },
+  {
+   "id": 30,
+   "group": "wavelet/log_close",
+   "n_columns": 9,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 9,
+    "acf1_median": 0.8575274700120828,
+    "acf24_median": 0.18346518466355885,
+    "no_insignificant_lag_le_48_share": 0.4444444444444444,
+    "first_insignificant_lag_median": 5.0,
+    "within_family_redundancy_max": 0.8565980675219713,
+    "fold_stability_max": 0.6343131711446026,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_30",
+   "groups_file": "unit_30.json",
+   "groups_file_sha256": "047ceb372d7920c2f825ad809271e8bdfa4f0833665ba230cc60b3b8efd2a976",
+   "worker": "satoshi",
+   "identity": "61aff45fdef5125f"
+  },
+  {
+   "id": 31,
+   "group": "wavelet/log_close",
+   "n_columns": 9,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 9,
+    "acf1_median": 0.8575274700120828,
+    "acf24_median": 0.18346518466355885,
+    "no_insignificant_lag_le_48_share": 0.4444444444444444,
+    "first_insignificant_lag_median": 5.0,
+    "within_family_redundancy_max": 0.8565980675219713,
+    "fold_stability_max": 0.6343131711446026,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_31",
+   "groups_file": "unit_31.json",
+   "groups_file_sha256": "3918602cecf1bb355d20f71f3ca501a3ae4bd2368ffc81a58b34828b0587d0ee",
+   "worker": "musashi",
+   "identity": "f34bed7d4428e237"
+  },
+  {
+   "id": 32,
+   "group": "wavelet/logret_1",
+   "n_columns": 9,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 9,
+    "acf1_median": 0.7911584673513574,
+    "acf24_median": 0.14848505891260652,
+    "no_insignificant_lag_le_48_share": 0.4444444444444444,
+    "first_insignificant_lag_median": 5.0,
+    "within_family_redundancy_max": 0.8656098873816476,
+    "fold_stability_max": 0.6409651881239199,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_32",
+   "groups_file": "unit_32.json",
+   "groups_file_sha256": "446c46c12a04f6e1566876287debac909c21eb87a5a12418e541caa80cecb865",
+   "worker": "satoshi",
+   "identity": "a8f7ec369a57fe08"
+  },
+  {
+   "id": 33,
+   "group": "wavelet/logret_1",
+   "n_columns": 9,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 9,
+    "acf1_median": 0.7911584673513574,
+    "acf24_median": 0.14848505891260652,
+    "no_insignificant_lag_le_48_share": 0.4444444444444444,
+    "first_insignificant_lag_median": 5.0,
+    "within_family_redundancy_max": 0.8656098873816476,
+    "fold_stability_max": 0.6409651881239199,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_33",
+   "groups_file": "unit_33.json",
+   "groups_file_sha256": "6f06141f199f243693d7fab8a89e3a26f0a0911243463e754614df4bfea73cd3",
+   "worker": "musashi",
+   "identity": "3a73728203dbde2f"
+  },
+  {
+   "id": 34,
+   "group": "hilbert/logret_1",
+   "n_columns": 3,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 3,
+    "acf1_median": -0.04256044142108126,
+    "acf24_median": 0.017724376926868776,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 3.0,
+    "within_family_redundancy_max": 0.011194149699889192,
+    "fold_stability_max": 0.01554175382064156,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "near_white",
+    "redundancy": "low",
+    "expected": [
+     "conv >= pointwise",
+     "per_feature >= conv"
+    ]
+   },
+   "name": "t3_unit_34",
+   "groups_file": "unit_34.json",
+   "groups_file_sha256": "f54f78c22266777236c5e2fa56d8d16f8fa0037a02d51d60d633055a3219eb33",
+   "worker": "satoshi",
+   "identity": "02fb88f6ec54753b"
+  },
+  {
+   "id": 35,
+   "group": "hilbert/logret_1",
+   "n_columns": 3,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 3,
+    "acf1_median": -0.04256044142108126,
+    "acf24_median": 0.017724376926868776,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 3.0,
+    "within_family_redundancy_max": 0.011194149699889192,
+    "fold_stability_max": 0.01554175382064156,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "near_white",
+    "redundancy": "low",
+    "expected": [
+     "conv >= pointwise",
+     "per_feature >= conv"
+    ]
+   },
+   "name": "t3_unit_35",
+   "groups_file": "unit_35.json",
+   "groups_file_sha256": "722a280e590427e9b026ad9ea04fc9e9d904cf387c3265e1d295fa883b335abb",
+   "worker": "musashi",
+   "identity": "85725e3373bd5712"
+  },
+  {
+   "id": 36,
+   "group": "strength/fx.usd_strength.ret_1",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": 0.9612766946049386,
+    "acf24_median": 0.9005646465803238,
+    "no_insignificant_lag_le_48_share": 1.0,
+    "first_insignificant_lag_median": null,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.6465928030783041,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": null,
+    "expected": [
+     "pointwise >= conv"
+    ]
+   },
+   "name": "t3_unit_36",
+   "groups_file": "unit_36.json",
+   "groups_file_sha256": "527b4b4feb5e2ce086a203ca33b8a3ff2c6ebf2631dc8cc3d82232051f2841ca",
+   "worker": "satoshi",
+   "identity": "f7fa03299070d641"
+  },
+  {
+   "id": 37,
+   "group": "strength/fx.eur_strength.ret_1",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": 0.5500795533005441,
+    "acf24_median": 0.009869707091314413,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 4.0,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.009318474824939102,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_37",
+   "groups_file": "unit_37.json",
+   "groups_file_sha256": "b27e9502059a822a1424e222221622d5054628f9f7788ab9c77e683293e7b488",
+   "worker": "musashi",
+   "identity": "27bc8edb223c417b"
+  },
+  {
+   "id": 38,
+   "group": "kalman/log_close",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": -0.004880381153943875,
+    "acf24_median": 0.013857709167032274,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 1.0,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.019733464457721957,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "near_white",
+    "redundancy": null,
+    "expected": [
+     "conv >= pointwise"
+    ]
+   },
+   "name": "t3_unit_38",
+   "groups_file": "unit_38.json",
+   "groups_file_sha256": "316437a2d6d30651ea6c638c66f5b93bd69bba45f2e3bd79b490c12cbf5fee19",
+   "worker": "satoshi",
+   "identity": "9547c6bc32cf6347"
+  },
+  {
+   "id": 39,
+   "group": "px.rv",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": 0.9847664082542009,
+    "acf24_median": 0.5677138111323012,
+    "no_insignificant_lag_le_48_share": 1.0,
+    "first_insignificant_lag_median": null,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.5123168474613605,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "persistent",
+    "redundancy": null,
+    "expected": [
+     "pointwise >= conv"
+    ]
+   },
+   "name": "t3_unit_39",
+   "groups_file": "unit_39.json",
+   "groups_file_sha256": "0f0dbad3d1b59500ee20ea3c51f1fc071f3e451bc572ff6f496f96f1d59c5296",
+   "worker": "musashi",
+   "identity": "6c3ec04bf4c5f02b"
+  },
+  {
+   "id": 40,
+   "group": "gmm/logret_1+rv_24+log_range",
+   "n_columns": 4,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.4980894500809741,
+    "acf24_median": 0.3416580685075675,
+    "no_insignificant_lag_le_48_share": 0.5,
+    "first_insignificant_lag_median": 22.5,
+    "within_family_redundancy_max": 0.9761417719537369,
+    "fold_stability_max": 0.39624045022258253,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_40",
+   "groups_file": "unit_40.json",
+   "groups_file_sha256": "883cc1c799d6f995ac92339828052f9b75b90e9e2f328a28ab6b0304465a2fb8",
+   "worker": "satoshi",
+   "identity": "056b36818ce1d3f0"
+  },
+  {
+   "id": 41,
+   "group": "gmm/logret_1+rv_24+log_range",
+   "n_columns": 4,
+   "kind": "per_feature",
+   "role": "contrast",
+   "profile": {
+    "n": 4,
+    "acf1_median": 0.4980894500809741,
+    "acf24_median": 0.3416580685075675,
+    "no_insignificant_lag_le_48_share": 0.5,
+    "first_insignificant_lag_median": 22.5,
+    "within_family_redundancy_max": 0.9761417719537369,
+    "fold_stability_max": 0.39624045022258253,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   },
+   "name": "t3_unit_41",
+   "groups_file": "unit_41.json",
+   "groups_file_sha256": "40bd826d48200cf770fcf52efaf8abf1e7e762508d7a2bad3d5fd1fc41fa0149",
+   "worker": "musashi",
+   "identity": "d90574204ac5c827"
+  },
+  {
+   "id": 42,
+   "group": "fracdiff/log_close",
+   "n_columns": 1,
+   "kind": "pointwise",
+   "role": "contrast",
+   "profile": {
+    "n": 1,
+    "acf1_median": -0.2497064484950254,
+    "acf24_median": 0.012341027662108362,
+    "no_insignificant_lag_le_48_share": 0.0,
+    "first_insignificant_lag_median": 5.0,
+    "within_family_redundancy_max": null,
+    "fold_stability_max": 0.0023375213606281757,
+    "constant_columns": []
+   },
+   "expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   },
+   "name": "t3_unit_42",
+   "groups_file": "unit_42.json",
+   "groups_file_sha256": "91b68cb693cfc3ff085f8fc9067047fa7c6f3322c8e345586376773168b8258f",
+   "worker": "satoshi",
+   "identity": "7cd7f392af8eb50f"
+  }
+ ],
+ "combination": {
+  "status": "PENDING_PER_GROUP_DECISIONS",
+  "id": "C"
+ }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "selection_input_profiles.v1",
+  "scope": "diagnostics only; no feature deletion or model-input transform",
+  "input_sha256": "32edb4248d659661764ee5abf982a7ee9a0e7659e08a88c03b5a28ce2466ae67",
+  "admitted_sha256": "c80847bb149c7af1ad50e42301b5cd70608e6c37702ce8cc6a7b9eb70f36d2ca",
+  "lists_sha256": {
+    "core15": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d",
+    "shortlist_strict": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
+  },
+  "fit": [
+    "2020-01-01",
+    "2023-07-01"
+  ],
+  "timestamp_semantics": "bar start; FIT membership by available_at = start + 1h",
+  "rows": 21809,
+  "max_lag": 48,
+  "lags_unit": "observed bars, no missing-value compression",
+  "acf_estimator": "pairwise-finite Pearson at each lag; n_pairs retained",
+  "significance": "white-noise normal approximation with Bonferroni alpha=.05 / 48 per feature, not joint calibrated inference across features",
+  "pacf": "Yule-Walker MLE, longest contiguous finite run; run and n logged, no fill",
+  "folds": 6,
+  "embargo_observed_rows": 96,
+  "fold_stability_ratio": "std of six validation-block means / global std, descriptive",
+  "missing_grid_rows": 0,
+  "files": {
+    "PROFILES_core15.csv": "0ea6a68d40b452a5963a502c8eb06e6c5f393fd8da6679051939c3ca5d1b1b3a",
+    "PROFILES_shortlist_strict.csv": "78edb32cfd26b200f47365540471408b7cc3b5a5b64838a0fc2e9cff862a2ad0"
+  },
+  "versions": {
+    "numpy": "2.5.1",
+    "pandas": "3.0.3"
+  }
+}

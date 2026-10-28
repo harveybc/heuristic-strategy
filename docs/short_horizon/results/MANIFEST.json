@@ -1,0 +1,19 @@
+{
+ "label": "DEVELOPMENT_ORACLE_NOISE_STUDY_NOT_A_MODEL_RESULT",
+ "cells_csv_sha256": "b1e72d50af43e92ba626f52c50741e9597152c841a93954c61ae8e6feb6f9643",
+ "rows": 7536,
+ "data_sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+ "backtest_cpu_seconds": 333.3,
+ "chunks": 16,
+ "splits": {
+  "TRAIN_2020_2023": [
+   "2020-01-01",
+   "2024-01-01"
+  ],
+  "VALIDATION_2024": [
+   "2024-01-01",
+   "2025-01-01"
+  ]
+ },
+ "test_rows_read": false
+}

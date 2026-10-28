@@ -1,0 +1,18 @@
+{
+ "24": {
+  "VALIDATION_2023|curve_trend_blend": 35.44400348141974,
+  "VALIDATION_2023|curve_direction": null,
+  "VALIDATION_2023|curve_vol_blend": null,
+  "CONFIRM_2024|curve_trend_blend": 24.7014006507075,
+  "CONFIRM_2024|curve_direction": null,
+  "CONFIRM_2024|curve_vol_blend": null
+ },
+ "6": {
+  "VALIDATION_2023|curve_trend_blend": 17.617266450553647,
+  "VALIDATION_2023|curve_direction": 0.5293655017033142,
+  "VALIDATION_2023|curve_vol_blend": null,
+  "CONFIRM_2024|curve_trend_blend": 14.170221658884817,
+  "CONFIRM_2024|curve_direction": 0.5448664477928261,
+  "CONFIRM_2024|curve_vol_blend": null
+ }
+}

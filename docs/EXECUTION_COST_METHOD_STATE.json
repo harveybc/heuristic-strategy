@@ -1,0 +1,23 @@
+{
+  "schema": "execution_cost_method.v1",
+  "date": "2026-10-26",
+  "current_stage": "CPU_CORRECTION_VERIFIED_NOT_DEPLOYED",
+  "base_commit": "89512e8",
+  "design": "execution_cost_modes.md",
+  "requirements": ["AUD-01", "AUD-02", "AUD-03", "AUD-04", "AUD-05", "COST_MODE_PAIR"],
+  "verification": {
+    "initial_pre_failed": 18,
+    "initial_pre_passed": 1,
+    "new_tests_passed": 22,
+    "engine_regression_tests_passed": 100,
+    "agent_cross_repository_tests_passed": 7,
+    "financial_fits": 0,
+    "gpu_used": false
+  },
+  "next_actions": [
+    "pin candidate engine in a new recipe, never substitute in sealed old experiments",
+    "verify actual-model structural-subset adapter and temporal baseline",
+    "run paired configured/zero-cost training and crossed policy evaluation",
+    "retain OHLC intrabar approximations and assumed broker costs explicitly"
+  ]
+}

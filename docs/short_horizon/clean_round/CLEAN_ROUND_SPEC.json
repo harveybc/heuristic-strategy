@@ -1,0 +1,282 @@
+{
+ "identity": "clean-expert-guided-e3m-20261022",
+ "status": "DRAFT: frozen except regularization (candidate recorded) and RELEASE.json; lists bound by digest",
+ "scaling": "fixed_train",
+ "nonstationary": "diff",
+ "split_contract": "consolidated",
+ "store": {
+  "path": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/full_pool_eurusd_h1.parquet",
+  "sha256": "32edb4248d659661764ee5abf982a7ee9a0e7659e08a88c03b5a28ce2466ae67",
+  "note": "read from the file and equal to its MANIFEST file_sha256"
+ },
+ "encodings": {
+  "adopted": false,
+  "evidence": "selection v3 encoding contrasts <= 0.02 nats, inconsistent; consumer arm strict+encodings -1.38 vs strict -1.13 INNER_A; v4 re-measures on the scale-corrected store"
+ },
+ "model": {
+  "variant": "FULL",
+  "units": 2,
+  "core": null,
+  "depth": 2,
+  "head": 16,
+  "max_epochs": 1000,
+  "justification": {
+   "units": "registered minimal trunk (2 per extractor), owner: small extractors",
+   "depth": "2 core convolutions: receptive field 31 >= the 24-slot window (owner: more layers in the core)",
+   "head": "16: the only coordinate promoted by the capacity ladder (VAL A)",
+   "core": "registered width (= units); widening was not promoted by the ladder; later only through a matched ladder step"
+  }
+ },
+ "limits": {
+  "max_extractor_units": 4,
+  "max_core_width": 16,
+  "max_head": 32
+ },
+ "regularization": {
+  "dropout": 0.1,
+  "wd": 0.0001,
+  "source": "T2 decision REGULARIZATION_DECISION.json (TIE_BREAK_2_SMALLER_GAP); sha256 3d8db8eb3eaee625",
+  "candidates": {
+   "base": {
+    "dropout": 0.1,
+    "wd": 0.0001
+   },
+   "strong": {
+    "dropout": 0.3,
+    "wd": 0.01
+   }
+  },
+  "rule": "tools/expert_guided_clean_round.py regularize (REG_RULE): non-dominated setting on (INNER_A Sharpe UP, TRAIN-INNER_A gap DOWN, seed std DOWN, INNER_A max DD DOWN) per v4 list among all-valid agent_state=none T2 arms with matching TRAIN/INNER_A support hashes; tie-break declared: (1) higher mean INNER_A Sharpe beyond the pooled seed std, (2) smaller mean gap, (3) base; OBS_2024 never read; dropout/wd stay null until `regularize --apply` writes the T2 decision here",
+  "status": "DECIDED",
+  "v3_observation": {
+   "note": "historical gap diagnostic on the v3 store (dev3y contract, peer worker); NOT a source for this round",
+   "from": "Musashi's gap diagnostic (my package, his worker; dev3y, store v3): mean TRAIN-INNER_A Sharpe gap among all-valid arms: strong 2.196 (3 arms) vs base 3.133 (4 arms); strict/full/strong excluded (invalid seeds)",
+   "caveat": "not uniform: for agent-state none (the clean round's setting) strong is smaller on core15 (1.129 vs 1.694) but base is smaller on the strict list (4.921 vs 5.717); on core15 the gap shrinks because TRAIN falls (INNER_A -1.598 vs -1.244). Measured on the v3 store; offer to repeat on the _s store with the v4 lists before release."
+  },
+  "chosen": "base"
+ },
+ "demonstrators": {
+  "file": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/DEMONSTRATORS.json",
+  "note": "registered optimum = ZigZag Depth 3 / Backstep 0 (Deviation is inert in the replicated MetaTrader ZigZag). Owner 2026-10-22: extra demonstrators SHORTER than the optimum, to label the intermediate, lower-gain trades: depth 2 (TRAIN 38 legs/week, median leg 24 pips) and a reversal ZigZag at 10 pips (87 legs/week, 23 pips) vs the optimum's 27 legs/week, 30 pips; depth 1 is degenerate (210 pivots). All valid under the replay contract; their causal-confirmed replays lose (the edge is anticipation)."
+ },
+ "memory": "6G",
+ "remote_root": "/var/tmp/expert-guided-clean-20261022",
+ "gates": [
+  {
+   "path": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/DRIVER.log",
+   "must_contain": "AGGREGATE DONE",
+   "why": "selection rerun on the scale-corrected stores closed"
+  },
+  {
+   "path": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/RELEASE.json",
+   "why": "written by Satoshi ONLY after the owner confirms that data / selection / encoding / extraction are closed (Musashi's last part included) and the regularization source is filled"
+  }
+ ],
+ "decision": "stage A and B (B inherits the A winner's list / extractor / window / groups; the window shown in B is only for the receptive-field check): highest seed-mean INNER_A Sharpe (consolidated inner block 2023H2) among arms with all three seeds valid; ties -> fewer parameters; TRAIN-INNER_A gap reported for every arm; VALIDATION 2024 is read once inside each run after its own freeze and never consulted by the decision",
+ "stages": {
+  "A": [
+   {
+    "name": "core15_feat_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_feature",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
+   },
+   {
+    "name": "core15_feat_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_feature",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
+   },
+   {
+    "name": "core15_fam_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_core15.json",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
+   },
+   {
+    "name": "core15_fam_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_core15.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_core15.json",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "list_sha256": "86f8dddfb8057a683b1371d8d973271c19c29816cd85ecf4a0db3c9058398c0d"
+   },
+   {
+    "name": "strict_feat_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_feature",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
+   },
+   {
+    "name": "strict_feat_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_feature",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
+   },
+   {
+    "name": "strict_fam_w13",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_shortlist_strict.json",
+    "window": [
+     13,
+     2
+    ],
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
+   },
+   {
+    "name": "strict_fam_w24",
+    "list": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/selection_v4/FEATURE_LIST_shortlist_strict.json",
+    "extractor": "per_family",
+    "groups": "/var/tmp/features-candidates/eurusd_h1_full_pool_s/clean_round/FEATURE_GROUPS_shortlist_strict.json",
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "list_sha256": "902622d7e47377034ac131d84b08fae9e497105f47aa29d1a1fec1b4099276b1"
+   }
+  ],
+  "B": [
+   {
+    "name": "winner_aux",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "aux_targets": true,
+    "note": "+ hindsight opportunity / hold-gain heads"
+   },
+   {
+    "name": "winner_shorter_experts",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "extra_experts": [
+     "2",
+     "rev10"
+    ],
+    "note": "+ demonstrators shorter than the optimum (consensus labels)"
+   },
+   {
+    "name": "winner_aux_shorter_experts",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "none",
+    "extra_experts": [
+     "2",
+     "rev10"
+    ],
+    "aux_targets": true,
+    "note": "both signal improvements"
+   },
+   {
+    "name": "winner_minimal_state",
+    "list": null,
+    "extractor": null,
+    "window": [
+     24,
+     1
+    ],
+    "agent_state": "minimal",
+    "note": "declared control: position + can_enter only (bounded, unclipped); the simulator keeps its full state"
+   }
+  ]
+ },
+ "exec_contract": "sac",
+ "exec_contract_note": "owner 2026-10-22: the replay contract (max 1 entry/day, leverage 1:50; rel_volume 0.10, initial cash 10000) for demonstrations, DAgger rollouts, arbiter choice and every reported period; same as the SAC line, so policies of both lines are comparable",
+ "aux_targets": {
+  "opportunity_at_open": "best favourable excursion of an entry at the next open before the optimal pivot (<= 72 bars, <= forced flat), causal sigma, net of cost",
+  "hold_gain_at_close": "best further gain from the current close until the same horizon (how much more vs closing now)",
+  "bound": [
+   -0.1,
+   3.0
+  ],
+  "bound_evidence": "SIGNAL_PROFILE.json TRAIN percentiles: opportunity p1 -0.06 / p99 2.12; hold gain p1 0.00 / p99 2.19",
+  "use": "auxiliary bounded regression heads (Huber, per-target masks, label-support purge); training-only, never an observation"
+ },
+ "min_orders_per_week": 2.0,
+ "min_orders_per_week_note": "owner 2026-10-22: >= 2 orders/week (was 3); applied to valid and to the arbiter choice through the env config",
+ "selection": {
+  "identity": "selection v4 on the scale-corrected stores (family_union_v1)",
+  "ledger_sha256": "69558d89a25d8e846825d2177a5ffbb784c46529e603d2eed91941f61b70e1c7",
+  "shortlist_sha256": "fa895f9c4975d4a38422432f110eaca9f30121e25710a1a1a1322fd6c1998edb",
+  "lists": {
+   "core15": 15,
+   "shortlist_strict": 116,
+   "shortlist": 164
+  },
+  "pairing_audit": "contrast 714/714, encoding 72/72, rescue 120/120 (arm-aware check)"
+ },
+ "release_states": {
+  "audit": "Musashi's final joint audit 2026-10-23 = REVISE_BEFORE_SHARED_CONSUMPTION (A1 fit scope, A2 exporter, A3 consumption, A4 semantics); corrected 2026-10-24; his re-review pending",
+  "data_features": {
+   "status": "CANDIDATE_VERIFIED_A1",
+   "covers": "admitted bars, stores _s, consumer store full_pool_s_a1 (learned producers fitted on the consumer scope only; act.p_hit cross-fitted), selection v5 (fold-local producers; 3 882 units, 0 errors) lists 15/121/165",
+   "evidence": "evidence/a1/SCOPES.json, SCOPES_REPORT.json, scopes/, CHECK_consumer.json, CHECK_sel_K3_f1.json, AFFECTED.json; selection v5 LEDGER on the 4090 host",
+   "declared": "the selection fits on 2020-2023 including 2023 S2 = the consumers' inner block: INNER_A is not an independent holdout of the LIST, only of the consumer fits"
+  },
+  "regularization": {
+   "status": "DECIDED_A1",
+   "value": "strong (dropout 0.3, wd 1e-2)",
+   "evidence": "evidence/a1/T2_VERIFY_A1.json (4/4, two producers), REGULARIZATION_DECISION_A1.json (TIE_BREAK_2_SMALLER_GAP)",
+   "note": "the v4 strict INNER_A gain (0.571) was contaminated; strict v5 INNER_A ~0"
+  },
+  "representation": {
+   "status": "DECIDED_A1_COMBINATION_SELECTED",
+   "evidence": "evidence/a1/T3_DECISION.json (= Musashi's digest 7291c1aa...; inv.raw, inv.momentum, hilbert/log_close -> pointwise; px.close_loc -> per_feature; expectations 7/18), unit_C.json (a9f553a7...), musashi_v5/COMBINATION_RESULT.json (C INNER_A 1.392 vs control 0.836, pooled 0.713; replay exact)",
+   "caveats": "OBS_2024 read once: control -0.572, C -1.011 (C worse); TRAIN 2.997 vs 2.572; not a holdout; TEST closed"
+  },
+  "consumer_recipe": {
+   "status": "EMITTED_V2",
+   "file": "CONSUMER_RECIPE.json",
+   "identity": "recipe_5a8f2155318ba7c7",
+   "sha256": "93ac66dc40de4b48a65a1455b0a391f15aad78cae43738a4e7d164d768cf118b",
+   "probe_reference": "evidence/a1/PROBE_a1_reference.json",
+   "note": "derived from C's receipt chain; v1 kept as CONSUMER_RECIPE_v1_contaminated.json; the SAC consumer must produce an equal probe before any campaign"
+  },
+  "note": "No global RELEASE: Musashi's re-review of A1-A4 and the owner's confirmation remain; the expert-guided clean round and the SAC-without-expert contrast are separate subsequent experiments on this recipe."
+ }
+}

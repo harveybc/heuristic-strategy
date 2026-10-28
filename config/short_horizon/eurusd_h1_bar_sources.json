@@ -1,0 +1,57 @@
+{
+ "schema": "heuristic_strategy.bar_sources.v1",
+ "asset": "EURUSD",
+ "bar": "1h",
+ "description": "Bar sources for EURUSD H1 short-horizon studies. lake_label is the legacy default (vendor label clock, byte-identical to data.load_ohlc). admitted and lake_mapped both index by the true UTC bar START. Plan items 14c/16; audit F04: the key is (asset, utc_bar_start, bar_convention, source), OHLC agreement is supporting evidence only.",
+ "default_source": "lake_label",
+ "sources": {
+  "lake_label": {
+   "path": "<FINANCIAL_DATA_ROOT>/market_data/forex/g10/eurusd/1h.parquet",
+   "sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+   "bar_convention": "VENDOR_LABEL_AS_TAGGED",
+   "note": "legacy: the file's UTC type tag is read as if it were the clock; it is not (see clock identity)"
+  },
+  "lake_mapped": {
+   "path": "<FINANCIAL_DATA_ROOT>/market_data/forex/g10/eurusd/1h.parquet",
+   "sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+   "bar_convention": "UTC_BAR_START",
+   "clock_rule": "EU_DST_UTC_MINUS_5",
+   "transition_policy": {"nonexistent": "raise", "ambiguous": "raise"},
+   "clock_identity": "docs/short_horizon/results/clock_identity/CLOCK_IDENTITY.json",
+   "clock_identity_sha256": "cb565a65f8507bfaf85b671847731bf866e7d07f14f7fbb77ae27910326d036b"
+  },
+  "admitted": {
+   "path": "<ADMITTED_ROOT>/eurusd.parquet",
+   "sha256": "c80847bb149c7af1ad50e42301b5cd70608e6c37702ce8cc6a7b9eb70f36d2ca",
+   "admission_sha256": "ee426b52b4c6ad77c9b48cfce2681c3197903222ed7ff890d8b30d2ffbb74b52",
+   "bar_convention": "UTC_BAR_START",
+   "availability": "UTC_NATIVE_BAR_START_PLUS_ONE_HOUR",
+   "quote_view": "BID_COMPATIBLE_NON_EXECUTABLE_PRICE_REFERENCE",
+   "columns": {"timestamp": "UTC bar start", "BidOpen": "OPEN", "BidHigh": "HIGH", "BidLow": "LOW", "BidClose": "CLOSE"},
+   "closure_intervals": {
+    "path": "<ADMITTED_ROOT>/CLOSURE_INTERVALS.json",
+    "sha256": "71078e8f9a95c4438405a9fa3dafdffdc0f44183bbf27ba828168c18065e8350"
+   }
+  }
+ },
+ "joined_view": {
+  "key": ["asset", "utc_bar_start", "bar_convention", "source"],
+  "bar_convention": "UTC_BAR_START",
+  "source_values": {
+   "admitted": "admitted:<admitted sha256>",
+   "lake_mapped": "lake_mapped:<clock rule id>:<lake sha256>"
+  },
+  "builder": "app.short_horizon.clock_identity.joined_view",
+  "comparison": "app.short_horizon.clock_identity.comparison_view (wide; ohlc_equal is supporting evidence only)",
+  "forbidden": ["hand-applied hour shift", "OHLC-only join", "joining on the vendor label"]
+ },
+ "witness": {
+  "window_utc": ["2020-01-01", "2025-01-01"],
+  "rules": ["EU_DST_UTC_MINUS_5", "AMERICA_NEW_YORK_WALL", "FIXED_UTC_MINUS_5"],
+  "tolerance_abs": 1e-9
+ },
+ "identity": {
+  "window_utc": ["2019-12-01", "2025-01-01"],
+  "transition_policy": {"nonexistent": "raise", "ambiguous": "raise"}
+ }
+}

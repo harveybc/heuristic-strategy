@@ -1,0 +1,23 @@
+{
+ "parameters": {
+  "block_hours": 24,
+  "c_tp": 1.0,
+  "leverage": 100,
+  "m": 2.0,
+  "max_orders_per_day": 4,
+  "min_trades_per_week": 3.0,
+  "pos_a": 1.0,
+  "pos_b": 0.0,
+  "pos_c": 0.0,
+  "pos_min": 0.25,
+  "rel_volume": 0.1,
+  "theta": 0.0,
+  "time_stop_hours": 24,
+  "tp_form": "additive",
+  "trend_model": "t0",
+  "vol_model": "HAR",
+  "w_trend": 1.0
+ },
+ "manifest_sha256": "2086f7409e4590035258d0ff4a5952fbcd05b078f5481559cc0694138de459d9",
+ "schema_sha256": "184b84e1bb6243d5759d48980a981cdf6d39f79229529dc3a7d355657fe2a91a"
+}

@@ -1,0 +1,36 @@
+2026-10-20T10:12:28+00:00 ladder start
+2026-10-20T10:12:28+00:00 start e1t_b2_c8_h0_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T10:19:17+00:00 end e1t_b2_c8_h0_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T10:19:17+00:00 start e2t_b2_c8_h0_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T11:16:33+00:00 end e2t_b2_c8_h0_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T11:16:34+00:00 start e1t_b2_c16_h0_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T11:22:09+00:00 end e1t_b2_c16_h0_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T11:22:09+00:00 start e2t_b2_c16_h0_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T12:12:40+00:00 end e2t_b2_c16_h0_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T12:12:40+00:00 S1_core done; incumbent b2_c2_h0_d1_do0.1_wd0.0001
+2026-10-20T12:12:40+00:00 start e1t_b2_c2_h8_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T12:21:26+00:00 end e1t_b2_c2_h8_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T12:21:26+00:00 start e2t_b2_c2_h8_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T13:12:40+00:00 end e2t_b2_c2_h8_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T13:12:40+00:00 start e1t_b2_c2_h16_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T13:21:06+00:00 end e1t_b2_c2_h16_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T13:21:06+00:00 start e2t_b2_c2_h16_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T14:10:09+00:00 end e2t_b2_c2_h16_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T14:10:09+00:00 S2_head done; incumbent b2_c2_h16_d1_do0.1_wd0.0001
+2026-10-20T14:10:09+00:00 start e1t_b4_c2_h16_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T14:17:58+00:00 end e1t_b4_c2_h16_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T14:17:58+00:00 start e2t_b4_c2_h16_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T15:12:13+00:00 end e2t_b4_c2_h16_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T15:12:13+00:00 start e1t_b8_c2_h16_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T15:19:33+00:00 end e1t_b8_c2_h16_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T15:19:33+00:00 start e2t_b8_c2_h16_d1_do0.1_wd0.0001 attempt 1
+2026-10-20T16:14:54+00:00 end e2t_b8_c2_h16_d1_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T16:14:54+00:00 S3_branch done; incumbent b2_c2_h16_d1_do0.1_wd0.0001
+2026-10-20T16:14:54+00:00 start e1t_b2_c2_h16_d2_do0.1_wd0.0001 attempt 1
+2026-10-20T16:22:45+00:00 end e1t_b2_c2_h16_d2_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T16:22:45+00:00 start e2t_b2_c2_h16_d2_do0.1_wd0.0001 attempt 1
+2026-10-20T17:15:08+00:00 end e2t_b2_c2_h16_d2_do0.1_wd0.0001 attempt 1 rc=0
+2026-10-20T17:15:09+00:00 S4_depth done; incumbent b2_c2_h16_d1_do0.1_wd0.0001
+2026-10-20T17:15:09+00:00 start eval2024_finalist attempt 1
+2026-10-20T17:15:28+00:00 end eval2024_finalist attempt 1 rc=0
+2026-10-20T17:15:28+00:00 ladder done

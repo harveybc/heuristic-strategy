@@ -1,0 +1,22 @@
+{
+ "block_hours": 24,
+ "decided_on": "2023 only (fit 2020-2022, weekly purged refits)",
+ "scores_2023": {
+  "GBM_d2_n100": 0.004360842328632224,
+  "GBM_d2_n300": 0.004412026563460324,
+  "GBM_d3_n100": 0.004399775597991729,
+  "GBM_d3_n300": 0.004457650200545446
+ },
+ "chosen": {
+  "max_depth": 2,
+  "max_iter": 100
+ },
+ "chosen_tag": "GBM_d2_n100",
+ "decided_at": "2026-10-19T10:18:08.872265+00:00",
+ "inputs_sha256": {
+  "GBM_d2_n100__coin.csv": "6a6787b56e6e5b80091ebc95649e1708e34b81a18481feae6842784e02f8f9b1",
+  "GBM_d2_n300__coin.csv": "8737d08d6cf62cd1adf0169d7dc5eb5ad366181993416c0e3c1f20bcff6e76b6",
+  "GBM_d3_n100__coin.csv": "88483488ea468c8586426bb9f440b901370c004c6b8e3dda9862a5c56ebaf23f",
+  "GBM_d3_n300__coin.csv": "e768ff633e90d8ded71864c08a456c0f7543ec2c2fd8cf2c4cdd061c1f48caea"
+ }
+}

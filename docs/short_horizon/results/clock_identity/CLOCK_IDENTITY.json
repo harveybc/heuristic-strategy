@@ -1,0 +1,155 @@
+{
+ "asset": "EURUSD",
+ "availability_out": "UTC_BAR_START_PLUS_ONE_HOUR",
+ "bar": "1h",
+ "bar_convention_in": "LABEL_IS_BAR_START_IN_RULE_CLOCK",
+ "bar_convention_out": "UTC_BAR_START",
+ "identity_sha256": "cb565a65f8507bfaf85b671847731bf866e7d07f14f7fbb77ae27910326d036b",
+ "mapping": {
+  "digest_sha256": "b3f617eff7ccffd135a6ec300393f420d0b7252653127c7cbafc7519cfefd4fa",
+  "encoding": "sha256(b'clock_identity.mapping.v1\\x00' + label_ns.int64_le + utc_ns.int64_le); label_ns = naive label as datetime64[ns]; utc_ns = UTC bar start as datetime64[ns]",
+  "first_utc": "2019-12-01T22:00:00+00:00",
+  "label_offset_hours_counts": {
+   "-4": 17697,
+   "-5": 13157
+  },
+  "last_utc": "2024-12-31T21:00:00+00:00",
+  "rows": 30854,
+  "window_utc": [
+   "2019-12-01T00:00:00+00:00",
+   "2025-01-01T00:00:00+00:00"
+  ]
+ },
+ "rule": {
+  "description": "label = Europe/London wall-clock time of the bar start minus 5 h: UTC-5 outside EU summer time, UTC-4 during it (EU transition instants, 01:00 UTC on the last Sundays of March and October)",
+  "id": "EU_DST_UTC_MINUS_5",
+  "implementation": "zoneinfo (PEP 495 fold), no hand-applied shift",
+  "label_minus_wall_hours": -5,
+  "tz": "Europe/London"
+ },
+ "schema": "heuristic_strategy.clock_identity.v1",
+ "source": {
+  "label_column": "datetime",
+  "label_semantics": "naive wall-clock label of the bar start; the file's UTC type tag is not the clock",
+  "sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e"
+ },
+ "transition_policy": {
+  "ambiguous": "raise",
+  "nonexistent": "raise"
+ },
+ "transitions": {
+  "instants": [
+   {
+    "label_offset_after_hours": -4,
+    "label_offset_before_hours": -5,
+    "utc": "2019-03-31T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -5,
+    "label_offset_before_hours": -4,
+    "utc": "2019-10-27T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -4,
+    "label_offset_before_hours": -5,
+    "utc": "2020-03-29T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -5,
+    "label_offset_before_hours": -4,
+    "utc": "2020-10-25T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -4,
+    "label_offset_before_hours": -5,
+    "utc": "2021-03-28T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -5,
+    "label_offset_before_hours": -4,
+    "utc": "2021-10-31T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -4,
+    "label_offset_before_hours": -5,
+    "utc": "2022-03-27T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -5,
+    "label_offset_before_hours": -4,
+    "utc": "2022-10-30T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -4,
+    "label_offset_before_hours": -5,
+    "utc": "2023-03-26T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -5,
+    "label_offset_before_hours": -4,
+    "utc": "2023-10-29T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -4,
+    "label_offset_before_hours": -5,
+    "utc": "2024-03-31T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -5,
+    "label_offset_before_hours": -4,
+    "utc": "2024-10-27T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -4,
+    "label_offset_before_hours": -5,
+    "utc": "2025-03-30T01:00:00+00:00"
+   },
+   {
+    "label_offset_after_hours": -5,
+    "label_offset_before_hours": -4,
+    "utc": "2025-10-26T01:00:00+00:00"
+   }
+  ],
+  "matches_pinned": true,
+  "sha256": "bd859e4bb5cbe3b1eb978a3681355413d2a946685af37b8c79a2889467846b6c",
+  "years": [
+   2019,
+   2025
+  ]
+ },
+ "tzdata": {
+  "provider": "zoneinfo.TZPATH system tz database",
+  "version": "2024b"
+ },
+ "witness": {
+  "admitted_sha256": "c80847bb149c7af1ad50e42301b5cd70608e6c37702ce8cc6a7b9eb70f36d2ca",
+  "other_rules": {
+   "AMERICA_NEW_YORK_WALL": {
+    "residual_clock": 1953,
+    "us_eu_gap_periods": {
+     "admitted_in_us_eu_gap": 2040,
+     "exact_in_us_eu_gap": 0,
+     "joined_in_us_eu_gap": 1953,
+     "lake_mapped_in_us_eu_gap": 1968
+    },
+    "verdict": "CLOCK_RESIDUALS_PRESENT"
+   },
+   "FIXED_UTC_MINUS_5": {
+    "residual_clock": 17550,
+    "us_eu_gap_periods": {
+     "admitted_in_us_eu_gap": 2040,
+     "exact_in_us_eu_gap": 1968,
+     "joined_in_us_eu_gap": 1968,
+     "lake_mapped_in_us_eu_gap": 1968
+    },
+    "verdict": "CLOCK_RESIDUALS_PRESENT"
+   }
+  },
+  "sha256": "db3f595b2e464cbb2a550de15097c48e5b8540f10db46380c403c689a6bea6d5",
+  "verdict": "EXACT_CLOCK_MAPPING",
+  "window_utc": [
+   "2020-01-01T00:00:00+00:00",
+   "2025-01-01T00:00:00+00:00"
+  ]
+ }
+}

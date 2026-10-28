@@ -1,0 +1,39 @@
+{"utc": "2026-10-21T10:16:48+00:00", "rung": "REFIT", "event": "PREREGISTRATION", "arms": ["monthly|1y|warm", "monthly|1y|scratch", "monthly|2y|warm", "monthly|2y|scratch", "monthly|all|warm", "monthly|all|scratch"], "dagger_rounds": 1, "holdout_share": 0.1, "seeds": [20261019, 20261020, 20261021], "arch": {"units": 2, "branch": null, "core": null, "depth": 1, "head": 16}, "device": "cuda", "choice": "highest seed-mean VAL A Sharpe among arms valid on VAL A; VAL B reported; 2024 once"}
+{"utc": "2026-10-21T10:16:52+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|warm", "seed": 20261019}
+{"utc": "2026-10-21T10:18:39+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|warm", "seed": 20261019, "inner_a": -0.8708710031789233}
+{"utc": "2026-10-21T10:18:39+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|warm", "seed": 20261020}
+{"utc": "2026-10-21T10:20:20+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|warm", "seed": 20261020, "inner_a": -2.9088093784042384}
+{"utc": "2026-10-21T10:20:20+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|warm", "seed": 20261021}
+{"utc": "2026-10-21T10:22:05+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|warm", "seed": 20261021, "inner_a": -3.447354655854913}
+{"utc": "2026-10-21T10:22:05+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|scratch", "seed": 20261019}
+{"utc": "2026-10-21T10:24:35+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|scratch", "seed": 20261019, "inner_a": -3.5946663385687425}
+{"utc": "2026-10-21T10:24:35+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|scratch", "seed": 20261020}
+{"utc": "2026-10-21T10:27:28+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|scratch", "seed": 20261020, "inner_a": -2.4866606970013527}
+{"utc": "2026-10-21T10:27:28+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|1y|scratch", "seed": 20261021}
+{"utc": "2026-10-21T10:30:42+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|1y|scratch", "seed": 20261021, "inner_a": -2.107457427156569}
+{"utc": "2026-10-21T10:30:42+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|warm", "seed": 20261019}
+{"utc": "2026-10-21T10:33:50+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|warm", "seed": 20261019, "inner_a": -0.6697789144013835}
+{"utc": "2026-10-21T10:33:50+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|warm", "seed": 20261020}
+{"utc": "2026-10-21T10:36:45+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|warm", "seed": 20261020, "inner_a": -3.901047303521379}
+{"utc": "2026-10-21T10:36:45+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|warm", "seed": 20261021}
+{"utc": "2026-10-21T10:39:43+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|warm", "seed": 20261021, "inner_a": -3.4464468316818615}
+{"utc": "2026-10-21T10:39:43+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|scratch", "seed": 20261019}
+{"utc": "2026-10-21T10:44:47+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|scratch", "seed": 20261019, "inner_a": -3.8637907524327364}
+{"utc": "2026-10-21T10:44:47+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|scratch", "seed": 20261020}
+{"utc": "2026-10-21T10:50:29+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|scratch", "seed": 20261020, "inner_a": -1.813649025155117}
+{"utc": "2026-10-21T10:50:29+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|2y|scratch", "seed": 20261021}
+{"utc": "2026-10-21T10:56:30+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|2y|scratch", "seed": 20261021, "inner_a": -0.15147797087269035}
+{"utc": "2026-10-21T10:56:30+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|warm", "seed": 20261019}
+{"utc": "2026-10-21T11:01:23+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|warm", "seed": 20261019, "inner_a": -5.115142119028836}
+{"utc": "2026-10-21T11:01:23+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|warm", "seed": 20261020}
+{"utc": "2026-10-21T11:06:04+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|warm", "seed": 20261020, "inner_a": -2.9562036599661647}
+{"utc": "2026-10-21T11:06:04+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|warm", "seed": 20261021}
+{"utc": "2026-10-21T11:10:36+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|warm", "seed": 20261021, "inner_a": -5.175882041526231}
+{"utc": "2026-10-21T11:10:36+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|scratch", "seed": 20261019}
+{"utc": "2026-10-21T11:20:13+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|scratch", "seed": 20261019, "inner_a": -4.090974639533939}
+{"utc": "2026-10-21T11:20:13+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|scratch", "seed": 20261020}
+{"utc": "2026-10-21T11:29:24+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|scratch", "seed": 20261020, "inner_a": -5.42812152185871}
+{"utc": "2026-10-21T11:29:24+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "monthly|all|scratch", "seed": 20261021}
+{"utc": "2026-10-21T11:39:00+00:00", "rung": "REFIT", "event": "ARM_SEED_DONE", "arm": "monthly|all|scratch", "seed": 20261021, "inner_a": -0.2919786537640228}
+{"utc": "2026-10-21T11:39:05+00:00", "rung": "REFIT", "event": "PREREGISTRATION", "arms": ["weekly|1y|warm", "weekly|2y|scratch"], "dagger_rounds": 1, "holdout_share": 0.1, "seeds": [20261019, 20261020, 20261021], "arch": {"units": 2, "branch": null, "core": null, "depth": 1, "head": 16}, "device": "cuda", "choice": "highest seed-mean VAL A Sharpe among arms valid on VAL A; VAL B reported; 2024 once"}
+{"utc": "2026-10-21T11:39:05+00:00", "rung": "REFIT", "event": "ARM_SEED_START", "arm": "weekly|1y|warm", "seed": 20261019}

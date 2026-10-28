@@ -1,0 +1,5 @@
+2026-10-20T09:42:52Z sweep start units=[4 8 16 32 64] code=/var/tmp/expert-guided-sweep-20261020/code
+2026-10-20T09:42:52Z start e1t_u4 attempt 1
+2026-10-20T09:48:55Z end e1t_u4 attempt 1 rc=0
+{"units_done": [2, 4], "choice": {"E1-T BC+DAgger": 2, "E2-T SAC": 2, "E2-T SAC+demos": 2}, "onset": {"E1-T BC+DAgger": 4, "E2-T SAC": null, "E2-T SAC+demos": null}}
+2026-10-20T09:48:59Z start e2t_u4 attempt 1

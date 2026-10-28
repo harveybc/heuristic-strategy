@@ -1,0 +1,322 @@
+{
+ "supports": {
+  "train_bars": 21809,
+  "eligible_flat_origins": 17128,
+  "opener_rows_both_horizons_final": 17128,
+  "excluded_opener_horizon_not_final": 0,
+  "closer_rows_long": 19301,
+  "closer_rows_short": 19301,
+  "truncated_share_long": 0.0402,
+  "truncated_share_short": 0.044,
+  "nan_per_target_openers": {
+   "opportunity": 0,
+   "adverse_to_peak": 0
+  }
+ },
+ "grid": [
+  {
+   "theta_open": 0.25,
+   "sl_max": 1.0,
+   "share_open_long": 0.4858,
+   "share_open_short": 0.4676,
+   "share_nop": 0.2046,
+   "share_both_sides": 0.158,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.664,
+   "p_zigzag_long_given_label_long": 0.154
+  },
+  {
+   "theta_open": 0.25,
+   "sl_max": 2.0,
+   "share_open_long": 0.4923,
+   "share_open_short": 0.4755,
+   "share_nop": 0.2043,
+   "share_both_sides": 0.1721,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.665,
+   "p_zigzag_long_given_label_long": 0.153
+  },
+  {
+   "theta_open": 0.25,
+   "sl_max": 3.0,
+   "share_open_long": 0.4923,
+   "share_open_short": 0.4759,
+   "share_nop": 0.2043,
+   "share_both_sides": 0.1725,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.665,
+   "p_zigzag_long_given_label_long": 0.153
+  },
+  {
+   "theta_open": 0.5,
+   "sl_max": 1.0,
+   "share_open_long": 0.2603,
+   "share_open_short": 0.2586,
+   "share_nop": 0.5103,
+   "share_both_sides": 0.0292,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.375,
+   "p_zigzag_long_given_label_long": 0.163
+  },
+  {
+   "theta_open": 0.5,
+   "sl_max": 2.0,
+   "share_open_long": 0.2647,
+   "share_open_short": 0.2628,
+   "share_nop": 0.5097,
+   "share_both_sides": 0.0372,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.376,
+   "p_zigzag_long_given_label_long": 0.161
+  },
+  {
+   "theta_open": 0.5,
+   "sl_max": 3.0,
+   "share_open_long": 0.2647,
+   "share_open_short": 0.2629,
+   "share_nop": 0.5097,
+   "share_both_sides": 0.0373,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.376,
+   "p_zigzag_long_given_label_long": 0.161
+  },
+  {
+   "theta_open": 0.75,
+   "sl_max": 1.0,
+   "share_open_long": 0.1529,
+   "share_open_short": 0.1544,
+   "share_nop": 0.6961,
+   "share_both_sides": 0.0034,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.213,
+   "p_zigzag_long_given_label_long": 0.158
+  },
+  {
+   "theta_open": 0.75,
+   "sl_max": 2.0,
+   "share_open_long": 0.1557,
+   "share_open_short": 0.1565,
+   "share_nop": 0.6957,
+   "share_both_sides": 0.0078,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.214,
+   "p_zigzag_long_given_label_long": 0.155
+  },
+  {
+   "theta_open": 0.75,
+   "sl_max": 3.0,
+   "share_open_long": 0.1557,
+   "share_open_short": 0.1565,
+   "share_nop": 0.6957,
+   "share_both_sides": 0.0079,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.214,
+   "p_zigzag_long_given_label_long": 0.155
+  },
+  {
+   "theta_open": 1.0,
+   "sl_max": 1.0,
+   "share_open_long": 0.0946,
+   "share_open_short": 0.0954,
+   "share_nop": 0.81,
+   "share_both_sides": 0.0,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.134,
+   "p_zigzag_long_given_label_long": 0.16
+  },
+  {
+   "theta_open": 1.0,
+   "sl_max": 2.0,
+   "share_open_long": 0.0962,
+   "share_open_short": 0.0965,
+   "share_nop": 0.8091,
+   "share_both_sides": 0.0017,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.134,
+   "p_zigzag_long_given_label_long": 0.157
+  },
+  {
+   "theta_open": 1.0,
+   "sl_max": 3.0,
+   "share_open_long": 0.0962,
+   "share_open_short": 0.0965,
+   "share_nop": 0.8091,
+   "share_both_sides": 0.0017,
+   "zigzag_long_share": 0.113,
+   "p_label_long_given_zigzag_long": 0.134,
+   "p_zigzag_long_given_label_long": 0.157
+  }
+ ],
+ "closer": [
+  {
+   "rule": "hold_through",
+   "theta_close": 0.05,
+   "share_close_long_sl1": 0.0948,
+   "share_close_short_sl1": 0.1016,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.0846,
+   "share_close_short_sl2": 0.0886,
+   "censored_long_sl2": 0
+  },
+  {
+   "rule": "hold_through",
+   "theta_close": 0.1,
+   "share_close_long_sl1": 0.1887,
+   "share_close_short_sl1": 0.1989,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.1794,
+   "share_close_short_sl2": 0.1874,
+   "censored_long_sl2": 0
+  },
+  {
+   "rule": "hold_through",
+   "theta_close": 0.25,
+   "share_close_long_sl1": 0.4412,
+   "share_close_short_sl1": 0.4566,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.4342,
+   "share_close_short_sl2": 0.4476,
+   "censored_long_sl2": 0
+  },
+  {
+   "rule": "hold_through",
+   "theta_close": 0.5,
+   "share_close_long_sl1": 0.7006,
+   "share_close_short_sl1": 0.7022,
+   "censored_long_sl1": 0,
+   "share_close_long_sl2": 0.6957,
+   "share_close_short_sl2": 0.6968,
+   "censored_long_sl2": 0
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.05,
+   "share_close_long_sl1": 0.5074,
+   "share_close_short_sl1": 0.5231,
+   "censored_long_sl1": 489,
+   "share_close_long_sl2": 0.5066,
+   "share_close_short_sl2": 0.5225,
+   "censored_long_sl2": 489
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.1,
+   "share_close_long_sl1": 0.5393,
+   "share_close_short_sl1": 0.5584,
+   "censored_long_sl1": 489,
+   "share_close_long_sl2": 0.5385,
+   "share_close_short_sl2": 0.5579,
+   "censored_long_sl2": 489
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.25,
+   "share_close_long_sl1": 0.6699,
+   "share_close_short_sl1": 0.6822,
+   "censored_long_sl1": 489,
+   "share_close_long_sl2": 0.6691,
+   "share_close_short_sl2": 0.6817,
+   "censored_long_sl2": 489
+  },
+  {
+   "rule": "optimum",
+   "theta_close": 0.5,
+   "share_close_long_sl1": 0.823,
+   "share_close_short_sl1": 0.821,
+   "censored_long_sl1": 489,
+   "share_close_long_sl2": 0.8223,
+   "share_close_short_sl2": 0.8208,
+   "censored_long_sl2": 489
+  }
+ ],
+ "percentiles": {
+  "opportunity": {
+   "long": {
+    "5": -0.03,
+    "25": 0.077,
+    "50": 0.244,
+    "75": 0.526,
+    "95": 1.332
+   },
+   "short": {
+    "5": -0.032,
+    "25": 0.071,
+    "50": 0.229,
+    "75": 0.524,
+    "95": 1.349
+   }
+  },
+  "adverse_to_peak": {
+   "long": {
+    "5": 0.008,
+    "25": 0.058,
+    "50": 0.134,
+    "75": 0.269,
+    "95": 0.63
+   },
+   "short": {
+    "5": 0.009,
+    "25": 0.061,
+    "50": 0.141,
+    "75": 0.281,
+    "95": 0.641
+   }
+  },
+  "bars_to_peak": {
+   "long": {
+    "5": 1.0,
+    "25": 1.0,
+    "50": 3.0,
+    "75": 6.0,
+    "95": 13.0
+   },
+   "short": {
+    "5": 1.0,
+    "25": 1.0,
+    "50": 3.0,
+    "75": 6.0,
+    "95": 12.0
+   }
+  },
+  "hold_gain": {
+   "long": {
+    "5": 0.03,
+    "25": 0.136,
+    "50": 0.301,
+    "75": 0.585,
+    "95": 1.402
+   },
+   "short": {
+    "5": 0.029,
+    "25": 0.132,
+    "50": 0.291,
+    "75": 0.582,
+    "95": 1.388
+   }
+  },
+  "hold_adverse": {
+   "long": {
+    "5": 0.008,
+    "25": 0.058,
+    "50": 0.133,
+    "75": 0.268,
+    "95": 0.625
+   },
+   "short": {
+    "5": 0.009,
+    "25": 0.061,
+    "50": 0.141,
+    "75": 0.281,
+    "95": 0.64
+   }
+  }
+ },
+ "at_optimal_pivots": {
+  "note": "the horizon of a long at a peak is the NEXT peak: hold gain there is the rise after the dip; the closer label is decided by that gain and the dip against the order's SL",
+  "long_hold_gain_at_peaks_p50": 0.199,
+  "long_hold_adverse_at_peaks_p50": 0.285,
+  "short_hold_gain_at_valleys_p50": 0.184,
+  "share_close_long_at_peaks_sl2_theta0.1_hold_through": 0.318,
+  "share_close_long_at_peaks_sl2_theta0.1_optimum": 1.0
+ }
+}

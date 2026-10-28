@@ -1,0 +1,48 @@
+{
+ "cells_sha256": "0d175cf2876f1b8134b5a2dae8079cb3021aa614cae6d118f0ec360c6fe51b6f",
+ "rows": 10560,
+ "cpu_seconds": 706.2,
+ "chunks": 14,
+ "figures": [
+  "barrido_volatilidad_sharpe_B24_validacion_V1",
+  "barrido_volatilidad_net_B24_validacion_V1",
+  "barrido_volatilidad_maxdd_B24_validacion_V1",
+  "barrido_volatilidad_sharpe_B24_validacion_V2",
+  "barrido_volatilidad_net_B24_validacion_V2",
+  "barrido_volatilidad_maxdd_B24_validacion_V2",
+  "apalancamiento_B24_validacion",
+  "barrido_volatilidad_sharpe_B24_entrenamiento_V1",
+  "barrido_volatilidad_net_B24_entrenamiento_V1",
+  "barrido_volatilidad_maxdd_B24_entrenamiento_V1",
+  "barrido_volatilidad_sharpe_B24_entrenamiento_V2",
+  "barrido_volatilidad_net_B24_entrenamiento_V2",
+  "barrido_volatilidad_maxdd_B24_entrenamiento_V2",
+  "apalancamiento_B24_entrenamiento",
+  "barrido_volatilidad_sharpe_B6_validacion_V1",
+  "barrido_volatilidad_net_B6_validacion_V1",
+  "barrido_volatilidad_maxdd_B6_validacion_V1",
+  "barrido_volatilidad_sharpe_B6_validacion_V2",
+  "barrido_volatilidad_net_B6_validacion_V2",
+  "barrido_volatilidad_maxdd_B6_validacion_V2",
+  "apalancamiento_B6_validacion",
+  "barrido_volatilidad_sharpe_B6_entrenamiento_V1",
+  "barrido_volatilidad_net_B6_entrenamiento_V1",
+  "barrido_volatilidad_maxdd_B6_entrenamiento_V1",
+  "barrido_volatilidad_sharpe_B6_entrenamiento_V2",
+  "barrido_volatilidad_net_B6_entrenamiento_V2",
+  "barrido_volatilidad_maxdd_B6_entrenamiento_V2",
+  "apalancamiento_B6_entrenamiento"
+ ],
+ "data_sha256": "c6628375b2872f16dcdbd6b1b90ed8e68bc5bdd852efdef01f2515b8712d4e2e",
+ "sizing": {
+  "rel_volume": 0.1,
+  "percentual_order_size": 1.0,
+  "basis": "margin",
+  "leverage_scenarios": [
+   10,
+   50,
+   100
+  ]
+ },
+ "test_rows_read": false
+}

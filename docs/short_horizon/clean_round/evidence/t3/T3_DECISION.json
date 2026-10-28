@@ -1,0 +1,1026 @@
+{
+ "manifest": "t3v2_8875abf84a63",
+ "rule": "see manifest rules (decision)",
+ "groups": [
+  {
+   "group": "inv.raw",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_01",
+     "qualifies": false,
+     "sharpe": -0.25798954865560003,
+     "sharpe_std": 1.143670441447655,
+     "gap": 2.5786936840695276,
+     "valid": true,
+     "params": 5148
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_02",
+     "qualifies": false,
+     "sharpe": 1.216048443449164,
+     "sharpe_std": 1.3434814769897359,
+     "gap": 1.5267262013612795,
+     "valid": true,
+     "params": 5668
+    }
+   ],
+   "profile_expectation": {
+    "memory": "near_white",
+    "redundancy": "high",
+    "expected": [
+     "conv >= pointwise",
+     "conv >= per_feature"
+    ]
+   }
+  },
+  {
+   "group": "inv.momentum",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_03",
+     "qualifies": false,
+     "sharpe": 0.07733881400007778,
+     "sharpe_std": 0.8098947944125363,
+     "gap": 2.3949840272363,
+     "valid": true,
+     "params": 5148
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_04",
+     "qualifies": false,
+     "sharpe": 0.5150792244731821,
+     "sharpe_std": 0.7204751195330307,
+     "gap": 2.1902692859531285,
+     "valid": true,
+     "params": 5668
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   }
+  },
+  {
+   "group": "calendar",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_05",
+     "qualifies": false,
+     "sharpe": 0.0730948216663627,
+     "sharpe_std": 0.7531294143043237,
+     "gap": 2.3847062362310343,
+     "valid": true,
+     "params": 5068
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_06",
+     "qualifies": false,
+     "sharpe": 0.5517490821637884,
+     "sharpe_std": 1.0183779419120729,
+     "gap": 2.3302301080279895,
+     "valid": true,
+     "params": 5948
+    }
+   ],
+   "profile_expectation": {
+    "memory": "persistent",
+    "redundancy": "high",
+    "expected": [
+     "pointwise >= conv",
+     "conv >= per_feature"
+    ]
+   }
+  },
+  {
+   "group": "px.logret",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_07",
+     "qualifies": false,
+     "sharpe": -0.241258150575584,
+     "sharpe_std": 0.2739788173374275,
+     "gap": 2.243402227295002,
+     "valid": true,
+     "params": 5164
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_08",
+     "qualifies": false,
+     "sharpe": -0.2121373868159114,
+     "sharpe_std": 0.4535259431489973,
+     "gap": 3.1173363182569096,
+     "valid": true,
+     "params": 5612
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "px.range",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_09",
+     "qualifies": false,
+     "sharpe": 0.7945765313647338,
+     "sharpe_std": 1.0294450813845215,
+     "gap": 2.066511978682299,
+     "valid": true,
+     "params": 5164
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_10",
+     "qualifies": false,
+     "sharpe": -0.2558565350523156,
+     "sharpe_std": 0.9592342097392225,
+     "gap": 2.3110104015920068,
+     "valid": true,
+     "params": 5612
+    }
+   ],
+   "profile_expectation": {
+    "memory": "persistent",
+    "redundancy": "mid",
+    "expected": [
+     "pointwise >= conv"
+    ]
+   }
+  },
+  {
+   "group": "px.close_loc",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_11",
+     "qualifies": false,
+     "sharpe": -0.1503436561254115,
+     "sharpe_std": 0.3297234713015616,
+     "gap": 2.749152438914962,
+     "valid": true,
+     "params": 5164
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_12",
+     "qualifies": false,
+     "sharpe": 0.41736649520050406,
+     "sharpe_std": 0.737219263191345,
+     "gap": 2.5946128328122042,
+     "valid": true,
+     "params": 5612
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "px.er",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_13",
+     "qualifies": false,
+     "sharpe": -0.7612944008300193,
+     "sharpe_std": 0.9894563409617207,
+     "gap": 3.625200854566232,
+     "valid": true,
+     "params": 5164
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_14",
+     "qualifies": false,
+     "sharpe": -0.7883805407222985,
+     "sharpe_std": 0.4331721368244107,
+     "gap": 3.510975366351858,
+     "valid": true,
+     "params": 5612
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "px.range_ratio",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_15",
+     "qualifies": false,
+     "sharpe": 1.0535377252036877,
+     "sharpe_std": 1.4810754953859189,
+     "gap": 1.400473338786398,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "px.hours_since_session_open",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_16",
+     "qualifies": false,
+     "sharpe": 0.5190314356581013,
+     "sharpe_std": 0.19416964537199224,
+     "gap": 1.8665981607187359,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "cdl",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_17",
+     "qualifies": false,
+     "sharpe": -0.005201645446003554,
+     "sharpe_std": 0.19662914425626146,
+     "gap": 1.442809889469883,
+     "valid": true,
+     "params": 5180
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_18",
+     "qualifies": false,
+     "sharpe": 0.7171739957356988,
+     "sharpe_std": 0.7455398947565165,
+     "gap": 2.212271821103951,
+     "valid": true,
+     "params": 5556
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "fx.usdchf",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_19",
+     "qualifies": false,
+     "sharpe": 0.4539014025425414,
+     "sharpe_std": 0.20484451392696748,
+     "gap": 2.449904463162272,
+     "valid": true,
+     "params": 5212
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_20",
+     "qualifies": false,
+     "sharpe": 0.3158549926487935,
+     "sharpe_std": 1.0492848293781065,
+     "gap": 2.482285261639343,
+     "valid": true,
+     "params": 5444
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "low",
+    "expected": [
+     "per_feature >= conv"
+    ]
+   }
+  },
+  {
+   "group": "dly.gold",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_21",
+     "qualifies": false,
+     "sharpe": 0.5410322759640479,
+     "sharpe_std": 0.4710364737939338,
+     "gap": 2.729391100968616,
+     "valid": true,
+     "params": 5244
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_22",
+     "qualifies": false,
+     "sharpe": -0.1603568755804936,
+     "sharpe_std": 0.9634580990829761,
+     "gap": 3.2858991404654168,
+     "valid": true,
+     "params": 5332
+    }
+   ],
+   "profile_expectation": {
+    "memory": "persistent",
+    "redundancy": "low",
+    "expected": [
+     "pointwise >= conv",
+     "per_feature >= conv"
+    ]
+   }
+  },
+  {
+   "group": "cot.eur",
+   "chosen": "per_feature",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_23",
+     "qualifies": false,
+     "sharpe": 0.7872034950513083,
+     "sharpe_std": 0.7614033798938306,
+     "gap": 1.4779459638017478,
+     "valid": true,
+     "params": 5212
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_24",
+     "qualifies": true,
+     "sharpe": 1.3683379971337006,
+     "sharpe_std": 0.35483476441327033,
+     "gap": 0.8347933868525153,
+     "valid": true,
+     "params": 5444
+    }
+   ],
+   "profile_expectation": {
+    "memory": "persistent",
+    "redundancy": "mid",
+    "expected": [
+     "pointwise >= conv"
+    ]
+   }
+  },
+  {
+   "group": "fac.fx_f1",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_25",
+     "qualifies": false,
+     "sharpe": -0.039292253729235616,
+     "sharpe_std": 0.31014363985238436,
+     "gap": 2.6690175906748093,
+     "valid": true,
+     "params": 5212
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_26",
+     "qualifies": false,
+     "sharpe": -0.10619732032913166,
+     "sharpe_std": 0.7325035256477409,
+     "gap": 2.2380940907052445,
+     "valid": true,
+     "params": 5444
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "ev",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_27",
+     "qualifies": false,
+     "sharpe": 0.3238683938739032,
+     "sharpe_std": 0.707441458221756,
+     "gap": 2.217988464478493,
+     "valid": true,
+     "params": 5180
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_28",
+     "qualifies": false,
+     "sharpe": -0.40879814222071037,
+     "sharpe_std": 0.35066279623693347,
+     "gap": 3.2572708379821416,
+     "valid": true,
+     "params": 5556
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   }
+  },
+  {
+   "group": "act",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_29",
+     "qualifies": false,
+     "sharpe": 0.07290210124523058,
+     "sharpe_std": 1.3142059873722824,
+     "gap": 2.212775985589575,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "wavelet/log_close",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_30",
+     "qualifies": false,
+     "sharpe": 1.1754600159665416,
+     "sharpe_std": 0.10667341726122916,
+     "gap": 1.4231288701543972,
+     "valid": true,
+     "params": 5132
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_31",
+     "qualifies": false,
+     "sharpe": 0.1714679033549684,
+     "sharpe_std": 0.5338614257434163,
+     "gap": 2.187892086143563,
+     "valid": true,
+     "params": 5724
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "wavelet/logret_1",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_32",
+     "qualifies": false,
+     "sharpe": 1.1578576418312079,
+     "sharpe_std": 0.7426589592771731,
+     "gap": 0.8919901086441758,
+     "valid": true,
+     "params": 5132
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_33",
+     "qualifies": false,
+     "sharpe": 0.32158056076008484,
+     "sharpe_std": 1.2403378237426421,
+     "gap": 2.0211044862992615,
+     "valid": true,
+     "params": 5724
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "mid",
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "hilbert/logret_1",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_34",
+     "qualifies": false,
+     "sharpe": 0.4207604223708618,
+     "sharpe_std": 1.295905381707756,
+     "gap": 2.221669512810295,
+     "valid": true,
+     "params": 5228
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_35",
+     "qualifies": false,
+     "sharpe": -0.5203500054825618,
+     "sharpe_std": 0.5762836480418607,
+     "gap": 3.228783157132509,
+     "valid": true,
+     "params": 5388
+    }
+   ],
+   "profile_expectation": {
+    "memory": "near_white",
+    "redundancy": "low",
+    "expected": [
+     "conv >= pointwise",
+     "per_feature >= conv"
+    ]
+   }
+  },
+  {
+   "group": "strength/fx.usd_strength.ret_1",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_36",
+     "qualifies": false,
+     "sharpe": 0.9293180610768121,
+     "sharpe_std": 1.3420052860739813,
+     "gap": 1.414996554171016,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "persistent",
+    "redundancy": null,
+    "expected": [
+     "pointwise >= conv"
+    ]
+   }
+  },
+  {
+   "group": "strength/fx.eur_strength.ret_1",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_37",
+     "qualifies": false,
+     "sharpe": 1.1000134777841222,
+     "sharpe_std": 1.2634631488144412,
+     "gap": 0.9757356376156954,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  },
+  {
+   "group": "kalman/log_close",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_38",
+     "qualifies": false,
+     "sharpe": 0.5646076339958754,
+     "sharpe_std": 0.5986643368792495,
+     "gap": 1.6078895026415896,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "near_white",
+    "redundancy": null,
+    "expected": [
+     "conv >= pointwise"
+    ]
+   }
+  },
+  {
+   "group": "px.rv",
+   "chosen": "conv",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_39",
+     "qualifies": false,
+     "sharpe": -0.09496336369322662,
+     "sharpe_std": 0.9532170873293139,
+     "gap": 2.1399778094013073,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "persistent",
+    "redundancy": null,
+    "expected": [
+     "pointwise >= conv"
+    ]
+   }
+  },
+  {
+   "group": "gmm/logret_1+rv_24+log_range",
+   "chosen": "pointwise",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_40",
+     "qualifies": true,
+     "sharpe": 2.73175845204364,
+     "sharpe_std": 1.0676130865115276,
+     "gap": -0.21180627958125373,
+     "valid": true,
+     "params": 5212
+    },
+    {
+     "kind": "per_feature",
+     "unit": "t3_unit_41",
+     "qualifies": false,
+     "sharpe": 1.1146244814012127,
+     "sharpe_std": 0.3718547295054458,
+     "gap": 1.6564599224327206,
+     "valid": true,
+     "params": 5444
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": "high",
+    "expected": [
+     "conv >= per_feature"
+    ]
+   }
+  },
+  {
+   "group": "fracdiff/log_close",
+   "chosen": "pointwise",
+   "control": {
+    "sharpe": 0.7799536518942258,
+    "sharpe_std": 0.6571888617509046,
+    "gap": 1.1947896101841544,
+    "valid": true,
+    "params": 5276
+   },
+   "alternatives": [
+    {
+     "kind": "pointwise",
+     "unit": "t3_unit_42",
+     "qualifies": true,
+     "sharpe": 1.9738753154854374,
+     "sharpe_std": 0.4446360281806086,
+     "gap": -0.15249473381428355,
+     "valid": true,
+     "params": 5260
+    }
+   ],
+   "profile_expectation": {
+    "memory": "intermediate",
+    "redundancy": null,
+    "expected": [
+     "no directional expectation"
+    ]
+   }
+  }
+ ],
+ "expectation_agreement": {
+  "n": 17,
+  "held": 9,
+  "items": [
+   {
+    "group": "inv.raw",
+    "expectation": "conv >= pointwise",
+    "held": true
+   },
+   {
+    "group": "inv.raw",
+    "expectation": "conv >= per_feature",
+    "held": false
+   },
+   {
+    "group": "inv.momentum",
+    "expectation": "conv >= per_feature",
+    "held": true
+   },
+   {
+    "group": "calendar",
+    "expectation": "pointwise >= conv",
+    "held": false
+   },
+   {
+    "group": "calendar",
+    "expectation": "conv >= per_feature",
+    "held": true
+   },
+   {
+    "group": "px.range",
+    "expectation": "pointwise >= conv",
+    "held": true
+   },
+   {
+    "group": "fx.usdchf",
+    "expectation": "per_feature >= conv",
+    "held": false
+   },
+   {
+    "group": "dly.gold",
+    "expectation": "pointwise >= conv",
+    "held": false
+   },
+   {
+    "group": "dly.gold",
+    "expectation": "per_feature >= conv",
+    "held": false
+   },
+   {
+    "group": "cot.eur",
+    "expectation": "pointwise >= conv",
+    "held": true
+   },
+   {
+    "group": "ev",
+    "expectation": "conv >= per_feature",
+    "held": true
+   },
+   {
+    "group": "hilbert/logret_1",
+    "expectation": "conv >= pointwise",
+    "held": true
+   },
+   {
+    "group": "hilbert/logret_1",
+    "expectation": "per_feature >= conv",
+    "held": false
+   },
+   {
+    "group": "strength/fx.usd_strength.ret_1",
+    "expectation": "pointwise >= conv",
+    "held": true
+   },
+   {
+    "group": "kalman/log_close",
+    "expectation": "conv >= pointwise",
+    "held": true
+   },
+   {
+    "group": "px.rv",
+    "expectation": "pointwise >= conv",
+    "held": false
+   },
+   {
+    "group": "gmm/logret_1+rv_24+log_range",
+    "expectation": "conv >= per_feature",
+    "held": false
+   }
+  ]
+ },
+ "never_read": [
+  "OBS_2024",
+  "INNER_B",
+  "TEST"
+ ]
+}

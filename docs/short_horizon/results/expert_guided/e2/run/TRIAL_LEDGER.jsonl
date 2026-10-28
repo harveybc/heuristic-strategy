@@ -1,0 +1,21 @@
+{"utc": "2026-10-20T00:23:28+00:00", "rung": "E2", "event": "DECLARED_DEVIATION", "design": {"deviation": "E2 run by lead decision after E1 gate failure; not a gate pass", "arms": {"SAC": {"demo_frac0": 0.0, "bc_lambda0": 0.0}, "SAC_DEMO": {"demo_frac0": 0.25, "bc_lambda0": 1.0}}, "demo_decay_updates": 50000, "budget_transitions": 100000, "learning_starts": 1000, "sac": {"lr": 0.0003, "buffer": 100000, "batch": 256, "tau": 0.005, "gamma": 0.99, "ent_coef": "auto", "train_freq": 1, "gradient_steps": 1}, "network": {"extractor": "Linear(204,128)+ReLU+Dropout(0.1)", "net_arch": [64, 64], "optimizer": "AdamW", "weight_decay": 0.0001, "batchnorm": false}, "early_stopping": {"every": 5000, "score": "mean(net daily Sharpe TRAIN, INNER_A), frozen deterministic checkpoint", "patience_evals": 10, "ruined_sharpe": -10.0}, "episode": "one random TRAIN calendar segment (week); capital 10,000 USD per episode", "reward": "100 x delta mark-to-market equity / 10,000, net of all costs, UNSHAPED", "action": "x[0] target position (dead band 1/3), x[1] TP sigma in [0.25,3], x[2] SL sigma in [0.5,3]", "shaping": "OFF", "privileged_critic": "NO"}, "seeds": [20261019, 20261020, 20261021], "budget": 100000, "device": "cuda", "measure": false, "note": "E2 run by lead decision after E1 gate failure; not a gate pass"}
+{"utc": "2026-10-20T00:23:29+00:00", "rung": "E2", "event": "READ", "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "reference rows"}
+{"utc": "2026-10-20T00:23:33+00:00", "rung": "E2", "event": "FIT", "arm": "SAC", "seed": 20261019, "budget": 100000}
+{"utc": "2026-10-20T00:30:34+00:00", "rung": "E2", "event": "FREEZE", "arm": "SAC", "seed": 20261019, "best_transitions": 80000, "stop": "budget"}
+{"utc": "2026-10-20T00:30:34+00:00", "rung": "E2", "event": "READ", "arm": "SAC", "seed": 20261019, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T00:30:35+00:00", "rung": "E2", "event": "FIT", "arm": "SAC", "seed": 20261020, "budget": 100000}
+{"utc": "2026-10-20T00:37:37+00:00", "rung": "E2", "event": "FREEZE", "arm": "SAC", "seed": 20261020, "best_transitions": 95000, "stop": "budget"}
+{"utc": "2026-10-20T00:37:37+00:00", "rung": "E2", "event": "READ", "arm": "SAC", "seed": 20261020, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T00:37:38+00:00", "rung": "E2", "event": "FIT", "arm": "SAC", "seed": 20261021, "budget": 100000}
+{"utc": "2026-10-20T00:44:51+00:00", "rung": "E2", "event": "FREEZE", "arm": "SAC", "seed": 20261021, "best_transitions": 100000, "stop": "budget"}
+{"utc": "2026-10-20T00:44:51+00:00", "rung": "E2", "event": "READ", "arm": "SAC", "seed": 20261021, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T00:44:52+00:00", "rung": "E2", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261019, "budget": 100000}
+{"utc": "2026-10-20T00:52:31+00:00", "rung": "E2", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261019, "best_transitions": 90000, "stop": "budget"}
+{"utc": "2026-10-20T00:52:31+00:00", "rung": "E2", "event": "READ", "arm": "SAC_DEMO", "seed": 20261019, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T00:52:32+00:00", "rung": "E2", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261020, "budget": 100000}
+{"utc": "2026-10-20T01:00:25+00:00", "rung": "E2", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261020, "best_transitions": 100000, "stop": "budget"}
+{"utc": "2026-10-20T01:00:25+00:00", "rung": "E2", "event": "READ", "arm": "SAC_DEMO", "seed": 20261020, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T01:00:26+00:00", "rung": "E2", "event": "FIT", "arm": "SAC_DEMO", "seed": 20261021, "budget": 100000}
+{"utc": "2026-10-20T01:08:25+00:00", "rung": "E2", "event": "FREEZE", "arm": "SAC_DEMO", "seed": 20261021, "best_transitions": 90000, "stop": "budget"}
+{"utc": "2026-10-20T01:08:25+00:00", "rung": "E2", "event": "READ", "arm": "SAC_DEMO", "seed": 20261021, "periods": ["TRAIN", "INNER_A", "INNER_B"], "purpose": "frozen checkpoint"}
+{"utc": "2026-10-20T01:08:25+00:00", "rung": "E2", "event": "READ", "periods": ["OBS_2024"], "purpose": "single read of every frozen E2 run and the references"}

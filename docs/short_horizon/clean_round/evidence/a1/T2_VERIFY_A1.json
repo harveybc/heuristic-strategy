@@ -1,0 +1,107 @@
+{
+ "units": "/var/tmp/a1-fold-local-20261023/t2_a1/T2_UNITS_A1.json",
+ "units_sha256": "6132b3488c66bf073d7534d0c9ff2152bfb6d983f8ec3716a6b1a12fd235d606",
+ "results": "/var/tmp/a1-fold-local-20261023/t2_join/out",
+ "producer": {
+  "config_identity": "f91fd21f0e5c36cc57c0dd9a17a9cb84630870e7ee8ce22c986330a3d35fdace",
+  "science_commit": "fb1c25b84a5d87ab51102ac5c0273daee697afa8",
+  "authenticated": true,
+  "emits_labels": true,
+  "pinned_e3m_sha256": "a5e0d3dc36945d49a80ae15b898b4fcbeb1a386795cb84c97aa595034a0f5368",
+  "blob_e3m_sha256": "a5e0d3dc36945d49a80ae15b898b4fcbeb1a386795cb84c97aa595034a0f5368",
+  "science_source": "exported_blob",
+  "archives": {}
+ },
+ "producers": [
+  {
+   "config_identity": "e51a7816c8daeeb89a23946e725b249488bc4dc756f1824b6c09ba71bac400a8",
+   "science_commit": "186b131",
+   "authenticated": true,
+   "emits_labels": false,
+   "pinned_e3m_sha256": "61e0fceb3626bc7b2308fdf2007c21b8ff59dbc9e5dc860a0c95943676a29dca",
+   "blob_e3m_sha256": "61e0fceb3626bc7b2308fdf2007c21b8ff59dbc9e5dc860a0c95943676a29dca",
+   "science_source": "exported_blob",
+   "archives": {
+    "hs_code_final.tar.gz": "2ee7094c6ec0b934d0715e4642bcdac4d67f65ec76c91d4b2fee9a52973f2083"
+   }
+  },
+  {
+   "config_identity": "f91fd21f0e5c36cc57c0dd9a17a9cb84630870e7ee8ce22c986330a3d35fdace",
+   "science_commit": "fb1c25b84a5d87ab51102ac5c0273daee697afa8",
+   "authenticated": true,
+   "emits_labels": true,
+   "pinned_e3m_sha256": "a5e0d3dc36945d49a80ae15b898b4fcbeb1a386795cb84c97aa595034a0f5368",
+   "blob_e3m_sha256": "a5e0d3dc36945d49a80ae15b898b4fcbeb1a386795cb84c97aa595034a0f5368",
+   "science_source": "exported_blob",
+   "archives": {}
+  }
+ ],
+ "support_mismatch_within_list_and_state": [],
+ "rows": [
+  {
+   "unit": "gap_core15_none_base",
+   "identity": "037105381ed84a61",
+   "sha256": "d07622dc344e85ca7a56bf9ad85e548cfce6701a3970182e1f457bf4c20e550e",
+   "receipt_sha256": "e23a2f4f8b13f9d9e06e929b7e40dd53adaa7409a71db906829b161c7438f18f",
+   "producer": {
+    "config_identity": "e51a7816c8daeeb89a23946e725b249488bc4dc756f1824b6c09ba71bac400a8",
+    "science_commit": "186b131",
+    "authenticated": true,
+    "emits_labels": false
+   },
+   "labels": "zigzag/PRODUCER_PREDATES_FIELD",
+   "support": "78b5834ee53e8707",
+   "status": "OK",
+   "errors": []
+  },
+  {
+   "unit": "gap_core15_none_strong",
+   "identity": "577b80fbbc9bd9a1",
+   "sha256": "73b5a5c32d31cbf81ded051ca85a0eeefc64533f3b2da86227ade81fe7091122",
+   "receipt_sha256": "bfb3730140f7bbe6ec3f9ccf31c44b57964587e72b78f2581c7e9a65a8694eb1",
+   "producer": {
+    "config_identity": "e51a7816c8daeeb89a23946e725b249488bc4dc756f1824b6c09ba71bac400a8",
+    "science_commit": "186b131",
+    "authenticated": true,
+    "emits_labels": false
+   },
+   "labels": "zigzag/PRODUCER_PREDATES_FIELD",
+   "support": "78b5834ee53e8707",
+   "status": "OK",
+   "errors": []
+  },
+  {
+   "unit": "gap_shortlist_strict_none_base",
+   "identity": "68fd845508ad6047",
+   "sha256": "d978454f9c0de50721bcf6ad41d526f5e4cce21757ead7912deaab2122f7d7eb",
+   "receipt_sha256": "c50aeade3cc4b7b513846e86f7affa87f60ba577f215017bb5aa6c58c036fca6",
+   "producer": {
+    "config_identity": "f91fd21f0e5c36cc57c0dd9a17a9cb84630870e7ee8ce22c986330a3d35fdace",
+    "science_commit": "fb1c25b84a5d87ab51102ac5c0273daee697afa8",
+    "authenticated": true,
+    "emits_labels": true
+   },
+   "labels": "zigzag/DECLARED",
+   "support": "f1c592d53da55019",
+   "status": "OK",
+   "errors": []
+  },
+  {
+   "unit": "gap_shortlist_strict_none_strong",
+   "identity": "37fb9bfd2af0b5f0",
+   "sha256": "cb15b9ba5a66c84ba077f762273318c6478bfcf625eed496e1e52bbbf09c95b1",
+   "receipt_sha256": "47d262a93f44f7a4ce42428fdc5616066e2438a4ba8848021774436c4dfabd71",
+   "producer": {
+    "config_identity": "f91fd21f0e5c36cc57c0dd9a17a9cb84630870e7ee8ce22c986330a3d35fdace",
+    "science_commit": "fb1c25b84a5d87ab51102ac5c0273daee697afa8",
+    "authenticated": true,
+    "emits_labels": true
+   },
+   "labels": "zigzag/DECLARED",
+   "support": "f1c592d53da55019",
+   "status": "OK",
+   "errors": []
+  }
+ ],
+ "all_ok": true
+}

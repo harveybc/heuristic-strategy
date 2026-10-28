@@ -1,0 +1,12 @@
+{
+ "decisions": 60,
+ "entry_decisions": 46,
+ "by_model": {},
+ "status_counts": {
+  "FINAL": 46
+ },
+ "outcome_counts": {
+  "TIMEOUT": 46
+ },
+ "scored_utc": "2026-10-24 19:01:58.876307+00:00"
+}

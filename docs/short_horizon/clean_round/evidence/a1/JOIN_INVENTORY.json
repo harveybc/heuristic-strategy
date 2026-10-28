@@ -1,0 +1,278 @@
+{
+ "t3_unit_00": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "127f1e3758585cc0fb7239582b2d8c527cba6fa50aba254a93863e0e35d43549",
+  "receipt": true
+ },
+ "t3_unit_01": {
+  "source": "musashi-t3-v5-slow-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "d40f2dc82646b74b245dfadfa50c038cc61f95a8a94719c57246f1019884b7e0",
+  "receipt": true
+ },
+ "t3_unit_02": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "011dc65631d5771bc1fdc998ccf75dfdbc3f30f21662d19e355abf6dff21aa87",
+  "receipt": true
+ },
+ "t3_unit_03": {
+  "source": "musashi-t3-v5-slow-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "f7a2cfee63576dd0cd04acb22eeddb8714c9eb83bb491536032b2a50e32dee7b",
+  "receipt": true
+ },
+ "t3_unit_04": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "36b73ad4bc7d234760a298a92db4ee284863d111930aa85a65038ec1b8365e24",
+  "receipt": true
+ },
+ "t3_unit_05": {
+  "source": "musashi-t3-v5-slow-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "f7c747fd9ebcd5560dfc4fe9b9c9a63f9c3e954fdbebe5e5526fcfac3e4acfa4",
+  "receipt": true
+ },
+ "t3_unit_06": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "41b65780defa5b2f486631db92a85d8c54675d56f69943c4b86de75ab9a1d0d4",
+  "receipt": true
+ },
+ "t3_unit_07": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "eb52e9d521617286e33bfdf5f470ed03958fcb18c0d3eef984a807cf5238447d",
+  "receipt": true
+ },
+ "t3_unit_08": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "52d2b9c1d4f6950a995ba7a55338cbd8957ee3537271f05f187cc14a459285cd",
+  "receipt": true
+ },
+ "t3_unit_09": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "005c80b2a2f0444b23cbb4f2d6221309b95af83d7d2d754b7db2a2e2684feb5d",
+  "receipt": true
+ },
+ "t3_unit_10": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "5bd41e151da2097bfbd2420070e477b2f1e3efaa64013fbbaf01fdeb5f20d7c2",
+  "receipt": true
+ },
+ "t3_unit_11": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "4f03b65ffba196ab9808666f119bc193ca1a63cee607c6df4091efb79fafe827",
+  "receipt": true
+ },
+ "t3_unit_12": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "9f6411ca89dcdb403132b09453bd0a2dad9dbaccdfbb5f83c542db6b442f7a2c",
+  "receipt": true
+ },
+ "t3_unit_13": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "01b8bbef70cef786614c1044839aebfd814ae4ce5d3b90a4baffda1f8f26e6fc",
+  "receipt": true
+ },
+ "t3_unit_14": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "e1369fb41e113cfe6a3861618fc2eda799092dbdbd4fe702ee65c505b664a519",
+  "receipt": true
+ },
+ "t3_unit_15": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "adc4ee677dfe1bfc68997cffb0811314c4243a7e89611aaea85bbd2b1ca3c0e5",
+  "receipt": true
+ },
+ "t3_unit_16": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "bb5ba5ffb3921827de9ec303ea2e2052fd652b45aa479e3dccf87626532d5da8",
+  "receipt": true
+ },
+ "t3_unit_17": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "80815c4ad46df62a2ff1a813d5c7a2734f19c4213341fb9846a7ba0e61c4a308",
+  "receipt": true
+ },
+ "t3_unit_18": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "656eca1862981b21e8508121507c2950dcf71f93949b48412a61606675169113",
+  "receipt": true
+ },
+ "t3_unit_19": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "8f469c4e465285c29d7fbcbaded5fb2470917a19aae466edbe10c77b92cda5ae",
+  "receipt": true
+ },
+ "t3_unit_20": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "8e8564f3ce8a71039c17a60d10a1b7bc4ba73884d00e535a0419349597732f85",
+  "receipt": true
+ },
+ "t3_unit_21": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "806123d76072a1540fcc7ebf8af63a045ffc2e1fa5b084eb1c09fde9e77adb7a",
+  "receipt": true
+ },
+ "t3_unit_22": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "daf32683b8f72ddb85e9bf6e294c91fb7545094e6d706b64a7add4129119b570",
+  "receipt": true
+ },
+ "t3_unit_23": {
+  "source": "musashi-t3-v5-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "9adf4f6e64778296ab88cc7b5478bda3b9c0acfe43de566f87d9c4ea007e9440",
+  "receipt": true
+ },
+ "t3_unit_24": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "d7a9153780c29bb6a96e5a247c73e1192c83219bca3c07efb5787c4bc510b0f6",
+  "receipt": true
+ },
+ "t3_unit_25": {
+  "source": "musashi-t3-v5-tail-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "068b03d889e157aec1233ead6bd3986a18a73182bb699ab7d57266418f6224f8",
+  "receipt": true
+ },
+ "t3_unit_26": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "46606dcea518ca06d26557a8fa46d0bda62702085ccf3a90b46dc937a0c96700",
+  "receipt": true
+ },
+ "t3_unit_27": {
+  "source": "musashi-t3-v5-tail-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "d54db0d601c5303fb653f89223f2561afd78e65d052645d8a5985f8a19a44b47",
+  "receipt": true
+ },
+ "t3_unit_28": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "918151813691c8defb6ab9092001749a122fb6938f0927438327a4fe45b8edab",
+  "receipt": true
+ },
+ "t3_unit_29": {
+  "source": "musashi-t3-v5-tail-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "21d8f674712ca6f3e69a91e910e765b3bb71473eed06b2b918073a310ffd711a",
+  "receipt": true
+ },
+ "t3_unit_30": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "c0722072c6deb9efd175d0ddb4ea581c6b92361b7c883bd51fa64e286ad930c2",
+  "receipt": true
+ },
+ "t3_unit_31": {
+  "source": "musashi-t3-v5-tail-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "d0cda4d6b6ca178e365df39fcc0a68787862ac0e41d511578c61adc3d00e2451",
+  "receipt": true
+ },
+ "t3_unit_32": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "23d542d9c3ba6dd9bdfd65cc771bd2e117fc91b55f524b787ff06ed5c5d7c7cb",
+  "receipt": true
+ },
+ "t3_unit_33": {
+  "source": "musashi-t3-v5-tail-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "2c16fc81d9ab2ea9bb6601bb3449d894af7b910e0c1950025db61846adca7361",
+  "receipt": true
+ },
+ "t3_unit_34": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "fbe2a6d8e1376b954683bf46c0529f5b3eaf8d2127a30cedf7a9f90374e9a36e",
+  "receipt": true
+ },
+ "t3_unit_35": {
+  "source": "musashi-t3-v5-tail-fast-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "44ab93e47cd3364b6d0ef58b6406a92d534b04fc3b2dbf75ada5a212962b7d1f",
+  "receipt": true
+ },
+ "t3_unit_36": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "7399706be210b7d77de1c4a0afc793288e56e0ced0eb9173e6e33bf0d3dd4cfb",
+  "receipt": true
+ },
+ "t3_unit_37": {
+  "source": "musashi-t3-v5-extra-slow-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "ebec137342273e3ad6b65c44ffb21044616b4c3d471e5086432946edb8c0bf83",
+  "receipt": true
+ },
+ "t3_unit_38": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "b95208f5e36a9f450e361935e3e8516d95e00c22bdb628206ac531f4d44e3e95",
+  "receipt": true
+ },
+ "t3_unit_39": {
+  "source": "musashi-t3-v5-extra-slow-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "9d64aaa8cb14ef7dd6227b8e213a12e395dac1c66ad034d906891acc8e47284c",
+  "receipt": true
+ },
+ "t3_unit_40": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "f26b83617bb25368f59ae0d2e939a8d2037ad0121621cb18347433ba455a139a",
+  "receipt": true
+ },
+ "t3_unit_41": {
+  "source": "musashi-t3-v5-extra-slow-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "21dc34a3809580bf05f1764050ecfdb1df939d481024c82308ec258f25f6e99a",
+  "receipt": true
+ },
+ "t3_unit_42": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "df10cd87032560e8e6041977047abb30ddff238dc588510a93009654878d3c56",
+  "receipt": true
+ },
+ "t3_unit_43": {
+  "source": "musashi-t3-v5-extra-slow-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "43f40cbd3fe470ab5ea38236fd0297ba45859cdda00c8437afb2471c7cde913d",
+  "receipt": true
+ },
+ "t3_unit_44": {
+  "source": "satoshi",
+  "copies": 1,
+  "e3m_sha256": "07d0d898a24ee5673d986050df1de613a42068c562cb31d0cf89f936a2712c43",
+  "receipt": true
+ },
+ "t3_unit_C": {
+  "source": "musashi-t3-v5-C-replica-20261024",
+  "copies": 1,
+  "e3m_sha256": "6eefadd72b3fcc0d2776fc80c4a67f1f4aa7f7487cdc47da321dd8df432036ae",
+  "receipt": true
+ }
+}

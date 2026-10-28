@@ -1,0 +1,30 @@
+{
+ "NEXT_BAR": {
+  "k": 1,
+  "m": 1.0,
+  "q": 0.0,
+  "decision_sharpe": 0.0,
+  "decision_valid": false
+ },
+ "LATENCY_0": {
+  "k": 1,
+  "m": 1.0,
+  "q": 0.0,
+  "decision_sharpe": 0.0,
+  "decision_valid": false
+ },
+ "STRADDLE": {
+  "k": 2,
+  "m": 2.0,
+  "q": 0.5,
+  "decision_sharpe": -3.8833417978581224,
+  "decision_valid": true
+ },
+ "NEXT_BAR_UNGATED": {
+  "k": 3,
+  "m": 3.0,
+  "q": 0.5,
+  "decision_sharpe": -1.5728451077269439,
+  "decision_valid": false
+ }
+}
