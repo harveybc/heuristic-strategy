@@ -348,7 +348,49 @@ def test_closer_head_is_market_only_and_its_noise_grows_with_the_lead():
     assert list(inspect.signature(S.BCHead.row).parameters) == ["self", "b", "si"]
     import ast
     import textwrap
-    fn = ast.parse(textwrap.dedent(inspect.getsource(S.SimCloser.advantage))).body[0]
+    fn = ast.parse(textwrap.dedent(inspect.getsource(S.SimCloser.advantage_full))).body[0]
     code = ast.unparse([n for n in fn.body if not (isinstance(n, ast.Expr) and isinstance(getattr(n, "value", None), ast.Constant))])   # the code, not the docstring
-    assert "self.path(" not in code and "path_advantage" not in code and "math.sqrt(h / H_REF_BARS)" in code
+    assert "self.path(" not in code and "path_advantage" not in code and "math.sqrt(h / H_REF_BARS)" in code and "_ar_noise" in code
     assert S.H_REF_BARS == 24 and "first-passage" in C3.default_contract()["closer_head"]["name"]
+
+
+def test_close_rule_at_quality_one_reproduces_the_perfect_head_rule_and_persistence_counts_ticks():
+    """At q1.00 the head returns s_hat = 0, so A_hat - z_close x s_hat >= -margin is A >= -margin for every z_close and,
+    with k_persist = 1, the decision of the perfect-head rule on every tick; k_persist > 1 needs that many consecutive
+    true ticks of the same position (a false tick resets the count)."""
+    import types
+    from app.short_horizon.expert_guided import strategy_zz as ZZ
+    from app.short_horizon.expert_guided import env as E
+
+    class Stub:
+        def __init__(self, a, s):
+            self.a, self.s = list(a), list(s)
+
+        def advantage(self, r, bar, pos):
+            return self.a[bar]
+
+        def advantage_full(self, r, bar, pos):
+            return (self.a[bar], self.s[bar]) + (0.0,) * 5
+
+        def value(self, r, bar, pos):
+            return 0.0, 0.0
+
+    def run(a, s):
+        pol = types.SimpleNamespace(s=types.SimpleNamespace(early_close=True), t={"closer": Stub(a, s)}, positions={}, closes=[])
+        return [ZZ.PolicyC3Z.close_now(pol, 0, 0, b, pos) for b in range(len(a))]
+
+    pos = E.Position(1, 1000, 10, 1.1, 1.09, 1.12, 0.001, 0, {})
+    a = [0.3, -0.5, -0.01, 0.0, -0.03, 0.2, -0.019, -2.0]
+    old = dict(ZZ.PARAMS)
+    try:
+        ZZ.PARAMS.update(closer_mode=1.0, closer_adv_margin=0.02)
+        for z in (0.0, 1.0, 3.0):
+            ZZ.PARAMS.update(z_close=z, k_persist=1)
+            assert run(a, [0.0] * len(a)) == [x >= -0.02 for x in a]
+        ZZ.PARAMS.update(z_close=1.0, k_persist=2)
+        assert run(a, [0.0] * len(a)) == [False, False, False, True, False, False, True, False]
+        ZZ.PARAMS.update(z_close=1.0, k_persist=1)
+        assert run(a, [0.5] * len(a)) == [x - 0.5 >= -0.02 for x in a]
+    finally:
+        ZZ.PARAMS.clear()
+        ZZ.PARAMS.update(old)

@@ -67,5 +67,7 @@
  "zz_close_room": 0.5,
  "close_p_requires_rem_below": 0.0,
  "zz_theta_f": 0.5,
- "zz_reverse_flip_bars": 960
+ "zz_reverse_flip_bars": 960,
+ "z_close": 1.0,
+ "k_persist": 1
 }

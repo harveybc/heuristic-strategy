@@ -42,7 +42,7 @@ ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60",
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
 PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 1.2, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
-          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960}
+          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1}
 
 
 def configure(doc: dict):
@@ -434,8 +434,17 @@ class PolicyC3Z(C3.PolicyC3):
             return False
         cl = self.t["closer"]
         if PARAMS["closer_mode"] >= 0.5 and hasattr(cl, "advantage"):
-            a = cl.advantage(r, bar, pos)                         # close when P(t) - V_hat(t) >= -margin (the advantage head)
-            dec = bool(np.isfinite(a) and a >= -PARAMS["closer_adv_margin"])
+            # close when A_hat - z_close x s_hat >= -margin (the head's calibrated conditional mean and predictive sd), the
+            # condition holding on k_persist consecutive executable ticks of this position; the broker SL stays the backstop
+            if hasattr(cl, "advantage_full"):
+                a, s_hat = cl.advantage_full(r, bar, pos)[:2]
+            else:
+                a, s_hat = cl.advantage(r, bar, pos), 0.0
+            cond = bool(np.isfinite(a) and (a - PARAMS["z_close"] * (s_hat if np.isfinite(s_hat) else 0.0)) >= -PARAMS["closer_adv_margin"])
+            key = (int(pos.entry_bar), int(si))
+            self._persist = getattr(self, "_persist", {})
+            self._persist[key] = self._persist.get(key, 0) + 1 if cond else 0
+            dec = bool(cond and self._persist[key] >= int(round(PARAMS["k_persist"])))
             rem, psl = cl.value(r, bar, pos)
             self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, False, False, False, float(a), "advantage"))
             return dec

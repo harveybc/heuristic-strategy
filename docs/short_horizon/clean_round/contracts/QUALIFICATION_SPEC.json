@@ -2,18 +2,38 @@
  "schema": "strategy_qualification.v1",
  "sealed_before_running": "2026-10-28 (coordinator order after the architecture contract of the heuristic-strategy README, section 'Strategy architecture and design method'); none of the panels below has been run when this file is committed",
  "D3_unseen_confirmation": {
-  "seeds": [3, 4, 5],
+  "seeds": [
+   3,
+   4,
+   5
+  ],
   "never_used_before": "seeds 0-2 are the development / qualification seeds; 3-5 were never generated in any matrix, DEAP subset or diagnostic",
   "cells": "every base cell of the matrix queue, perfect heads, with its zero-cost twin and exact mirror at the first seed",
-  "arms": {"canonical": "STRATEGY_PARAMS.json (untuned canonical point)", "deap": "the final DEAP point", "deap_no_reversal": "the DEAP point with allow_reverse = 0 (D6 variant)"},
+  "arms": {
+   "canonical": "STRATEGY_PARAMS.json (untuned canonical point)",
+   "deap": "the final DEAP point",
+   "deap_no_reversal": "the DEAP point with allow_reverse = 0 (D6 variant)"
+  },
   "paired_statistic": "per base cell: mean over seeds of the daily Sharpe and of the net USD; paired difference deap - canonical; 95 % bootstrap CI over base cells (10000 resamples, seed 20261028)",
   "claim_rule": "an improvement is claimed only if the CI lower bound is > 0; otherwise the report states 'no demonstrated gain'",
   "qualification_rule": "the matrix verdict on seeds 3-5 (governing forms, VALIDITY_SPEC) is reported next to seeds 0-2; a cell that passes on 0-2 and fails on 3-5 is listed as a generalisation failure"
  },
  "D4_seeded_positions": {
-  "entry_ages_bars": [0, 6, 24, 72],
-  "pnl_states_sigma": {"loss": "P(t) <= -0.25 sigma", "break_even": "|P(t)| <= 0.10 sigma", "profit": "P(t) >= +0.25 sigma"},
-  "sides": ["BUY", "SELL"],
+  "entry_ages_bars": [
+   0,
+   6,
+   24,
+   72
+  ],
+  "pnl_states_sigma": {
+   "loss": "P(t) <= -0.25 sigma",
+   "break_even": "|P(t)| <= 0.10 sigma",
+   "profit": "P(t) >= +0.25 sigma"
+  },
+  "sides": [
+   "BUY",
+   "SELL"
+  ],
   "construction": "an order opened age bars before the seeding tick with the strategy's envelope on a clean engine; the episode starts at the seeding tick in the stated P&L state; the closer alone decides (opener frozen)",
   "expected": {
    "sl_destined_closed_before_sl": ">= 0.95 per (age, state, side) with >= 30 SL-destined episodes",
@@ -23,12 +43,23 @@
  },
  "D4_reversal_then_recovery": {
   "selection": "episodes whose path first moves >= 0.5 sigma against the position and then reaches TP or a net >= +0.5 sigma before any SL",
-  "expected": {"profitable_hold": "the closer's premature-exit regret mean <= 0.10 normalized and its early-close share <= O*'s + 0.05 on these episodes"}
+  "expected": {
+   "profitable_hold": "the closer's premature-exit regret mean <= 0.10 normalized and its early-close share <= O*'s + 0.05 on these episodes"
+  }
  },
  "D4_negative_controls": {
-  "permuted_outputs": {"how": "every head output row-permuted inside the block (one fixed permutation, seed 20261028)", "expected": "net USD within [-1.5, -0.5] x total trading costs (permuted signals lose about the costs); daily Sharpe <= 0"},
-  "swapped_direction_channels": {"how": "long and short head outputs swapped", "expected": "net USD < 0 on every trend cell (mirrored losses); in each trend cell the swapped net is <= -0.5 x the unswapped net"},
-  "delayed_outputs": {"how": "every head output delayed by 1, 3 and 6 bars (the value of t - k used at t)", "expected": "daily Sharpe non-increasing in the delay (0 >= 1 >= 3 >= 6, tolerance 0.05) and Sharpe(6) < Sharpe(0)"}
+  "permuted_outputs": {
+   "how": "every head output row-permuted inside the block (one fixed permutation, seed 20261028)",
+   "expected": "net USD within [-1.5, -0.5] x total trading costs (permuted signals lose about the costs); daily Sharpe <= 0"
+  },
+  "swapped_direction_channels": {
+   "how": "long and short head outputs swapped",
+   "expected": "net USD < 0 on every trend cell (mirrored losses); in each trend cell the swapped net is <= -0.5 x the unswapped net"
+  },
+  "delayed_outputs": {
+   "how": "every head output delayed by 1, 3 and 6 bars (the value of t - k used at t)",
+   "expected": "daily Sharpe non-increasing in the delay (0 >= 1 >= 3 >= 6, tolerance 0.05) and Sharpe(6) < Sharpe(0)"
+  }
  },
  "D5_metrics": {
   "normalized_regret": "regret_USD / initial_cash_risk_at_SL, the denominator = units x |entry price - SL| frozen at entry (> 0; a zero or invalid risk is a contract error); sigma-unit regret stays as the secondary form",
@@ -38,5 +69,22 @@
  "D6_reversal": {
   "declared_variant": "allow_reverse = 1 is the engine's close-and-reverse rule (A4-1: one close plus one entry on the same tick, both costed); it is a DECLARED VARIANT, not the README's initial single-position design",
   "reported_next_to_it": "the no-reversal variant (allow_reverse = 0, the v10 canonical) in D3"
+ },
+ "D7_closer_quality_vs_information_limited_oracle": {
+  "sealed_before_running": "2026-10-28 (coordinator order: the closer was destructive in 73-96 % of its closes at q0.85 / q0.70 under an unbiased per-tick-independent noise model)",
+  "head_noise_model": "calibrated conditional mean (rho_h^2 shrinkage toward the calibration-block mean of BC) with a heteroscedastic predictive sd s_hat; errors AR(1) across ticks, phi measured = 0.587 (median lag-1 autocorrelation of the H6 errors of the 24 committed hourly prediction CSVs, predictor examples/results phase_1 and phase_3_1); sensitivity phi in {0, 0.587, 0.98}",
+  "strategy_rule": "close when A_hat - z_close x s_hat >= -closer_adv_margin on k_persist consecutive executable ticks (genes z_close in [0, 3], k_persist in [1, 6]); broker SL the backstop",
+  "reference": "the INFORMATION-LIMITED ORACLE: a Bayes closer that sees the same noisy head stream and knows the noise model (a 2-state Kalman filter per position: A random walk with per-tick variance sd_BC^2 / 24, the AR(1) error), closing iff E[A(t) | head history] >= -EPS_CLOSE",
+  "qualities": [
+   0.85,
+   0.7
+  ],
+  "expected_per_family_and_side": {
+   "E4": "strategy destructive-close share <= Bayes + 0.05",
+   "regret": "mean (P* - P(exit)) / initial cash risk at SL <= Bayes + 0.05",
+   "early_close_value": "sum over SL-destined trades closed early of (P(exit) - hold-to-SL) > 0",
+   "monotone": "E4 and regret non-decreasing as quality falls 1.00 -> 0.85 -> 0.70 (tolerance 0.02)"
+  },
+  "perfect_heads": "the perfect-head thresholds stay as sealed (EXIT_SPEC); at q1.00 (s_hat = 0, k_persist = 1) the rule reproduces the perfect-head results exactly"
  }
 }

@@ -293,6 +293,8 @@ class Quality:
 
 ADV_SCALE_SIGMA = 1.0            # declared scale of the advantage head's noise (sigma units of the trade)
 H_REF_BARS = 24                  # the closer head's quality rho is defined at this lead (one day of hourly bars); noise sd grows as sqrt(h / H_REF_BARS)
+CLOSER_NOISE_PHI = 0.587         # lag-1 autocorrelation of the head's error across ticks: the median lag-1 autocorrelation of the H6 errors of the
+                                 # 24 committed hourly prediction CSVs of predictor (examples/results/phase_1, phase_3_1); sensitivity 0 / 0.98
 
 
 def trade_path(env, pos) -> dict:
@@ -558,6 +560,7 @@ class SimCloser:
         self.cx, self.SCFG, self.t, self.q, self.noise, self.cal = cx, SCFG, truth, q, noise, cal
         self.env = OC.make_env(cx, SCFG)
         self.bc = BCHead(self.env, cx)                                # the market-only best-continuation head (shared by every quality copy)
+        self.cache_static = {}                                        # head moments and noise streams (shared by every quality copy)
         self.cache = {}
         self.dec = dec_rows_mask
         self.visit_lookup = {}
@@ -626,35 +629,81 @@ class SimCloser:
             self.cache[k] = p
         return self.cache[k]
 
-    def advantage(self, r, bar, pos) -> float:
-        """A(t) for the strategy's OWN position, computed by the strategy (L2) from the MARKET-ONLY best-continuation
-        head BC[bar, side, (d_sl, d_tp)] (coordinator / README 2026-10-28: no position-conditioned head): the position's
-        remaining distances from the current executable price, bilinear interpolation, A = -BC in sigma of the trade.
-        The head carries the closer's quality (rho = sin(pi (level - 1/2)), conditional-mean output, noise per grid
-        cell); the exact path A(t) (path_advantage) stays the oracle / witness truth."""
+    def _bc_stats(self, si: int) -> tuple:
+        """(mean, sd) of the head's target BC on the CALIBRATION block (every 6th observable bar, remaining distances
+        1 sigma / 1 sigma): the population moments a fitted regressor shrinks toward (its calibrated conditional mean)."""
+        key = ("bc_stats", int(si))
+        if key not in self.cache_static:
+            cx = self.cx
+            rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == CAL_BLOCK))
+            vals = []
+            for r in rows[::6][:2000]:
+                b = int(cx.ds.row_bar[r])
+                if 0 <= b < len(self.env.o) - 1:
+                    v = bc_from_curves(self.bc.row(b, si)[4], 1.0, 1.0)
+                    if np.isfinite(v):
+                        vals.append(v)
+            mu, sd = (float(np.mean(vals)), float(np.std(vals))) if len(vals) > 30 else (0.0, ADV_SCALE_SIGMA)
+            self.cache_static[key] = (mu, max(sd, 1e-6))
+        return self.cache_static[key]
+
+    def _ar_noise(self, si: int, b: int) -> float:
+        """The head's error stream for side si: AR(1) across consecutive ticks with coefficient CLOSER_NOISE_PHI (the
+        errors of a sliding-window model are autocorrelated: its inputs overlap almost entirely), unit variance."""
+        key = ("ar", int(si), float(CLOSER_NOISE_PHI))
+        if key not in self.cache_static:
+            n = len(self.env.o)
+            u = self.noise._rng("bc_ar", int(si)).standard_normal(n)
+            z = np.empty(n)
+            z[0] = u[0]
+            phi = float(CLOSER_NOISE_PHI)
+            k = math.sqrt(max(1.0 - phi * phi, 0.0))
+            for t in range(1, n):
+                z[t] = phi * z[t - 1] + k * u[t]
+            self.cache_static[key] = z
+        return float(self.cache_static[key][int(b)])
+
+    def advantage_full(self, r, bar, pos) -> tuple:
+        """(A_hat, s_hat, y, lead, mu, sd_A, sd_e) for the strategy's OWN position, sigma of the trade. The strategy (L2)
+        decodes the MARKET-ONLY first-passage head at its position's remaining distances (no position input to the
+        head). Below quality 1 the head is a CALIBRATED CONDITIONAL MEAN, as a fitted MSE regressor outputs:
+        y = BC + e with e ~ sd_e(h) x AR(1) stream, sd_e(h) = sigma_for_rho(rho, sd_BC) x sqrt(h / 24) (the decisive
+        lead h; rho at h_ref = 24 bars); BC_hat = mu + rho_h^2 (y - mu), rho_h^2 = sd_BC^2 / (sd_BC^2 + sd_e(h)^2);
+        predictive sd s_hat = sd_BC sqrt(1 - rho_h^2) (heteroscedastic through h). A = -BC."""
+        nanr = (float("nan"),) * 7
         b = int(bar)
         if b + 1 >= len(self.env.o):
-            return float("nan")
+            return nanr
         si = 0 if int(pos.direction) > 0 else 1
         d = float(pos.direction)
         liq0 = float(self.env.o[b + 1])
         sg = float(self.env.decision_sigma(b))
         if not (np.isfinite(sg) and sg > 0):
-            return float("nan")
+            return nanr
         d_sl, d_tp = d * (liq0 - float(pos.sl)) / sg, d * (float(pos.tp) - liq0) / sg
         if d_sl <= 0 or d_tp <= 0:
-            return float("nan")                                       # the open of b + 1 is already beyond a level: the engine's gap rule acts
+            return nanr                                               # the open of b + 1 is already beyond a level: the engine's gap rule acts
         _, _, _, _, cv = self.bc.row(b, si)
         rho = rho_of_level(self._quality(r))
         lead = []
         bcv = bc_from_curves(cv, d_tp, d_sl, lead_out=lead)
-        if rho < 1.0 and np.isfinite(bcv):                            # the head's quality: an unbiased error whose sd grows with the lead
-            h = float(lead[0]) if lead else float(H_REF_BARS)            # at which the decisive value lies (HORIZON-DEPENDENT: sqrt(h / 24))
-            e = float(self.noise.draw(("bcx", b, si), int(self.t.day[r]), 1)[0])
-            bcv = bcv + sigma_for_rho(rho, ADV_SCALE_SIGMA) * math.sqrt(h / H_REF_BARS) * e
         if not np.isfinite(bcv):
-            return float("nan")
-        return float(-bcv * sg / float(pos.sigma))
+            return nanr
+        conv = sg / float(pos.sigma)                                  # sigma of now -> sigma of the trade
+        h = float(lead[0]) if lead else float(H_REF_BARS)
+        if rho >= 1.0:
+            return (-bcv * conv, 0.0, -bcv * conv, h, float("nan"), float("nan"), 0.0)
+        mu, sd_a = self._bc_stats(si)
+        sd_e = sigma_for_rho(rho, sd_a) * math.sqrt(h / H_REF_BARS)
+        y = bcv + sd_e * self._ar_noise(si, b)
+        r2 = sd_a * sd_a / (sd_a * sd_a + sd_e * sd_e)
+        bc_hat = mu + r2 * (y - mu)
+        s_hat = sd_a * math.sqrt(max(1.0 - r2, 0.0))
+        return (-bc_hat * conv, s_hat * conv, -y * conv, h, -mu * conv, sd_a * conv, sd_e * conv)
+
+    def advantage(self, r, bar, pos) -> float:
+        """A_hat(t) (see advantage_full); the exact path A(t) (path_advantage) stays the oracle / witness truth."""
+        return float(self.advantage_full(r, bar, pos)[0])
 
     def with_quality(self, close_level: float):
         """The same closer (same truth, same noise stream, shared path cache) at another closer quality level."""

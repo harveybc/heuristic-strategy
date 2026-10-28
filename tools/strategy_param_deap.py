@@ -46,8 +46,8 @@ OPERATING_QUALITY = 0.70
 # the genome: every STRATEGY_PARAMS coefficient the C3Z strategy consumes; the others are fixed, with the reason
 GENOME = ("open_rate_l", "nop_veto", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "observe_bars",
           "rr_margin_sigma", "ev_from_net", "close_margin_floor", "risk_reward_floor", "burst_window_bars", "burst_vol_ratio", "zz_room_tp_mult",
-          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars", "closer_mode", "closer_adv_margin", "tp_mode", "k_tp_protect", "zz_reverse_flip_bars")
-INTEGER = {"observe_bars", "burst_window_bars", "zz_fine_h", "zz_post_flip_bars", "zz_reverse_flip_bars"}
+          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars", "closer_mode", "closer_adv_margin", "tp_mode", "k_tp_protect", "zz_reverse_flip_bars", "z_close", "k_persist")
+INTEGER = {"observe_bars", "burst_window_bars", "zz_fine_h", "zz_post_flip_bars", "zz_reverse_flip_bars", "k_persist"}
 BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate", "closer_mode", "tp_mode"}
 TIED = {"open_rate_s": "open_rate_l"}
 FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)", "v_alpha_l": "parametric volume family: not consumed by C3Z (risk sizing)",
