@@ -81,7 +81,7 @@ WITNESS_SPEC = {
 }
 WITNESS_SPEC["v2_W7"] = {"W7_best_cell_v2": "chosen cell = the truth's best cell among those the declared cell rule allows (per-bar band, RR floor on the MAE) >= 0.70"}
 WITNESS_SPEC["v3_W13"] = {"W13_tpsl_track_sigma_v3": "every TP distance = the declared TP rule (cell TP, or protective k_tp_protect x predicted MFE, clipped at the engine's effective cap) x causal sigma, |ratio - 1| <= 0.02"}
-WITNESS_SPEC["v3_W4"] = {"W4_early_close_justified_v3": "every early close had remaining hold value <= EPS_CLOSE",
+WITNESS_SPEC["v3_W4"] = {"W4_early_close_justified_v3": "v3' (2026-10-28): at most 5 % of early closes with remaining hold value > EPS_CLOSE (the sealed E4 tolerance), and every such close a knife-edge case: in the true path the deciding barrier was hit or missed by < DELTA_REACH = 0.01 sigma of the trade; a non-knife-edge destructive close stays a FAIL",
                          "rule": "admitted per cell where O* fails W4 v2 (VALIDITY_SPEC machinery); the owner's tie rule applied once with the same EPS_CLOSE as E3 / E4"}
 WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c') every strategy trade alive in the window: O*'s exit rule (close when A(t) >= -EPS_CLOSE) replayed on that SAME trade; wherever it closes the trade inside the window, the strategy early-closed it inside the window or earlier at a tick with A(t) >= -EPS_CLOSE; zero misses",
                       "rule": "admitted where VALIDITY_SPEC admits a corrected form for W8_early_close_at_switch (DEFECT, SEALED_UNVALIDATED or REPLAY_CONFLICT); it replaces v2 for that witness"}
@@ -96,6 +96,10 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-28T08:30Z (coordinator ruling)", "witness": "W4_early_close_justified_v3 -> v3' (E4 tolerance + knife-edge only)",
+     "defect": "with the MARKET-ONLY closer head (D1) about 1 % of early closes land on head error at the barrier-reach edges, which the strict 'every close' v3 fails although the sealed E4 (<= 5 %) passes; a plain 5 % tolerance would also admit destructive closes of 1.1-1.8 sigma at perfect heads, which can hide a defect",
+     "evidence": "H1_long_none s0 75 closes 0.987, B_trans_down_range_middle s2 90 closes 0.989 (worst 1.79 sigma), LHS_57 s2 116 closes 0.991 (worst 1.14 sigma), LHS_61 s2 109 closes 0.982 (run-3 champion on the fixed code)",
+     "effect": "at most 5 % above EPS_CLOSE AND each one knife-edge (deciding barrier hit / missed by < 0.01 sigma in the true path); any other destructive close remains a FAIL; knife-edge / non-knife-edge counts and worst costs reported per record"},
     {"when": "2026-10-28T05:00Z (instrument defect)", "witness": "the closer's exit path (every A(t), P*, L, Z1): executable decision ticks only",
      "defect": "SimCloser.path kept the ticks of a missing-data run as decision ticks; A(t) at the last observable tick compared an executable close with closes inside the missing run nobody can take, so the ideal closer held and the order reached its SL",
      "evidence": "S_LHS_48 s0 SELL 4738-4753 (run-2 point): A(t) -0.53 ... -0.68 on the observable ticks 4738-4744, rows 4712-4720 unobservable, A > 0 only inside the missing run at 4748-4752, SL at 4753; after the fix LHS_48 / S_ / M_ s0 E1 = 1.0 on both sides (run-3 current point)",
@@ -1327,9 +1331,25 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                                        "desc": "SEALED: early closes whose remaining hold value was <= 0", "share_on_sl_first": on_sl, "early_close_value_sigma_mean": value, "n_early_closes": len(ec)}
     out["W4_early_close_justified_v2"] = {"value": float(np.mean(just_v2)) if ec else float("nan"), "threshold": 0.95, "pass": bool((not ec) or np.mean(just_v2) >= 0.95),
                                           "desc": "corrected form: early closes fired on an SL-first detection (P(SL first) > close_p) or on a negative remaining value", "n_early_closes": len(ec)}
-    just_v3 = [bool(c[3] <= EPS_CLOSE) for c in ec]
-    out["W4_early_close_justified_v3"] = {"value": float(np.mean(just_v3)) if ec else float("nan"), "threshold": "every early close", "pass": bool((not ec) or all(just_v3)),
-                                          "desc": "corrected form v3 (owner's tie rule applied once, same EPS everywhere): every early close had remaining hold value <= EPS_CLOSE; admitted where O* fails v2",
+    # v3' (coordinator ruling 2026-10-28): at most 5 % of early closes with remaining > EPS_CLOSE (the sealed E4
+    # tolerance) AND every such close a KNIFE-EDGE case (the deciding barrier hit or missed by < DELTA_REACH sigma)
+    bad = [c for c in ec if c[3] > EPS_CLOSE]
+    knife, nonknife = [], []
+    pp = roll.get("positions") or {}
+    for c in bad:
+        t = next((x for x in trades if int(x["entry_bar_abs"]) <= int(c[1]) < int(x["exit_bar_abs"]) and _side(x) == int(c[2])), None)
+        pos = pp.get((int(t["entry_bar_abs"]), int(c[2]))) if t is not None else None
+        mg = barrier_margins(world, pos, int(c[1])) if pos is not None else None
+        rec_ = {"bar": int(c[1]), "side": "BUY" if int(c[2]) == 0 else "SELL", "remaining_sigma": float(c[3]), "margins": mg}
+        (knife if (mg is not None and mg["min_abs_margin_sigma"] < DELTA_REACH) else nonknife).append(rec_)
+    share_bad = (len(bad) / len(ec)) if ec else 0.0
+    out["W4_early_close_justified_v3"] = {"value": {"share_remaining_above_eps": share_bad, "knife_edge": len(knife), "non_knife_edge": len(nonknife),
+                                                    "worst_cost_knife_sigma": float(max((x["remaining_sigma"] for x in knife), default=0.0)),
+                                                    "worst_cost_non_knife_sigma": float(max((x["remaining_sigma"] for x in nonknife), default=0.0)),
+                                                    "cases": (knife + nonknife)[:20]},
+                                          "threshold": f"<= 0.05 of early closes with remaining > EPS_CLOSE, every one a knife-edge case (deciding barrier hit / missed by < {DELTA_REACH} sigma)",
+                                          "pass": bool((not ec) or (share_bad <= 0.05 and not nonknife)),
+                                          "desc": "corrected form v3' (coordinator ruling 2026-10-28), admitted where O* fails v2: the sealed E4 tolerance, and only knife-edge cases no finite market-only head can resolve",
                                           "n_early_closes": len(ec), "worst_remaining_sigma": float(max((c[3] for c in ec), default=float("nan")))}
     # W5 reversals: opens while positioned (an open logged at a row where the previous trade was still open)
     rev, rev_just, inwin = 0, 0, 0
@@ -1522,6 +1542,42 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     out["PASS_v2"] = bool(all(v["pass"] for v in v2.values()))
     out["PASS"] = out["PASS_sealed"]
     return out
+
+
+DELTA_REACH = 0.01                  # sigma of the trade: a barrier hit or missed by less is a knife-edge case (W4_v3')
+
+
+def barrier_margins(world: dict, pos, bar: int) -> dict:
+    """From the decision at ``bar`` (fill horizon from bar + 1) to the natural exit of the TRUE path: how close each
+    barrier came (> 0, missed by) or how far it was crossed (< 0) on the bar that ended the trade, in sigma of the
+    trade; the engine's barrier rules (TP through limit_through, shorts triggered at ask)."""
+    env = world.get("_env")
+    if env is None:
+        env = world["_env"] = OC.make_env(world["cx"], world["scfg"])
+    prof, var = env.cfg.profile, env.cfg.variant
+    n = len(env.c)
+    d = float(pos.direction)
+    sg = float(pos.sigma)
+    thr = float(prof.limit_through)
+    ask = bool(var is not None and getattr(var, "short_trigger_on_ask", False) and d < 0)
+    best_sl, best_tp, ended = float("inf"), float("inf"), None
+    for k in range(int(bar) + 1, n):
+        sp = prof.spread_at(int(env.v[k]), int(env.mo[int(env.seg_of[k])])) if ask else 0.0
+        if d > 0:
+            m_sl = (min(env.l[k], env.o[k]) - pos.sl) / sg
+            m_tp = (pos.tp - max(env.h[k] - thr, env.o[k])) / sg
+        else:
+            m_sl = (pos.sl - (max(env.h[k], env.o[k]) + sp)) / sg
+            m_tp = (min(env.l[k] + sp + thr, env.o[k] + sp) - pos.tp) / sg
+        best_sl, best_tp = min(best_sl, m_sl), min(best_tp, m_tp)
+        if m_sl <= 0 or m_tp <= 0:
+            ended = "SL" if m_sl <= 0 else "TP"
+            break
+        si_ = int(env.seg_of[k])
+        if env.v[k] + E.H_NS >= env.ff[si_] or k + 1 >= n or int(env.seg_of[k + 1]) != si_ or k >= env.last:
+            ended = "FORCED_FLAT"
+            break
+    return {"sl_margin_sigma": float(best_sl), "tp_margin_sigma": float(best_tp), "ended": ended, "min_abs_margin_sigma": float(min(abs(best_sl), abs(best_tp)))}
 
 
 def attach_events(out: dict, roll: dict, world: dict) -> None:

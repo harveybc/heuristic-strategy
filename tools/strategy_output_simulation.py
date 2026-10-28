@@ -386,6 +386,7 @@ class BCHead:
         reg = np.full((nS, nT), -1, np.int8)
         R = np.full(nT, np.nan, np.float32)
         Fv = np.full(nS, np.nan, np.float32)
+        curves = {}                                                          # the first-passage curves of the head (market-only, per future bar)
         k0 = b + 1
         sg = float(env.decision_sigma(b)) if k0 < n else float("nan")
         if k0 < n and np.isfinite(sg) and sg > 0:
@@ -414,6 +415,11 @@ class BCHead:
             i_t = np.searchsorted(fav, d * TPs, side="left")
             adv_x = d * (liq0 - adv) / sg
             fav_x = (fav - d * liq0) / sg
+            f32 = lambda x: np.asarray(x, np.float32)  # noqa: E731
+            curves = {"adv": f32(adv_x), "fav": f32(fav_x), "pm": f32(pm), "o": f32(d * (o[ks] - liq0) / sg), "gap": f32(d * (gap_px - liq0) / sg),
+                      "cs": f32((self.cost_s[ks] - cm0) / sg), "ct": f32((self.cost_t[ks] - cm0) / sg),
+                      "fo": f32(rate * (self.cum_open[ks] - c0) / sg), "fc": f32(rate * (self.cum_close[ks] - c0) / sg),
+                      "ff": float((d * (c[F] - liq0) - (self.cost_m[F] - cm0) + rate * (self.cum_close[F] - c0)) / sg)}
             R[:] = np.where(i_t < L, adv_x[np.minimum(i_t, L - 1)], adv_x[-1])
             Fv[:] = np.where(i_s >= L, fav_x[-1], np.where(i_s >= 1, fav_x[np.maximum(i_s - 1, 0)], -np.inf))
             Is, It = i_s[:, None], i_t[None, :]
@@ -438,11 +444,56 @@ class BCHead:
         if len(self.rows) >= self.MAX_ROWS:                               # bounded memory: the oldest computed rows go first
             for k_ in list(self.rows)[: self.MAX_ROWS // 4]:
                 del self.rows[k_]
-        self.rows[key] = (out, reg, R, Fv)
+        self.rows[key] = (out, reg, R, Fv, curves)
         return self.rows[key]
 
 
-def bc_interp_regime(g, reg, R, Fv, S_, T_, d_tp: float, d_sl: float) -> float:
+def bc_from_curves(cv: dict, d_tp: float, d_sl: float) -> float:
+    """BC at the position's exact remaining distances from the head's first-passage curves (running adverse /
+    favourable excursion, best discretionary close so far, and per future bar the gap / fill / cost / financing terms):
+    the same rule as the grid nodes, without interpolation (the reach of a barrier is a discontinuity no grid
+    resolves). Market-only: nothing here depends on the position except the two distances the strategy supplies."""
+    adv, fav = cv.get("adv"), cv.get("fav")
+    if adv is None or not len(adv):
+        return float("nan")
+    L = len(adv)
+    i_s = int(np.searchsorted(adv, d_sl, side="left"))
+    i_t = int(np.searchsorted(fav, d_tp, side="left"))
+    if i_s < L and i_s <= i_t:
+        if i_s == i_t and cv["gap"][i_s] >= d_tp:
+            nat = float(cv["o"][i_s] - cv["ct"][i_s] + cv["fo"][i_s])
+        elif cv["gap"][i_s] <= -d_sl:
+            nat = float(cv["o"][i_s] - cv["cs"][i_s] + cv["fo"][i_s])
+        else:
+            nat = float(-d_sl - cv["cs"][i_s] + cv["fc"][i_s])
+        i_end = i_s
+    elif i_t < L:
+        if cv["gap"][i_t] >= d_tp:
+            nat = float(cv["o"][i_t] - cv["ct"][i_t] + cv["fo"][i_t])
+        else:
+            nat = float(d_tp - cv["ct"][i_t] + cv["fc"][i_t])
+        i_end = i_t
+    else:
+        nat, i_end = float(cv["ff"]), L
+    best = float(cv["pm"][i_end - 1]) if i_end >= 1 else -np.inf
+    return max(best, nat)
+
+
+def regime_from_curves(adv_x, fav_x, d_tp: float, d_sl: float) -> int:
+    """The automatic termination a position with remaining distances (d_tp, d_sl) meets, from the market-only running
+    excursion curves of the head (adverse / favourable excursion reached by each future bar): 0 SL first (a shared bar
+    goes to the stop), 1 TP first, 2 the compulsory flat."""
+    L = len(adv_x)
+    if not L:
+        return 2
+    i_s = int(np.searchsorted(adv_x, d_sl, side="left"))
+    i_t = int(np.searchsorted(fav_x, d_tp, side="left"))
+    if i_s < L and i_s <= i_t:
+        return 0
+    return 1 if i_t < L else 2
+
+
+def bc_interp_regime(g, reg, R, Fv, S_, T_, d_tp: float, d_sl: float, want: int | None = None) -> float:
     """Regime-consistent interpolation: BC jumps where the stop or the take-profit stops being reachable, so the corners
     of the bracketing cell are used only when their regime (SL first / TP first / compulsory flat) is the query's. The
     query's regime comes from the head's two market-only reach channels: SL first iff d_sl <= R(d_tp) (the adverse
@@ -456,9 +507,10 @@ def bc_interp_regime(g, reg, R, Fv, S_, T_, d_tp: float, d_sl: float) -> float:
     labs = {int(reg[a, b]) for a, b in corners}
     if len(labs) == 1:
         return bc_interp(g, S_, T_, d_tp, d_sl)
-    r_q = float(np.interp(y, T_, R))
-    f_q = float(np.interp(x, S_, Fv))
-    want = 0 if x <= r_q else (1 if y <= f_q else 2)
+    if want is None:
+        r_q = float(np.interp(y, T_, R))
+        f_q = float(np.interp(x, S_, Fv))
+        want = 0 if x <= r_q else (1 if y <= f_q else 2)
     sel = [(a, b) for a, b in corners if int(reg[a, b]) == want]
     if not sel:
         return bc_interp(g, S_, T_, d_tp, d_sl)
@@ -585,16 +637,19 @@ class SimCloser:
         d_sl, d_tp = d * (liq0 - float(pos.sl)) / sg, d * (float(pos.tp) - liq0) / sg
         if d_sl <= 0 or d_tp <= 0:
             return float("nan")                                       # the open of b + 1 is already beyond a level: the engine's gap rule acts
-        g, reg, R_, F_ = self.bc.row(b, si)
-        g, R_, F_ = g.astype(float), R_.astype(float), F_.astype(float)
+        _, _, _, _, cv = self.bc.row(b, si)
         rho = rho_of_level(self._quality(r))
-        if rho < 1.0:
-            e = self.noise.draw(("bc", b, si), int(self.t.day[r]), g.size + R_.size + F_.size)
+        if rho < 1.0 and cv:                                          # the head's quality: noisy curves (monotone where the truth is), rho^2 shrink
+            L = len(cv["adv"])
+            e = self.noise.draw(("bcx", b, si), int(self.t.day[r]), 3 * L)
             sd = sigma_for_rho(rho, ADV_SCALE_SIGMA)
-            g = (rho ** 2) * (g + sd * e[:g.size].reshape(g.shape))
-            R_ = R_ + sd * e[g.size:g.size + R_.size]
-            F_ = F_ + sd * e[g.size + R_.size:]
-        bcv = bc_interp_regime(g, reg, R_, F_, self.bc.S, self.bc.T, d_tp, d_sl)
+            cv = dict(cv)
+            cv["adv"] = np.maximum.accumulate(cv["adv"] + sd * e[:L])
+            cv["fav"] = np.maximum.accumulate(cv["fav"] + sd * e[L:2 * L])
+            cv["pm"] = np.maximum.accumulate(cv["pm"] + sd * e[2 * L:])
+            bcv = (rho ** 2) * bc_from_curves(cv, d_tp, d_sl)
+        else:
+            bcv = bc_from_curves(cv, d_tp, d_sl)
         if not np.isfinite(bcv):
             return float("nan")
         return float(-bcv * sg / float(pos.sigma))
