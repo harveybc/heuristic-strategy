@@ -1,0 +1,5 @@
+q1.00 n=24 sharpe 12.15 net 29,908,280 trades 140 hold 44.2 net/trade 175,804 win 0.999 early 0.650 maxDD% 3.72 E4 0.000
+q0.85 n=24 sharpe 13.01 net 64,464,947 trades 232 hold 22.2 net/trade 269,904 win 0.969 early 0.882 maxDD% 3.07 E4 0.730
+q0.70 n=24 sharpe 9.26 net 544,190 trades 315 hold 6.3 net/trade 1,733 win 0.754 early 0.986 maxDD% 2.48 E4 0.958
+q0.85: Sharpe above q1 in 23/24 cells; of these net below q1 in 2; net above q1 in 22; median Sharpe ratio 1.071 median net ratio 1.502
+q0.7: Sharpe above q1 in 0/24 cells; of these net below q1 in 0; net above q1 in 0; median Sharpe ratio 0.757 median net ratio 0.157
