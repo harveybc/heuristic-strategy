@@ -80,13 +80,16 @@ def control_view(view: dict, kind: str, k: int = 0, rng=None) -> dict:
     k rows; the closer reads its market-only head through the same transformation."""
     v = dict(view)
     n = len(view["pn"])
+    valid = np.flatnonzero(np.isfinite(np.asarray(view["pn"], float)))   # the table's own rows (CAL + BLOCK, observable)
     if kind == "permuted":
-        perm = rng.permutation(n)
+        perm = np.arange(n)
+        perm[valid] = valid[rng.permutation(len(valid))]
         rmap = lambda a: a[perm]  # noqa: E731
         bar_perm = rng.permutation(view["closer"].bc.n)
         bar_map = lambda b: bar_perm[b]  # noqa: E731
     elif kind == "delayed":
-        idx = np.clip(np.arange(n) - k, 0, n - 1)
+        idx = np.arange(n)
+        idx[valid] = valid[np.clip(np.arange(len(valid)) - k, 0, len(valid) - 1)]   # the value of k decision rows earlier
         rmap = lambda a: a[idx]  # noqa: E731
         bar_map = lambda b: b - k  # noqa: E731
     elif kind == "swapped":
