@@ -1,31 +1,59 @@
 #!/bin/bash
-# Watchdog of the strategy parameter stage (coordinator order 2026-10-27, after a silent memcg OOM of the DEAP pool):
-# every 60 s; on a new "DEAP FAILED" line in LOG, or no ARCHIVE growth for 20 min while the DEAP should be running, it
-# writes an ALERT line to LOG and resumes the stage ONCE from the last checkpoint with workers - 2 (its own DEAP job is
-# stopped first when it hangs). A second failure writes DEAP_GAVE_UP (the slot plan then frees the slots) and exits.
-# Usage: param_stage_watchdog.sh <matrix root>   env: JOBS_DEAP MEM_DEAP CODE (the DEAP's code root) passed on
+# Watchdog of the strategy parameter stage (coordinator orders 2026-10-27 / 28, after a silent memcg OOM of the DEAP
+# pool and a false stall alarm during a long pool build). Every POLL seconds:
+#   * a new "[param-stage] DEAP FAILED" line in LOG                                   -> failure
+#   * the DEAP process is running, the pool is NOT ready yet and its build has lasted more than BUILD_LIMIT
+#     (2 x the measured build time of the last run, default 1800 s when none is known) -> failure
+#   * the pool is ready ("pool_ready" logged) and the ARCHIVE has not grown for STALL seconds (default 1200;
+#     the clock starts when the pool is ready, never during the admission wait or the build) -> failure
+# A failure writes an ALERT line and resumes the stage ONCE from the last checkpoint with workers - 2 (its own DEAP
+# job stopped first); a second failure writes DEAP_GAVE_UP (the slot plan then frees the slots) and exits.
+# Usage: param_stage_watchdog.sh <matrix root>
+#   env: JOBS_DEAP MEM_DEAP CODE VERIFY_PREFIX WARM_ARCHIVE JOBS_VERIFY (passed to the resume), POLL STALL BUILD_LIMIT_SEC,
+#        DRY_RUN=1 (alert only: no stop, no resume -- for the watchdog's own test)
 set -u
-R=$1; OUT=$R/deap; J=${JOBS_DEAP:-6}; resumed=0; t_ref=$(date +%s)   # stall clock: from the arming / the resume, not from an old ARCHIVE
+R=$1; OUT=$R/deap; J=${JOBS_DEAP:-6}; resumed=0
+POLL=${POLL:-60}; STALL=${STALL:-1200}
 log(){ echo "$(date -u +%FT%TZ) [param-watchdog] $*" >> $R/LOG; }
+last_build=$(grep -h "pool_ready_sec" $R/deap_run*_superseded/PROGRESS.log 2>/dev/null | python3 -c "
+import json, sys
+v = [json.loads(l).get('pool_ready_sec') for l in sys.stdin if l.strip().startswith('{')]
+v = [x for x in v if x]
+print(int(v[-1]) if v else 0)" 2>/dev/null)
+BUILD_LIMIT=${BUILD_LIMIT_SEC:-$(( ${last_build:-0} > 0 ? 2 * last_build : 1800 ))}
+deap_pids(){ ps -eo pid,args | awk -v s="strategy_param_deap.py run --subset $OUT/SUBSET.json" '$2 ~ /python/ && index($0, s) {print $1}'; }
 n0=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG)
-log "armed: stage failure lines so far $n0; stall limit 20 min; one resume with workers - 2"
+log "armed: stage failure lines so far $n0; build limit ${BUILD_LIMIT} s (2 x the last measured build ${last_build:-?} s), stall limit ${STALL} s after pool_ready; one resume with workers - 2${DRY_RUN:+ (DRY RUN)}"
+build_t0=""; ready_t0=""
 while [ ! -f $OUT/RESULT.json ]; do
-  sleep 60
+  sleep $POLL
+  now=$(date +%s)
   n=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG)
-  if ! grep -q "pool_ready_sec" $OUT/PROGRESS.log 2>/dev/null; then t_ref=$(date +%s); fi   # admission wait and pool build are not a stall
-  m=$(stat -c %Y $OUT/ARCHIVE.jsonl 2>/dev/null || echo 0); [ "$m" -lt "$t_ref" ] && m=$t_ref
-  age=$(( $(date +%s) - m ))
-  running=$(pgrep -fc "strategy_param_deap.py run --subset $OUT/SUBSET.json")
+  pids=$(deap_pids)
   why=""
   [ "$n" -gt "$n0" ] && why="DEAP FAILED in LOG"
-  [ -z "$why" ] && [ "$running" -gt 0 ] && [ $age -gt 1200 ] && why="no ARCHIVE growth for $((age / 60)) min"
+  if [ -z "$why" ] && [ -n "$pids" ]; then
+    [ -z "$build_t0" ] && build_t0=$now                         # the DEAP process exists (admitted): the build clock starts
+    if grep -q "pool_ready" $OUT/PROGRESS.log 2>/dev/null && [ "$(stat -c %Y $OUT/PROGRESS.log)" -ge "$(( build_t0 - POLL ))" ]; then
+      [ -z "$ready_t0" ] && ready_t0=$now
+      m=$(stat -c %Y $OUT/ARCHIVE.jsonl 2>/dev/null || echo 0); [ "$m" -lt "$ready_t0" ] && m=$ready_t0
+      [ $(( now - m )) -gt $STALL ] && why="no ARCHIVE growth for $(( (now - m) / 60 )) min after the pool was ready"
+    else
+      [ $(( now - build_t0 )) -gt $BUILD_LIMIT ] && why="pool build exceeded ${BUILD_LIMIT} s"
+    fi
+  elif [ -z "$pids" ]; then
+    build_t0=""; ready_t0=""                                    # admission wait or between runs: no clock runs
+  fi
   [ -z "$why" ] && continue
-  log "ALERT: $why (archive $(wc -l < $OUT/ARCHIVE.jsonl) evaluations, checkpoint generation $(python3 -c "import pickle; print(pickle.load(open('$OUT/CHECKPOINT.pkl','rb'))['gen'])" 2>/dev/null))"
+  log "ALERT: $why (archive $( [ -f $OUT/ARCHIVE.jsonl ] && wc -l < $OUT/ARCHIVE.jsonl || echo 0) evaluations, checkpoint generation $(python3 -c "import pickle; print(pickle.load(open('$OUT/CHECKPOINT.pkl','rb'))['gen'])" 2>/dev/null))"
+  if [ -n "${DRY_RUN:-}" ]; then
+    log "DRY RUN: no stop, no resume; watchdog exits"; exit 0
+  fi
   if [ $resumed -ge 1 ]; then
     touch $R/DEAP_GAVE_UP; log "ALERT: second failure after the resume: DEAP_GAVE_UP written, no further resume"; exit 1
   fi
-  pkill -TERM -f "strategy_param_deap.py run --subset $OUT/SUBSET.json"; sleep 30
-  J=$(( J > 4 ? J - 2 : 2 )); resumed=1; n0=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG); t_ref=$(date +%s)
+  for p in $(deap_pids); do kill -TERM $p; done; sleep 30
+  J=$(( J > 4 ? J - 2 : 2 )); resumed=1; n0=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG); build_t0=""; ready_t0=""
   log "resuming the stage from the checkpoint with $J workers"
   FORCE_START=1 JOBS_DEAP=$J MEM_DEAP=${MEM_DEAP:-15G} CODE=${CODE:-$R/code} JOBS_VERIFY=${JOBS_VERIFY:-10} VERIFY_PREFIX=${VERIFY_PREFIX:-verify} WARM_ARCHIVE=${WARM_ARCHIVE:-} setsid nohup bash $R/code/tools/clean_round_chain/run_strategy_param_stage.sh $R >> $R/logs/param_stage_resume.log 2>&1 < /dev/null &
 done
