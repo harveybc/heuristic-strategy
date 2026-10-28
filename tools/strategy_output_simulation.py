@@ -334,7 +334,7 @@ class BCHead:
     rollover by side with the triple rollover. A hindsight training target / ideal head, never a live input.
     Rows are computed on demand and cached: (2, n_sl, n_tp) in sigma of now."""
 
-    MAX_ROWS = 3000
+    MAX_ROWS = 6000
 
     def __init__(self, env, cx, sl_grid=BC_SL_GRID, tp_grid=BC_TP_GRID):
         prof, var = env.cfg.profile, env.cfg.variant
@@ -373,83 +373,73 @@ class BCHead:
             self.cum_close[ix] = cm[np.searchsorted(rr, v[ix] + E.H_NS, side="right")]
         self.rows = {}
 
-    def row(self, b: int) -> np.ndarray:
-        if b in self.rows:
-            return self.rows[b]
+    def row(self, b: int, si: int) -> tuple:
+        """(BC grid (n_sl, n_tp), regime grid, R over TP nodes, F over SL nodes) for the decision at bar b, side si;
+        fully vectorised over the grid, cached per (bar, side) with a bounded cache."""
+        key = (int(b), int(si))
+        if key in self.rows:
+            return self.rows[key]
         env, n = self.env, self.n
         o, h, l, c = env.o, env.h, env.l, env.c
-        out = np.full((2, len(self.S), len(self.T)), np.nan, np.float32)
-        reg = np.full((2, len(self.S), len(self.T)), -1, np.int8)              # 0 SL first, 1 TP first, 2 compulsory flat
-        R = np.full((2, len(self.T)), np.nan, np.float32)                     # adverse excursion reached before the TP node (SL reached iff d_sl <= R)
-        Fv = np.full((2, len(self.S)), np.nan, np.float32)                    # favourable excursion reached before the SL node (TP reached iff d_tp <= F)
+        nS, nT = len(self.S), len(self.T)
+        out = np.full((nS, nT), np.nan, np.float32)
+        reg = np.full((nS, nT), -1, np.int8)
+        R = np.full(nT, np.nan, np.float32)
+        Fv = np.full(nS, np.nan, np.float32)
         k0 = b + 1
         sg = float(env.decision_sigma(b)) if k0 < n else float("nan")
         if k0 < n and np.isfinite(sg) and sg > 0:
+            d = 1.0 if si == 0 else -1.0
             F = int(self.nxt_ff[k0])
             ks = np.arange(k0, F + 1)
+            L = len(ks)
             liq0 = float(o[k0])
             kn = np.minimum(ks + 1, n - 1)
             tau_ok = self.obs[ks] & (ks < F)
-            for si, d in enumerate((1.0, -1.0)):
-                shift = self.sp[ks] if (d < 0 and self.ask_short) else np.zeros(len(ks))
-                rate = self.swap[si]
-                c0 = self.cum_open[k0]
-                fin_open = lambda kk: rate * (self.cum_open[kk] - c0)  # noqa: E731
-                fin_close = lambda kk: rate * (self.cum_close[kk] - c0)  # noqa: E731
-                vc = np.where(tau_ok, d * (o[kn] - liq0) - (self.cost_m[kn] - self.cost_m[k0]) + fin_open(kn), -np.inf) / sg
-                pm = np.maximum.accumulate(vc)
-                if d > 0:
-                    adv = np.minimum.accumulate(np.minimum(l[ks], o[ks]))
-                    fav = np.maximum.accumulate(np.maximum(h[ks] - self.thr, o[ks]))      # d * price reached on the TP side
-                    gap_px = o[ks]
-                else:
-                    adv = np.maximum.accumulate(np.maximum(h[ks], o[ks]) + shift)
-                    fav = np.maximum.accumulate(np.maximum(-(l[ks] + shift + self.thr), -(o[ks] + shift)))
-                    gap_px = o[ks] + shift
-                L = len(ks)
-                TPs_all = liq0 + d * self.T * sg
-                it_all = np.searchsorted(fav, d * TPs_all, side="left")
-                adv_x = (d * (liq0 - adv)) / sg                                # adverse excursion so far (sigma of now), non-decreasing
-                fav_x = (fav - d * liq0) / sg                                  # favourable excursion so far, non-decreasing
-                R[si] = np.where(it_all < L, adv_x[np.minimum(it_all, L - 1)], adv_x[-1])   # the stop wins a shared bar
-                for a_, dsl in enumerate(self.S):
-                    SL = liq0 - d * dsl * sg
-                    hs = (adv <= SL) if d > 0 else (adv >= SL)
-                    i_s = int(np.argmax(hs)) if hs.any() else L
-                    Fv[si, a_] = fav_x[i_s - 1] if i_s >= 1 else -np.inf if i_s == 0 else fav_x[-1]
-                    if i_s >= L:
-                        Fv[si, a_] = fav_x[-1]
-                    TPs = liq0 + d * self.T * sg
-                    it = np.searchsorted(fav, d * TPs, side="left")            # fav is non-decreasing: first bar it reaches d x TP
-                    m_s = (i_s < L) & (i_s <= it)                             # the stop comes first (or on the same bar)
-                    m_t = (~m_s) & (it < L)
-                    nat = np.empty(len(TPs))
-                    if i_s < L:
-                        kk = ks[i_s]
-                        gap_s = (o[kk] <= SL) if d > 0 else (o[kk] + shift[i_s] >= SL)
-                        v_sl = (d * ((o[kk] if gap_s else SL) - liq0) - (self.cost_s[kk] - self.cost_m[k0]) + (fin_open(kk) if gap_s else fin_close(kk))) / sg
-                        v_tgap = (d * (o[kk] - liq0) - (self.cost_t[kk] - self.cost_m[k0]) + fin_open(kk)) / sg
-                        tgap = m_s & (it == i_s) & (d * gap_px[i_s] >= d * TPs)  # a TP gap at the open of the stop bar comes first
-                        nat[m_s] = np.where(tgap[m_s], v_tgap, v_sl)
-                    if m_t.any():
-                        itt = it[m_t]
-                        kk = ks[itt]
-                        gap_t = d * gap_px[itt] >= d * TPs[m_t]
-                        px = np.where(gap_t, o[kk], TPs[m_t])
-                        fin_t = np.where(gap_t, rate * (self.cum_open[kk] - c0), rate * (self.cum_close[kk] - c0))
-                        nat[m_t] = (d * (px - liq0) - (self.cost_t[kk] - self.cost_m[k0]) + fin_t) / sg
-                    m_f = ~(m_s | m_t)
-                    if m_f.any():
-                        nat[m_f] = (d * (c[F] - liq0) - (self.cost_m[F] - self.cost_m[k0]) + fin_close(F)) / sg
-                    i_end = np.where(m_s, i_s, np.where(m_t, it, L))
-                    best = np.where(i_end >= 1, pm[np.maximum(i_end - 1, 0)], -np.inf)
-                    out[si, a_, :] = np.maximum(best, nat)
-                    reg[si, a_, :] = np.where(m_s, 0, np.where(m_t, 1, 2))
-        if len(self.rows) >= self.MAX_ROWS:                               # bounded memory: the oldest computed bars go first
+            shift = self.sp[ks] if (d < 0 and self.ask_short) else np.zeros(L)
+            rate, c0, cm0 = self.swap[si], self.cum_open[k0], self.cost_m[k0]
+            vc = np.where(tau_ok, d * (o[kn] - liq0) - (self.cost_m[kn] - cm0) + rate * (self.cum_open[kn] - c0), -np.inf) / sg
+            pm = np.maximum.accumulate(vc)                            # best discretionary close decided at or before index i
+            if d > 0:
+                adv = np.minimum.accumulate(np.minimum(l[ks], o[ks]))
+                fav = np.maximum.accumulate(np.maximum(h[ks] - self.thr, o[ks]))      # d x price reached on the TP side
+                gap_px = o[ks]
+            else:
+                adv = np.maximum.accumulate(np.maximum(h[ks], o[ks]) + shift)
+                fav = np.maximum.accumulate(np.maximum(-(l[ks] + shift + self.thr), -(o[ks] + shift)))
+                gap_px = o[ks] + shift
+            SLs = liq0 - d * self.S * sg
+            TPs = liq0 + d * self.T * sg
+            i_s = np.searchsorted(-adv, -SLs, side="left") if d > 0 else np.searchsorted(adv, SLs, side="left")
+            i_t = np.searchsorted(fav, d * TPs, side="left")
+            adv_x = d * (liq0 - adv) / sg
+            fav_x = (fav - d * liq0) / sg
+            R[:] = np.where(i_t < L, adv_x[np.minimum(i_t, L - 1)], adv_x[-1])
+            Fv[:] = np.where(i_s >= L, fav_x[-1], np.where(i_s >= 1, fav_x[np.maximum(i_s - 1, 0)], -np.inf))
+            Is, It = i_s[:, None], i_t[None, :]
+            m_s = (Is < L) & (Is <= It)
+            m_t = (~m_s) & (It < L)
+            ks_s = ks[np.minimum(i_s, L - 1)]
+            gap_s = (o[ks_s] <= SLs) if d > 0 else (o[ks_s] + shift[np.minimum(i_s, L - 1)] >= SLs)
+            v_sl = (d * (np.where(gap_s, o[ks_s], SLs) - liq0) - (self.cost_s[ks_s] - cm0)
+                    + rate * (np.where(gap_s, self.cum_open[ks_s], self.cum_close[ks_s]) - c0)) / sg
+            v_tg = (d * (o[ks_s] - liq0) - (self.cost_t[ks_s] - cm0) + rate * (self.cum_open[ks_s] - c0)) / sg   # a TP gap at the open of the stop bar
+            tgap = m_s & (It == Is) & (d * gap_px[np.minimum(i_s, L - 1)][:, None] >= d * TPs[None, :])
+            ks_t = ks[np.minimum(i_t, L - 1)]
+            gap_t = d * gap_px[np.minimum(i_t, L - 1)] >= d * TPs
+            v_tp = (d * (np.where(gap_t, o[ks_t], TPs) - liq0) - (self.cost_t[ks_t] - cm0)
+                    + rate * (np.where(gap_t, self.cum_open[ks_t], self.cum_close[ks_t]) - c0)) / sg
+            v_ff = (d * (c[F] - liq0) - (self.cost_m[F] - cm0) + rate * (self.cum_close[F] - c0)) / sg
+            nat = np.where(m_s, np.where(tgap, v_tg[:, None], v_sl[:, None]), np.where(m_t, v_tp[None, :], v_ff))
+            i_end = np.where(m_s, Is, np.where(m_t, It, L))
+            best = np.where(i_end >= 1, pm[np.maximum(i_end - 1, 0)], -np.inf)
+            out[:] = np.maximum(best, nat)
+            reg[:] = np.where(m_s, 0, np.where(m_t, 1, 2))
+        if len(self.rows) >= self.MAX_ROWS:                               # bounded memory: the oldest computed rows go first
             for k_ in list(self.rows)[: self.MAX_ROWS // 4]:
                 del self.rows[k_]
-        self.rows[b] = (out, reg, R, Fv)
-        return self.rows[b]
+        self.rows[key] = (out, reg, R, Fv)
+        return self.rows[key]
 
 
 def bc_interp_regime(g, reg, R, Fv, S_, T_, d_tp: float, d_sl: float) -> float:
@@ -595,9 +585,8 @@ class SimCloser:
         d_sl, d_tp = d * (liq0 - float(pos.sl)) / sg, d * (float(pos.tp) - liq0) / sg
         if d_sl <= 0 or d_tp <= 0:
             return float("nan")                                       # the open of b + 1 is already beyond a level: the engine's gap rule acts
-        g_all, reg, Rc, Fc = self.bc.row(b)
-        g = g_all[si].astype(float)
-        R_, F_ = Rc[si].astype(float), Fc[si].astype(float)
+        g, reg, R_, F_ = self.bc.row(b, si)
+        g, R_, F_ = g.astype(float), R_.astype(float), F_.astype(float)
         rho = rho_of_level(self._quality(r))
         if rho < 1.0:
             e = self.noise.draw(("bc", b, si), int(self.t.day[r]), g.size + R_.size + F_.size)
@@ -605,7 +594,7 @@ class SimCloser:
             g = (rho ** 2) * (g + sd * e[:g.size].reshape(g.shape))
             R_ = R_ + sd * e[g.size:g.size + R_.size]
             F_ = F_ + sd * e[g.size + R_.size:]
-        bcv = bc_interp_regime(g, reg[si], R_, F_, self.bc.S, self.bc.T, d_tp, d_sl)
+        bcv = bc_interp_regime(g, reg, R_, F_, self.bc.S, self.bc.T, d_tp, d_sl)
         if not np.isfinite(bcv):
             return float("nan")
         return float(-bcv * sg / float(pos.sigma))
