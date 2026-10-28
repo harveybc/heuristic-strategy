@@ -828,7 +828,7 @@ CLOSER_HEAD_CONTRACT = {
                  "ct": "take-profit exit cost relative to a market close now", "fo": "financing accrued to an open fill at b + h", "fc": "financing accrued to an intrabar / close fill at b + h",
                  "ff": "net value of the compulsory flat at the close of the last bar (scalar)"},
     "decoder": "the strategy (L2) supplies only its position's remaining distances d_sl = s (liq_now - SL) / sigma and d_tp = s (TP - liq_now) / sigma; first stop bar = first h with adv >= d_sl, first take-profit bar = first h with fav >= d_tp (a shared bar goes to the stop unless the take-profit gaps at the open); BC = max(pm before the terminating bar, the termination's net value); A(t) = -BC in sigma of the trade",
-    "quality": "rho = sin(pi (level - 1/2)) at the reference lead h_ref = 24 bars; noise sd(h) = sigma_for_rho(rho, 1 sigma) x sqrt(h / 24), applied to adv / fav / pm (monotone where the truth is), output shrunk by rho^2",
+    "quality": "rho = sin(pi (level - 1/2)) at the reference lead h_ref = 24 bars; the decoded BC carries an unbiased error of sd = sigma_for_rho(rho, 1 sigma) x sqrt(h / 24), h = the lead (bars) at which the decisive value lies (one draw per decision bar and side)",
     "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)",
 }
 CONTRACT_CHANGELOG = (

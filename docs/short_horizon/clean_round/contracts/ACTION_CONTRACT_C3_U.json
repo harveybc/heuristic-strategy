@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_841cea2d68e6f8aa",
+ "identity": "action_5deec082a8fc229a",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -1220,7 +1220,7 @@
    "ff": "net value of the compulsory flat at the close of the last bar (scalar)"
   },
   "decoder": "the strategy (L2) supplies only its position's remaining distances d_sl = s (liq_now - SL) / sigma and d_tp = s (TP - liq_now) / sigma; first stop bar = first h with adv >= d_sl, first take-profit bar = first h with fav >= d_tp (a shared bar goes to the stop unless the take-profit gaps at the open); BC = max(pm before the terminating bar, the termination's net value); A(t) = -BC in sigma of the trade",
-  "quality": "rho = sin(pi (level - 1/2)) at the reference lead h_ref = 24 bars; noise sd(h) = sigma_for_rho(rho, 1 sigma) x sqrt(h / 24), applied to adv / fav / pm (monotone where the truth is), output shrunk by rho^2",
+  "quality": "rho = sin(pi (level - 1/2)) at the reference lead h_ref = 24 bars; the decoded BC carries an unbiased error of sd = sigma_for_rho(rho, 1 sigma) x sqrt(h / 24), h = the lead (bars) at which the decisive value lies (one draw per decision bar and side)",
   "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)"
  },
  "changelog": [

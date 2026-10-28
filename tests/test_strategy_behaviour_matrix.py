@@ -350,5 +350,5 @@ def test_closer_head_is_market_only_and_its_noise_grows_with_the_lead():
     import textwrap
     fn = ast.parse(textwrap.dedent(inspect.getsource(S.SimCloser.advantage))).body[0]
     code = ast.unparse([n for n in fn.body if not (isinstance(n, ast.Expr) and isinstance(getattr(n, "value", None), ast.Constant))])   # the code, not the docstring
-    assert "self.path(" not in code and "path_advantage" not in code and "np.sqrt(np.arange(1, L + 1) / H_REF_BARS)" in code
+    assert "self.path(" not in code and "path_advantage" not in code and "math.sqrt(h / H_REF_BARS)" in code
     assert S.H_REF_BARS == 24 and "first-passage" in C3.default_contract()["closer_head"]["name"]

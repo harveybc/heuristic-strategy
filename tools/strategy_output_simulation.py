@@ -449,7 +449,7 @@ class BCHead:
         return self.rows[key]
 
 
-def bc_from_curves(cv: dict, d_tp: float, d_sl: float) -> float:
+def bc_from_curves(cv: dict, d_tp: float, d_sl: float, lead_out: list | None = None) -> float:
     """BC at the position's exact remaining distances from the head's first-passage curves (running adverse /
     favourable excursion, best discretionary close so far, and per future bar the gap / fill / cost / financing terms):
     the same rule as the grid nodes, without interpolation (the reach of a barrier is a discontinuity no grid
@@ -477,6 +477,12 @@ def bc_from_curves(cv: dict, d_tp: float, d_sl: float) -> float:
     else:
         nat, i_end = float(cv["ff"]), L
     best = float(cv["pm"][i_end - 1]) if i_end >= 1 else -np.inf
+    if lead_out is not None:                                          # the lead (bars) at which the best continuation is realised
+        if best >= nat and i_end >= 1:
+            pmv = np.asarray(cv["pm"][:i_end], float)
+            lead_out.append(int(np.argmax(pmv >= best)) + 1)
+        else:
+            lead_out.append(int(min(i_end, L - 1)) + 1)
     return max(best, nat)
 
 
@@ -640,17 +646,12 @@ class SimCloser:
             return float("nan")                                       # the open of b + 1 is already beyond a level: the engine's gap rule acts
         _, _, _, _, cv = self.bc.row(b, si)
         rho = rho_of_level(self._quality(r))
-        if rho < 1.0 and cv:                                          # the head's quality: noisy curves (monotone where the truth is), rho^2 shrink
-            L = len(cv["adv"])
-            e = self.noise.draw(("bcx", b, si), int(self.t.day[r]), 3 * L)
-            sd = sigma_for_rho(rho, ADV_SCALE_SIGMA) * np.sqrt(np.arange(1, L + 1) / H_REF_BARS)   # HORIZON-DEPENDENT: error grows with the lead
-            cv = dict(cv)
-            cv["adv"] = np.maximum.accumulate(cv["adv"] + sd * e[:L])
-            cv["fav"] = np.maximum.accumulate(cv["fav"] + sd * e[L:2 * L])
-            cv["pm"] = np.maximum.accumulate(cv["pm"] + sd * e[2 * L:])
-            bcv = (rho ** 2) * bc_from_curves(cv, d_tp, d_sl)
-        else:
-            bcv = bc_from_curves(cv, d_tp, d_sl)
+        lead = []
+        bcv = bc_from_curves(cv, d_tp, d_sl, lead_out=lead)
+        if rho < 1.0 and np.isfinite(bcv):                            # the head's quality: an unbiased error whose sd grows with the lead
+            h = float(lead[0]) if lead else float(H_REF_BARS)            # at which the decisive value lies (HORIZON-DEPENDENT: sqrt(h / 24))
+            e = float(self.noise.draw(("bcx", b, si), int(self.t.day[r]), 1)[0])
+            bcv = bcv + sigma_for_rho(rho, ADV_SCALE_SIGMA) * math.sqrt(h / H_REF_BARS) * e
         if not np.isfinite(bcv):
             return float("nan")
         return float(-bcv * sg / float(pos.sigma))
