@@ -115,18 +115,59 @@ def markdown(v: dict) -> str:
     return "\n".join(L) + "\n"
 
 
+def filter_tables(recs: list, rule: str, phi: float) -> str:
+    """Per family and side: the closer filter's model ESTIMATED on the calibration block vs the TRUE model (phi, the
+    observation slope beta and noise sd at the middle lead bin, the process variance q, the prior sd of A), and the
+    strategy-vs-Bayes gap caused by the estimation error (estimated-filter row minus the true-model filter row)."""
+    truth_rule = rule + ":truth"
+    L = ["", f"## Filter model: estimated on the calibration block vs true (phi = {phi:g})", "",
+         "| family | q | side | phi est / true | beta est / true | obs sd est / true | q est / true | sd_A est / true | n cal |", "|---|---|---|---|---|---|---|---|---|"]
+    G = ["", f"## Gap from the estimation error (phi = {phi:g}): strategy with the estimated filter, with the true-model filter, Bayes", "",
+         "| family | q | side | E4 est / true-model / Bayes | regret est / true-model / Bayes |", "|---|---|---|---|---|"]
+    gaps = {"E4": [], "regret": []}
+    for rec in recs:
+        fam = rec["cell"] + ":" + str(rec["seed"])
+        for r in rec["rows"]:
+            if r["quality"] >= 0.999 or abs(r["phi"] - phi) > 1e-9:
+                continue
+            fm = r.get("filter_models") or {}
+            for s in SIDES:
+                m = fm.get(s) or {}
+                e, t = m.get("estimated"), m.get("true")
+                if e and t:
+                    mid = len(e["obs_at_h"]) // 2
+                    eo, to = e["obs_at_h"][mid], t["obs_at_h"][mid]
+                    L.append(f"| {fam} | {r['quality']:.2f} | {s} | {e['phi']:.3f} / {t['phi']:.3f} | {eo['beta']:.3f} / {to['beta']:.3f} (h {eo['h']:.0f}) | {eo['sd']:.3f} / {to['sd']:.3f} | "
+                             f"{e['q']:.4f} / {t['q']:.4f} | {e['sd_A']:.3f} / {t['sd_A']:.3f} | {e['n']} |")
+                st, tr, b = r["rules"].get(rule), r["rules"].get(truth_rule), r["bayes"]
+                if st and tr:
+                    a1, a2, a3 = st[s], tr[s], b[s]
+                    G.append(f"| {fam} | {r['quality']:.2f} | {s} | {_f(a1['E4']):.3f} / {_f(a2['E4']):.3f} / {_f(a3['E4']):.3f} | {_f(a1['regret_norm']):.3f} / {_f(a2['regret_norm']):.3f} / {_f(a3['regret_norm']):.3f} |")
+                    for k, kk in (("E4", "E4"), ("regret", "regret_norm")):
+                        x, y = _f(a1[kk]), _f(a2[kk])
+                        if not (math.isnan(x) or math.isnan(y)):
+                            gaps[k].append(x - y)
+    mg = {k: (sum(v) / len(v) if v else float("nan")) for k, v in gaps.items()}
+    G.append("")
+    G.append(f"Mean gap from estimation (estimated minus true-model filter): E4 {mg['E4']:+.3f}, regret {mg['regret']:+.3f} over {len(gaps['E4'])} family-sides.")
+    return "\n".join(L + G) + "\n"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True)
     ap.add_argument("--rule", default="1.0:1")
+    ap.add_argument("--phi-report", type=float, default=0.587, help="the phi of the filter-estimate and estimation-gap tables")
     a = ap.parse_args()
     d = Path(a.dir)
     recs = [json.loads(p.read_text()) for p in sorted(d.glob("LADDER_*.json"))]
     v = verdicts(recs, a.rule)
     tag = a.rule.replace(":", "_")
     (d / f"CLOSER_LADDER_{tag}.json").write_text(json.dumps(v, indent=1, default=float))
-    (d / f"CLOSER_LADDER_{tag}.md").write_text(markdown(v))
-    print(markdown(v).split("## Per family")[0])
+    md = markdown(v) + filter_tables(recs, a.rule, a.phi_report)
+    (d / f"CLOSER_LADDER_{tag}.md").write_text(md)
+    print(md.split("## Per family")[0])
+    print("## Filter" + md.split("## Filter", 1)[1] if "## Filter" in md else "")
 
 
 if __name__ == "__main__":

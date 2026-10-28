@@ -32,6 +32,7 @@ from app.short_horizon.expert_guided import strategy_zz as ZZ  # noqa: E402
 from tools import strategy_behaviour_matrix as BM  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
 from tools import strategy_param_deap as D  # noqa: E402
+from tools import strategy_closer_ladder_report as CLR  # noqa: E402
 
 REPORT = "INFORME_ESTRATEGIA_SIMULADA_2026_10_28.md"
 REQUEST = "SOLICITUD_AUDITORIA_MUSASHI_2026_10_28.md"
@@ -233,6 +234,70 @@ def params_table(canon: dict, opt: dict | None) -> list:
 
 
 # ----------------------------------------------------------------------------- main
+SM = ROOT / "docs/short_horizon/clean_round/strategy_matrix"
+
+
+def d7_table(ladder_dir: Path, rule: str) -> list:
+    """The 24-family closer ladder against the information-limited Bayes closer (QUALIFICATION_SPEC D7), one rule."""
+    recs = [json.loads(p.read_text()) for p in sorted(ladder_dir.glob("LADDER_*.json"))]
+    if not recs:
+        return ["(sin archivos de la escalera)"]
+    v = CLR.verdicts(recs, rule)
+    L = [f"Regla z_close:k_persist[:filtro] = `{rule}`; {len(recs)} familias; en q1.00 la regla reproduce exactamente las corridas de cabezas perfectas; monotonía en la calidad {v['monotone_pass'][0]} / {v['monotone_pass'][1]}.", "",
+         "| calidad, φ | E4 estrategia / Bayes | regret estrategia / Bayes | cierre temprano estrategia / Bayes | Sharpe estrategia / Bayes | neto estrategia / Bayes | pasa E4 | pasa regret | valor del cierre temprano pasa / falla / vacío |",
+         "| --- | --- | --- | --- | --- | --- | ---: | ---: | --- |"]
+    for k, x in v["summary"].items():
+        m, c = x["mean"], x["counts"]
+        L.append(f"| {k} | {m['E4']:.3f} / {m['E4_bayes']:.3f} | {m['regret']:.3f} / {m['regret_bayes']:.3f} | {m['early']:.3f} / {m['early_bayes']:.3f} | {m['sharpe']:.2f} / {m['bayes_sharpe']:.2f} | "
+                 f"{m['net_usd']:,.0f} / {m['bayes_net_usd']:,.0f} | {c['pass_E4'][0]}/{c['pass_E4'][1]} | {c['pass_regret'][0]}/{c['pass_regret'][1]} | {c['pass_early_close_value'][0]}/{c['pass_early_close_value'][1]}/{c['pass_early_close_value'][2]} |")
+    return L
+
+
+def anomaly_findings(rows_path: Path) -> list:
+    """The owner's findings from the Sharpe anomaly rows (previous head noise model, e00fa9e): Sharpe-only hides the net
+    collapse; the re-entry coupling of the exit with a near-perfect opener."""
+    if not rows_path.exists():
+        return ["(sin filas de la anomalía)"]
+    rows = [json.loads(x) for x in rows_path.read_text().splitlines() if x.strip()]
+    by = collections.defaultdict(dict)
+    for r in rows:
+        by[r["cell"]][float(r["q"])] = r
+    qs = sorted({float(r["q"]) for r in rows}, reverse=True)
+    mean = lambda q, k: float(np.nanmean([float(c[q][k]) for c in by.values() if q in c and c[q][k] is not None]))  # noqa: E731
+    early = lambda q: float(np.nanmean([c[q]["mix"][s]["early"] for c in by.values() if q in c for s in ("BUY", "SELL")]))  # noqa: E731
+    e4 = lambda q: float(np.nanmean([e for c in by.values() if q in c for e in c[q]["E4"]]))  # noqa: E731
+    L = ["| calidad del cerrador | Sharpe | neto USD | operaciones | barras de tenencia | cierre temprano | aciertos | E4 |", "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for q in qs:
+        L.append(f"| {q:.2f} | {mean(q, 'sharpe'):.2f} | {mean(q, 'net_usd'):,.0f} | {mean(q, 'trades'):.0f} | {mean(q, 'mean_hold_bars'):.1f} | {early(q):.3f} | {mean(q, 'win_rate'):.3f} | {e4(q):.3f} |")
+    pair = lambda qa: [(c[qa], c[1.0]) for c in by.values() if qa in c and 1.0 in c]  # noqa: E731
+    p85, p70 = pair(0.85), pair(0.70)
+    sh_up = sum(a["sharpe"] > b["sharpe"] for a, b in p85)
+    net_up = sum(a["net_usd"] > b["net_usd"] for a, b in p85)
+    r_net85 = float(np.median([a["net_usd"] / b["net_usd"] for a, b in p85]))
+    r_sh70 = float(np.median([a["sharpe"] / b["sharpe"] for a, b in p70]))
+    r_net70 = float(np.median([a["net_usd"] / b["net_usd"] for a, b in p70]))
+    d_tr = float(np.mean([a["trades"] - b["trades"] for a, b in p85]))
+    d_net = float(np.mean([a["net_usd"] - b["net_usd"] for a, b in p85]))
+    L += ["",
+          f"- (a) Una aptitud sólo-Sharpe oculta el colapso del neto: en q0.70 el Sharpe cae {100 * (1 - r_sh70):.0f} % (mediana de la razón por celda {r_sh70:.2f}) mientras el neto cae {100 * (1 - r_net70):.0f} % (mediana {r_net70:.2f}).",
+          f"- (b) Acoplamiento por re-entrada: con un abridor casi perfecto la salida O* (óptima para la operación aislada) NO es la salida óptima para la cartera. En q0.85 el cerrador ruidoso, que cierra antes y de forma destructiva para la operación aislada (E4 {e4(0.85):.2f}), supera a q1.00 en Sharpe en {sh_up} / {len(p85)} celdas y en neto en {net_up} / {len(p85)} (mediana de la razón de neto {r_net85:.2f}); "
+          f"en media +{d_tr:.0f} operaciones y {d_net:+,.0f} USD de neto por celda ({d_net / d_tr if d_tr else float('nan'):+,.0f} USD por operación adicional): el valor de liberar el hueco para la siguiente apertura de alto EV, que A(t) no mide. "
+          "Coincide con el README de la arquitectura: la optimalidad local de la salida no implica optimalidad de cartera.",
+          "- Ambas cifras vienen del modelo de ruido anterior de la cabeza (e00fa9e, error insesgado independiente por tick); con la cabeza de media condicional + AR(1) la anomalía desaparece (q0.85 por debajo de q1.00, tabla D7)."]
+    return L
+
+
+def phi_limitation() -> str:
+    p = SM / "HEAD_ERROR_PHI.json"
+    if not p.exists():
+        return "- φ del error de la cabeza del cerrador: sin archivo de medida."
+    d = json.loads(p.read_text())
+    med = d["median_by_horizon"]
+    return (f"- φ del error de la cabeza del cerrador = {d['phi']:.3f}: mediana de la autocorrelación de retardo 1 del error {d['phi_horizon']} de {d['n_files']} CSV horarios de predictor "
+            f"({d['source']}; `tools/measure_head_error_phi.py`). LÍMITE: el horizonte más largo disponible es {d['phi_horizon']}; no hay un horizonte de 24 barras, y la autocorrelación crece con el horizonte "
+            f"({', '.join(f'{k} {v:.2f}' for k, v in med.items())}); por eso la sensibilidad φ ∈ {{0, {d['phi']:.3f}, 0.98}}.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--canonical", required=True, help="records of the canonical-point matrix v10 (main host + shard)")
@@ -331,6 +396,8 @@ def main():
          "- Registros anteriores al arreglo de empates (d57c462) no llevan strategy_code_sha256: se conservan como descubrimiento de defectos.",
          "- Sólo sintético: cabezas ideales de calidad declarada sobre mundos sintéticos con el motor real; no se afirma nada sobre datos reales ni sobre cabezas aprendidas.",
          "- TEST (filas >= 2025-01-01) cerrado: ni leído ni usado.",
+         phi_limitation(),
+         "", "### Hallazgos para el propietario (anomalía de Sharpe en q0.85)", ""] + anomaly_findings(SM / "closer_ladder/anomaly_e00fa9e/ANOMALY_ROWS.jsonl") + ["",
          "- Las tres pruebas de C3 que fallaban (deriva del contrato tras 6a38ccf) se corrigieron: el contrato se regeneró desde el código y la prueba exige el umbral absoluto.", "",
          "## 8. Figuras", "",
          "- [Curvas de pérdida de salida L(t), destinados al SL: estrategia / mantener hasta el SL / O*](exit_loss_curves.png)",
