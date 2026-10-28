@@ -79,6 +79,8 @@ WITNESS_SPEC = {
            "rule": "a v2 form is admitted only in the cells where the TRUTH ORACLE fails the sealed form; everywhere else the sealed form governs; both verdicts are reported",
            "intensity_block": "W8 applies only when the coarse direction changes (same-direction strength changes have no old direction); W13 measures before / after the cell's own volatility change bar; written before the block ran"},
 }
+WITNESS_SPEC["v2_W7"] = {"W7_best_cell_v2": "chosen cell = the truth's best cell among those the declared cell rule allows (per-bar band, RR floor on the MAE) >= 0.70"}
+WITNESS_SPEC["v3_W13"] = {"W13_tpsl_track_sigma_v3": "every TP distance = the declared TP rule (cell TP, or protective k_tp_protect x predicted MFE, clipped at the engine's effective cap) x causal sigma, |ratio - 1| <= 0.02"}
 WITNESS_SPEC["v3_W4"] = {"W4_early_close_justified_v3": "every early close had remaining hold value <= EPS_CLOSE",
                          "rule": "admitted per cell where O* fails W4 v2 (VALIDITY_SPEC machinery); the owner's tie rule applied once with the same EPS_CLOSE as E3 / E4"}
 WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c') every strategy trade alive in the window: O*'s exit rule (close when A(t) >= -EPS_CLOSE) replayed on that SAME trade; wherever it closes the trade inside the window, the strategy early-closed it inside the window or earlier at a tick with A(t) >= -EPS_CLOSE; zero misses",
@@ -94,6 +96,18 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-28T05:00Z (instrument defect)", "witness": "the closer's exit path (every A(t), P*, L, Z1): executable decision ticks only",
+     "defect": "SimCloser.path kept the ticks of a missing-data run as decision ticks; A(t) at the last observable tick compared an executable close with closes inside the missing run nobody can take, so the ideal closer held and the order reached its SL",
+     "evidence": "S_LHS_48 s0 SELL 4738-4753 (run-2 point): A(t) -0.53 ... -0.68 on the observable ticks 4738-4744, rows 4712-4720 unobservable, A > 0 only inside the missing run at 4748-4752, SL at 4753; after the fix LHS_48 / S_ / M_ s0 E1 = 1.0 on both sides (run-3 current point)",
+     "effect": "the path keeps the observable decision ticks and the natural exit (EXIT_SPEC already said 'allowed decision bars'); the strategy's ideal closer head changes in missing-data cells: a strategy-code change, DEAP run 4"},
+    {"when": "2026-10-28T05:00Z (hold oracle fails the sealed form)", "witness": "W7_best_cell -> v2 the truth's best cell among those the declared cell rule allows",
+     "defect": "the sealed W7 compares the chosen cell with the global best cell, also cells the declared rule refuses (per-bar band, RR floor on the MAE); the hold oracle, which applies the same rule, fails it",
+     "evidence": "run-2 point re-verification: LHS_46 s0 hold oracle 0.694, S_LHS_46 0.692, M_LHS_46 0.696 (DEFECT); LHS_46 s1 hold oracle passes (0.744): there the sealed form governs",
+     "effect": "v2 admitted only where a control fails the sealed form (VALIDITY_SPEC)"},
+    {"when": "2026-10-28T05:00Z (hold oracle fails the sealed form; v2 predates the protective TP)", "witness": "W13_tpsl_track_sigma -> v3 the declared TP rule",
+     "defect": "v2 requires TP = cell multiple x causal sigma, but the strategy's declared TP (tp_mode 1, owner's exit order) is max(cell TP, k_tp_protect x predicted MFE) clipped at the engine's effective cap, also a sigma multiple",
+     "evidence": "LHS_57 s0 (run-2 point): 164 of 164 TPs equal the declared rule within 2 %, 0 equal the cell multiple (v2 max deviation 1.14); the hold oracle fails the sealed W13 there (DEFECT) and uses cell TPs",
+     "effect": "v3 admitted only where a control fails the sealed form; replaces v2 for that witness"},
     {"when": "2026-10-28T00:00Z (coordinator ruling: a demonstrated tie-band conflict with the sealed E3 / E4)", "witness": "W4_early_close_justified -> v3: every early close had remaining hold value <= EPS_CLOSE",
      "defect": "the sealed W4 (remaining <= 0) and v2 (SL-first or remaining < 0) are failed by the exit truth itself: O* closes when A(t) >= -EPS_CLOSE, and A(t) >= -EPS_CLOSE implies remaining = hold - now <= best continuation - now <= EPS_CLOSE, so its closes in the tie band have 0 < remaining <= EPS_CLOSE; the DEAP drove closer_adv_margin to 0.0065 < EPS_CLOSE to meet v2, and the strategy then held ticks O* closes (W8 failures)",
      "evidence": "records with O* early closes: O* fails the sealed W4 in 2323 of 2788 and W4 v2 in 2754 of 2788 (v2 median 0.625, min 0.167); in the run-2 DEAP-point records v2 passed for O* in 1 of 250",
@@ -1254,7 +1268,7 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         out["W8_early_close_at_switch_v2"] = {"value": {"sl_exits_in_switch_window": sl_win, "exits_in_switch_window": ex_win}, "threshold": "SL exits in [switch, switch + lag] <= max(1, 0.10 x exits there)",
                                               "pass": bool(sl_win <= max(1, 0.10 * ex_win)), "desc": "corrected form (admitted only where the oracle fails the sealed form): positions caught by the switch are closed early or reach TP, not the stop"}
     # W2 knowledge: truth net at the chosen cell > 0; not the worse side; cell = truth best
-    pos_ok, wrong, best_cell = [], [], []
+    pos_ok, wrong, best_cell, best_allowed = [], [], [], []
     dec = {x[0]: x for x in log}
     matched = 0
     for t in trades:
@@ -1272,10 +1286,19 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         pos_ok.append(bool(np.isfinite(net_c) and net_c > 0))
         wrong.append(bool(np.isfinite(other) and np.isfinite(mine) and other > mine + 0.10))
         best_cell.append(bool(ci >= 0 and np.isfinite(mine) and net_c >= mine - 1e-9))
+        if np.isfinite(truth.net[rr, si]).all():                       # v2: the truth's best cell under the DECLARED cell rule (band + RR floor on the MAE)
+            capr, lor = float(truth.cap[rr]), float(truth.lo[rr])
+            okc = C3.allowed_cells(truth.net[rr, si], cells, 0.0, C3.RR_MARGIN_SIGMA, capr, lor)
+            if truth.mae is not None:
+                okc &= np.where(np.isfinite(truth.mae[rr, si]), truth.net[rr, si] >= float(ZZ.PARAMS["risk_reward_floor"]) * truth.mae[rr, si], True)
+            if okc.any():
+                best_allowed.append(bool(ci >= 0 and net_c >= float(np.max(np.where(okc, truth.net[rr, si], -np.inf))) - 1e-9))
     out["W2_truth_positive_open"] = {"value": float(np.mean(pos_ok)) if pos_ok else float("nan"), "threshold": THRESH["truth_positive_open_min"], "pass": bool(pos_ok and np.mean(pos_ok) >= THRESH["truth_positive_open_min"]), "desc": "opened trades with truth net > 0 at the chosen cell",
                                      "decisions_matched_to_trades": matched, "decision_row_offset": off}
     out["W2_wrong_side"] = {"value": float(np.mean(wrong)) if wrong else float("nan"), "threshold": THRESH["wrong_side_max"], "pass": bool(wrong) and float(np.mean(wrong)) <= THRESH["wrong_side_max"], "desc": "opens on the side whose truth best net is lower by > 0.10 sigma"}
     out["W7_best_cell"] = {"value": float(np.mean(best_cell)) if best_cell else float("nan"), "threshold": THRESH["best_cell_min"], "pass": bool(best_cell) and float(np.mean(best_cell)) >= THRESH["best_cell_min"], "desc": "chosen TP/SL cell = the truth's best cell"}
+    out["W7_best_cell_v2"] = {"value": float(np.mean(best_allowed)) if best_allowed else float("nan"), "threshold": THRESH["best_cell_min"], "pass": bool((not best_allowed) or float(np.mean(best_allowed)) >= THRESH["best_cell_min"]),
+                              "desc": "corrected form (admitted only where a control fails the sealed form): chosen cell = the truth's best cell among those the DECLARED cell rule allows (per-bar band, RR floor on the MAE)", "n": len(best_allowed)}
     # W3 NOP respected: opens on truth-NOP rows
     nop_rows = {int(r) for r in truth.rows if truth.nop[r] == 1 and truth.period[r] == BLOCK}
     opens_rows = [int(cx.rob[int(t["entry_bar_abs"]) - off]) for t in trades if int(t["entry_bar_abs"]) - off >= 0]
@@ -1391,8 +1414,29 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             n13 += 1
             dev13.append(abs(abs(float(t["take_profit"]) - float(cl_[db])) / (tp_m * s_) - 1.0))
         mx = float(max(dev13)) if dev13 else float("nan")
+        dev13b, n13b = [], 0                                          # v3: the strategy's DECLARED TP rule (cell, or protective k x MFE), clipped at the engine's effective cap
+        for t in trades:
+            db = int(t["entry_bar_abs"]) - off
+            r_ = int(cx.rob[db]) if db >= 0 else -1
+            d_ = dec.get(r_) if r_ >= 0 else None
+            si = _side(t)
+            if d_ is None or d_[5] != si or int(d_[7 + si]) < 0 or db + 1 >= len(sig):
+                continue
+            ci_ = int(d_[7 + si]); tp_m = float(cells[ci_][0])
+            if ZZ.PARAMS["tp_mode"] >= 0.5 and truth.mfe is not None and np.isfinite(truth.mfe[r_, si, ci_]):
+                tp_m = max(tp_m, float(ZZ.PARAMS["k_tp_protect"]) * float(truth.mfe[r_, si, ci_]))
+            capr = float(truth.cap[r_]) if np.isfinite(truth.cap[r_]) else float("inf")
+            tp_m = min(tp_m, capr)
+            s_ = float(sig[db + 1])
+            if not (np.isfinite(s_) and s_ > 0 and tp_m > 0):
+                continue
+            n13b += 1
+            dev13b.append(abs(abs(float(t["take_profit"]) - float(cl_[db])) / (tp_m * s_) - 1.0))
         out["W13_tpsl_track_sigma_v2"] = {"value": {"max_relative_deviation": mx, "trades_checked": n13}, "threshold": "every unclipped TP distance = cell multiple x causal sigma at the decision (|ratio - 1| <= 0.02)",
                                           "pass": bool((not dev13) or mx <= 0.02), "desc": "corrected form (the first corrected form, a TP / sigma ratio of the halves, was itself failed by the oracle: the optimal policy picks larger multiples in high volatility): TP / SL price distances are sigma multiples"}
+        mxb = float(max(dev13b)) if dev13b else float("nan")
+        out["W13_tpsl_track_sigma_v3"] = {"value": {"max_relative_deviation": mxb, "trades_checked": n13b}, "threshold": "every TP distance = the declared TP rule x causal sigma (|ratio - 1| <= 0.02)",
+                                          "pass": bool((not dev13b) or mxb <= 0.02), "desc": "corrected form v3 (admitted where a control fails the sealed form): the TP multiple is the declared rule, the cell's TP or the protective k_tp_protect x predicted MFE, clipped at the engine's effective cap; v2 checked the cell multiple only (written before the protective TP)"}
     # per-side decision audit (proves the comparison)
     both = [x for x in log if x[3] and x[4]]
     won_l = sum(1 for x in both if x[5] == 0)

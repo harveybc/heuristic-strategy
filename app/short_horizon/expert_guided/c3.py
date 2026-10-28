@@ -301,6 +301,10 @@ class PolicyC3:
                 "mean_ev_l": float(np.nanmean([x["ev_l"] for x in L])) if n else float("nan"), "mean_ev_s": float(np.nanmean([x["ev_s"] for x in L])) if n else float("nan"),
                 "margin": float(self.s.open_margin), "rule": SIDE_SYMMETRY_RULE}
 
+    def reverse_ok(self, r) -> bool:
+        """Whether a close may reverse into the other side at row r (C3: always, when allow_reverse)."""
+        return True
+
     def close_now(self, r, si, bar, pos) -> bool:
         if not self.s.early_close:
             return False
@@ -320,7 +324,7 @@ class PolicyC3:
                 if not self.close_now(r, si, bar, env.pos):
                     return E.HOLD, 1.5, 2.0, NEG
                 o = self.open_decision(r, with_score=True)
-                if o is not None and self.s.allow_reverse and o[0] != (E.LONG if pos > 0 else E.SHORT):
+                if o is not None and self.s.allow_reverse and self.reverse_ok(r) and o[0] != (E.LONG if pos > 0 else E.SHORT):
                     return o[0], float(o[1]), float(o[2]), float(o[3])
                 return E.CLOSE, 1.5, 2.0, NEG
             o = self.open_decision(r, with_score=True)
@@ -811,7 +815,7 @@ def head_outputs(cells) -> dict:
 
 
 STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
-STRATEGY_PARAMS_SHA256 = "197bd952f9da674a1404b6782f96882bfc028cf5270a5100798b9fc46fa4a4c7"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+STRATEGY_PARAMS_SHA256 = "425572ca41ed4d99d29587d00262b70ec1637e72ddc747282bb5da8a3c7f589f"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
 CONTRACT_CHANGELOG = (
     {"when": "2026-10-27", "change": "contract regenerated from the code and re-sealed; the strategy parameter file and its sha are embedded",
      "why": "since 6a38ccf close_p_l / close_p_s / nop_veto are ABSOLUTE calibrated-probability thresholds (genes in [0.30, 0.95]); the committed contracts "

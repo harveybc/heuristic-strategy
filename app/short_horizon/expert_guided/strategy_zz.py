@@ -42,7 +42,7 @@ ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60",
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
 PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 1.2, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
-          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5}
+          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960}
 
 
 def configure(doc: dict):
@@ -303,6 +303,13 @@ class PolicyC3Z(C3.PolicyC3):
         d = E.LONG if chosen == 0 else E.SHORT
         out = (d, tps[chosen] if np.isfinite(tps[chosen]) else self.cells[cis[chosen]][0], self.cells[cis[chosen]][1])
         return out + (evs[chosen],) if with_score else out
+
+    def reverse_ok(self, r) -> bool:
+        """A reversal (close + open of the other side on the same decision) only within zz_reverse_flip_bars of a coarse
+        direction flip; otherwise a plain close. The behaviour matrix found the reversals of the run-2 DEAP point outside
+        every switch window (LHS_46 s0: 21 reversals, 1 inside, sealed W5 validated by the hold oracle)."""
+        fa = self.t.get("zz_flip_age")
+        return bool(fa is None or not np.isfinite(fa[r]) or fa[r] <= PARAMS["zz_reverse_flip_bars"])
 
     def close_now(self, r, si, bar, pos) -> bool:
         self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))

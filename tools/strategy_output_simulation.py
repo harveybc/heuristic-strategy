@@ -392,9 +392,18 @@ class SimCloser:
         return x, p
 
     def path(self, pos) -> dict:
+        """The engine exit path restricted to the EXECUTABLE decision ticks (an observable row: the policy can decide
+        there); the natural exit stays. Ticks of a missing-data run are not exits anyone can take: without the
+        restriction A(t) compared an executable close with closes inside a missing run (behaviour matrix, LHS_48)."""
         k = ("path", int(pos.entry_bar), int(pos.direction), round(float(pos.tp), 7), round(float(pos.sl), 7))
         if k not in self.cache:
-            self.cache[k] = trade_path(self.env, pos)
+            p = trade_path(self.env, pos)
+            rob, ok = self.cx.rob, self.cx.obs_ok
+            keep = np.asarray([bool(0 <= int(t) < len(rob) and rob[int(t)] >= 0 and ok[rob[int(t)]]) for t in p["bars"]], bool)
+            p["n_unexecutable_ticks"] = int((~keep).sum()) if len(keep) else 0
+            if len(keep) and not keep.all():
+                p["bars"], p["P"] = p["bars"][keep], p["P"][keep]
+            self.cache[k] = p
         return self.cache[k]
 
     def advantage(self, r, bar, pos) -> float:
