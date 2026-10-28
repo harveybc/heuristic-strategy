@@ -12,6 +12,7 @@ log "armed: stage failure lines so far $n0; stall limit 20 min; one resume with 
 while [ ! -f $OUT/RESULT.json ]; do
   sleep 60
   n=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG)
+  if ! grep -q "pool_ready_sec" $OUT/PROGRESS.log 2>/dev/null; then t_ref=$(date +%s); fi   # admission wait and pool build are not a stall
   m=$(stat -c %Y $OUT/ARCHIVE.jsonl 2>/dev/null || echo 0); [ "$m" -lt "$t_ref" ] && m=$t_ref
   age=$(( $(date +%s) - m ))
   running=$(pgrep -fc "strategy_param_deap.py run --subset $OUT/SUBSET.json")

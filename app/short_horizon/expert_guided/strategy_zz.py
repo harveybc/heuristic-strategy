@@ -167,6 +167,123 @@ def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
             "fstar": fstar, "votes": votes, "nop_hard": nop_hard, "nop_graded": nop_graded, "pivots": piv, "levels": tuple(levels), "h": h}
 
 
+# ----------------------------------------------------------------------------- the hierarchy heads below perfect quality (README:
+# ZigZag supervision belongs to the training plane; its live counterpart is a model prediction with error)
+def _ar1(rng, n: int, phi: float) -> np.ndarray:
+    e = rng.standard_normal(n)
+    out = np.empty(n)
+    out[0] = e[0]
+    k = math.sqrt(1.0 - phi * phi)
+    for t in range(1, n):
+        out[t] = phi * out[t - 1] + k * e[t]
+    return out
+
+
+def degrade_quantities(q: dict, rho: float, seed: int) -> dict:
+    """The hierarchy heads at quality rho (the same rho = sin(pi (level - 1/2)) as every other head): direction,
+    counter-pivot, fresh-leg and NOP-hard flags misclassified through a latent score z = rho * (+-1) + sqrt(1 - rho^2) u
+    with persistent noise u (AR(1)), so errors come in runs and the flips are misdated; flip_age recomputed from the
+    noisy direction; the coarse room as a conditional-mean regression with correlation rho. Per-bar misclassification
+    rate Phi(-rho / sqrt(1 - rho^2)) (0.23 at quality 0.70)."""
+    if rho >= 1.0:
+        return q
+    rng = np.random.default_rng(int(seed))
+    n = len(q["direction"])
+    k = math.sqrt(max(1.0 - rho * rho, 0.0))
+    out = dict(q)
+    d = np.asarray(q["direction"], float)
+    zd = rho * d + k * _ar1(rng, n, 0.995)
+    out["direction"] = np.where(d != 0, np.sign(zd), 0.0)
+    fa = np.zeros(n)
+    for t in range(1, n):
+        fa[t] = 0.0 if out["direction"][t] != out["direction"][t - 1] else fa[t - 1] + 1.0
+    out["flip_age"] = fa
+    for key, phi in (("counter", 0.9), ("fresh", 0.9)):
+        y = np.asarray(q[key], float)
+        z = rho * (2 * y - 1) + k * np.stack([_ar1(rng, n, phi), _ar1(rng, n, phi)], axis=1)
+        out[key] = (z > 0).astype(np.int8)
+    y = np.asarray(q["nop_hard"], float)
+    out["nop_hard"] = (rho * (2 * y - 1) + k * _ar1(rng, n, 0.95)) > 0
+    room = np.asarray(q["room"], float)
+    fin = np.isfinite(room)
+    if fin.any():
+        mu, sd = float(np.mean(room[fin])), float(np.std(room[fin]))
+        u = np.stack([_ar1(rng, n, 0.99), _ar1(rng, n, 0.99)], axis=1)
+        out["room"] = np.where(fin, mu + rho * rho * (room - mu) + rho * k * sd * u, np.nan)
+    out["head_mode"] = f"ladder rho={rho:.3f}"
+    return out
+
+
+def causal_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | None = None, cached: dict | None = None) -> dict:
+    """CAUSAL-CONFIRMED control: what any model can at least reach. Each production ZigZag pivot becomes known only
+    when it is CONFIRMED (price moves the level's threshold away from it); at bar t the coarse direction is that of
+    the last confirmed coarse leg, flip_age counts from its confirmation, a counter-pivot / fresh leg is an against /
+    favourable fine pivot confirmed within the last h bars; the forward-looking room and the NOP-hard vote have no
+    causal counterpart (NaN / off: their gates do not act)."""
+    h = int(PARAMS["zz_fine_h"] if h is None else h)
+    lv = cached if cached is not None else ladder_levels(bars, sigma, levels)
+    piv, levels, n = lv["pivots"], lv["levels"], lv["n"]
+    hi, lo = np.asarray(bars["HIGH"], float), np.asarray(bars["LOW"], float)
+
+    def confirmed(spec):
+        thr = (float(spec[3:]) if spec.startswith("rev") else EXPERT.deviation_pips) * Z.PIP
+        dirs = np.zeros(n)
+        conf = []
+        for (bp, kind, lvl) in piv.get(spec, []):
+            seg = (lo[bp + 1:] <= lvl - thr) if kind == Z.PEAK else (hi[bp + 1:] >= lvl + thr)
+            if seg.any():
+                conf.append((bp + 1 + int(np.argmax(seg)), kind))
+        conf.sort()
+        last = 0.0
+        j = 0
+        for t in range(n):
+            while j < len(conf) and conf[j][0] <= t:
+                last = -1.0 if conf[j][1] == Z.PEAK else 1.0
+                j += 1
+            dirs[t] = last
+        return dirs, conf
+
+    coarse = [r for r in roles["coarse"] if r in piv]
+    fine = [r for r in roles["fine"] if r in piv]
+    direction = np.zeros(n)
+    for r in coarse:
+        dr, _ = confirmed(r)
+        direction = np.where(direction == 0, dr, direction)
+    counter = np.zeros((n, 2), np.int8)
+    fresh = np.zeros((n, 2), np.int8)
+    for r in fine:
+        _, conf = confirmed(r)
+        for (tc, kind) in conf:
+            win = slice(tc, min(n, tc + h + 1))
+            if kind == Z.PEAK:                                       # a confirmed peak: against a long, favourable to a short
+                counter[win, 0] = 1
+                fresh[win, 1] = 1
+            else:
+                counter[win, 1] = 1
+                fresh[win, 0] = 1
+    fa = np.zeros(n)
+    for t in range(1, n):
+        fa[t] = 0.0 if direction[t] != direction[t - 1] else fa[t - 1] + 1.0
+    nan2 = np.full((n, 2), np.nan)
+    return {"room": nan2.copy(), "direction": direction, "tau_coarse": np.full(n, np.nan), "flip_age": fa, "counter": counter, "fresh": fresh,
+            "tau_fine": np.full(n, np.nan), "fstar": nan2.copy(), "votes": np.zeros((n, 2)), "nop_hard": np.zeros(n, bool), "nop_graded": np.zeros((n, 2), bool),
+            "pivots": piv, "levels": tuple(levels), "h": h, "head_mode": "causal-confirmed"}
+
+
+def head_quantities(bars, sigma, quality: float, mode: str | None, seed: int, cached: dict | None = None) -> tuple:
+    """(heads the strategy reads, hindsight quantities): 'perfect' (hindsight; at quality < 1 this is the OLD, INVALID
+    inflated setting), 'ladder' (default below quality 1: the hierarchy heads carry the world's quality), 'causal'
+    (the causal-confirmed control)."""
+    q = ladder_quantities(bars, sigma, cached=cached)
+    rho = float(min(1.0, max(0.0, math.sin(math.pi * (float(quality) - 0.5)))))   # the rho of every head (strategy_output_simulation.rho_of_level)
+    m = mode or ("ladder" if float(quality) < 0.999 else "perfect")
+    if m == "causal":
+        return causal_quantities(bars, sigma, cached=cached), q
+    if m == "ladder":
+        return degrade_quantities(q, rho, 7919 * int(seed) + 17), q
+    return q, q
+
+
 def to_rows(q: dict, row_bar) -> dict:
     """The per-row table entries of the ideal hierarchy heads (row r reads its decision bar)."""
     rb = np.asarray(row_bar, np.int64)

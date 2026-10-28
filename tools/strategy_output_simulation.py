@@ -319,6 +319,176 @@ def trade_path(env, pos) -> dict:
             "exit_bar": x, "complete": bool(complete), "units": u, "sigma": sg}
 
 
+BC_SL_GRID = tuple(float(x) for x in np.round(np.geomspace(0.02, 3.5, 40), 5))   # remaining SL distance, sigma of now (dense near small SL)
+BC_TP_GRID = tuple(float(x) for x in np.round(np.geomspace(0.05, 10.0, 64), 5))  # remaining TP distance (to k_tp_protect x MFE); dense: BC jumps where the TP stops being reachable
+
+
+class BCHead:
+    """MARKET-ONLY best-continuation head (README: the model observation is market-only; position state belongs to the
+    strategy layers). For a decision at bar b, side s and a hypothetical position at the current executable
+    liquidation price (the fill at the open of b + 1) with remaining TP / SL distances (d_tp, d_sl) in sigma of now:
+    BC = the best net value, relative to closing now, of any later executable close (an observable decision tick
+    tau, fill at the open of tau + 1) before the first barrier hit, or of the automatic termination itself (SL / TP /
+    compulsory flat). Exit cost only (the entry cost is sunk); the engine's fills, barrier priority (open gap first,
+    stop before take-profit, TP through limit_through, shorts triggered at ask), per-bar spread and its swap per
+    rollover by side with the triple rollover. A hindsight training target / ideal head, never a live input.
+    Rows are computed on demand and cached: (2, n_sl, n_tp) in sigma of now."""
+
+    MAX_ROWS = 3000
+
+    def __init__(self, env, cx, sl_grid=BC_SL_GRID, tp_grid=BC_TP_GRID):
+        prof, var = env.cfg.profile, env.cfg.variant
+        self.env, self.cx = env, cx
+        o, v = env.o, env.v
+        n = len(env.c)
+        self.n = n
+        self.sp = np.array([prof.spread_at(int(v[k]), int(env.mo[int(env.seg_of[k])])) for k in range(n)], float)
+        comm = prof.commission_per_lot_side / prof.lot_units
+        self.cost_m = self.sp / 2 + prof.slippage_market + comm
+        self.cost_s = self.sp / 2 + prof.slippage_stop + comm
+        self.cost_t = self.sp / 2 + comm
+        seg = np.asarray(env.seg_of, np.int64)
+        ff = np.array([bool(v[k] + E.H_NS >= env.ff[seg[k]] or k + 1 >= n or seg[k + 1] != seg[k] or k >= env.last) for k in range(n)], bool)
+        self.nxt_ff = np.full(n, n - 1, np.int64)
+        j = n - 1
+        for k in range(n - 1, -1, -1):
+            if ff[k]:
+                j = k
+            self.nxt_ff[k] = j
+        rob, ok = np.asarray(cx.rob), np.asarray(cx.obs_ok)
+        self.obs = np.array([bool(0 <= k < len(rob) and rob[k] >= 0 and ok[rob[k]]) for k in range(n)], bool)
+        self.thr = float(prof.limit_through)
+        self.ask_short = bool(var is not None and getattr(var, "short_trigger_on_ask", False))
+        self.S, self.T = np.asarray(sl_grid, float), np.asarray(tp_grid, float)
+        # financing: the engine's swap per rollover by side (triple rollover included), market-only (side, calendar,
+        # price per unit); cum[k] = sum of rollover multipliers of the bar's segment up to the time of a fill at bar k
+        self.swap = (float(prof.swap_long_per_lot) / prof.lot_units, float(prof.swap_short_per_lot) / prof.lot_units)
+        self.cum_open, self.cum_close = np.zeros(n), np.zeros(n)
+        for sg_ in np.unique(seg):
+            rr = np.asarray(env.cal.rollover_ns(int(sg_)), np.int64)
+            mult = np.array([3.0 if (i + 1) == prof.triple_swap_rollover_index else 1.0 for i in range(len(rr))])
+            cm = np.r_[0.0, np.cumsum(mult)]
+            ix = np.flatnonzero(seg == sg_)
+            self.cum_open[ix] = cm[np.searchsorted(rr, v[ix], side="right")]
+            self.cum_close[ix] = cm[np.searchsorted(rr, v[ix] + E.H_NS, side="right")]
+        self.rows = {}
+
+    def row(self, b: int) -> np.ndarray:
+        if b in self.rows:
+            return self.rows[b]
+        env, n = self.env, self.n
+        o, h, l, c = env.o, env.h, env.l, env.c
+        out = np.full((2, len(self.S), len(self.T)), np.nan, np.float32)
+        reg = np.full((2, len(self.S), len(self.T)), -1, np.int8)              # 0 SL first, 1 TP first, 2 compulsory flat
+        R = np.full((2, len(self.T)), np.nan, np.float32)                     # adverse excursion reached before the TP node (SL reached iff d_sl <= R)
+        Fv = np.full((2, len(self.S)), np.nan, np.float32)                    # favourable excursion reached before the SL node (TP reached iff d_tp <= F)
+        k0 = b + 1
+        sg = float(env.decision_sigma(b)) if k0 < n else float("nan")
+        if k0 < n and np.isfinite(sg) and sg > 0:
+            F = int(self.nxt_ff[k0])
+            ks = np.arange(k0, F + 1)
+            liq0 = float(o[k0])
+            kn = np.minimum(ks + 1, n - 1)
+            tau_ok = self.obs[ks] & (ks < F)
+            for si, d in enumerate((1.0, -1.0)):
+                shift = self.sp[ks] if (d < 0 and self.ask_short) else np.zeros(len(ks))
+                rate = self.swap[si]
+                c0 = self.cum_open[k0]
+                fin_open = lambda kk: rate * (self.cum_open[kk] - c0)  # noqa: E731
+                fin_close = lambda kk: rate * (self.cum_close[kk] - c0)  # noqa: E731
+                vc = np.where(tau_ok, d * (o[kn] - liq0) - (self.cost_m[kn] - self.cost_m[k0]) + fin_open(kn), -np.inf) / sg
+                pm = np.maximum.accumulate(vc)
+                if d > 0:
+                    adv = np.minimum.accumulate(np.minimum(l[ks], o[ks]))
+                    fav = np.maximum.accumulate(np.maximum(h[ks] - self.thr, o[ks]))      # d * price reached on the TP side
+                    gap_px = o[ks]
+                else:
+                    adv = np.maximum.accumulate(np.maximum(h[ks], o[ks]) + shift)
+                    fav = np.maximum.accumulate(np.maximum(-(l[ks] + shift + self.thr), -(o[ks] + shift)))
+                    gap_px = o[ks] + shift
+                L = len(ks)
+                TPs_all = liq0 + d * self.T * sg
+                it_all = np.searchsorted(fav, d * TPs_all, side="left")
+                adv_x = (d * (liq0 - adv)) / sg                                # adverse excursion so far (sigma of now), non-decreasing
+                fav_x = (fav - d * liq0) / sg                                  # favourable excursion so far, non-decreasing
+                R[si] = np.where(it_all < L, adv_x[np.minimum(it_all, L - 1)], adv_x[-1])   # the stop wins a shared bar
+                for a_, dsl in enumerate(self.S):
+                    SL = liq0 - d * dsl * sg
+                    hs = (adv <= SL) if d > 0 else (adv >= SL)
+                    i_s = int(np.argmax(hs)) if hs.any() else L
+                    Fv[si, a_] = fav_x[i_s - 1] if i_s >= 1 else -np.inf if i_s == 0 else fav_x[-1]
+                    if i_s >= L:
+                        Fv[si, a_] = fav_x[-1]
+                    TPs = liq0 + d * self.T * sg
+                    it = np.searchsorted(fav, d * TPs, side="left")            # fav is non-decreasing: first bar it reaches d x TP
+                    m_s = (i_s < L) & (i_s <= it)                             # the stop comes first (or on the same bar)
+                    m_t = (~m_s) & (it < L)
+                    nat = np.empty(len(TPs))
+                    if i_s < L:
+                        kk = ks[i_s]
+                        gap_s = (o[kk] <= SL) if d > 0 else (o[kk] + shift[i_s] >= SL)
+                        v_sl = (d * ((o[kk] if gap_s else SL) - liq0) - (self.cost_s[kk] - self.cost_m[k0]) + (fin_open(kk) if gap_s else fin_close(kk))) / sg
+                        v_tgap = (d * (o[kk] - liq0) - (self.cost_t[kk] - self.cost_m[k0]) + fin_open(kk)) / sg
+                        tgap = m_s & (it == i_s) & (d * gap_px[i_s] >= d * TPs)  # a TP gap at the open of the stop bar comes first
+                        nat[m_s] = np.where(tgap[m_s], v_tgap, v_sl)
+                    if m_t.any():
+                        itt = it[m_t]
+                        kk = ks[itt]
+                        gap_t = d * gap_px[itt] >= d * TPs[m_t]
+                        px = np.where(gap_t, o[kk], TPs[m_t])
+                        fin_t = np.where(gap_t, rate * (self.cum_open[kk] - c0), rate * (self.cum_close[kk] - c0))
+                        nat[m_t] = (d * (px - liq0) - (self.cost_t[kk] - self.cost_m[k0]) + fin_t) / sg
+                    m_f = ~(m_s | m_t)
+                    if m_f.any():
+                        nat[m_f] = (d * (c[F] - liq0) - (self.cost_m[F] - self.cost_m[k0]) + fin_close(F)) / sg
+                    i_end = np.where(m_s, i_s, np.where(m_t, it, L))
+                    best = np.where(i_end >= 1, pm[np.maximum(i_end - 1, 0)], -np.inf)
+                    out[si, a_, :] = np.maximum(best, nat)
+                    reg[si, a_, :] = np.where(m_s, 0, np.where(m_t, 1, 2))
+        if len(self.rows) >= self.MAX_ROWS:                               # bounded memory: the oldest computed bars go first
+            for k_ in list(self.rows)[: self.MAX_ROWS // 4]:
+                del self.rows[k_]
+        self.rows[b] = (out, reg, R, Fv)
+        return self.rows[b]
+
+
+def bc_interp_regime(g, reg, R, Fv, S_, T_, d_tp: float, d_sl: float) -> float:
+    """Regime-consistent interpolation: BC jumps where the stop or the take-profit stops being reachable, so the corners
+    of the bracketing cell are used only when their regime (SL first / TP first / compulsory flat) is the query's. The
+    query's regime comes from the head's two market-only reach channels: SL first iff d_sl <= R(d_tp) (the adverse
+    excursion reached before that TP), else TP first iff d_tp <= F(d_sl) (the favourable excursion before that SL),
+    else the compulsory flat. Bilinear when the four corners agree."""
+    x = float(np.clip(d_sl, S_[0], S_[-1]))
+    y = float(np.clip(d_tp, T_[0], T_[-1]))
+    i = max(min(int(np.searchsorted(S_, x, side="right")) - 1, len(S_) - 2), 0)
+    j = max(min(int(np.searchsorted(T_, y, side="right")) - 1, len(T_) - 2), 0)
+    corners = [(i, j), (i, j + 1), (i + 1, j), (i + 1, j + 1)]
+    labs = {int(reg[a, b]) for a, b in corners}
+    if len(labs) == 1:
+        return bc_interp(g, S_, T_, d_tp, d_sl)
+    r_q = float(np.interp(y, T_, R))
+    f_q = float(np.interp(x, S_, Fv))
+    want = 0 if x <= r_q else (1 if y <= f_q else 2)
+    sel = [(a, b) for a, b in corners if int(reg[a, b]) == want]
+    if not sel:
+        return bc_interp(g, S_, T_, d_tp, d_sl)
+    wts = [1.0 / (1e-9 + abs(S_[a] - x) / (S_[i + 1] - S_[i]) + abs(T_[b] - y) / (T_[j + 1] - T_[j])) for a, b in sel]
+    return float(sum(w_ * float(g[a, b]) for w_, (a, b) in zip(wts, sel)) / sum(wts))
+
+
+def bc_interp(g: np.ndarray, S_, T_, d_tp: float, d_sl: float) -> float:
+    """Bilinear interpolation of one side's BC grid at the remaining distances (clamped to the grid)."""
+    x = float(np.clip(d_sl, S_[0], S_[-1]))
+    y = float(np.clip(d_tp, T_[0], T_[-1]))
+    i = min(int(np.searchsorted(S_, x, side="right")) - 1, len(S_) - 2)
+    j = min(int(np.searchsorted(T_, y, side="right")) - 1, len(T_) - 2)
+    i, j = max(i, 0), max(j, 0)
+    fx = (x - S_[i]) / (S_[i + 1] - S_[i])
+    fy = (y - T_[j]) / (T_[j + 1] - T_[j])
+    v00, v01, v10, v11 = float(g[i, j]), float(g[i, j + 1]), float(g[i + 1, j]), float(g[i + 1, j + 1])
+    return (1 - fx) * (1 - fy) * v00 + (1 - fx) * fy * v01 + fx * (1 - fy) * v10 + fx * fy * v11
+
+
 def path_advantage(path: dict, bar: int) -> float:
     """A(t) = P(close now) - max_{t' > t} P(t') (the best continuation, the natural exit included), in sigma units of
     the trade; NaN when t is not a decision bar of the path."""
@@ -338,6 +508,7 @@ class SimCloser:
     def __init__(self, cx, SCFG, truth: Truth, q: Quality, noise: Noise, cal: dict, dec_rows_mask):
         self.cx, self.SCFG, self.t, self.q, self.noise, self.cal = cx, SCFG, truth, q, noise, cal
         self.env = OC.make_env(cx, SCFG)
+        self.bc = BCHead(self.env, cx)                                # the market-only best-continuation head (shared by every quality copy)
         self.cache = {}
         self.dec = dec_rows_mask
         self.visit_lookup = {}
@@ -407,17 +578,37 @@ class SimCloser:
         return self.cache[k]
 
     def advantage(self, r, bar, pos) -> float:
-        """The closer's ADVANTAGE head (hindsight target, never an observation): A(t) in sigma units with the closer's
-        quality, rho = sin(pi (level - 1/2)) and the conditional-mean output (a perfect head returns A exactly)."""
-        a = path_advantage(self.path(pos), int(bar))
-        if not np.isfinite(a):
+        """A(t) for the strategy's OWN position, computed by the strategy (L2) from the MARKET-ONLY best-continuation
+        head BC[bar, side, (d_sl, d_tp)] (coordinator / README 2026-10-28: no position-conditioned head): the position's
+        remaining distances from the current executable price, bilinear interpolation, A = -BC in sigma of the trade.
+        The head carries the closer's quality (rho = sin(pi (level - 1/2)), conditional-mean output, noise per grid
+        cell); the exact path A(t) (path_advantage) stays the oracle / witness truth."""
+        b = int(bar)
+        if b + 1 >= len(self.env.o):
             return float("nan")
+        si = 0 if int(pos.direction) > 0 else 1
+        d = float(pos.direction)
+        liq0 = float(self.env.o[b + 1])
+        sg = float(self.env.decision_sigma(b))
+        if not (np.isfinite(sg) and sg > 0):
+            return float("nan")
+        d_sl, d_tp = d * (liq0 - float(pos.sl)) / sg, d * (float(pos.tp) - liq0) / sg
+        if d_sl <= 0 or d_tp <= 0:
+            return float("nan")                                       # the open of b + 1 is already beyond a level: the engine's gap rule acts
+        g_all, reg, Rc, Fc = self.bc.row(b)
+        g = g_all[si].astype(float)
+        R_, F_ = Rc[si].astype(float), Fc[si].astype(float)
         rho = rho_of_level(self._quality(r))
-        if rho >= 1.0:
-            return a
-        e = self.noise.draw(("adv", int(bar), int(pos.direction), int(pos.entry_bar), round(float(pos.tp), 7), round(float(pos.sl), 7)), int(self.t.day[r]), 1)
-        noisy = a + sigma_for_rho(rho, ADV_SCALE_SIGMA) * float(e[0])
-        return float((rho ** 2) * noisy)
+        if rho < 1.0:
+            e = self.noise.draw(("bc", b, si), int(self.t.day[r]), g.size + R_.size + F_.size)
+            sd = sigma_for_rho(rho, ADV_SCALE_SIGMA)
+            g = (rho ** 2) * (g + sd * e[:g.size].reshape(g.shape))
+            R_ = R_ + sd * e[g.size:g.size + R_.size]
+            F_ = F_ + sd * e[g.size + R_.size:]
+        bcv = bc_interp_regime(g, reg[si], R_, F_, self.bc.S, self.bc.T, d_tp, d_sl)
+        if not np.isfinite(bcv):
+            return float("nan")
+        return float(-bcv * sg / float(pos.sigma))
 
     def with_quality(self, close_level: float):
         """The same closer (same truth, same noise stream, shared path cache) at another closer quality level."""

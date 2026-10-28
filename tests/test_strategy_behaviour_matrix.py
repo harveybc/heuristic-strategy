@@ -4,6 +4,7 @@ and per-leg drift signs, volatility processes (step / ramp / GARCH persistence),
 cell list (ids unique, every base cell has its zero-cost twin and exact mirror, expected / forbidden written), the
 mirror check and the parameter file wiring. No engine, no data."""
 import json
+import math
 
 import numpy as np
 import pandas as pd
@@ -290,3 +291,49 @@ def test_w4_v3_is_admitted_only_where_ostar_fails_w4_v2():
     assert a["status"] == "DEFECT" and a["governing_form"] == "W4_early_close_justified_v3" and a["pass"]
     assert b["status"] == "DEFECT" and b["governing_form"] == "W4_early_close_justified_v2" and not b["pass"]
     assert any("W4_early_close_justified -> v3" in x["witness"] and "2754 of 2788" in x["evidence"] for x in BM.WITNESS_CHANGELOG)
+
+
+def test_bc_interp_is_bilinear_and_clamped():
+    from tools import strategy_output_simulation as S
+    Sg, Tg = np.array([0.1, 0.5, 1.0]), np.array([0.2, 1.0, 3.0])
+    g = np.add.outer(2.0 * Sg, 3.0 * Tg)                                # linear in both distances: bilinear interpolation is exact
+    assert S.bc_interp(g, Sg, Tg, 2.0, 0.75) == pytest.approx(2 * 0.75 + 3 * 2.0)
+    assert S.bc_interp(g, Sg, Tg, 9.0, 5.0) == pytest.approx(2 * 1.0 + 3 * 3.0)        # clamped to the grid
+
+
+def test_hierarchy_heads_degrade_with_quality_and_the_causal_control_lags():
+    from app.short_horizon.expert_guided import strategy_zz as ZZ
+    from scipy.stats import norm
+    n = 20000
+    d = np.where((np.arange(n) // 500) % 2 == 0, 1.0, -1.0)
+    q = {"direction": d, "flip_age": np.zeros(n), "counter": np.zeros((n, 2), np.int8), "fresh": np.zeros((n, 2), np.int8),
+         "nop_hard": np.zeros(n, bool), "room": np.ones((n, 2))}
+    assert ZZ.degrade_quantities(q, 1.0, 1) is q
+    rho = math.sin(math.pi * 0.2)
+    out = ZZ.degrade_quantities(q, rho, 1)
+    err = float(np.mean(out["direction"] != d))
+    assert abs(err - norm.cdf(-rho / math.sqrt(1 - rho * rho))) < 0.08                # persistent errors: the rate matches in expectation
+    room = np.arange(n, dtype=float) % 37
+    out2 = ZZ.degrade_quantities({**q, "room": np.stack([room, room], axis=1)}, rho, 2)
+    assert abs(np.corrcoef(out2["room"][:, 0], room)[0, 1] - rho) < 0.1                 # the room regression carries correlation rho
+    # causal: a V (down then up) confirms the up leg only after the reversal threshold
+    idx = pd.date_range("2021-01-04", periods=400, freq="h", tz="UTC")
+    c = np.r_[np.linspace(1.20, 1.10, 200), np.linspace(1.10, 1.20, 200)]
+    bars = pd.DataFrame({"OPEN": c, "HIGH": c + 1e-4, "LOW": c - 1e-4, "CLOSE": c}, index=idx)
+    cq = ZZ.causal_quantities(bars, np.full(400, 1e-3), levels=("rev200",), roles={"coarse": ("rev200",), "middle": (), "fine": ()})
+    up = np.flatnonzero(cq["direction"] > 0)
+    assert len(up) and up[0] > 200 and up[0] <= 200 + 50                              # 200 pips from the valley take ~40 bars here
+
+
+def test_every_proposed_open_is_placed_or_counted_and_ties_are_not_deferred():
+    """W14 (M_LHS_48): the best-of-day gate deferred an open whose score tied the day's best within float rounding
+    (0.7499999999999943 vs 0.75) in the mirror only, and the drop showed in no engine count."""
+    from app.short_horizon.expert_guided import exec_variants as XV
+    import types
+    env = types.SimpleNamespace(v=np.arange(10), business_day=lambda k: 0, entry_gate=lambda b: (True, "OK"))
+    seq = iter([(1, 1.0, 1.0, 0.75), (2, 1.0, 1.0, 0.7499999999999943), (1, 1.0, 1.0, 0.70)])
+    g = XV.BestOfDayGate(lambda bar, r, st, e: next(seq), observe_bars=0)
+    flat = np.array([0])
+    placed = [g(b, b, flat, env)[0] for b in range(3)]
+    assert placed[:2] == [1, 2] and placed[2] == 0                                   # the tie is placed; a real lower score is deferred
+    assert g.stats["placed"] + g.stats["deferred_below_best"] + g.stats["deferred_observing"] + g.stats["below_threshold"] == 3   # every proposal counted

@@ -180,6 +180,8 @@ class BestOfDayGate:
         self._reset_day(env.business_day(k))
         ok, _ = env.entry_gate(bar)
         if not ok:
+            if action in (1, 2):
+                self.stats["entry_gate_closed"] = self.stats.get("entry_gate_closed", 0) + 1   # counted: the open never reaches the engine
             return 0, tp, sl
         if action not in (1, 2):
             return action, tp, sl
@@ -192,8 +194,8 @@ class BestOfDayGate:
         if self.seen <= self.observe_bars:
             self.stats["deferred_observing"] += 1
             return 0, tp, sl
-        if score < prev_best:
-            self.stats["deferred_below_best"] += 1
+        if score < prev_best - 1e-9:                                  # a tie within float rounding is not 'below' (a world and its exact
+            self.stats["deferred_below_best"] += 1                    # mirror scored 0.7499999999999943 vs 0.75 and only one of them entered)
             return 0, tp, sl
         self.stats["placed"] += 1
         return action, tp, sl

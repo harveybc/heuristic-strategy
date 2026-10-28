@@ -611,6 +611,7 @@ def cell_world(cx, SCFG, AC, cell: dict, seed: int) -> dict:
         SC = dataclasses.replace(SC, profile=prof)
     w = H.leaf_world(cx, SC, AC, leaf, BLOCK, seed, periods=(CAL, BLOCK))
     H.L2.pop(key, None)
+    w["quality"], w["zz_mode"], w["seed"] = float(cell.get("quality", 1.0)), cell.get("zz_mode"), int(seed)   # the hierarchy heads' quality (D2)
     return w
 
 
@@ -663,11 +664,12 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     view = C2.restrict(table, np.flatnonzero(cx.obs_ok & np.isin(cx.ds.period, [CAL, BLOCK])))
     gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
     strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto" in genes)
-    # the IDEAL hierarchy heads (multi-resolution ZigZag ladder on the path, hindsight = perfect) and the causal burst flag
+    # the hierarchy heads (multi-resolution ZigZag ladder): at the world's quality (perfect = hindsight only at quality 1;
+    # 'ladder' below 1; 'causal' = the causal-confirmed control), and the causal burst flag; world["ladder"] keeps the hindsight
     bars = world.get("bars") if world.get("bars") is not None else cx.ds.bars
-    q = ZZ.ladder_quantities(bars, cx.ds.sigma)
-    world["ladder"] = q
-    zz = ZZ.to_rows(q, cx.ds.row_bar)
+    qh, q = ZZ.head_quantities(bars, cx.ds.sigma, world.get("quality", 1.0), world.get("zz_mode"), world.get("seed", 0))
+    world["ladder"], world["ladder_heads_mode"] = q, qh.get("head_mode", "perfect")
+    zz = ZZ.to_rows(qh, cx.ds.row_bar)
     keep = np.isfinite(view["pn"])
     for k, v in zz.items():
         view[k] = np.where(keep.reshape((-1,) + (1,) * (np.ndim(v) - 1)), v, np.nan) if np.ndim(v) else v
@@ -813,7 +815,7 @@ def exit_stats(world: dict, roll: dict, closer) -> dict:
             if reason == "EARLY":
                 ecv += (float(t["net_usd"]) - path["hold_net"]) / u / sg
         # per-tick agreement and destructive closes, from the closes log of that side
-        agree, n_ticks, destructive, n_closes, dcost = 0, 0, 0, 0, []
+        agree, n_ticks, destructive, n_closes, dcost, herr = 0, 0, 0, 0, [], []
         for c in roll["closes"]:
             if int(c[2]) != si:
                 continue
@@ -826,6 +828,8 @@ def exit_stats(world: dict, roll: dict, closer) -> dict:
             if not np.isfinite(a):
                 continue
             n_ticks += 1
+            if len(c) > 9 and np.isfinite(c[9]):
+                herr.append(float(c[9]) - a)                           # the strategy's A(t) from the market-only head minus the exact A(t)
             truth_close = a >= -EPS_CLOSE
             agree += int(bool(c[5]) == truth_close)
             if c[5]:
@@ -840,7 +844,9 @@ def exit_stats(world: dict, roll: dict, closer) -> dict:
                         "R_hist": np.histogram(R, bins=[-1e9, 0.01, 0.05, 0.1, 0.3, 1.0, 1e9])[0].tolist() if len(R) else [],
                         "agreement": agree / n_ticks if n_ticks else float("nan"), "held_ticks": n_ticks,
                         "destructive_share": destructive / n_closes if n_closes else 0.0, "destructive_mean_cost_sigma": float(np.mean(dcost)) if dcost else 0.0, "closes": n_closes,
-                        "early_close_value_sigma": float(ecv), "censored_by_block_end": len(censored)}
+                        "early_close_value_sigma": float(ecv), "censored_by_block_end": len(censored),
+                        "head_A_error": {"n": len(herr), "mae": float(np.mean(np.abs(herr))) if herr else float("nan"), "p90_abs": float(np.quantile(np.abs(herr), 0.9)) if herr else float("nan"),
+                                         "bias": float(np.mean(herr)) if herr else float("nan")}}
     return per_side
 
 
@@ -1132,6 +1138,10 @@ def rollout_cell(world: dict, strat, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
     pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost, observe_bars=int(round(ZZ.PARAMS.get("observe_bars", 0))))
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
+    gate = getattr(pol, "last_gate", None)
+    if gate is not None and isinstance(m, dict):                  # every open the policy proposed and the gate deferred is COUNTED (no silent drops)
+        m = dict(m)
+        m["gate_" + "stats"] = dict(gate.stats)
     return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat, "attr": getattr(pol, "attr", []), "positions": getattr(pol, "positions", {})}
 
 
@@ -1768,6 +1778,8 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "oracle": {k: v for k, v in owit.items() if k != "summary"} | {"summary": owit["summary"]}, "oracle_PASS_sealed": owit["PASS_sealed"], "oracle_PASS_v2": owit["PASS_v2"],
            "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2, "ladder_to_horizon": ladder_map,
            "attribution": wit.get("attribution"), "oracle_attribution": owit.get("attribution"),
+           "non_fills": {"gate": (roll["metrics"].get("gate_stats") if isinstance(roll["metrics"], dict) else None),
+                         "engine_refused": {k: v for k, v in (roll["metrics"].items() if isinstance(roll["metrics"], dict) else []) if "refused" in str(k)}},
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres,
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),

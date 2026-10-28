@@ -122,6 +122,9 @@ class CachedWorld:
         self.w["truth"].xvis = {}
 
     def evaluate(self, params: dict) -> dict:
+        bc = getattr(self.view0["closer"], "bc", None)
+        if bc is not None:
+            bc.rows.clear()                                           # the market-only head's rows: recomputed per evaluation (bounded memory)
         cache = self.view0["closer"].cache                            # shared by every quality copy: without the reset it grew ~20 MB per
         cache.clear()                                                 # evaluation per worker (new positions per candidate) until the 13G
         cache.update(self.cache_base)                                 # scope was OOM-killed at generation 8
@@ -131,9 +134,9 @@ class CachedWorld:
         genes = SP.genes_c3(params)
         strat = C3.StrategyC3.from_genes(self.gm.to_absolute(genes), "nop_veto" in genes)
         view = dict(self.view0)
-        q = ZZ.ladder_quantities(self.bars, self.w["cx"].ds.sigma, cached=self.levels)
+        qh, q = ZZ.head_quantities(self.bars, self.w["cx"].ds.sigma, self.w.get("quality", 1.0), self.w.get("zz_mode"), self.w.get("seed", 0), cached=self.levels)
         keep = np.isfinite(view["pn"])
-        for k, v in ZZ.to_rows(q, self.w["cx"].ds.row_bar).items():
+        for k, v in ZZ.to_rows(qh, self.w["cx"].ds.row_bar).items():
             view[k] = np.where(keep.reshape((-1,) + (1,) * (np.ndim(v) - 1)), v, np.nan)
         view["risk_burst"] = ZZ.burst_rows(self.bars, self.w["cx"].ds.sigma, self.w["cx"].ds.row_bar)
         if ZZ.PARAMS["ev_from_net"] >= 0.5:
@@ -146,14 +149,18 @@ class CachedWorld:
             wit["W8_early_close_at_switch_v3"] = BM.w8_switch_v3(self.w, roll, self.sroll, self.closer1)
         vres = BM.validity(wit, self.owit, self.swit)                 # VALIDITY_SPEC, identical to the matrix's governing verdict
         fails = [k for k in vres["failing"] if perfect or k in QUALITY_INDEPENDENT]
-        exit_fails = []
+        exit_fails, ep_summary = [], None
         if perfect:                                                   # the exit layer (sealed EXIT_SPEC) is a constraint: E0-E5, EP, E1', E2', E7, Z1, E8
             ex = BM.exit_layer_of(self.cell, self.w, strat, view, self.cells, roll, self.oroll, self.ov, light=True)
             exit_fails = list(ex["failing_effective"])
             fails += exit_fails
+            ep_summary = ex.get("episode_summary")
         sh = float(roll["metrics"].get("sharpe_daily_sqrt365", float("nan")))
-        return {"key": self.cell["subset_key"], "sharpe": sh if math.isfinite(sh) else -10.0, "fails": fails, "opens": wit["summary"]["opens"],
-                "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"])}
+        out = {"key": self.cell["subset_key"], "sharpe": sh if math.isfinite(sh) else -10.0, "fails": fails, "opens": wit["summary"]["opens"],
+               "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"])}
+        if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
+            out["_trades"], out["_episodes"], out["_pair"], out["_role"] = roll["trades"], ep_summary, self.cell["pair"], self.cell["role"]
+        return out
 
 
 # ----------------------------------------------------------------------------- genome <-> parameter document
@@ -184,6 +191,33 @@ def encode(doc: dict) -> list:
 _BASE = {}
 
 
+def judge_pairs(res: list) -> None:
+    """W14 (exact mirror of the twin's ledger) and E6 (episode exit mix and mean R of the twin and its mirror, sides
+    swapped) for the twin / mirror pairs of the subset, added to the mirror world's failures; the trades and episode
+    summaries are dropped before the results travel to the parent."""
+    by = {}
+    for r in res:
+        if r.get("_pair"):
+            by.setdefault(r["_pair"], {})[r["_role"]] = r
+    for key, pr in by.items():
+        a, b = pr.get("S"), pr.get("M")
+        if a is None or b is None:
+            continue
+        w14 = BM.mirror_check(a["_trades"], b["_trades"])
+        if not w14["pass"]:
+            b["fails"].append("W14_mirror")
+        ea, eb = a.get("_episodes"), b.get("_episodes")
+        if ea and eb:
+            g = lambda d, k: d.get(k, d.get(str(k)))  # noqa: E731
+            dmax = max(abs(g(ea, 0)["early"] - g(eb, 1)["early"]), abs(g(ea, 1)["early"] - g(eb, 0)["early"]), abs(g(ea, 0)["mean_R"] - g(eb, 1)["mean_R"]),
+                       abs(g(ea, 1)["mean_R"] - g(eb, 0)["mean_R"]), abs(g(ea, 0)["n"] - g(eb, 1)["n"]), abs(g(ea, 1)["n"] - g(eb, 0)["n"]))
+            if not dmax <= 1e-9:
+                b["fails"].append("E6_exit_mirror")
+    for r in res:
+        for k in ("_trades", "_episodes", "_pair", "_role"):
+            r.pop(k, None)
+
+
 def _worker(conn, share: list, fold: str, admitted: str, csv_dir: str, contract: str):
     import resource
     import warnings
@@ -201,6 +235,7 @@ def _worker(conn, share: list, fold: str, admitted: str, csv_dir: str, contract:
             break
         t1 = time.time()
         res = [w.evaluate(msg) for w in worlds]
+        judge_pairs(res)
         conn.send({"results": res, "sec": time.time() - t1, "maxrss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0})
 
 
@@ -211,7 +246,12 @@ class Pool:
             _BASE["AC"] = S.contract_for_sim(contract)
             cx, SCFG = S.load_fold(fold, admitted, csv_dir)
             _BASE["cx"], _BASE["SCFG"] = cx, S.with_variant(SCFG, C3.FULL_F3)
-        shares = [subset[i::jobs] for i in range(jobs)]
+        groups = {}
+        for c in subset:                                              # a twin / mirror pair shares one worker (W14 / E6 are judged there)
+            groups.setdefault(c.get("pair") or c["subset_key"], []).append(c)
+        shares = [[] for _ in range(jobs)]
+        for i, g in enumerate(sorted(groups.values(), key=len, reverse=True)):
+            min(shares, key=len).extend(g)
         self.conns, self.procs = [], []
         for sh in shares:
             if not sh:
