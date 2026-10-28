@@ -158,8 +158,10 @@ class CachedWorld:
         perfect = float(self.cell["quality"]) >= 0.999
         if perfect and "W8_early_close_at_switch" in wit:
             wit["W8_early_close_at_switch_v3"] = BM.w8_switch_v3(self.w, roll, self.sroll, self.closer1)
-        vres = BM.validity(wit, self.owit, self.swit)                 # VALIDITY_SPEC, identical to the matrix's governing verdict
+        vres = BM.validity(wit, self.owit, self.swit, BM.expected_witness_ids(self.cell, self.w))   # VALIDITY_SPEC v2, identical to the matrix's governing verdict
         fails = [k for k in vres["failing"] if perfect or k in QUALITY_INDEPENDENT]
+        v1 = BM.validity_v1_retired(wit, self.owit, self.swit)        # the retired v1 rule, recorded for the re-score delta only (never governs)
+        fails_v1 = [k for k in v1["failing"] if perfect or k in QUALITY_INDEPENDENT]
         exit_fails, ep_summary = [], None
         if perfect:                                                   # the exit layer (sealed EXIT_SPEC) is a constraint: E0-E5, EP, E1', E2', E7, Z1, E8
             ex = BM.exit_layer_of(self.cell, self.w, strat, view, self.cells, roll, self.oroll, self.ov, light=True)
@@ -176,7 +178,8 @@ class CachedWorld:
             d7 = {side: {"E4": st_s[side]["E4"], "E4_bayes": st_b[side]["E4"], "regret": st_s[side]["regret_norm"], "regret_bayes": st_b[side]["regret_norm"]} for side in ("BUY", "SELL")}
         sh = float(roll["metrics"].get("sharpe_daily_sqrt365", float("nan")))
         out = {"key": self.cell["subset_key"], "sharpe": sh if math.isfinite(sh) else -10.0, "fails": fails, "opens": wit["summary"]["opens"],
-               "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"]), "d7": d7}
+               "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"]), "d7": d7,
+               "validity_v2": {k: vres[k] for k in ("not_evaluable", "unvalidated", "defects", "replay_conflicts", "evaluated")}, "fails_v1_retired": fails_v1 + exit_fails}
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
             out["_trades"], out["_episodes"], out["_pair"], out["_role"] = BM.annotate_sigma(self.w, roll["trades"]), ep_summary, self.cell["pair"], self.cell["role"]
         self._release()

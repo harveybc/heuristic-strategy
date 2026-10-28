@@ -1,5 +1,5 @@
 {
- "schema": "strategy_qualification.v1",
+ "schema": "strategy_qualification.v2",
  "sealed_before_running": "2026-10-28 (coordinator order after the architecture contract of the heuristic-strategy README, section 'Strategy architecture and design method'); none of the panels below has been run when this file is committed",
  "D3_unseen_confirmation": {
   "seeds": [
@@ -16,7 +16,8 @@
   },
   "paired_statistic": "per base cell: mean over seeds of the daily Sharpe and of the net USD; paired difference deap - canonical; 95 % bootstrap CI over base cells (10000 resamples, seed 20261028)",
   "claim_rule": "an improvement is claimed only if the CI lower bound is > 0; otherwise the report states 'no demonstrated gain'",
-  "qualification_rule": "the matrix verdict on seeds 3-5 (governing forms, VALIDITY_SPEC) is reported next to seeds 0-2; a cell that passes on 0-2 and fails on 3-5 is listed as a generalisation failure"
+  "qualification_rule": "the matrix verdict on seeds 3-5 (governing forms, VALIDITY_SPEC) is reported next to seeds 0-2; a cell that passes on 0-2 and fails on 3-5 is listed as a generalisation failure",
+  "verdict_rule_v2": "manifest completeness first: every base cell of the manifest x every declared seed present in BOTH folders (missing -> NOT_EVALUABLE, listed); paired identity: the same strategy parameter sha256 and strategy code sha256 in every record of both folders, record seeds equal to the declared seeds; a non-finite paired difference is listed as NOT_EVALUABLE, never dropped; the claim rule applies only to a complete, identity-checked, all-finite panel (GM18)"
  },
  "D4_seeded_positions": {
   "entry_ages_bars": [
@@ -39,7 +40,8 @@
    "sl_destined_closed_before_sl": ">= 0.95 per (age, state, side) with >= 30 SL-destined episodes",
    "normalized_regret": "mean <= 0.10 and p90 <= 0.30 per (age, state, side)",
    "no_post_termination_extrema": "V*(t) searches only up to the first automatic termination (SL / TP / compulsory exit); asserted by construction and by a fixture"
-  }
+  },
+  "verdict_rule_v2": "per declared stratum (age x state x side, every one listed): PASS / FAIL on the regret bounds; the SL-destined rate check is NOT_EVALUABLE below 30 SL-destined episodes (never PASS); an empty stratum is NOT_EVALUABLE (listed, never omitted); reversal-then-recovery with n = 0 is NOT_EVALUABLE (GM18)"
  },
  "D4_reversal_then_recovery": {
   "selection": "episodes whose path first moves >= 0.5 sigma against the position and then reaches TP or a net >= +0.5 sigma before any SL",
@@ -48,17 +50,35 @@
   }
  },
  "D4_negative_controls": {
-  "permuted_outputs": {
-   "how": "every head output row-permuted inside the block (one fixed permutation, seed 20261028)",
-   "expected": "net USD within [-1.5, -0.5] x total trading costs (permuted signals lose about the costs); daily Sharpe <= 0"
+  "version": "v2 (GM13)",
+  "construction": "for each intervention I in {permuted, swapped, delayed k = 1 / 3 / 6} the EXPECTATION is produced independently of the strategy: the TRUTH ORACLE (PolicyOracle on the engine-truth table, zero margins) run under the SAME intervention of its inputs (same permutation seed, swapped side channels, same delay) on the same world; its daily Sharpe S_orc(I) and net are the reference",
+  "expected": "per cell and intervention: |S_strategy(I) - S_orc(I)| <= delta, delta = max(1.0, 0.25 x |S_orc(base)|) daily-Sharpe units (declared before the v2 panel runs); the strategy under a damaged input must land where the optimal decision-maker under the same damage lands: not far better (it ignores the channel) and not far worse",
+  "verdict_values": [
+   "PASS",
+   "FAIL",
+   "NOT_EVALUABLE"
+  ],
+  "not_evaluable": "the construction or the strategy run did not produce a finite Sharpe",
+  "diagnostics": {
+   "delayed_sharpe_by_k": "reported as a column; monotonicity in the delay is NOT a witness (GM12)"
   },
-  "swapped_direction_channels": {
-   "how": "long and short head outputs swapped",
-   "expected": "net USD < 0 on every trend cell (mirrored losses); in each trend cell the swapped net is <= -0.5 x the unswapped net"
-  },
-  "delayed_outputs": {
-   "how": "every head output delayed by 1, 3 and 6 bars (the value of t - k used at t)",
-   "expected": "daily Sharpe non-increasing in the delay (0 >= 1 >= 3 >= 6, tolerance 0.05) and Sharpe(6) < Sharpe(0)"
+  "history_v1": {
+   "expectations": {
+    "permuted_outputs": {
+     "how": "every head output row-permuted inside the block (one fixed permutation, seed 20261028)",
+     "expected": "net USD within [-1.5, -0.5] x total trading costs (permuted signals lose about the costs); daily Sharpe <= 0"
+    },
+    "swapped_direction_channels": {
+     "how": "long and short head outputs swapped",
+     "expected": "net USD < 0 on every trend cell (mirrored losses); in each trend cell the swapped net is <= -0.5 x the unswapped net"
+    },
+    "delayed_outputs": {
+     "how": "every head output delayed by 1, 3 and 6 bars (the value of t - k used at t)",
+     "expected": "daily Sharpe non-increasing in the delay (0 >= 1 >= 3 >= 6, tolerance 0.05) and Sharpe(6) < Sharpe(0)"
+    }
+   },
+   "outcomes_v1": "smoke on B_trend_trend_up_medium s0 (commit 10d94e9): permuted net -1.64 x costs FAIL (outside [-1.5, -0.5]); swapped net -9.4k vs base +706k FAIL ('<= -0.5 x base'); delayed 1 / 3 / 6 Sharpe 11.99 / 4.27 / -2.67 PASS (monotone)",
+   "status": "RETAINED AS HISTORY; the v1 constants were not an independent construction (GM13) and no longer govern"
   }
  },
  "D5_metrics": {
@@ -82,9 +102,16 @@
   "expected_per_family_and_side": {
    "E4": "strategy destructive-close share <= Bayes + 0.05",
    "regret": "mean (P* - P(exit)) / initial cash risk at SL <= Bayes + 0.05",
-   "early_close_value": "sum over SL-destined trades closed early of (P(exit) - hold-to-SL) > 0",
-   "monotone": "E4 and regret non-decreasing as quality falls 1.00 -> 0.85 -> 0.70 (tolerance 0.02)"
+   "early_close_value": "sum over SL-destined trades closed early of (P(exit) - hold-to-SL) > 0"
   },
-  "perfect_heads": "the perfect-head thresholds stay as sealed (EXIT_SPEC); at q1.00 (s_hat = 0, k_persist = 1) the rule reproduces the perfect-head results exactly"
+  "perfect_heads": "the perfect-head thresholds stay as sealed (EXIT_SPEC); at q1.00 (s_hat = 0, k_persist = 1) the rule reproduces the perfect-head results exactly",
+  "diagnostics_not_witnesses": {
+   "monotone_in_quality": "E4 and regret non-decreasing as quality falls 1.00 -> 0.85 -> 0.70 (tolerance 0.02) -- DIAGNOSTIC column (GM12): for a fixed controller, noise can accidentally improve a biased decision and a worse closer can raise account turnover; non-monotonicity is reported, never a defect by itself"
+  },
+  "reference_status": "named COMPARATOR, not an upper bound (GM19): its process variance sd_BC^2 / 24 is ~12x below the variance estimated on the calibration block (closer_ladder_filter); repaired comparators are new identities"
+ },
+ "versions": {
+  "v1": "2026-10-28 (sealed before running; constant expectations for the negative controls; monotone-in-quality a witness)",
+  "v2": "2026-10-28 after Musashi's audit (agent-multi 660511a0) GM12 / GM13 / GM18: negative-control expectations produced by an INDEPENDENT construction (the truth oracle under the same intervention, replayed), v1 outcomes retained as history; monotone-in-quality a DIAGNOSTIC column, not a witness; D3 / D4-seeded verdicts with manifest completeness, paired identity and explicit NOT_EVALUABLE"
  }
 }

@@ -92,7 +92,7 @@ def verdicts(recs: list, rule: str) -> dict:
 
 def markdown(v: dict) -> str:
     L = [f"# Closer ladder vs the information-limited Bayes oracle (rule z_close:k_persist = {v['rule']})", "",
-         f"q1.00: strategy trades identical to the Bayes closer's in {v['q1_equal'][0]} / {v['q1_equal'][1]} families. Monotone in quality: {v['monotone_pass'][0]} / {v['monotone_pass'][1]} checks.", "",
+         f"q1.00: strategy trades identical to the Bayes closer's in {v['q1_equal'][0]} / {v['q1_equal'][1]} families. Monotone in quality (DIAGNOSTIC column, GM12, not a witness): {v['monotone_pass'][0]} / {v['monotone_pass'][1]} checks.", "",
          "| quality, phi | E4 strategy | E4 Bayes | regret strategy | regret Bayes | early share strategy | early share Bayes | Sharpe strategy | Sharpe Bayes | net strategy | net Bayes | trades | hold bars | pass E4 | pass regret | early-close value pass / fail / vacuous |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for k, s in v["summary"].items():

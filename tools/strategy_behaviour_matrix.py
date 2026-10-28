@@ -81,21 +81,35 @@ WITNESS_SPEC = {
 }
 WITNESS_SPEC["v2_W7"] = {"W7_best_cell_v2": "chosen cell = the truth's best cell among those the declared cell rule allows (per-bar band, RR floor on the MAE) >= 0.70"}
 WITNESS_SPEC["v3_W13"] = {"W13_tpsl_track_sigma_v3": "every TP distance = the declared TP rule (cell TP, or protective k_tp_protect x predicted MFE, clipped at the engine's effective cap) x causal sigma, |ratio - 1| <= 0.02"}
-WITNESS_SPEC["v3_W4"] = {"W4_early_close_justified_v3": "v3' (2026-10-28): at most 5 % of early closes with remaining hold value > EPS_CLOSE (the sealed E4 tolerance), and every such close a knife-edge case: in the true path the deciding barrier was hit or missed by < DELTA_REACH = 0.01 sigma of the trade; a non-knife-edge destructive close stays a FAIL",
+WITNESS_SPEC["v3_W4"] = {"W4_early_close_justified_v3": "v3' economic (2026-10-28, GM02): at most 5 % of early closes with remaining hold value > EPS_CLOSE (the sealed E4 tolerance), and every such close bounded in cost: remaining <= EPS_ECON = 0.05 sigma of the trade; a costlier destructive close is a FAIL whatever its distance to a barrier (the knife-edge distance DELTA_REACH stays a reported diagnostic)",
                          "rule": "admitted per cell where O* fails W4 v2 (VALIDITY_SPEC machinery); the owner's tie rule applied once with the same EPS_CLOSE as E3 / E4"}
 WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c') every strategy trade alive in the window: O*'s exit rule (close when A(t) >= -EPS_CLOSE) replayed on that SAME trade; wherever it closes the trade inside the window, the strategy early-closed it inside the window or earlier at a tick with A(t) >= -EPS_CLOSE; zero misses",
                       "rule": "admitted where VALIDITY_SPEC admits a corrected form for W8_early_close_at_switch (DEFECT, SEALED_UNVALIDATED or REPLAY_CONFLICT); it replaces v2 for that witness"}
 TIMING_EXIT_WITNESSES = ("W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W8_early_close_at_switch")
+MIN_CONTROL_EVENTS = 1              # a control's verdict counts only with at least this many events of the witnessed kind (declared; GM01)
+EPS_ECON = 0.05                     # sigma of the trade: the economic bound of a tolerated early close with remaining > EPS_CLOSE (W4 v3', GM02)
 VALIDITY_SPEC = {
-    "controls": "the hold oracle for every witness; O* (the truth oracle's opens, exit at A(t) >= -EPS_CLOSE, reversals allowed) as well for the timing / exit witnesses " + ", ".join(TIMING_EXIT_WITNESSES) + " and the E series",
-    "vacuity": "a control's pass with zero events of the witnessed kind (no opens, no early closes around the switch, no reversals, no trade crossing the gap, ...) does not validate the sealed form in that cell",
-    "status": {"DEFECT": "a control fails the sealed form: the corrected form governs", "VALIDATED": "a control passes the sealed form with events > 0: the sealed form governs",
-               "SEALED_UNVALIDATED": "every control passes only vacuously: the corrected (truth-relative) form governs; reported per cell",
-               "REPLAY_CONFLICT": "W8 switch only: the sealed form fails and the engine replay shows that meeting it needs a close with A(t) < -EPS_CLOSE (destructive under the sealed E4): v3 governs"},
-    "e_series": "an E witness O* fails is defective in that cell (EXIT_SPEC); an E witness every control passes only vacuously is SEALED_UNVALIDATED (no corrected form: the sealed form governs, reported)",
+    "version": "v2 (2026-10-28, after Musashi's audit GM01: the v1 rule returned PASS on an empty witness set, let a zero-event control select the corrected form and let one failing + one passing control select DEFECT)",
+    "expected_witnesses": "the witness-ID set of a cell is DECLARED from the cell spec and the world it generates (expected_witness_ids); an expected witness missing from a run is NOT_EVALUABLE, never PASS; a run with no evaluable witness is NOT_EVALUABLE",
+    "controls": "exactly ONE designated control per witness: O* (the truth oracle's opens, exit at A(t) >= -EPS_CLOSE, reversals allowed) for the timing / exit witnesses " + ", ".join(TIMING_EXIT_WITNESSES) + " and the E series; the hold oracle for every other witness",
+    "vacuity": f"a control's verdict (pass or fail) counts only with events >= {MIN_CONTROL_EVENTS} of the witnessed kind (no opens, no early closes around the switch, no reversals, no trade crossing the gap, ... = vacuous); a vacuous or absent control validates nothing and admits nothing",
+    "status": {"DEFECT": "the designated control fails the sealed form NON-vacuously: the corrected form (v3, else v2) governs; no corrected form: the sealed form governs, the defect reported",
+               "VALIDATED": "the designated control passes the sealed form non-vacuously: the sealed form governs",
+               "SEALED_UNVALIDATED": "the designated control is vacuous or absent: the SEALED form governs (strict); the row is flagged and counted in the separate 'unvalidated' column; never an effective PASS through a corrected form",
+               "REPLAY_CONFLICT": "W8 switch only, from the STRATEGY'S OWN replay evidence (w8_switch_v3: (b) holds on every non-early exit in the window, so meeting the sealed form needs a close with A(t) < -EPS_CLOSE, destructive under the sealed E4): v3 governs; the replayed margins are reported",
+               "NOT_EVALUABLE": "an expected witness the run did not produce: never PASS"},
+    "e_series": "an E witness O* fails non-vacuously is defective in that cell (EXIT_SPEC); an E witness whose controls are vacuous is SEALED_UNVALIDATED (the sealed form governs, reported)",
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-28T15:30Z (coordinator order after Musashi's audit, agent-multi 660511a0)", "witness": "VALIDITY_SPEC v1 -> v2 (GM01)",
+     "defect": "the v1 rule returned PASS on an empty witness set, let a control with zero events select the corrected passing form, and let one failing + one passing control select DEFECT and the corrected form (three executed counterexamples, GUIDED_COUNTEREXAMPLES.json)",
+     "evidence": "Musashi's reproducer tools/audit_guided_mechanism_design.py executed the pinned validity function on three synthetic dictionaries; the three inputs are now unit tests with the corrected outputs",
+     "effect": "expected witness set declared per cell (missing = NOT_EVALUABLE); one designated control per witness, non-vacuous (events >= 1) or it counts for nothing; SEALED_UNVALIDATED = the sealed form governs strictly and is counted separately; REPLAY_CONFLICT only from the strategy's own W8 replay, margins reported"},
+    {"when": "2026-10-28T15:30Z (coordinator order, GM02)", "witness": "W4_early_close_justified_v3' knife-edge -> economic bound",
+     "defect": "a small price distance to a barrier does not bound the economic regret of a destructive close (Musashi GM02: the source cited costs up to 1.79 sigma under the plain 5 % tolerance)",
+     "evidence": "GM02, SOURCE_VERIFIED; the knife-edge rule was an exploratory revision after observed failures, not a proof of the original requirement",
+     "effect": "a close with remaining > EPS_CLOSE is tolerated only if remaining <= EPS_ECON = 0.05 sigma AND such closes are <= 5 % of the early closes; otherwise FAIL; the barrier distance stays a diagnostic"},
     {"when": "2026-10-28T08:30Z (coordinator ruling)", "witness": "W4_early_close_justified_v3 -> v3' (E4 tolerance + knife-edge only)",
      "defect": "with the MARKET-ONLY closer head (D1) about 1 % of early closes land on head error at the barrier-reach edges, which the strict 'every close' v3 fails although the sealed E4 (<= 5 %) passes; a plain 5 % tolerance would also admit destructive closes of 1.1-1.8 sigma at perfect heads, which can hide a defect",
      "evidence": "H1_long_none s0 75 closes 0.987, B_trans_down_range_middle s2 90 closes 0.989 (worst 1.79 sigma), LHS_57 s2 116 closes 0.991 (worst 1.14 sigma), LHS_61 s2 109 closes 0.982 (run-3 champion on the fixed code)",
@@ -1428,25 +1442,25 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                                        "desc": "SEALED: early closes whose remaining hold value was <= 0", "share_on_sl_first": on_sl, "early_close_value_sigma_mean": value, "n_early_closes": len(ec)}
     out["W4_early_close_justified_v2"] = {"value": float(np.mean(just_v2)) if ec else float("nan"), "threshold": 0.95, "pass": bool((not ec) or np.mean(just_v2) >= 0.95),
                                           "desc": "corrected form: early closes fired on an SL-first detection (P(SL first) > close_p) or on a negative remaining value", "n_early_closes": len(ec)}
-    # v3' (coordinator ruling 2026-10-28): at most 5 % of early closes with remaining > EPS_CLOSE (the sealed E4
-    # tolerance) AND every such close a KNIFE-EDGE case (the deciding barrier hit or missed by < DELTA_REACH sigma)
+    # v3' economic (coordinator order 2026-10-28, GM02): at most 5 % of early closes with remaining > EPS_CLOSE (the sealed
+    # E4 tolerance) AND every such close bounded in cost (remaining <= EPS_ECON); the barrier distance is a diagnostic only
     bad = [c for c in ec if c[3] > EPS_CLOSE]
-    knife, nonknife = [], []
+    cheap, costly = [], []
     pp = roll.get("positions") or {}
     for c in bad:
         t = next((x for x in trades if int(x["entry_bar_abs"]) <= int(c[1]) < int(x["exit_bar_abs"]) and _side(x) == int(c[2])), None)
         pos = pp.get((int(t["entry_bar_abs"]), int(c[2]))) if t is not None else None
         mg = barrier_margins(world, pos, int(c[1])) if pos is not None else None
-        rec_ = {"bar": int(c[1]), "side": "BUY" if int(c[2]) == 0 else "SELL", "remaining_sigma": float(c[3]), "margins": mg}
-        (knife if (mg is not None and mg["min_abs_margin_sigma"] < DELTA_REACH) else nonknife).append(rec_)
+        rec_ = {"bar": int(c[1]), "side": "BUY" if int(c[2]) == 0 else "SELL", "remaining_sigma": float(c[3]), "margins": mg,
+                "knife_edge_diagnostic": bool(mg is not None and mg["min_abs_margin_sigma"] < DELTA_REACH)}
+        (cheap if c[3] <= EPS_ECON else costly).append(rec_)
     share_bad = (len(bad) / len(ec)) if ec else 0.0
-    out["W4_early_close_justified_v3"] = {"value": {"share_remaining_above_eps": share_bad, "knife_edge": len(knife), "non_knife_edge": len(nonknife),
-                                                    "worst_cost_knife_sigma": float(max((x["remaining_sigma"] for x in knife), default=0.0)),
-                                                    "worst_cost_non_knife_sigma": float(max((x["remaining_sigma"] for x in nonknife), default=0.0)),
-                                                    "cases": (knife + nonknife)[:20]},
-                                          "threshold": f"<= 0.05 of early closes with remaining > EPS_CLOSE, every one a knife-edge case (deciding barrier hit / missed by < {DELTA_REACH} sigma)",
-                                          "pass": bool((not ec) or (share_bad <= 0.05 and not nonknife)),
-                                          "desc": "corrected form v3' (coordinator ruling 2026-10-28), admitted where O* fails v2: the sealed E4 tolerance, and only knife-edge cases no finite market-only head can resolve",
+    out["W4_early_close_justified_v3"] = {"value": {"share_remaining_above_eps": share_bad, "within_econ_bound": len(cheap), "above_econ_bound": len(costly),
+                                                    "worst_cost_sigma": float(max((c[3] for c in bad), default=0.0)), "eps_econ_sigma": EPS_ECON,
+                                                    "knife_edge_diagnostic": sum(1 for x in cheap + costly if x["knife_edge_diagnostic"]), "cases": (costly + cheap)[:20]},
+                                          "threshold": f"<= 0.05 of early closes with remaining > EPS_CLOSE, every one with remaining <= EPS_ECON = {EPS_ECON} sigma",
+                                          "pass": bool((not ec) or (share_bad <= 0.05 and not costly)),
+                                          "desc": "corrected form v3' economic (GM02), admitted where O* fails v2 non-vacuously: the sealed E4 tolerance with an explicit economic error bound",
                                           "n_early_closes": len(ec), "worst_remaining_sigma": float(max((c[3] for c in ec), default=float("nan")))}
     # W5 reversals: opens while positioned (an open logged at a row where the previous trade was still open)
     rev, rev_just, inwin = 0, 0, 0
@@ -1765,13 +1779,90 @@ def w8_switch_v3(world: dict, roll: dict, sroll: dict, closer) -> dict:
             "desc": "corrected form v3 with the same-trade (c') (coordinator rulings 2026-10-27; E4 wins the demonstrated conflict): admitted only where VALIDITY_SPEC admits a corrected form"}
 
 
-def validity(wit: dict, hold: dict, ostar: dict | None) -> dict:
-    """VALIDITY_SPEC applied to one run's witnesses. Per sealed witness: DEFECT when a control fails the sealed form;
-    VALIDATED when a control passes it with events > 0; SEALED_UNVALIDATED when every control passes only vacuously;
-    REPLAY_CONFLICT (W8 switch only) when the sealed form fails and the replay shows that meeting it needs a destructive
-    close. The governing form is the sealed form when VALIDATED, the corrected form (v3, else v2) otherwise (the sealed
-    form when no corrected form exists, reported). Controls: the hold oracle for every witness, and O* (reversals
-    allowed) as well for the timing / exit witnesses. Identical for the strategy and for every DEAP candidate."""
+def expected_witness_ids(cell: dict, world: dict | None = None) -> list:
+    """The witness-ID set DECLARED from the cell spec (and the world it generates: switch bars, gap bar, burst windows
+    are deterministic functions of the spec): what witnesses() must produce for this cell. VALIDITY_SPEC v2: an expected
+    witness missing from a run is NOT_EVALUABLE, never PASS."""
+    ids = ["W0_activity", "W1_side", "W2_truth_positive_open", "W2_wrong_side", "W3_nop", "W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W6_volume",
+           "W7_best_cell", "WA_side_comparison", "W15_no_open_high_risk", "W16_sl_tp_every_order"]
+    if len(cell.get("legs") or []) > 1:
+        ids += ["W8_old_direction_after_lag", "W8_early_close_at_switch"]
+    ex = cell.get("exec") or {}
+    meta = (world or {}).get("meta") or {}
+    if meta.get("jump_bar") is not None or ex.get("gap"):
+        ids.append("W9_gap_loss_bounded")
+    if ex.get("spread") == "x5":
+        ids.append("W10_spread_window")
+    if ex.get("cutoff_h"):
+        ids.append("W11_cutoff")
+    if ex.get("missing_runs"):
+        ids.append("W12_missing")
+    vol = str(cell.get("vol", ""))
+    if vol in ("step_lh", "step_hl", "ramp_up", "ramp_down") or vol.startswith(("vstep_", "vramp_")):
+        ids.append("W13_tpsl_track_sigma")
+    if meta.get("burst_windows"):
+        ids.append("W17_no_open_in_burst")
+    if cell.get("mirror_of"):
+        ids.append("W14_mirror")
+    return ids
+
+
+def _nonvacuous(x) -> bool:
+    """A control's verdict counts only with events >= MIN_CONTROL_EVENTS; an unknown event count is vacuous (GM01)."""
+    return isinstance(x, dict) and x.get("pass") in (True, False) and x.get("events") is not None and int(x["events"]) >= MIN_CONTROL_EVENTS
+
+
+def validity(wit: dict, hold: dict, ostar: dict | None, expected: list | None = None) -> dict:
+    """VALIDITY_SPEC v2 applied to one run's witnesses (Musashi GM01, coordinator order 2026-10-28). Per expected witness:
+    NOT_EVALUABLE when the run did not produce it (never PASS); otherwise ONE designated control (O* for the timing /
+    exit witnesses, the hold oracle for the rest): DEFECT when it fails the sealed form NON-vacuously (events >=
+    MIN_CONTROL_EVENTS) -> the corrected form (v3, else v2) governs; VALIDATED when it passes non-vacuously -> the sealed
+    form governs; SEALED_UNVALIDATED when it is vacuous or absent -> the SEALED form governs (strict), flagged and
+    counted separately; REPLAY_CONFLICT (W8 switch only) when the sealed form fails and the strategy's own replay
+    (w8_switch_v3.conflict_shown) shows that meeting it needs a destructive close -> v3 governs, margins reported.
+    A run with no evaluable witness is NOT_EVALUABLE (PASS False). Identical for the strategy and every DEAP candidate."""
+    status, failing, not_ev = {}, [], []
+    present = [k for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k)]
+    keys = list(dict.fromkeys(list(expected or []) + present))
+    for k in keys:
+        v = wit.get(k)
+        if not (isinstance(v, dict) and "pass" in v):
+            status[k] = {"status": "NOT_EVALUABLE", "failed_by": [], "validated_by": [], "governing_form": k, "pass": False, "control_events": {}, "designated_control": None}
+            not_ev.append(k)
+            failing.append(k)
+            continue
+        nm, ctrl = ("O*", ostar) if k in TIMING_EXIT_WITNESSES else ("hold_oracle", hold)
+        c = (ctrl or {}).get(k)
+        nonvac = _nonvacuous(c)
+        st = "DEFECT" if (nonvac and c["pass"] is False) else ("VALIDATED" if (nonvac and c["pass"] is True) else "SEALED_UNVALIDATED")
+        corr = (k + "_v3") if (k + "_v3") in wit else ((k + "_v2") if (k + "_v2") in wit else None)
+        if k == "W4_early_close_justified" and corr == k + "_v3" and not (nonvac and _nonvacuous((ostar or {}).get(k + "_v2")) and ostar[k + "_v2"]["pass"] is False):
+            corr = k + "_v2"                                          # W4 v3' is admitted only where O* fails W4 v2 non-vacuously (coordinator ruling 2026-10-27)
+        replay = None
+        if k == "W8_early_close_at_switch" and st != "DEFECT" and v["pass"] is False and (k + "_v3") in wit and wit[k + "_v3"].get("conflict_shown"):
+            st, corr = "REPLAY_CONFLICT", k + "_v3"
+            val3 = wit[k + "_v3"].get("value") or {}
+            replay = {"non_early_exits": val3.get("non_early_exits"), "Ostar_same_trade_misses": val3.get("Ostar_same_trade_misses"), "eps_close_sigma": EPS_CLOSE}
+        form = corr if (st in ("DEFECT", "REPLAY_CONFLICT") and corr) else k
+        p = bool(wit[form]["pass"])
+        status[k] = {"status": st, "failed_by": [nm] if st == "DEFECT" else [], "validated_by": [nm] if st == "VALIDATED" else [], "governing_form": form, "pass": p,
+                     "control_events": {nm: (c or {}).get("events") if isinstance(c, dict) else None}, "designated_control": nm}
+        if replay is not None:
+            status[k]["replay"] = replay
+        if not p:
+            failing.append(k)
+    evaluated = len(keys) - len(not_ev)
+    return {"spec_version": "v2", "per_witness": status, "failing": failing, "PASS": bool(evaluated > 0 and not failing), "evaluated": evaluated,
+            "not_evaluable": sorted(not_ev),
+            "unvalidated": sorted(k for k, x in status.items() if x["status"] == "SEALED_UNVALIDATED"),
+            "defects": sorted(k for k, x in status.items() if x["status"] == "DEFECT"),
+            "replay_conflicts": sorted(k for k, x in status.items() if x["status"] == "REPLAY_CONFLICT")}
+
+
+def validity_v1_retired(wit: dict, hold: dict, ostar: dict | None) -> dict:
+    """The v1 rule (sealed 2026-10-27, RETIRED by GM01): kept verbatim for the re-score delta of the records it judged;
+    never governs. Defects: PASS on an empty set; a zero-event control selected the corrected form; one failing + one
+    passing control selected DEFECT and the corrected form."""
     status, failing = {}, []
     for k, v in wit.items():
         if not (isinstance(v, dict) and "pass" in v) or re.search(r"_v[23]$", k):
@@ -1782,7 +1873,7 @@ def validity(wit: dict, hold: dict, ostar: dict | None) -> dict:
         st = "DEFECT" if fails else ("VALIDATED" if valid else "SEALED_UNVALIDATED")
         corr = (k + "_v3") if (k + "_v3") in wit else ((k + "_v2") if (k + "_v2") in wit else None)
         if k == "W4_early_close_justified" and corr == k + "_v3" and not (ostar is not None and isinstance(ostar.get(k + "_v2"), dict) and ostar[k + "_v2"].get("pass") is False):
-            corr = k + "_v2"                                          # W4_v3 is admitted only where O* fails W4 v2 (coordinator ruling 2026-10-27)
+            corr = k + "_v2"
         if st == "VALIDATED" and v["pass"] is False and corr and wit[corr].get("conflict_shown"):
             st = "REPLAY_CONFLICT"
         form = corr if (st != "VALIDATED" and corr) else k
@@ -1791,7 +1882,7 @@ def validity(wit: dict, hold: dict, ostar: dict | None) -> dict:
                      "control_events": {nm: (c.get(k) or {}).get("events") for nm, c in ctr}}
         if not p:
             failing.append(k)
-    return {"per_witness": status, "failing": failing, "PASS": not failing,
+    return {"spec_version": "v1_retired", "per_witness": status, "failing": failing, "PASS": not failing,
             "unvalidated": sorted(k for k, x in status.items() if x["status"] == "SEALED_UNVALIDATED"),
             "defects": sorted(k for k, x in status.items() if x["status"] == "DEFECT"),
             "replay_conflicts": sorted(k for k, x in status.items() if x["status"] == "REPLAY_CONFLICT")}
@@ -1851,7 +1942,8 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
     allw = {**ew, **epw}
     allw_star = {**ew_star, **epw_star}
     never_excused = ("Z1_", "EP_counts")
-    defects = sorted(k for k, v in allw_star.items() if isinstance(v, dict) and v.get("pass") is False and not k.startswith(never_excused))
+    nonvac_e = lambda x: isinstance(x, dict) and int(x.get("events", x.get("n", x.get("n_sl_destined", 1))) or 0) >= MIN_CONTROL_EVENTS  # noqa: E731
+    defects = sorted(k for k, v in allw_star.items() if isinstance(v, dict) and v.get("pass") is False and nonvac_e(v) and not k.startswith(never_excused))   # GM01: non-vacuous only
     eff_fail = sorted(k for k, v in allw.items() if isinstance(v, dict) and v.get("pass") is False and k not in defects)
     # VALIDITY_SPEC on the E series: a pass with zero events by every control (O* and the hold oracle) does not validate
     vac = lambda x: isinstance(x, dict) and x.get("pass") is True and x.get("events") is not None and x["events"] == 0  # noqa: E731
@@ -1928,7 +2020,8 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     swit = witnesses(cell, w, sroll, cells)
     if "W8_early_close_at_switch" in wit:
         wit["W8_early_close_at_switch_v3"] = w8_switch_v3(w, roll, sroll, view["closer"].with_quality(1.0))
-    vres = validity(wit, owit, swit)
+    expected_ids = expected_witness_ids(cell, w)
+    vres = validity(wit, owit, swit, expected_ids)
     defects_sealed = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
     defects_v2 = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in owit) and v["pass"] is False)
     annotate_sigma(w, roll["trades"])
@@ -1940,7 +2033,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "non_fills": {"gate": (roll["metrics"].get("gate_stats") if isinstance(roll["metrics"], dict) else None),
                          "engine_refused": {k: v for k, v in (roll["metrics"].items() if isinstance(roll["metrics"], dict) else []) if "refused" in str(k)}},
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
-           "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres,
+           "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
            "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))
                                               and exit_layer["PASS_effective"]),
@@ -2267,12 +2360,12 @@ def cmd_report(a):
     lines += ["", f"## Validez de los controles (especificación re-sellada `{SPEC_V3_SHA[:16]}…`)", "",
               "Un PASS de un control con cero eventos del tipo atestiguado no valida la forma sellada. Controles: el oráculo de mantener para todo testigo y O* (con reversos) además para "
               + ", ".join(TIMING_EXIT_WITNESSES) + " y la serie E. DEFECT: un control falla la forma sellada; SEALED_UNVALIDATED: todos pasan sólo vacíamente; REPLAY_CONFLICT: W8 en el cambio cuya forma sellada exige un cierre destructivo (E4). En esos casos gobierna la forma corregida (v3 / v2); el veredicto sellado queda en cada registro.", "",
-              "| celda | registros con regla | DEFECT | SEALED_UNVALIDATED | REPLAY_CONFLICT | testigos que fallan (forma gobernante) |", "| --- | ---: | --- | --- | --- | --- |"]
+              "| celda | registros con regla | DEFECT | SEALED_UNVALIDATED (sellada gobierna, estricta) | REPLAY_CONFLICT | NOT_EVALUABLE | testigos que fallan (forma gobernante) |", "| --- | ---: | --- | --- | --- | --- | --- |"]
     for r in rows:
         vs = r.get("validity_status_counts") or {}
         if r["n_runs"] and (vs or r.get("failing_effective")):
             fm = lambda d: ", ".join(f"{k}×{v}" for k, v in sorted(d.items()))  # noqa: E731
-            lines.append(f"| {r['id']} | {r['records_with_validity']} | {fm(vs.get('DEFECT', {}))} | {fm(vs.get('SEALED_UNVALIDATED', {}))} | {fm(vs.get('REPLAY_CONFLICT', {}))} | {', '.join(r.get('failing_effective') or [])} |")
+            lines.append(f"| {r['id']} | {r['records_with_validity']} | {fm(vs.get('DEFECT', {}))} | {fm(vs.get('SEALED_UNVALIDATED', {}))} | {fm(vs.get('REPLAY_CONFLICT', {}))} | {fm(vs.get('NOT_EVALUABLE', {}))} | {', '.join(r.get('failing_effective') or [])} |")
     lines += exit_report_sections(recs, outp)
     lines += ["", "## Historia de corridas (lo que cada versión invalidó)", "", "| corrida | nota |", "| --- | --- |"] + [f"| {x['run']} | {x['note']} |" for x in RUN_HISTORY]
     lines += ["", "## Pruebas que fallaban (anteriores a estos cambios, no ocultadas)", "", "| prueba | causa | estado |", "| --- | --- | --- |"] + [f"| `{x['test']}` | {x['cause']} | {x.get('status', 'FAILING')} |" for x in KNOWN_TEST_FAILURES]

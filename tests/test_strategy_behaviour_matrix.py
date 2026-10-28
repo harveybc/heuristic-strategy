@@ -225,27 +225,72 @@ def test_episode_replay_scores_regret_lateness_and_the_loss_curve():
     assert best["L_curve"] == [pytest.approx(3.0), pytest.approx(0.0)]
 
 
-def test_validity_rule_vacuous_controls_and_the_w8_replay_conflict():
-    """VALIDITY_SPEC (coordinator ruling 2026-10-27): a control's pass with zero events does not validate the sealed
-    form; a control's failure admits the corrected form; O* is a second control for the timing / exit witnesses; the W8
-    switch v3 governs where the replay shows a destructive-close conflict."""
+def test_validity_v2_reproduces_musashi_gm01_witnesses_with_the_corrected_outputs():
+    """Musashi's three executed counterexamples (agent-multi 660511a0, tools/audit_guided_mechanism_design.py,
+    GUIDED_COUNTEREXAMPLES.json) under the v1 rule: PASS on an empty set; a zero-event control selected the corrected
+    passing form; one failing + one passing control selected DEFECT and the corrected form. Under v2 (GM01): an empty
+    set is NOT_EVALUABLE (never PASS); a vacuous control leaves the SEALED form governing (strict, flagged, counted
+    separately); the single designated control decides, and only non-vacuously."""
+    old = {"pass": False, "events": 1}
+    new = {"pass": True, "events": 1}
+    witnesses = {"W": old, "W_v2": new}
+    empty = BM.validity({}, {}, None)
+    assert empty["PASS"] is False and empty["evaluated"] == 0 and not empty["per_witness"]
+    vacuous = BM.validity(witnesses, {"W": {"pass": True, "events": 0}}, None)
+    w = vacuous["per_witness"]["W"]
+    assert vacuous["PASS"] is False and vacuous["unvalidated"] == ["W"] and vacuous["failing"] == ["W"]
+    assert w["status"] == "SEALED_UNVALIDATED" and w["governing_form"] == "W" and w["pass"] is False and w["designated_control"] == "hold_oracle"
+    old_timing = BM.TIMING_EXIT_WITNESSES
+    try:
+        BM.TIMING_EXIT_WITNESSES = ("W",)                                 # W a timing witness: O* is its ONE designated control
+        conflicting = BM.validity(witnesses, {"W": old}, {"W": new})
+        w = conflicting["per_witness"]["W"]
+        assert w["status"] == "VALIDATED" and w["governing_form"] == "W" and w["pass"] is False and w["designated_control"] == "O*" and w["failed_by"] == []
+        assert conflicting["PASS"] is False and conflicting["defects"] == []
+        defect = BM.validity(witnesses, {"W": new}, {"W": old})           # the designated control (O*) fails non-vacuously: DEFECT, v2 governs
+        assert defect["per_witness"]["W"]["status"] == "DEFECT" and defect["per_witness"]["W"]["governing_form"] == "W_v2" and defect["PASS"] is True
+        vac_fail = BM.validity(witnesses, {"W": new}, {"W": {"pass": False, "events": 0}})   # a vacuous failure admits nothing
+        assert vac_fail["per_witness"]["W"]["status"] == "SEALED_UNVALIDATED" and vac_fail["PASS"] is False
+    finally:
+        BM.TIMING_EXIT_WITNESSES = old_timing
+    # the v1 rule, retired, still shows Musashi's three outputs (the delta the re-score reports)
+    assert BM.validity_v1_retired({}, {}, None)["PASS"] is True
+    assert BM.validity_v1_retired(witnesses, {"W": {"pass": True, "events": 0}}, None)["per_witness"]["W"]["governing_form"] == "W_v2"
+
+
+def test_validity_v2_expected_witnesses_not_evaluable_and_the_w8_replay_conflict():
+    """VALIDITY_SPEC v2: an expected witness the run did not produce is NOT_EVALUABLE and fails the run; the W8 switch
+    REPLAY_CONFLICT comes only from the strategy's own replay (conflict_shown) and reports the replayed margins."""
     w = lambda p, e=None, **k: {"value": 0, "pass": p, "events": e, **k}  # noqa: E731
     strat = {"W1_side": w(False, 10), "W1_side_v2": w(True, 10), "W5_reverse": w(False, 3), "W5_reverse_v2": w(True, 3),
-             "W8_early_close_at_switch": w(False, 2), "W8_early_close_at_switch_v2": w(True, 2), "W8_early_close_at_switch_v3": w(True, 2, conflict_shown=True),
+             "W8_early_close_at_switch": w(False, 2), "W8_early_close_at_switch_v2": w(True, 2),
+             "W8_early_close_at_switch_v3": {"value": {"non_early_exits": [{"best_A_of_an_earlier_close_sigma": -0.4}], "Ostar_same_trade_misses": []}, "pass": True, "events": 2, "conflict_shown": True},
              "W3_nop": w(False, 10)}
     hold = {"W1_side": w(True, 0), "W5_reverse": w(True, 0), "W8_early_close_at_switch": w(True, 0), "W3_nop": w(True, 12)}
     ostar = {"W5_reverse": w(True, 4), "W8_early_close_at_switch": w(True, 3)}
-    v = BM.validity(strat, hold, ostar)["per_witness"]
-    assert v["W1_side"]["status"] == "SEALED_UNVALIDATED" and v["W1_side"]["governing_form"] == "W1_side_v2" and v["W1_side"]["pass"]   # vacuous hold pass; O* is not a W1 control
-    assert v["W5_reverse"]["status"] == "VALIDATED" and v["W5_reverse"]["governing_form"] == "W5_reverse" and not v["W5_reverse"]["pass"]   # O* reverses: sealed form governs
-    assert v["W8_early_close_at_switch"]["status"] == "REPLAY_CONFLICT" and v["W8_early_close_at_switch"]["governing_form"] == "W8_early_close_at_switch_v3"
-    assert v["W3_nop"]["status"] == "VALIDATED" and not v["W3_nop"]["pass"]
+    v = BM.validity(strat, hold, ostar, ["W1_side", "W5_reverse", "W8_early_close_at_switch", "W3_nop", "W9_gap_loss_bounded"])
+    pw = v["per_witness"]
+    assert pw["W1_side"]["status"] == "SEALED_UNVALIDATED" and pw["W1_side"]["governing_form"] == "W1_side" and not pw["W1_side"]["pass"]   # vacuous hold: SEALED governs, strict
+    assert pw["W5_reverse"]["status"] == "VALIDATED" and not pw["W5_reverse"]["pass"]   # O* (the one designated control) reverses non-vacuously
+    assert pw["W8_early_close_at_switch"]["status"] == "REPLAY_CONFLICT" and pw["W8_early_close_at_switch"]["governing_form"] == "W8_early_close_at_switch_v3"
+    assert pw["W8_early_close_at_switch"]["replay"]["non_early_exits"][0]["best_A_of_an_earlier_close_sigma"] == -0.4
+    assert pw["W9_gap_loss_bounded"]["status"] == "NOT_EVALUABLE" and not pw["W9_gap_loss_bounded"]["pass"] and v["not_evaluable"] == ["W9_gap_loss_bounded"]
+    assert pw["W3_nop"]["status"] == "VALIDATED" and not pw["W3_nop"]["pass"] and v["PASS"] is False
+    assert set(v["failing"]) == {"W1_side", "W5_reverse", "W3_nop", "W9_gap_loss_bounded"}
     hold["W3_nop"] = w(False, 12)
-    v = BM.validity(strat, hold, ostar)
-    assert v["per_witness"]["W3_nop"]["status"] == "DEFECT" and v["per_witness"]["W3_nop"]["governing_form"] == "W3_nop"   # no corrected form: sealed, reported
-    assert set(v["failing"]) == {"W5_reverse", "W3_nop"}
-    strat["W8_early_close_at_switch_v3"] = w(True, 2, conflict_shown=False)
+    assert BM.validity(strat, hold, ostar)["per_witness"]["W3_nop"]["status"] == "DEFECT"       # no corrected form: the sealed form governs, reported
+    strat["W8_early_close_at_switch_v3"]["conflict_shown"] = False
     assert BM.validity(strat, hold, ostar)["per_witness"]["W8_early_close_at_switch"]["status"] == "VALIDATED"   # no replayed conflict: the sealed failure stands
+
+
+def test_expected_witness_ids_follow_the_cell_spec():
+    base = {"legs": ["trend_up"], "exec": {}, "vol": "normal"}
+    ids = BM.expected_witness_ids(base)
+    assert "W1_side" in ids and "W8_early_close_at_switch" not in ids and "W13_tpsl_track_sigma" not in ids and "W14_mirror" not in ids
+    ids = BM.expected_witness_ids({"legs": ["trend_up", "trend_down"], "exec": {"spread": "x5", "cutoff_h": 12, "missing_runs": 2}, "vol": "step_lh", "mirror_of": "x"},
+                                  {"meta": {"jump_bar": 100, "burst_windows": [(1, 2)]}})
+    for k in ("W8_early_close_at_switch", "W8_old_direction_after_lag", "W9_gap_loss_bounded", "W10_spread_window", "W11_cutoff", "W12_missing", "W13_tpsl_track_sigma", "W17_no_open_in_burst", "W14_mirror"):
+        assert k in ids
 
 
 def test_spec_v3_is_resealed_with_the_validity_rule():
@@ -280,17 +325,31 @@ def test_w8_switch_v3_c_prime_replays_ostar_on_the_same_trade():
     assert not BM.w8_switch_v3(world, late, None, closer)["pass"]                 # closed only after the window: a miss
 
 
-def test_w4_v3_is_admitted_only_where_ostar_fails_w4_v2():
-    w = lambda p, e=5: {"value": 0, "pass": p, "events": e}  # noqa: E731
-    strat = {"W4_early_close_justified": w(False), "W4_early_close_justified_v2": w(False), "W4_early_close_justified_v3": w(True)}
-    hold = {"W4_early_close_justified": w(True, 4)}
-    ostar_fails_v2 = {"W4_early_close_justified": w(False), "W4_early_close_justified_v2": w(False)}
-    ostar_passes_v2 = {"W4_early_close_justified": w(False), "W4_early_close_justified_v2": w(True)}
+def test_w4_v3_is_admitted_only_where_ostar_fails_w4_v2_non_vacuously():
+    """W4_v3' governs only where O* (the designated control) fails BOTH the sealed W4 and W4 v2 non-vacuously; where O*
+    passes v2, the corrected form is v2 (coordinator ruling 2026-10-27, VALIDITY_SPEC v2)."""
+    w = lambda p, e=None, **k: {"value": 0, "pass": p, "events": e, **k}  # noqa: E731
+    strat = {"W4_early_close_justified": w(False, 20), "W4_early_close_justified_v2": w(False, 20), "W4_early_close_justified_v3": w(True, 20)}
+    hold = {"W4_early_close_justified": w(True, 5)}
+    ostar_fails_v2 = {"W4_early_close_justified": w(False, 20), "W4_early_close_justified_v2": w(False, 20)}
+    ostar_passes_v2 = {"W4_early_close_justified": w(False, 20), "W4_early_close_justified_v2": w(True, 20)}
+    ostar_vacuous = {"W4_early_close_justified": w(False, 0), "W4_early_close_justified_v2": w(False, 0)}
     a = BM.validity(strat, hold, ostar_fails_v2)["per_witness"]["W4_early_close_justified"]
     b = BM.validity(strat, hold, ostar_passes_v2)["per_witness"]["W4_early_close_justified"]
+    c = BM.validity(strat, hold, ostar_vacuous)["per_witness"]["W4_early_close_justified"]
     assert a["status"] == "DEFECT" and a["governing_form"] == "W4_early_close_justified_v3" and a["pass"]
     assert b["status"] == "DEFECT" and b["governing_form"] == "W4_early_close_justified_v2" and not b["pass"]
-    assert any("W4_early_close_justified -> v3" in x["witness"] and "2754 of 2788" in x["evidence"] for x in BM.WITNESS_CHANGELOG)
+    assert c["status"] == "SEALED_UNVALIDATED" and c["governing_form"] == "W4_early_close_justified" and not c["pass"]   # a vacuous O* admits nothing
+
+
+def test_w4_v3_economic_bound_tolerates_only_cheap_and_rare_destructive_closes():
+    """GM02: a close with remaining > EPS_CLOSE passes W4 v3' only if remaining <= EPS_ECON and such closes are <= 5 %
+    of the early closes; the distance to a barrier is a diagnostic, never the criterion."""
+    assert BM.EPS_ECON == 0.05 and BM.EPS_CLOSE < BM.EPS_ECON
+    assert "economic" in BM.WITNESS_SPEC["v3_W4"]["W4_early_close_justified_v3"] and any("GM02" in x["witness"] or "GM02" in x["defect"] for x in BM.WITNESS_CHANGELOG)
+    import inspect
+    src = inspect.getsource(BM.witnesses)
+    assert "c[3] <= EPS_ECON" in src and "share_bad <= 0.05 and not costly" in src and "knife_edge_diagnostic" in src
 
 
 def test_bc_interp_is_bilinear_and_clamped():
