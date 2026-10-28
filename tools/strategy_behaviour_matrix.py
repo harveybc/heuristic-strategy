@@ -90,7 +90,7 @@ MIN_CONTROL_EVENTS = 1              # a control's verdict counts only with at le
 EPS_ECON = 0.05                     # sigma of the trade: the economic bound of a tolerated early close with remaining > EPS_CLOSE (W4 v3', GM02)
 VALIDITY_SPEC = {
     "version": "v2 (2026-10-28, after Musashi's audit GM01: the v1 rule returned PASS on an empty witness set, let a zero-event control select the corrected form and let one failing + one passing control select DEFECT)",
-    "expected_witnesses": "the witness-ID set of a cell is DECLARED from the cell spec and the world it generates (expected_witness_ids); an expected witness missing from a run is NOT_EVALUABLE, never PASS; a run with no evaluable witness is NOT_EVALUABLE",
+    "expected_witnesses": "the witness-ID set of a cell is DECLARED from the cell spec and the world it generates (expected_witness_ids); an expected witness missing from a run is NOT_EVALUABLE, never PASS; a run with no evaluable witness is NOT_EVALUABLE; W14_mirror is a PAIR witness judged after both twins ran (run_cell's twin ledger, the DEAP's judge_pairs), never inside one run; a missing twin makes it NOT_EVALUABLE there",
     "controls": "exactly ONE designated control per witness: O* (the truth oracle's opens, exit at A(t) >= -EPS_CLOSE, reversals allowed) for the timing / exit witnesses " + ", ".join(TIMING_EXIT_WITNESSES) + " and the E series; the hold oracle for every other witness",
     "vacuity": f"a control's verdict (pass or fail) counts only with events >= {MIN_CONTROL_EVENTS} of the witnessed kind (no opens, no early closes around the switch, no reversals, no trade crossing the gap, ... = vacuous); a vacuous or absent control validates nothing and admits nothing",
     "status": {"DEFECT": "the designated control fails the sealed form NON-vacuously: the corrected form (v3, else v2) governs; no corrected form: the sealed form governs, the defect reported",
@@ -102,6 +102,14 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-28T19:00Z (coordinator ruling on W14)", "witness": "W14_mirror (unchanged, sealed: mirror world, SAME parameter vector) + W14_swap diagnostic",
+     "defect": "none in W14: under side-asymmetric LEGACY close genes (closer_mode 0: close_p_l / close_p_s, close_rem_rate_l / close_rem_rate_s) the mirror world's trades differ from the twin's; 22 of 459 (pair, genome) runs of the 51-genome property test, all from 6 legacy-closer genomes; none of the 23 advantage-closer genomes fails",
+     "evidence": "W14_swap (mirror world, side-swapped vector) on the 22 failing cases: 22 / 22 exact mirrors (identical trade count and bars, sides flipped, per-unit net within 1.1e-13 sigma); 16 control runs (2 passing legacy-closer genomes x 8 pairs) exact under both vectors (1.6e-13 sigma)",
+     "effect": "W14 failures under side-asymmetric legacy genes = DECLARED PARAMETER ASYMMETRY (a real behaviour failure on a mirror-balanced world, a legitimate DEAP constraint); code symmetry verified by W14_swap on 38 cases; W14_swap lives in tools/strategy_mirror_property.py only, never a DEAP constraint"},
+    {"when": "2026-10-28T17:30Z (found by the coordinator's W14 replay order)", "witness": "VALIDITY_SPEC v2: W14_mirror out of the per-run expected set",
+     "defect": "my v2 rule (90e8e56) listed W14_mirror in every mirror world's expected witness set, but W14 is a PAIR witness judged after both twins ran; validity ran first, so every M_ world got W14 NOT_EVALUABLE and a failure although the ledgers mirror to 6e-14 sigma (run 4b generation 0: 9 / 9 pairs)",
+     "evidence": "warm point 1 replayed in the DEAP's own worker path: mirror_check on the 9 pairs passes (bars, sides, per-unit net equal); the DEAP's 'W14_mirror' entries came from validity's NOT_EVALUABLE",
+     "effect": "W14 judged only at the pair level (run_cell twin ledger, judge_pairs); a missing twin is NOT_EVALUABLE there (pair_witness_not_evaluable), never PASS"},
     {"when": "2026-10-28T15:30Z (coordinator order after Musashi's audit, agent-multi 660511a0)", "witness": "VALIDITY_SPEC v1 -> v2 (GM01)",
      "defect": "the v1 rule returned PASS on an empty witness set, let a control with zero events select the corrected passing form, and let one failing + one passing control select DEFECT and the corrected form (three executed counterexamples, GUIDED_COUNTEREXAMPLES.json)",
      "evidence": "Musashi's reproducer tools/audit_guided_mechanism_design.py executed the pinned validity function on three synthetic dictionaries; the three inputs are now unit tests with the corrected outputs",
@@ -1802,9 +1810,14 @@ def expected_witness_ids(cell: dict, world: dict | None = None) -> list:
         ids.append("W13_tpsl_track_sigma")
     if meta.get("burst_windows"):
         ids.append("W17_no_open_in_burst")
-    if cell.get("mirror_of"):
-        ids.append("W14_mirror")
+    # W14_mirror is a PAIR witness: it is judged after both twins ran (run_cell's twin ledger, the DEAP's judge_pairs),
+    # never inside one run's witnesses; a missing twin makes it NOT_EVALUABLE there (pair_witness_not_evaluable)
     return ids
+
+
+def pair_witness_not_evaluable(reason: str) -> dict:
+    """W14_mirror when the twin's ledger is not available: NOT_EVALUABLE, never PASS (VALIDITY_SPEC v2)."""
+    return {"value": None, "pass": False, "status": "NOT_EVALUABLE", "events": None, "threshold": "the twin's ledger is required", "desc": reason}
 
 
 def _nonvacuous(x) -> bool:
@@ -2044,6 +2057,10 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     twin_trades.setdefault(key, {})[cell["id"]] = roll["trades"]
     twin_exit = twin_trades.setdefault("__exit__", {})
     twin_exit.setdefault(key, {})[cell["id"]] = exit_layer["episode_summary"]
+    if cell.get("mirror_of") and cell["mirror_of"] not in twin_trades.get(key, {}):
+        rec["results"]["W14_mirror"] = pair_witness_not_evaluable(f"the twin {cell['mirror_of']} did not run in this process before its mirror")
+        rec["PASS"] = rec["PASS_sealed"] = rec["PASS_v2"] = rec["PASS_effective"] = False
+        rec["results"]["PASS"] = False
     if cell.get("mirror_of") and cell["mirror_of"] in twin_trades.get(key, {}):
         rec["results"]["W14_mirror"] = mirror_check(twin_trades[key][cell["mirror_of"]], roll["trades"])
         rec["results"]["W14_mirror"]["desc"] = "exact mirror of the twin's ledger"

@@ -289,8 +289,23 @@ def test_expected_witness_ids_follow_the_cell_spec():
     assert "W1_side" in ids and "W8_early_close_at_switch" not in ids and "W13_tpsl_track_sigma" not in ids and "W14_mirror" not in ids
     ids = BM.expected_witness_ids({"legs": ["trend_up", "trend_down"], "exec": {"spread": "x5", "cutoff_h": 12, "missing_runs": 2}, "vol": "step_lh", "mirror_of": "x"},
                                   {"meta": {"jump_bar": 100, "burst_windows": [(1, 2)]}})
-    for k in ("W8_early_close_at_switch", "W8_old_direction_after_lag", "W9_gap_loss_bounded", "W10_spread_window", "W11_cutoff", "W12_missing", "W13_tpsl_track_sigma", "W17_no_open_in_burst", "W14_mirror"):
+    for k in ("W8_early_close_at_switch", "W8_old_direction_after_lag", "W9_gap_loss_bounded", "W10_spread_window", "W11_cutoff", "W12_missing", "W13_tpsl_track_sigma", "W17_no_open_in_burst"):
         assert k in ids
+    assert "W14_mirror" not in ids                                      # a pair witness: judged after both twins ran, never per run
+    nw = BM.pair_witness_not_evaluable("twin missing")
+    assert nw["pass"] is False and nw["status"] == "NOT_EVALUABLE"
+
+
+def test_judge_pairs_marks_a_split_pair_not_evaluable_and_passes_an_exact_mirror():
+    from tools import strategy_param_deap as D
+    t = [{"entry_bar_abs": 10, "exit_bar_abs": 20, "direction": 1, "net_sigma": 1.0, "financing_sigma": 0.0}]
+    m = [{"entry_bar_abs": 10, "exit_bar_abs": 20, "direction": -1, "net_sigma": 1.0, "financing_sigma": 0.0}]
+    res = [{"fails": [], "_trades": t, "_pair": "X", "_role": "S"}, {"fails": [], "_trades": m, "_pair": "X", "_role": "M"}]
+    D.judge_pairs(res)
+    assert res[0]["fails"] == [] and res[1]["fails"] == [] and "_trades" not in res[0]
+    lone = [{"fails": [], "_trades": m, "_pair": "Y", "_role": "M"}]
+    D.judge_pairs(lone)
+    assert lone[0]["fails"] == ["W14_mirror_NOT_EVALUABLE"]
 
 
 def test_spec_v3_is_resealed_with_the_validity_rule():

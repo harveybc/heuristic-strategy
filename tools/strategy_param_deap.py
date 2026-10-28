@@ -260,7 +260,10 @@ def judge_pairs(res: list) -> None:
             by.setdefault(r["_pair"], {})[r["_role"]] = r
     for key, pr in by.items():
         a, b = pr.get("S"), pr.get("M")
-        if a is None or b is None:
+        if a is None or b is None:                                    # a pair split across workers: NOT_EVALUABLE, never PASS (VALIDITY_SPEC v2)
+            for r in (a, b):
+                if r is not None:
+                    r["fails"].append("W14_mirror_NOT_EVALUABLE")
             continue
         w14 = BM.mirror_check(a["_trades"], b["_trades"])
         if not w14["pass"]:
