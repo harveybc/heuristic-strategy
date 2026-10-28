@@ -69,5 +69,6 @@
  "zz_theta_f": 0.5,
  "zz_reverse_flip_bars": 960,
  "z_close": 1.0,
- "k_persist": 1
+ "k_persist": 1,
+ "closer_filter": 1.0
 }

@@ -348,9 +348,14 @@ def test_closer_head_is_market_only_and_its_noise_grows_with_the_lead():
     assert list(inspect.signature(S.BCHead.row).parameters) == ["self", "b", "si"]
     import ast
     import textwrap
-    fn = ast.parse(textwrap.dedent(inspect.getsource(S.SimCloser.advantage_full))).body[0]
-    code = ast.unparse([n for n in fn.body if not (isinstance(n, ast.Expr) and isinstance(getattr(n, "value", None), ast.Constant))])   # the code, not the docstring
+    def code_of(f):
+        fn = ast.parse(textwrap.dedent(inspect.getsource(f))).body[0]
+        return ast.unparse([n for n in fn.body if not (isinstance(n, ast.Expr) and isinstance(getattr(n, "value", None), ast.Constant))])   # the code, not the docstring
+    code = code_of(S.SimCloser.advantage_full) + code_of(S.SimCloser.head_core)
     assert "self.path(" not in code and "path_advantage" not in code and "math.sqrt(h / H_REF_BARS)" in code and "_ar_noise" in code
+    assert "self.head_core(" in code_of(S.SimCloser.advantage_full)
+    cal = code_of(S.SimCloser.calibration_pairs)                       # the filter's calibration reads the CALIBRATION block only
+    assert "CAL_BLOCK" in cal and "BLOCK ==" not in cal and "self.path(" not in cal
     assert S.H_REF_BARS == 24 and "first-passage" in C3.default_contract()["closer_head"]["name"]
 
 
@@ -370,7 +375,7 @@ def test_close_rule_at_quality_one_reproduces_the_perfect_head_rule_and_persiste
             return self.a[bar]
 
         def advantage_full(self, r, bar, pos):
-            return (self.a[bar], self.s[bar]) + (0.0,) * 5
+            return (self.a[bar], self.s[bar]) + (0.0,) * 5 + (1.0,)
 
         def value(self, r, bar, pos):
             return 0.0, 0.0
@@ -385,8 +390,10 @@ def test_close_rule_at_quality_one_reproduces_the_perfect_head_rule_and_persiste
     try:
         ZZ.PARAMS.update(closer_mode=1.0, closer_adv_margin=0.02)
         for z in (0.0, 1.0, 3.0):
-            ZZ.PARAMS.update(z_close=z, k_persist=1)
-            assert run(a, [0.0] * len(a)) == [x >= -0.02 for x in a]
+            for f in (0.0, 1.0):                                      # the closer filter reads an exact head (s_hat = 0) as is
+                ZZ.PARAMS.update(z_close=z, k_persist=1, closer_filter=f)
+                assert run(a, [0.0] * len(a)) == [x >= -0.02 for x in a]
+        ZZ.PARAMS.update(closer_filter=0.0)
         ZZ.PARAMS.update(z_close=1.0, k_persist=2)
         assert run(a, [0.0] * len(a)) == [False, False, False, True, False, False, True, False]
         ZZ.PARAMS.update(z_close=1.0, k_persist=1)
@@ -394,3 +401,37 @@ def test_close_rule_at_quality_one_reproduces_the_perfect_head_rule_and_persiste
     finally:
         ZZ.PARAMS.clear()
         ZZ.PARAMS.update(old)
+
+
+def test_closer_filter_is_estimated_on_calibration_pairs_and_its_posterior_averages_the_noise():
+    """CloserFilterModel.estimate recovers the observation model of a head output A_hat = alpha + beta A + eps (eps
+    AR(1)) from (bar, A_hat, s_hat, h, A_true) calibration series; the Kalman posterior of a constant A over a run of
+    noisy outputs is closer to A than the last output alone."""
+    from app.short_horizon.expert_guided import strategy_zz as ZZ
+    rng = np.random.default_rng(3)
+    phi, beta, alpha, sd = 0.6, 0.5, -0.1, 0.3
+    series = []
+    for _ in range(4):
+        n = 1500
+        A = np.cumsum(rng.normal(0, 0.05, n)) * 0.2 + rng.normal(0, 1.0)
+        e = np.zeros(n)
+        for t in range(1, n):
+            e[t] = phi * e[t - 1] + math.sqrt(1 - phi * phi) * sd * rng.standard_normal()
+        e[0] = sd * rng.standard_normal()
+        Ah = alpha + beta * A + e
+        series.append(np.column_stack([np.arange(n), Ah, np.full(n, 0.1), np.full(n, 12.0), A]))
+    m = ZZ.CloserFilterModel.estimate(series)
+    a_, b_, s_ = m.obs(12.0)
+    assert abs(m.phi - phi) < 0.05 and abs(b_ - beta) < 0.05 and abs(a_ - alpha) < 0.1 and abs(s_ - sd) < 0.03
+    A_true, st, est = -0.4, {}, None
+    errs_last, errs_post = [], []
+    for trial in range(200):
+        st = {}
+        eps = sd * rng.standard_normal()
+        for t in range(30):
+            eps = phi * eps + math.sqrt(1 - phi * phi) * sd * rng.standard_normal()
+            y = alpha + beta * A_true + eps
+            est, _ = ZZ.filter_step(st, 0, m, y, 12.0, 1.0, t)
+        errs_last.append(abs((y - alpha) / beta - A_true))
+        errs_post.append(abs(est - A_true))
+    assert np.mean(errs_post) < np.mean(errs_last)

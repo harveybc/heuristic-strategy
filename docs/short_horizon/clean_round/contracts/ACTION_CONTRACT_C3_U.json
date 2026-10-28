@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_a3152f9fd8f25f12",
+ "identity": "action_85c461cafe27c128",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -975,7 +975,7 @@
   },
   "params": {
    "file": "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json",
-   "sha256": "aa8b171f5c782e487d97d1e20c435baade6547f37a687e580068f61a269aa9b0",
+   "sha256": "d96a2d4396dfa56cdc4d7f439299a19692965c32b7dceb1a2ea22a65f20bbcb1",
    "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"
   }
  },
@@ -1221,10 +1221,15 @@
   },
   "decoder": "the strategy (L2) supplies only its position's remaining distances d_sl = s (liq_now - SL) / sigma and d_tp = s (TP - liq_now) / sigma; first stop bar = first h with adv >= d_sl, first take-profit bar = first h with fav >= d_tp (a shared bar goes to the stop unless the take-profit gaps at the open); BC = max(pm before the terminating bar, the termination's net value); A(t) = -BC in sigma of the trade",
   "quality": "below quality 1 the head is a CALIBRATED CONDITIONAL MEAN: y = BC + e, e = sd_e(h) x AR(1) stream across ticks (phi = 0.587, measured on the committed hourly predictor errors), sd_e(h) = sigma_for_rho(rho, sd_BC) x sqrt(h / 24) (rho at h_ref = 24 bars, h the decisive lead); BC_hat = mu + rho_h^2 (y - mu), rho_h^2 = sd_BC^2 / (sd_BC^2 + sd_e(h)^2), mu / sd_BC the calibration-block moments; a predictive-sd channel s_hat = sd_BC sqrt(1 - rho_h^2)",
-  "decision_rule": "the strategy closes when A_hat - z_close x s_hat >= -closer_adv_margin on k_persist consecutive executable ticks (STRATEGY_PARAMS genes); at quality 1, s_hat = 0",
+  "decision_rule": "the strategy closes when A - z_close x s >= -closer_adv_margin on k_persist consecutive executable ticks (STRATEGY_PARAMS genes); with closer_filter = 1, (A, s) = the Kalman posterior mean / sd of A given this position's own past head outputs (strategy_zz.CloserFilterModel: A_hat = alpha(h) + beta(h) A + AR(1) eps, A a random walk; phi, variances, alpha / beta per lead bin and the prior ESTIMATED on the calibration block only, head output vs realized hindsight A), otherwise (A_hat, s_hat); at quality 1, s_hat = 0 and the head is read as is",
   "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)"
  },
  "changelog": [
+  {
+   "when": "2026-10-28",
+   "change": "the closer filters its own past head outputs per position (closer_filter gene; parameters estimated on the calibration block)",
+   "why": "QUALIFICATION_SPEC D7: the per-tick rule failed regret <= the information-limited Bayes closer + 0.05 (the Bayes closer averages the head history); coordinator ruling: a causal, market-only filter of the strategy's own past signals, never the simulator's true noise model"
+  },
   {
    "when": "2026-10-28",
    "change": "the closer's output contract declared: the market-only first-passage curve head (closer_head)",

@@ -46,9 +46,9 @@ OPERATING_QUALITY = 0.70
 # the genome: every STRATEGY_PARAMS coefficient the C3Z strategy consumes; the others are fixed, with the reason
 GENOME = ("open_rate_l", "nop_veto", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "observe_bars",
           "rr_margin_sigma", "ev_from_net", "close_margin_floor", "risk_reward_floor", "burst_window_bars", "burst_vol_ratio", "zz_room_tp_mult",
-          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars", "closer_mode", "closer_adv_margin", "tp_mode", "k_tp_protect", "zz_reverse_flip_bars", "z_close", "k_persist")
+          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars", "closer_mode", "closer_adv_margin", "tp_mode", "k_tp_protect", "zz_reverse_flip_bars", "z_close", "k_persist", "closer_filter")
 INTEGER = {"observe_bars", "burst_window_bars", "zz_fine_h", "zz_post_flip_bars", "zz_reverse_flip_bars", "k_persist"}
-BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate", "closer_mode", "tp_mode"}
+BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate", "closer_mode", "tp_mode", "closer_filter"}
 TIED = {"open_rate_s": "open_rate_l"}
 FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)", "v_alpha_l": "parametric volume family: not consumed by C3Z (risk sizing)",
          "risk_pct": "execution contract (owner's sizing rule), not a strategy coefficient", "entry_cutoff_hours": "execution contract (Friday cutoff)",
@@ -155,9 +155,17 @@ class CachedWorld:
             exit_fails = list(ex["failing_effective"])
             fails += exit_fails
             ep_summary = ex.get("episode_summary")
+        d7 = None
+        if not perfect:                                               # QUALIFICATION_SPEC D7 as a constraint (coordinator ruling 2026-10-28): per side, E4 and
+            st_s = BM.closer_d7_stats(self.w, roll, self.closer1)     # regret <= the information-limited Bayes closer's + 0.05, the same opener
+            broll = BM.rollout_policy(self.w, BM.PolicyBayes, strat, view, self.cells)
+            st_b = BM.closer_d7_stats(self.w, broll, self.closer1)
+            d7f = BM.d7_failures(st_s, st_b)
+            fails += d7f
+            d7 = {side: {"E4": st_s[side]["E4"], "E4_bayes": st_b[side]["E4"], "regret": st_s[side]["regret_norm"], "regret_bayes": st_b[side]["regret_norm"]} for side in ("BUY", "SELL")}
         sh = float(roll["metrics"].get("sharpe_daily_sqrt365", float("nan")))
         out = {"key": self.cell["subset_key"], "sharpe": sh if math.isfinite(sh) else -10.0, "fails": fails, "opens": wit["summary"]["opens"],
-               "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"])}
+               "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"]), "d7": d7}
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
             out["_trades"], out["_episodes"], out["_pair"], out["_role"] = roll["trades"], ep_summary, self.cell["pair"], self.cell["role"]
         return out
@@ -401,7 +409,7 @@ def cmd_run(a):
     base = SP.load(a.params)
     meta = {"seed": SEED, "population": a.population, "generations": a.generations, "elite": ELITE, "genome": GENOME, "bounds": bounds(), "fixed": FIXED, "tied": TIED,
             "subset": a.subset, "subset_worlds": len(sub), "operating_quality": OPERATING_QUALITY, "quality_independent_constraints": QUALITY_INDEPENDENT,
-            "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads, per-cell rule) incl. the sealed exit layer E0-E5 / EP / E1' / E2' / E7 / Z1 / E8, + quality-independent witnesses (0.70)",
+            "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads, per-cell rule) incl. the sealed exit layer E0-E5 / EP / E1' / E2' / E7 / Z1 / E8, + quality-independent witnesses (0.70) + QUALIFICATION_SPEC D7 per side on the q < 1 worlds (E4 and regret <= the Bayes closer's + 0.05, phi 0.587)",
             "exit_spec_sha256": BM.EXIT_SPEC_SHA,
             "params_base_sha256": SP.sha256_of(a.params), "spec_v3_sha256": BM.SPEC_V3_SHA, "warm_archive": getattr(a, "warm_archive", None),
             "effective_rule": "VALIDITY_SPEC per world (hold oracle + O* controls, vacuous passes do not validate, W8 switch v3 on a replayed destructive-close conflict)"}

@@ -42,7 +42,7 @@ ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60",
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
 
 PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 1.2, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
-          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1}
+          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1, "closer_filter": 1.0}
 
 
 def configure(doc: dict):
@@ -332,6 +332,105 @@ def net_open_margin(view: dict, rows, cells, open_rate: float) -> float:
     return max(float(np.quantile(vals, 1.0 - float(open_rate))), 0.0) if vals else float("inf")   # never open a predicted loss
 
 
+# ----------------------------------------------------------------------------- the closer filter (the head's own history)
+FILTER_H_BINS = 5
+
+
+class CloserFilterModel:
+    """The observation model of the closer head's OUTPUT, A_hat = alpha(h) + beta(h) A + eps, eps AR(1) (phi) with sd(h);
+    A a random walk with per-tick variance q and prior (mu_A, sd_A). Units: sigma of now. ``estimate`` fits it on the
+    CALIBRATION block only (the head output vs the realized hindsight A, as in deployment); ``truth`` builds it from the
+    simulator's true noise model (the Bayes reference and the report only, never the strategy)."""
+
+    def __init__(self, phi, mu_A, sd_A, q, bins, source, n=0):
+        self.phi, self.mu_A, self.sd_A, self.q, self.bins, self.source, self.n = float(phi), float(mu_A), float(sd_A), float(q), bins, source, int(n)
+        self._k_e = None
+
+    @classmethod
+    def estimate(cls, pairs: list):
+        series = [p for p in pairs if len(p) > 2]
+        if not series:
+            return None
+        X = np.concatenate(series)
+        if len(X) < 100:
+            return None
+        h, ah, at = X[:, 3], X[:, 1], X[:, 4]
+        edges = np.unique(np.quantile(h, np.linspace(0.0, 1.0, FILTER_H_BINS + 1)))
+        edges = np.concatenate([[-np.inf], edges[1:-1], [np.inf]]) if len(edges) > 2 else np.array([-np.inf, np.inf])
+        bins = []
+        for lo, hi in zip(edges[:-1], edges[1:]):
+            m = (h >= lo) & (h < hi)
+            if m.sum() < 20:
+                continue
+            A, Y = at[m], ah[m]
+            va = float(np.var(A))
+            beta = float(np.cov(A, Y, bias=True)[0, 1] / va) if va > 1e-12 else 0.0
+            alpha = float(Y.mean() - beta * A.mean())
+            bins.append({"h_hi": float(hi), "h_med": float(np.median(h[m])), "alpha": alpha, "beta": beta, "sd": float(np.std(Y - alpha - beta * A)), "n": int(m.sum())})
+        if not bins:
+            return None
+        mod = cls(0.0, float(at.mean()), float(at.std()), 0.0, bins, "estimated_on_calibration", len(X))
+        num = den = dq = 0.0
+        nq = 0
+        for p in series:
+            res = np.asarray([y - mod.obs(hh)[0] - mod.obs(hh)[1] * a for _, y, _, hh, a in p])
+            consec = np.diff(p[:, 0]) == 1
+            num += float(np.sum((res[1:] * res[:-1])[consec]))
+            den += float(np.sum(res ** 2))
+            d = np.diff(p[:, 4])[consec]
+            dq += float(np.sum(d ** 2))
+            nq += int(consec.sum())
+        mod.phi = float(np.clip(num / den, -0.99, 0.999)) if den > 0 else 0.0
+        mod.q = dq / nq if nq else mod.sd_A ** 2 / 24.0
+        return mod
+
+    @classmethod
+    def truth(cls, t: dict, h_ref: float = 24.0):
+        mod = cls(t["phi"], t["mu_A"], t["sd_A"], t["q"], [], "true_model")
+        mod._k_e, mod._h_ref = float(t["k_e"]), float(h_ref)
+        return mod
+
+    def obs(self, h: float) -> tuple:
+        if self._k_e is not None:                                     # the true model, continuous in h
+            sd_e = self._k_e * math.sqrt(max(h, 0.0) / self._h_ref)
+            r2 = self.sd_A ** 2 / (self.sd_A ** 2 + sd_e ** 2) if (self.sd_A > 0 or sd_e > 0) else 1.0
+            return self.mu_A * (1.0 - r2), r2, r2 * sd_e
+        for b in self.bins:
+            if h < b["h_hi"]:
+                return b["alpha"], b["beta"], b["sd"]
+        b = self.bins[-1]
+        return b["alpha"], b["beta"], b["sd"]
+
+    def summary(self) -> dict:
+        hs = [b["h_med"] for b in self.bins] if self.bins else [3.0, 12.0, 24.0, 48.0, 96.0]
+        return {"source": self.source, "n": self.n, "phi": self.phi, "mu_A": self.mu_A, "sd_A": self.sd_A, "q": self.q,
+                "obs_at_h": [{"h": float(hh), "alpha": a, "beta": b, "sd": s} for hh in hs for a, b, s in [self.obs(hh)]]}
+
+
+def filter_step(state: dict, key, model: CloserFilterModel, a_hat: float, h: float, conv: float, bar: int) -> tuple:
+    """One Kalman step of the per-position posterior of A (sigma of the trade) on the head output a_hat; returns
+    (E[A | head history], sd[A | head history]). State x = (A, eps); A random walk, eps AR(1) rescaled with sd(h)."""
+    alpha, beta, sd = model.obs(h)
+    alpha, sd = alpha * conv, max(sd * conv, 1e-9)
+    if key not in state:
+        m = np.array([model.mu_A * conv, 0.0])
+        P = np.array([[(model.sd_A * conv) ** 2, 0.0], [0.0, sd * sd]])
+    else:
+        m0, P0, b0, sd0 = state[key]
+        g = max(int(bar) - int(b0), 1)
+        pg = model.phi ** g
+        F = np.array([[1.0, 0.0], [0.0, pg * sd / sd0]])
+        Q = np.array([[model.q * g * conv * conv, 0.0], [0.0, max(1.0 - pg * pg, 0.0) * sd * sd]])
+        m, P = F @ m0, F @ P0 @ F.T + Q
+    Hm = np.array([beta, 1.0])
+    S = float(Hm @ P @ Hm) + 1e-12
+    K = (P @ Hm) / S
+    m = m + K * (float(a_hat) - alpha - float(Hm @ m))
+    P = P - np.outer(K, Hm @ P)
+    state[key] = (m, P, int(bar), sd)
+    return float(m[0]), float(math.sqrt(max(P[0, 0], 0.0)))
+
+
 # ----------------------------------------------------------------------------- the policy
 class PolicyC3Z(C3.PolicyC3):
     """C3 + the hierarchy gates and close rule above. ``log`` (per flat decision) and ``closes`` (per positioned check)
@@ -428,6 +527,26 @@ class PolicyC3Z(C3.PolicyC3):
         fa = self.t.get("zz_flip_age")
         return bool(fa is None or not np.isfinite(fa[r]) or fa[r] <= PARAMS["zz_reverse_flip_bars"])
 
+    filter_source = "estimated"                                      # "truth": the simulator's true model (a measurement variant, never deployed)
+
+    def _kf_state(self) -> dict:
+        st = getattr(self, "_kf", None)
+        if st is None:
+            st = self._kf = {}
+        return st
+
+    def _filter_model(self, cl, si: int):
+        cache = getattr(self, "_fmodels", None)
+        if cache is None:
+            cache = self._fmodels = {}
+        if si not in cache:
+            ck = ("filter_model", self.filter_source, int(si), float(cl.q.close), float(getattr(cl, "noise_tag", lambda: 0.0)()))
+            store = getattr(cl, "cache_static", {})
+            if ck not in store:
+                store[ck] = CloserFilterModel.truth(cl.filter_truth(si)) if self.filter_source == "truth" else CloserFilterModel.estimate(cl.calibration_pairs(si))
+            cache[si] = store[ck]
+        return cache[si]
+
     def close_now(self, r, si, bar, pos) -> bool:
         self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))
         if not self.s.early_close:
@@ -436,12 +555,19 @@ class PolicyC3Z(C3.PolicyC3):
         if PARAMS["closer_mode"] >= 0.5 and hasattr(cl, "advantage"):
             # close when A_hat - z_close x s_hat >= -margin (the head's calibrated conditional mean and predictive sd), the
             # condition holding on k_persist consecutive executable ticks of this position; the broker SL stays the backstop
+            key = (int(pos.entry_bar), int(si))
             if hasattr(cl, "advantage_full"):
-                a, s_hat = cl.advantage_full(r, bar, pos)[:2]
+                full = cl.advantage_full(r, bar, pos)
+                a, s_hat = full[:2]
+                # the closer filter: the posterior of A given this position's own past head outputs (CloserFilterModel
+                # estimated on the calibration block); at quality 1 the head is exact (s_hat = 0) and is read as is
+                if PARAMS["closer_filter"] >= 0.5 and np.isfinite(a) and s_hat > 0 and hasattr(cl, "calibration_pairs"):
+                    model = self._filter_model(cl, si)
+                    if model is not None:
+                        a, s_hat = filter_step(self._kf_state(), key, model, a, full[3], full[7], bar)
             else:
                 a, s_hat = cl.advantage(r, bar, pos), 0.0
             cond = bool(np.isfinite(a) and (a - PARAMS["z_close"] * (s_hat if np.isfinite(s_hat) else 0.0)) >= -PARAMS["closer_adv_margin"])
-            key = (int(pos.entry_bar), int(si))
             self._persist = getattr(self, "_persist", {})
             self._persist[key] = self._persist.get(key, 0) + 1 if cond else 0
             dec = bool(cond and self._persist[key] >= int(round(PARAMS["k_persist"])))

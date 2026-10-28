@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 import time
 from pathlib import Path
@@ -29,75 +28,30 @@ from tools import strategy_behaviour_matrix as BM  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
 
 
-class PolicyBayes(ZZ.PolicyC3Z):
-    """The strategy's opener with the information-limited Bayes closer."""
-
-    def close_now(self, r, si, bar, pos) -> bool:
-        self.positions.setdefault((int(pos.entry_bar), int(si)), __import__("dataclasses").replace(pos))
-        cl = self.t["closer"]
-        a_hat, s_hat, y, h, mu, sd_a, sd_e = cl.advantage_full(r, bar, pos)
-        if not np.isfinite(y):
-            dec, mean_a = False, float("nan")
-        elif not (sd_e > 0):
-            mean_a = float(y)                                         # perfect head: the posterior is the truth
-            dec = bool(mean_a >= -BM.EPS_CLOSE)
-        else:
-            key = (int(pos.entry_bar), int(si))
-            st = getattr(self, "_kf", {})
-            self._kf = st
-            phi = float(S.CLOSER_NOISE_PHI)
-            q = sd_a * sd_a / S.H_REF_BARS
-            if key not in st:
-                m = np.array([mu, 0.0])
-                P = np.array([[sd_a * sd_a, 0.0], [0.0, sd_e * sd_e]])
-            else:
-                m0, P0, b0, sde0 = st[key]
-                g = max(int(bar) - b0, 1)                             # bars since the last executable tick (the AR stream runs per bar)
-                pg = phi ** g
-                F = np.array([[1.0, 0.0], [0.0, pg * sd_e / sde0 if sde0 > 0 else 0.0]])   # the error rescales with sd_e(h) as the lead moves
-                Qm = np.array([[q * g, 0.0], [0.0, (1.0 - pg * pg) * sd_e * sd_e]])
-                m, P = F @ m0, F @ P0 @ F.T + Qm
-            Hm = np.array([1.0, 1.0])
-            Sv = float(Hm @ P @ Hm)
-            K = (P @ Hm) / Sv
-            m = m + K * (float(y) - float(Hm @ m))
-            P = P - np.outer(K, Hm @ P)
-            st[key] = (m, P, int(bar), float(sd_e))
-            mean_a = float(m[0])
-            dec = bool(mean_a >= -BM.EPS_CLOSE)
-        rem, psl = cl.value(r, bar, pos)
-        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, False, False, False, float(mean_a), "bayes"))
-        return dec
+class PolicyFilterTrue(ZZ.PolicyC3Z):
+    """The strategy with its closer filter fed the simulator's TRUE model (a measurement variant: the strategy-vs-Bayes
+    gap that the estimation error causes is the estimated-filter row minus this one)."""
+    filter_source = "truth"
 
 
 def measure(w, strat, view, cells, Pol, closer_exact) -> dict:
-    cx, SCFG, truth = w["cx"], w["scfg"], w["truth"]
-    pol = Pol(view, strat, cells, truth.e_time, truth.cost, observe_bars=int(round(ZZ.PARAMS.get("observe_bars", 0))))
-    m, trades = BM.ACT.rollout_with_trades(cx, BM.BLOCK, pol(cx), SCFG)
-    roll = {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "positions": pol.positions}
-    st = BM.exit_stats(w, roll, closer_exact)
-    blk_end = BM.H.period_bars(cx.ds, BM.BLOCK)[1]
-    out = {"sharpe": float(m.get("sharpe_daily_sqrt365", float("nan"))), "net_usd": float(m.get("net_profit_usd", float("nan"))), "trades": len(trades),
-           "mean_hold_bars": float(np.mean([int(t["exit_bar_abs"]) - int(t["entry_bar_abs"]) for t in trades])) if trades else float("nan")}
+    roll = BM.rollout_policy(w, Pol, strat, view, cells)
+    out = BM.closer_d7_stats(w, roll, closer_exact)
+    out["_trades_key"] = [(int(t["entry_bar_abs"]), int(t["exit_bar_abs"]), int(t["direction"]), round(float(t["net_usd"]), 6)) for t in roll["trades"]]
+    return out
+
+
+def filter_models(closer) -> dict:
+    """Per side: the filter model the strategy estimates on the calibration block and the true one."""
+    out = {}
     for si, side in ((0, "BUY"), (1, "SELL")):
-        reg, ecv = [], 0.0
-        for t in trades:
-            if (0 if int(t["direction"]) > 0 else 1) != si:
-                continue
-            pos = pol.positions.get((int(t["entry_bar_abs"]), si))
-            if pos is None:
-                continue
-            path = closer_exact.path(pos)
-            if t["exit_reason"] == "TIME" and int(t["exit_bar_abs"]) >= blk_end - 2 and int(path["exit_bar"]) > int(t["exit_bar_abs"]):
-                continue                                              # censored by the block end (as exit_stats)
-            risk = abs(float(pos.entry_price) - float(pos.sl)) * max(int(pos.units), 1)
-            pstar = max(float(np.max(path["P"])) if len(path["P"]) else -np.inf, path["hold_net"])
-            reg.append((pstar - float(t["net_usd"])) / risk)
-            if path["hold_reason"] == "SL" and t["exit_reason"] == "EARLY":
-                ecv += (float(t["net_usd"]) - path["hold_net"]) / risk
-        out[side] = {"E3": st[si]["agreement"], "E4": st[si]["destructive_share"], "closes": st[si]["closes"], "regret_norm": float(np.mean(reg)) if reg else float("nan"),
-                     "early_close_value_norm": ecv, "sl_destined_closed_early": st[si]["sl_destined_closed_early"], "R_mean_sigma": st[si]["R_mean"], "mix": st[si]["mix"], "sl_destined": st[si]["sl_destined"]}
-    out["_trades_key"] = [(int(t["entry_bar_abs"]), int(t["exit_bar_abs"]), int(t["direction"]), round(float(t["net_usd"]), 6)) for t in trades]
+        est = ZZ.CloserFilterModel.estimate(closer.calibration_pairs(si))
+        tru = ZZ.CloserFilterModel.truth(closer.filter_truth(si))
+        e = est.summary() if est is not None else None
+        t = tru.summary()
+        if e is not None:
+            t["obs_at_h"] = [{"h": o["h"], **dict(zip(("alpha", "beta", "sd"), tru.obs(o["h"])))} for o in e["obs_at_h"]]
+        out[side] = {"estimated": e, "true": t}
     return out
 
 
@@ -110,7 +64,8 @@ def main():
     ap.add_argument("--csv-dir", required=True)
     ap.add_argument("--qualities", default="1.0,0.85,0.70")
     ap.add_argument("--phis", default="0,0.587,0.98")
-    ap.add_argument("--rules", default="1.0:1", help="z_close:k_persist pairs of the strategy's close rule, comma separated")
+    ap.add_argument("--rules", default="1.0:1:1", help="z_close:k_persist:closer_filter of the strategy's close rule, comma separated")
+    ap.add_argument("--filter-truth", action="store_true", help="also run the first rule with the filter fed the TRUE model")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     AC = S.contract_for_sim(str(S.CONTRACT))
@@ -136,12 +91,16 @@ def main():
                     continue                                          # quality 1 carries no noise: once
                 view = dict(view0)
                 view["closer"] = view0["closer"].with_quality(q)
-                row = {"quality": q, "phi": phi, "bayes": measure(w, strat, view, cl, PolicyBayes, exact), "rules": {}}
+                row = {"quality": q, "phi": phi, "bayes": measure(w, strat, view, cl, BM.PolicyBayes, exact), "rules": {}}
+                if q < 0.999:
+                    row["filter_models"] = filter_models(view["closer"])
                 for rule in a.rules.split(","):
-                    z, k = rule.split(":")
-                    ZZ.PARAMS.update(z_close=float(z), k_persist=int(k))
+                    z, k, f = (rule.split(":") + ["1"])[:3]
+                    ZZ.PARAMS.update(z_close=float(z), k_persist=int(k), closer_filter=float(f))
                     row["rules"][rule] = measure(w, strat, view, cl, ZZ.PolicyC3Z, exact)
-                ZZ.PARAMS.update(z_close=float(params["z_close"]), k_persist=int(params["k_persist"]))
+                    if a.filter_truth and rule == a.rules.split(",")[0] and q < 0.999:
+                        row["rules"][rule + ":truth"] = measure(w, strat, view, cl, PolicyFilterTrue, exact)
+                ZZ.PARAMS.update(z_close=float(params["z_close"]), k_persist=int(params["k_persist"]), closer_filter=float(params["closer_filter"]))
                 row["strategy"] = row["rules"][a.rules.split(",")[0]]
                 if q >= 0.999:
                     row["q1_bayes_equals_strategy"] = row["strategy"]["_trades_key"] == row["bayes"]["_trades_key"]

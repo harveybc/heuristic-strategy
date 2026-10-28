@@ -663,14 +663,36 @@ class SimCloser:
             self.cache_static[key] = z
         return float(self.cache_static[key][int(b)])
 
+    def head_core(self, r, b: int, si: int, d_tp: float, d_sl: float) -> tuple:
+        """The market-only head at decision bar b, side si, remaining distances (d_tp, d_sl) in sigma of NOW, A-sign:
+        (A_hat, s_hat, y, h, mu_A, sd_A, sd_e, A_true). Below quality 1 the head is a CALIBRATED CONDITIONAL MEAN, as a
+        fitted MSE regressor outputs: y = BC + e with e ~ sd_e(h) x AR(1) stream, sd_e(h) = sigma_for_rho(rho, sd_BC) x
+        sqrt(h / 24) (the decisive lead h; rho at h_ref = 24 bars); BC_hat = mu + rho_h^2 (y - mu), rho_h^2 = sd_BC^2 /
+        (sd_BC^2 + sd_e(h)^2); predictive sd s_hat = sd_BC sqrt(1 - rho_h^2) (heteroscedastic through h). A = -BC.
+        A_true (the exact decoded value) is hindsight: the strategy reads it only on the CALIBRATION block (calibration_pairs)."""
+        nanr = (float("nan"),) * 8
+        _, _, _, _, cv = self.bc.row(b, si)
+        rho = rho_of_level(self._quality(r))
+        lead = []
+        bcv = bc_from_curves(cv, d_tp, d_sl, lead_out=lead)
+        if not np.isfinite(bcv):
+            return nanr
+        h = float(lead[0]) if lead else float(H_REF_BARS)
+        if rho >= 1.0:
+            return (-bcv, 0.0, -bcv, h, float("nan"), float("nan"), 0.0, -bcv)
+        mu, sd_a = self._bc_stats(si)
+        sd_e = sigma_for_rho(rho, sd_a) * math.sqrt(h / H_REF_BARS)
+        y = bcv + sd_e * self._ar_noise(si, b)
+        r2 = sd_a * sd_a / (sd_a * sd_a + sd_e * sd_e)
+        bc_hat = mu + r2 * (y - mu)
+        s_hat = sd_a * math.sqrt(max(1.0 - r2, 0.0))
+        return (-bc_hat, s_hat, -y, h, -mu, sd_a, sd_e, -bcv)
+
     def advantage_full(self, r, bar, pos) -> tuple:
-        """(A_hat, s_hat, y, lead, mu, sd_A, sd_e) for the strategy's OWN position, sigma of the trade. The strategy (L2)
-        decodes the MARKET-ONLY first-passage head at its position's remaining distances (no position input to the
-        head). Below quality 1 the head is a CALIBRATED CONDITIONAL MEAN, as a fitted MSE regressor outputs:
-        y = BC + e with e ~ sd_e(h) x AR(1) stream, sd_e(h) = sigma_for_rho(rho, sd_BC) x sqrt(h / 24) (the decisive
-        lead h; rho at h_ref = 24 bars); BC_hat = mu + rho_h^2 (y - mu), rho_h^2 = sd_BC^2 / (sd_BC^2 + sd_e(h)^2);
-        predictive sd s_hat = sd_BC sqrt(1 - rho_h^2) (heteroscedastic through h). A = -BC."""
-        nanr = (float("nan"),) * 7
+        """(A_hat, s_hat, y, lead, mu, sd_A, sd_e, conv) for the strategy's OWN position, sigma of the trade (conv = sigma
+        of now / sigma of the trade). The strategy (L2) decodes the MARKET-ONLY first-passage head (head_core) at its
+        position's remaining distances (no position input to the head)."""
+        nanr = (float("nan"),) * 8
         b = int(bar)
         if b + 1 >= len(self.env.o):
             return nanr
@@ -683,23 +705,46 @@ class SimCloser:
         d_sl, d_tp = d * (liq0 - float(pos.sl)) / sg, d * (float(pos.tp) - liq0) / sg
         if d_sl <= 0 or d_tp <= 0:
             return nanr                                               # the open of b + 1 is already beyond a level: the engine's gap rule acts
-        _, _, _, _, cv = self.bc.row(b, si)
-        rho = rho_of_level(self._quality(r))
-        lead = []
-        bcv = bc_from_curves(cv, d_tp, d_sl, lead_out=lead)
-        if not np.isfinite(bcv):
+        a_hat, s_hat, y, h, mu, sd_a, sd_e, _ = self.head_core(r, b, si, d_tp, d_sl)
+        if not np.isfinite(a_hat):
             return nanr
         conv = sg / float(pos.sigma)                                  # sigma of now -> sigma of the trade
-        h = float(lead[0]) if lead else float(H_REF_BARS)
-        if rho >= 1.0:
-            return (-bcv * conv, 0.0, -bcv * conv, h, float("nan"), float("nan"), 0.0)
+        return (a_hat * conv, s_hat * conv, y * conv, h, mu * conv, sd_a * conv, sd_e * conv, conv)
+
+    def noise_tag(self) -> float:
+        return float(CLOSER_NOISE_PHI)
+
+    CAL_DISTANCES = ((1.0, 1.0), (0.5, 1.5), (1.5, 0.5), (2.0, 1.0))  # (d_tp, d_sl) of the calibration series
+
+    def calibration_pairs(self, si: int, n_max: int = 1500) -> list:
+        """What the strategy has in deployment to calibrate its closer filter: on the CALIBRATION block only, the head's
+        output (A_hat, s_hat, h) at consecutive observable decision bars, paired with the realized hindsight A of the
+        same query, per declared remaining-distance pair; one series per pair (consecutive bars: the AR estimate)."""
+        key = ("cal_pairs", int(si), float(self.q.close), float(CLOSER_NOISE_PHI))
+        if key not in self.cache_static:
+            cx = self.cx
+            rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == CAL_BLOCK))[:n_max]
+            out = []
+            for d_tp, d_sl in self.CAL_DISTANCES:
+                ser = []
+                for r in rows:
+                    b = int(cx.ds.row_bar[r])
+                    if not (0 <= b < len(self.env.o) - 1):
+                        continue
+                    a_hat, s_hat, _, h, _, _, _, a_true = self.head_core(int(r), b, si, d_tp, d_sl)
+                    if np.isfinite(a_hat) and np.isfinite(a_true):
+                        ser.append((b, a_hat, s_hat, h, a_true))
+                out.append(np.asarray(ser, float).reshape(-1, 5))
+            self.cache_static[key] = out
+        return self.cache_static[key]
+
+    def filter_truth(self, si: int) -> dict:
+        """The TRUE observation model of the head output (simulator side; the Bayes reference and the report only):
+        A_hat = mu_A (1 - r2(h)) + r2(h) A + eps, eps = -r2(h) e, AR(1) phi = CLOSER_NOISE_PHI, sd r2(h) sd_e(h)."""
         mu, sd_a = self._bc_stats(si)
-        sd_e = sigma_for_rho(rho, sd_a) * math.sqrt(h / H_REF_BARS)
-        y = bcv + sd_e * self._ar_noise(si, b)
-        r2 = sd_a * sd_a / (sd_a * sd_a + sd_e * sd_e)
-        bc_hat = mu + r2 * (y - mu)
-        s_hat = sd_a * math.sqrt(max(1.0 - r2, 0.0))
-        return (-bc_hat * conv, s_hat * conv, -y * conv, h, -mu * conv, sd_a * conv, sd_e * conv)
+        rho = rho_of_level(self.q.close)
+        k = sigma_for_rho(rho, sd_a) if rho < 1.0 else 0.0
+        return {"phi": float(CLOSER_NOISE_PHI), "mu_A": -mu, "sd_A": sd_a, "q": sd_a * sd_a / H_REF_BARS, "k_e": k}
 
     def advantage(self, r, bar, pos) -> float:
         """A_hat(t) (see advantage_full); the exact path A(t) (path_advantage) stays the oracle / witness truth."""

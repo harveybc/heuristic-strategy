@@ -815,7 +815,7 @@ def head_outputs(cells) -> dict:
 
 
 STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
-STRATEGY_PARAMS_SHA256 = "aa8b171f5c782e487d97d1e20c435baade6547f37a687e580068f61a269aa9b0"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+STRATEGY_PARAMS_SHA256 = "d96a2d4396dfa56cdc4d7f439299a19692965c32b7dceb1a2ea22a65f20bbcb1"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
 CLOSER_HEAD_CONTRACT = {
     "name": "first-passage curve head (market-only best continuation), tools/strategy_output_simulation.BCHead",
     "inputs": "market data only: the bars from the decision bar on, the per-bar spread profile, the session calendar (compulsory flats, rollovers) and the swap rates by side; NO position, entry, SL, TP, units or balance",
@@ -829,10 +829,12 @@ CLOSER_HEAD_CONTRACT = {
                  "ff": "net value of the compulsory flat at the close of the last bar (scalar)"},
     "decoder": "the strategy (L2) supplies only its position's remaining distances d_sl = s (liq_now - SL) / sigma and d_tp = s (TP - liq_now) / sigma; first stop bar = first h with adv >= d_sl, first take-profit bar = first h with fav >= d_tp (a shared bar goes to the stop unless the take-profit gaps at the open); BC = max(pm before the terminating bar, the termination's net value); A(t) = -BC in sigma of the trade",
     "quality": "below quality 1 the head is a CALIBRATED CONDITIONAL MEAN: y = BC + e, e = sd_e(h) x AR(1) stream across ticks (phi = 0.587, measured on the committed hourly predictor errors), sd_e(h) = sigma_for_rho(rho, sd_BC) x sqrt(h / 24) (rho at h_ref = 24 bars, h the decisive lead); BC_hat = mu + rho_h^2 (y - mu), rho_h^2 = sd_BC^2 / (sd_BC^2 + sd_e(h)^2), mu / sd_BC the calibration-block moments; a predictive-sd channel s_hat = sd_BC sqrt(1 - rho_h^2)",
-    "decision_rule": "the strategy closes when A_hat - z_close x s_hat >= -closer_adv_margin on k_persist consecutive executable ticks (STRATEGY_PARAMS genes); at quality 1, s_hat = 0",
+    "decision_rule": "the strategy closes when A - z_close x s >= -closer_adv_margin on k_persist consecutive executable ticks (STRATEGY_PARAMS genes); with closer_filter = 1, (A, s) = the Kalman posterior mean / sd of A given this position's own past head outputs (strategy_zz.CloserFilterModel: A_hat = alpha(h) + beta(h) A + AR(1) eps, A a random walk; phi, variances, alpha / beta per lead bin and the prior ESTIMATED on the calibration block only, head output vs realized hindsight A), otherwise (A_hat, s_hat); at quality 1, s_hat = 0 and the head is read as is",
     "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)",
 }
 CONTRACT_CHANGELOG = (
+    {"when": "2026-10-28", "change": "the closer filters its own past head outputs per position (closer_filter gene; parameters estimated on the calibration block)",
+     "why": "QUALIFICATION_SPEC D7: the per-tick rule failed regret <= the information-limited Bayes closer + 0.05 (the Bayes closer averages the head history); coordinator ruling: a causal, market-only filter of the strategy's own past signals, never the simulator's true noise model"},
     {"when": "2026-10-28", "change": "the closer's output contract declared: the market-only first-passage curve head (closer_head)",
      "why": "the architecture contract requires a market-only model observation; the earlier advantage head read the trade's own path (position-conditioned); the head's horizon, channels, units, decoder, horizon-dependent quality noise and the market-only proof are now part of the sealed identity"},
     {"when": "2026-10-27", "change": "contract regenerated from the code and re-sealed; the strategy parameter file and its sha are embedded",

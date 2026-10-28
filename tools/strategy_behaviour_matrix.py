@@ -746,6 +746,103 @@ class PolicyOracleStar(PolicyOracle):
         return dec
 
 
+class PolicyBayes(ZZ.PolicyC3Z):
+    """The INFORMATION-LIMITED ORACLE (QUALIFICATION_SPEC D7): the strategy's opener, and a Bayes closer that sees the
+    same noisy head stream and KNOWS the true noise model: a 2-state Kalman filter per position (A random walk with
+    per-tick variance sd_BC^2 / 24, the AR(1) error with the true phi and sd_e(h)); it closes iff E[A | history] >= -EPS_CLOSE."""
+
+    def close_now(self, r, si, bar, pos) -> bool:
+        self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))
+        cl = self.t["closer"]
+        a_hat, s_hat, y, h, mu, sd_a, sd_e, conv = cl.advantage_full(r, bar, pos)
+        if not np.isfinite(y):
+            dec, mean_a = False, float("nan")
+        elif not (sd_e > 0):
+            mean_a = float(y)                                         # the exact head: the posterior is the truth
+            dec = bool(mean_a >= -EPS_CLOSE)
+        else:
+            key = (int(pos.entry_bar), int(si))
+            st = self.__dict__.setdefault("_kfb", {})
+            phi = float(S.CLOSER_NOISE_PHI)
+            q = sd_a * sd_a / S.H_REF_BARS
+            if key not in st:
+                m = np.array([mu, 0.0])
+                P = np.array([[sd_a * sd_a, 0.0], [0.0, sd_e * sd_e]])
+            else:
+                m0, P0, b0, sde0 = st[key]
+                g = max(int(bar) - b0, 1)                             # bars since the last executable tick (the AR stream runs per bar)
+                pg = phi ** g
+                F = np.array([[1.0, 0.0], [0.0, pg * sd_e / sde0 if sde0 > 0 else 0.0]])   # the error rescales with sd_e(h) as the lead moves
+                Qm = np.array([[q * g, 0.0], [0.0, (1.0 - pg * pg) * sd_e * sd_e]])
+                m, P = F @ m0, F @ P0 @ F.T + Qm
+            Hm = np.array([1.0, 1.0])
+            K = (P @ Hm) / float(Hm @ P @ Hm)
+            m = m + K * (float(y) - float(Hm @ m))
+            P = P - np.outer(K, Hm @ P)
+            st[key] = (m, P, int(bar), float(sd_e))
+            mean_a = float(m[0])
+            dec = bool(mean_a >= -EPS_CLOSE)
+        rem, psl = cl.value(r, bar, pos)
+        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, False, False, False, float(mean_a), "bayes"))
+        return dec
+
+
+def rollout_policy(world: dict, Pol, strat, view, cells) -> dict:
+    """A C3Z-family policy (the strategy, a filter variant or the Bayes closer) on the world's block."""
+    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    pol = Pol(view, strat, cells, truth.e_time, truth.cost, observe_bars=int(round(ZZ.PARAMS.get("observe_bars", 0))))
+    m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
+    return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "positions": pol.positions}
+
+
+def closer_d7_stats(world: dict, roll: dict, exact) -> dict:
+    """QUALIFICATION_SPEC D7 per side: E4 destructive-close share, mean regret (P* - P(exit)) / initial cash risk at the
+    SL, early-close value (sum over SL-destined trades closed early of (P(exit) - hold-to-SL) / cash risk), plus the
+    run's Sharpe, net, trades, mean holding bars and exit mix. Trades flattened by the block end are censored."""
+    cx = world["cx"]
+    m, trades, pp = roll["metrics"], roll["trades"], roll.get("positions") or {}
+    st = exit_stats(world, roll, exact)
+    blk_end = H.period_bars(cx.ds, BLOCK)[1]
+    out = {"sharpe": float(m.get("sharpe_daily_sqrt365", float("nan"))), "net_usd": float(m.get("net_profit_usd", float("nan"))), "trades": len(trades),
+           "mean_hold_bars": float(np.mean([int(t["exit_bar_abs"]) - int(t["entry_bar_abs"]) for t in trades])) if trades else float("nan")}
+    for si, side in ((0, "BUY"), (1, "SELL")):
+        reg, ecv = [], 0.0
+        for t in trades:
+            if _side(t) != si:
+                continue
+            pos = pp.get((int(t["entry_bar_abs"]), si))
+            if pos is None:
+                continue
+            path = exact.path(pos)
+            if t["exit_reason"] == "TIME" and int(t["exit_bar_abs"]) >= blk_end - 2 and int(path["exit_bar"]) > int(t["exit_bar_abs"]):
+                continue
+            risk = abs(float(pos.entry_price) - float(pos.sl)) * max(int(pos.units), 1)
+            pstar = max(float(np.max(path["P"])) if len(path["P"]) else -np.inf, path["hold_net"])
+            reg.append((pstar - float(t["net_usd"])) / risk)
+            if path["hold_reason"] == "SL" and t["exit_reason"] == "EARLY":
+                ecv += (float(t["net_usd"]) - path["hold_net"]) / risk
+        out[side] = {"E3": st[si]["agreement"], "E4": st[si]["destructive_share"], "closes": st[si]["closes"], "regret_norm": float(np.mean(reg)) if reg else float("nan"),
+                     "early_close_value_norm": ecv, "sl_destined_closed_early": st[si]["sl_destined_closed_early"], "R_mean_sigma": st[si]["R_mean"],
+                     "mix": st[si]["mix"], "sl_destined": st[si]["sl_destined"]}
+    return out
+
+
+D7_TOL = 0.05
+
+
+def d7_failures(strategy: dict, bayes: dict) -> list:
+    """The D7 constraint per side (DEAP's Deb count): E4 <= Bayes + 0.05 and regret <= Bayes + 0.05."""
+    f = []
+    for side in ("BUY", "SELL"):
+        a, b = strategy[side], bayes[side]
+        if np.isfinite(a["E4"]) and np.isfinite(b["E4"]) and a["E4"] > b["E4"] + D7_TOL:
+            f.append(f"D7_E4_{side}")
+        ra, rb = a["regret_norm"], b["regret_norm"]
+        if np.isfinite(ra) and (not np.isfinite(rb) or ra > rb + D7_TOL):
+            f.append(f"D7_regret_{side}")
+    return f
+
+
 class PolicyForcedHold(ZZ.PolicyForced):
     """Forced opens, the hold oracle's exit (close only when the true remaining hold value is negative)."""
 
