@@ -110,12 +110,13 @@ def main():
     ap.add_argument("--csv-dir", required=True)
     ap.add_argument("--qualities", default="1.0,0.85,0.70")
     ap.add_argument("--phis", default="0,0.587,0.98")
+    ap.add_argument("--rules", default="1.0:1", help="z_close:k_persist pairs of the strategy's close rule, comma separated")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     AC = S.contract_for_sim(str(S.CONTRACT))
     cx, SCFG = S.load_fold("wf2022", a.admitted, a.csv_dir)
     SCFG = S.with_variant(SCFG, C3.FULL_F3)
-    params = SP.load(a.params)
+    params = SP.validate({**SP.DEFAULTS, **json.loads(Path(a.params).read_text())})   # a point from before the z_close / k_persist genes carries their defaults
     ZZ.configure(params)
     genes = SP.genes_c3(params)
     cells = {c["id"]: c for c in json.loads(Path(a.cells).read_text())}
@@ -135,12 +136,17 @@ def main():
                     continue                                          # quality 1 carries no noise: once
                 view = dict(view0)
                 view["closer"] = view0["closer"].with_quality(q)
-                row = {"quality": q, "phi": phi, "strategy": measure(w, strat, view, cl, ZZ.PolicyC3Z, exact),
-                       "bayes": measure(w, strat, view, cl, PolicyBayes, exact)}
+                row = {"quality": q, "phi": phi, "bayes": measure(w, strat, view, cl, PolicyBayes, exact), "rules": {}}
+                for rule in a.rules.split(","):
+                    z, k = rule.split(":")
+                    ZZ.PARAMS.update(z_close=float(z), k_persist=int(k))
+                    row["rules"][rule] = measure(w, strat, view, cl, ZZ.PolicyC3Z, exact)
+                ZZ.PARAMS.update(z_close=float(params["z_close"]), k_persist=int(params["k_persist"]))
+                row["strategy"] = row["rules"][a.rules.split(",")[0]]
                 if q >= 0.999:
                     row["q1_bayes_equals_strategy"] = row["strategy"]["_trades_key"] == row["bayes"]["_trades_key"]
-                for k in ("strategy", "bayes"):
-                    row[k].pop("_trades_key")
+                for v in [row["bayes"]] + list(row["rules"].values()):
+                    v.pop("_trades_key", None)
                 rec["rows"].append(row)
                 print(json.dumps({"cell": spec, "q": q, "phi": phi, "strategy": {k: row["strategy"][k] for k in ("sharpe", "net_usd", "trades", "mean_hold_bars")},
                                   "E4": [row["strategy"][s]["E4"] for s in ("BUY", "SELL")], "E4_bayes": [row["bayes"][s]["E4"] for s in ("BUY", "SELL")]}, default=float), flush=True)
