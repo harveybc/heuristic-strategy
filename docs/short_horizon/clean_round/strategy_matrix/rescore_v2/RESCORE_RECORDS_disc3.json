@@ -1,0 +1,2571 @@
+{
+ "summary": {
+  "records": 85,
+  "v1_PASS": 69,
+  "v2_PASS": 69,
+  "v1_failing_witness_total": 17,
+  "v2_failing_witness_total": 17,
+  "records_changed": 0,
+  "newly_failing_by_witness": {},
+  "no_longer_failing_by_witness": {},
+  "not_evaluable_by_witness": {},
+  "unvalidated_now_strict_by_witness": {
+   "W8_early_close_at_switch": 30,
+   "W8_old_direction_after_lag": 35,
+   "W11_cutoff": 40,
+   "W10_spread_window": 4,
+   "W9_gap_loss_bounded": 1,
+   "W14_mirror": 17
+  }
+ },
+ "spec_v3_sha256": "4f990aa6ca64ec70aec35c3f43e686222319719b8770984c159c3ec02c758272",
+ "rows": [
+  {
+   "id": "B_trans_down_pause_down_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_pause_down_late",
+   "seed": 1,
+   "v1_failing": [
+    "W1_side"
+   ],
+   "v2_failing": [
+    "W1_side"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W5_reverse"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_pause_down_late",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_early",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_early",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_early",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_late",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_late",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_middle",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_range_middle",
+   "seed": 2,
+   "v1_failing": [
+    "W1_side"
+   ],
+   "v2_failing": [
+    "W1_side"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_up_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_up_late",
+   "seed": 1,
+   "v1_failing": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_failing": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_up_late",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_up_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_up_middle",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_down_up_middle",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_range_up_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_range_up_middle",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_range_up_middle",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_up_down_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_up_down_late",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_up_down_late",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_up_down_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_up_down_middle",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "B_trans_up_down_middle",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_48",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W10_spread_window",
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_48",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W10_spread_window",
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_48",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W10_spread_window",
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [
+    "W10_spread_window"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_50",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_50",
+   "seed": 1,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W10_spread_window",
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_50",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_52",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_52",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch",
+    "W9_gap_loss_bounded"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W9_gap_loss_bounded"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_52",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_53",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_53",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_53",
+   "seed": 2,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_56",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_56",
+   "seed": 1,
+   "v1_failing": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_failing": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_56",
+   "seed": 2,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_57",
+   "seed": 0,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_57",
+   "seed": 1,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_57",
+   "seed": 2,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_61",
+   "seed": 0,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W10_spread_window",
+    "W11_cutoff",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W10_spread_window",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_61",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_61",
+   "seed": 2,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W10_spread_window",
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_62",
+   "seed": 0,
+   "v1_failing": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_failing": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_62",
+   "seed": 1,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "LHS_62",
+   "seed": 2,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W13_tpsl_track_sigma",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_down_pause_down_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_down_range_early",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_down_range_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_down_range_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_down_up_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_down_up_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_range_up_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_up_down_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_B_trans_up_down_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_48",
+   "seed": 0,
+   "v1_failing": [
+    "W14_mirror",
+    "W7_best_cell"
+   ],
+   "v2_failing": [
+    "W14_mirror",
+    "W7_best_cell"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror"
+   ],
+   "v2_defects": [
+    "W10_spread_window"
+   ],
+   "v1_defects": [
+    "W10_spread_window"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_50",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror"
+   ],
+   "v2_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_52",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_53",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W14_mirror",
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_56",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_57",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_61",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W10_spread_window",
+    "W11_cutoff",
+    "W14_mirror",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W10_spread_window",
+    "W14_mirror",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "M_LHS_62",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W14_mirror"
+   ],
+   "v1_unvalidated": [
+    "W14_mirror"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_down_pause_down_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_down_range_early",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_down_range_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_down_range_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_down_up_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_down_up_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_range_up_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_up_down_late",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_B_trans_up_down_middle",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_48",
+   "seed": 0,
+   "v1_failing": [
+    "W7_best_cell"
+   ],
+   "v2_failing": [
+    "W7_best_cell"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W10_spread_window"
+   ],
+   "v1_defects": [
+    "W10_spread_window"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_50",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W10_spread_window",
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_52",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_53",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_early_close_at_switch"
+   ],
+   "v1_unvalidated": [
+    "W8_early_close_at_switch"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_56",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_early_close_at_switch"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_57",
+   "seed": 0,
+   "v1_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_failing": [
+    "W13_tpsl_track_sigma"
+   ],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_defects": [
+    "W13_tpsl_track_sigma",
+    "W4_early_close_justified"
+   ],
+   "v1_PASS": false,
+   "v2_PASS": false,
+   "recorded_PASS_effective": false,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_61",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W10_spread_window",
+    "W11_cutoff",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_unvalidated": [
+    "W10_spread_window",
+    "W8_early_close_at_switch",
+    "W8_old_direction_after_lag"
+   ],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  },
+  {
+   "id": "S_LHS_62",
+   "seed": 0,
+   "v1_failing": [],
+   "v2_failing": [],
+   "v2_not_evaluable": [],
+   "v2_unvalidated": [
+    "W11_cutoff"
+   ],
+   "v1_unvalidated": [],
+   "v2_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_defects": [
+    "W1_side",
+    "W4_early_close_justified",
+    "W5_reverse",
+    "W8_old_direction_after_lag"
+   ],
+   "v1_PASS": true,
+   "v2_PASS": true,
+   "recorded_PASS_effective": true,
+   "exit_failing": [],
+   "source": "results"
+  }
+ ]
+}
