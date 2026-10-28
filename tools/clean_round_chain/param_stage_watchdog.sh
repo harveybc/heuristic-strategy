@@ -63,6 +63,6 @@ while [ ! -f $OUT/RESULT.json ]; do
   fi
   J=$(( J > 4 ? J - 2 : 2 )); resumed=1; n0=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG); build_t0=""; ready_t0=""
   log "resuming the stage from the checkpoint with $J workers"
-  FORCE_START=1 JOBS_DEAP=$J MEM_DEAP=${MEM_DEAP:-15G} CODE=${CODE:-$R/code} JOBS_VERIFY=${JOBS_VERIFY:-10} VERIFY_PREFIX=${VERIFY_PREFIX:-verify} WARM_ARCHIVE=${WARM_ARCHIVE:-} setsid nohup bash $R/code/tools/clean_round_chain/run_strategy_param_stage.sh $R >> $R/logs/param_stage_resume.log 2>&1 < /dev/null &
+  FORCE_START=1 TIME_DEAP=${TIME_DEAP:-43200} JOBS_DEAP=$J MEM_DEAP=${MEM_DEAP:-15G} CODE=${CODE:-$R/code} JOBS_VERIFY=${JOBS_VERIFY:-10} VERIFY_PREFIX=${VERIFY_PREFIX:-verify} WARM_ARCHIVE=${WARM_ARCHIVE:-} setsid nohup bash $R/code/tools/clean_round_chain/run_strategy_param_stage.sh $R >> $R/logs/param_stage_resume.log 2>&1 < /dev/null &
 done
 log "RESULT.json present: watchdog exits"

@@ -34,7 +34,7 @@ log "starting DEAP (FORCE_START=${FORCE_START:-0}): building the subset"
 cd $CODE
 [ -f $OUT/SUBSET.json ] || $PY tools/strategy_param_deap.py subset --cells ${SUBSET_CELLS:-$R/QUEUE.json} --per-level ${PER_LEVEL:-1} --out $OUT/SUBSET.json > $R/logs/deap_subset.log 2>&1
 log "subset: $(tail -1 $R/logs/deap_subset.log | cut -c1-200)"
-$CR -q -W 43200 -m ${MEM_DEAP:-18G} -t 43200s -n deap-strategy-params -- $PY tools/strategy_param_deap.py run --subset $OUT/SUBSET.json --params $P0 \
+$CR -q -W ${WAIT_DEAP:-43200} -m ${MEM_DEAP:-18G} -t ${TIME_DEAP:-43200}s -n deap-strategy-params -- $PY tools/strategy_param_deap.py run --subset $OUT/SUBSET.json --params $P0 \
    --admitted $R/data/admitted --csv-dir $R/data/sel15 --jobs ${JOBS_DEAP:-10} --out $OUT ${WARM_ARCHIVE:+--warm-archive $WARM_ARCHIVE} > $R/logs/deap_run.log 2>&1 \
    && log "DEAP DONE: $(grep '"done"' $OUT/PROGRESS.log | tail -1)" || { log "DEAP FAILED (see logs/deap_run.log)"; exit 1; }
 for k in $(seq 0 ${MAX_RANK:-9}); do
