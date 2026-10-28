@@ -1,0 +1,657 @@
+{
+ "what": "28-world x 2-evaluation equality of the DEAP world evaluation before / after each memory cut (bit-identical required)",
+ "cut1_a5144d1_vs_9e9bf53": {
+  "mismatches": 0,
+  "worlds": 28
+ },
+ "cut2_2105c79_vs_6efb7b9": {
+  "mismatches": 0,
+  "worlds": 28,
+  "rows": {
+   "B_cal_cutoff12@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.047762681506944,
+      "net_usd": 152581.1168037562,
+      "opens": 122,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.047762681506944,
+      "net_usd": 152581.1168037562,
+      "opens": 122,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "B_fine_low_low@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.536241883658786,
+      "net_usd": 425588.8129654188,
+      "opens": 121,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.536241883658786,
+      "net_usd": 425588.8129654188,
+      "opens": 121,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "B_gap_g2_with@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.995558867919375,
+      "net_usd": 178382.16894503922,
+      "opens": 127,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.995558867919375,
+      "net_usd": 178382.16894503922,
+      "opens": 127,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "B_spread_spike@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.095280241262811,
+      "net_usd": 238171.6404874307,
+      "opens": 127,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.095280241262811,
+      "net_usd": 238171.6404874307,
+      "opens": 127,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "B_trans_up_down_early@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.618093703120365,
+      "net_usd": 157222.22031167924,
+      "opens": 115,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.618093703120365,
+      "net_usd": 157222.22031167924,
+      "opens": 115,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "B_trend_trend_up_weak@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.755803949465403,
+      "net_usd": 160606.79853295104,
+      "opens": 121,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.755803949465403,
+      "net_usd": 160606.79853295104,
+      "opens": 121,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "B_vol_low@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.233906936876743,
+      "net_usd": 201094.2551360437,
+      "opens": 121,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.233906936876743,
+      "net_usd": 201094.2551360437,
+      "opens": 121,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "B_voldyn_step_lh@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.009798567234341,
+      "net_usd": 278059.138076667,
+      "opens": 124,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.009798567234341,
+      "net_usd": 278059.138076667,
+      "opens": 124,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "F1_trend_up_weak_low_low@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.157093481169332,
+      "net_usd": 363991.11169855524,
+      "opens": 119,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.157093481169332,
+      "net_usd": 363991.11169855524,
+      "opens": 119,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "F2_trend_up_weak_low_const@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.872670020835491,
+      "net_usd": 239984.67811428587,
+      "opens": 117,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.872670020835491,
+      "net_usd": 239984.67811428587,
+      "opens": 117,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "F3_up_down_early_low@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.03001809163888,
+      "net_usd": 277772.5344763316,
+      "opens": 126,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.03001809163888,
+      "net_usd": 277772.5344763316,
+      "opens": 126,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "F4_trend_up_weak_none@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.00477714175381,
+      "net_usd": 221540.4543566244,
+      "opens": 123,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.00477714175381,
+      "net_usd": 221540.4543566244,
+      "opens": 123,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "S_LHS_46@q1.00": {
+    "evals": [
+     {
+      "sharpe": 9.379703817179736,
+      "net_usd": 71121.39357857783,
+      "opens": 89,
+      "fails": [
+       "W1_side",
+       "W7_best_cell",
+       "W8_old_direction_after_lag"
+      ],
+      "d7": null,
+      "n_trades": 89
+     },
+     {
+      "sharpe": 9.379703817179736,
+      "net_usd": 71121.39357857783,
+      "opens": 89,
+      "fails": [
+       "W1_side",
+       "W7_best_cell",
+       "W8_old_direction_after_lag"
+      ],
+      "d7": null,
+      "n_trades": 89
+     }
+    ]
+   },
+   "M_LHS_46@q1.00": {
+    "evals": [
+     {
+      "sharpe": 9.288911433517493,
+      "net_usd": 62579.51759710457,
+      "opens": 89,
+      "fails": [
+       "W1_side",
+       "W7_best_cell",
+       "W14_mirror"
+      ],
+      "d7": null,
+      "n_trades": 89
+     },
+     {
+      "sharpe": 9.288911433517493,
+      "net_usd": 62579.51759710457,
+      "opens": 89,
+      "fails": [
+       "W1_side",
+       "W7_best_cell",
+       "W14_mirror"
+      ],
+      "d7": null,
+      "n_trades": 89
+     }
+    ]
+   },
+   "F1_trend_up_medium_low_low@q0.70": {
+    "evals": [
+     {
+      "sharpe": 10.16613646268334,
+      "net_usd": 71801.5149084432,
+      "opens": 162,
+      "fails": [
+       "D7_E4_SELL"
+      ],
+      "d7": {
+       "BUY": {
+        "E4": 0.15,
+        "E4_bayes": 0.14285714285714285,
+        "regret": 0.9021804345252707,
+        "regret_bayes": 0.9674712450492751
+       },
+       "SELL": {
+        "E4": 0.25,
+        "E4_bayes": 0.15789473684210525,
+        "regret": 0.025379426969082314,
+        "regret_bayes": 0.060171856596727726
+       }
+      },
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.16613646268334,
+      "net_usd": 71801.5149084432,
+      "opens": 162,
+      "fails": [
+       "D7_E4_SELL"
+      ],
+      "d7": {
+       "BUY": {
+        "E4": 0.15,
+        "E4_bayes": 0.14285714285714285,
+        "regret": 0.9021804345252707,
+        "regret_bayes": 0.9674712450492751
+       },
+       "SELL": {
+        "E4": 0.25,
+        "E4_bayes": 0.15789473684210525,
+        "regret": 0.025379426969082314,
+        "regret_bayes": 0.060171856596727726
+       }
+      },
+      "n_trades": 0
+     }
+    ]
+   },
+   "F2_trend_up_weak_mid_ramp_up@q0.70": {
+    "evals": [
+     {
+      "sharpe": 9.928073684757507,
+      "net_usd": 38427.1623028828,
+      "opens": 140,
+      "fails": [
+       "D7_E4_BUY"
+      ],
+      "d7": {
+       "BUY": {
+        "E4": 0.27586206896551724,
+        "E4_bayes": 0.1935483870967742,
+        "regret": 0.1065468307871398,
+        "regret_bayes": 0.076993041430365
+       },
+       "SELL": {
+        "E4": 0.10526315789473684,
+        "E4_bayes": 0.25,
+        "regret": 0.05037927792424229,
+        "regret_bayes": 0.034593140666666966
+       }
+      },
+      "n_trades": 0
+     },
+     {
+      "sharpe": 9.928073684757507,
+      "net_usd": 38427.1623028828,
+      "opens": 140,
+      "fails": [
+       "D7_E4_BUY"
+      ],
+      "d7": {
+       "BUY": {
+        "E4": 0.27586206896551724,
+        "E4_bayes": 0.1935483870967742,
+        "regret": 0.1065468307871398,
+        "regret_bayes": 0.076993041430365
+       },
+       "SELL": {
+        "E4": 0.10526315789473684,
+        "E4_bayes": 0.25,
+        "regret": 0.05037927792424229,
+        "regret_bayes": 0.034593140666666966
+       }
+      },
+      "n_trades": 0
+     }
+    ]
+   },
+   "F5_trend_up_weak_normal_normal@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.336242145885667,
+      "net_usd": 294706.4299308435,
+      "opens": 127,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.336242145885667,
+      "net_usd": 294706.4299308435,
+      "opens": 127,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "H1_long_none@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.771929364435335,
+      "net_usd": 209642.5859791596,
+      "opens": 114,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.771929364435335,
+      "net_usd": 209642.5859791596,
+      "opens": 114,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "H2_long_none_reversal@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.781328614021144,
+      "net_usd": 236077.60757991544,
+      "opens": 115,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.781328614021144,
+      "net_usd": 236077.60757991544,
+      "opens": 115,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "H3_Lweak_Mlow_Slow_with@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.101407750196906,
+      "net_usd": 372592.0402739528,
+      "opens": 129,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.101407750196906,
+      "net_usd": 372592.0402739528,
+      "opens": 129,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "H4_spike_at_reversal_with_x3_none@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.303853836924036,
+      "net_usd": 216909.32552740732,
+      "opens": 120,
+      "fails": [
+       "W1_side"
+      ],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.303853836924036,
+      "net_usd": 216909.32552740732,
+      "opens": 120,
+      "fails": [
+       "W1_side"
+      ],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "H5_gap2_with_medium_0.3@q1.00": {
+    "evals": [
+     {
+      "sharpe": 11.465916392584827,
+      "net_usd": 242346.60475279737,
+      "opens": 125,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 11.465916392584827,
+      "net_usd": 242346.60475279737,
+      "opens": 125,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "H6_LHS_00@q1.00": {
+    "evals": [
+     {
+      "sharpe": 12.484117713598478,
+      "net_usd": 842315.9429994398,
+      "opens": 136,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 12.484117713598478,
+      "net_usd": 842315.9429994398,
+      "opens": 136,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "I1_upweak_downweak_early@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.880740088937781,
+      "net_usd": 223221.77123643027,
+      "opens": 124,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.880740088937781,
+      "net_usd": 223221.77123643027,
+      "opens": 124,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "I2_vstep_up_1.5_trend_up@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.893476185039875,
+      "net_usd": 151539.15733834682,
+      "opens": 114,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.893476185039875,
+      "net_usd": 151539.15733834682,
+      "opens": 114,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "I3_vstep_up_1.5_up_down_vol_first@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.38753309963087,
+      "net_usd": 151801.24672464753,
+      "opens": 128,
+      "fails": [
+       "W8_old_direction_after_lag"
+      ],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.38753309963087,
+      "net_usd": 151801.24672464753,
+      "opens": 128,
+      "fails": [
+       "W8_old_direction_after_lag"
+      ],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "I4_garch097_up_down_early@q1.00": {
+    "evals": [
+     {
+      "sharpe": 10.674983886356916,
+      "net_usd": 173135.15145116323,
+      "opens": 117,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 10.674983886356916,
+      "net_usd": 173135.15145116323,
+      "opens": 117,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   },
+   "LHS_00@q1.00": {
+    "evals": [
+     {
+      "sharpe": 12.252088559616574,
+      "net_usd": 146607457.3305057,
+      "opens": 157,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     },
+     {
+      "sharpe": 12.252088559616574,
+      "net_usd": 146607457.3305057,
+      "opens": 157,
+      "fails": [],
+      "d7": null,
+      "n_trades": 0
+     }
+    ]
+   }
+  }
+ }
+}
