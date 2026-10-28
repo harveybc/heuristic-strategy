@@ -1,23 +1,23 @@
 {
- "decisions": 111,
- "entry_decisions": 89,
+ "decisions": 112,
+ "entry_decisions": 90,
  "by_model": {
   "baseline_momentum24": {
-   "resolved_hits": 1,
+   "resolved_hits": 2,
    "up_rate": 0.0,
-   "log_loss": 0.5978370007556204,
-   "brier": 0.2025,
-   "accuracy": 1.0
+   "log_loss": 0.6981723484866961,
+   "brier": 0.25250000000000006,
+   "accuracy": 0.5
   },
   "baseline_prior": {
-   "resolved_hits": 1,
+   "resolved_hits": 2,
    "up_rate": 0.0,
    "log_loss": 0.6931471805599453,
    "brier": 0.25,
    "accuracy": null
   },
   "llama3.2:3b": {
-   "resolved_hits": 1,
+   "resolved_hits": 2,
    "up_rate": 0.0,
    "log_loss": 2.0898959995836948,
    "brier": 0.76790169,
@@ -25,13 +25,13 @@
   }
  },
  "status_counts": {
-  "FINAL": 47,
+  "FINAL": 48,
   "PENDING": 42
  },
  "outcome_counts": {
   "TIMEOUT": 46,
   "NaN": 42,
-  "LOWER": 1
+  "LOWER": 2
  },
- "scored_utc": "2026-10-28 05:12:32.035632+00:00"
+ "scored_utc": "2026-10-28 06:12:31.975147+00:00"
 }
