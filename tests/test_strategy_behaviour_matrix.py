@@ -337,3 +337,18 @@ def test_every_proposed_open_is_placed_or_counted_and_ties_are_not_deferred():
     placed = [g(b, b, flat, env)[0] for b in range(3)]
     assert placed[:2] == [1, 2] and placed[2] == 0                                   # the tie is placed; a real lower score is deferred
     assert g.stats["placed"] + g.stats["deferred_below_best"] + g.stats["deferred_observing"] + g.stats["below_threshold"] == 3   # every proposal counted
+
+
+def test_closer_head_is_market_only_and_its_noise_grows_with_the_lead():
+    """The closer's output contract (C3 closer_head): the head row takes no position argument, the strategy's
+    advantage never reads the trade's own path, and the quality noise grows with the lead (sqrt(h / 24))."""
+    import inspect
+    from tools import strategy_output_simulation as S
+    from app.short_horizon.expert_guided import c3 as C3
+    assert list(inspect.signature(S.BCHead.row).parameters) == ["self", "b", "si"]
+    import ast
+    import textwrap
+    fn = ast.parse(textwrap.dedent(inspect.getsource(S.SimCloser.advantage))).body[0]
+    code = ast.unparse([n for n in fn.body if not (isinstance(n, ast.Expr) and isinstance(getattr(n, "value", None), ast.Constant))])   # the code, not the docstring
+    assert "self.path(" not in code and "path_advantage" not in code and "np.sqrt(np.arange(1, L + 1) / H_REF_BARS)" in code
+    assert S.H_REF_BARS == 24 and "first-passage" in C3.default_contract()["closer_head"]["name"]

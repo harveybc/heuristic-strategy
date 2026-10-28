@@ -136,6 +136,9 @@ def cmd_controls(a):
         res = {"base": run_policy(w, strat, view, cl)}
         res["permuted"] = run_policy(w, strat, control_view(view, "permuted", rng=rng), cl)
         res["swapped"] = run_policy(w, strat, control_view(view, "swapped"), cl)
+        vq = control_view(view, "swapped")                         # how much of the rescue of wrong-side entries needs a perfect closer
+        vq["closer"] = vq["closer"].with_quality(0.70)
+        res["swapped_closer_q070"] = run_policy(w, strat, vq, cl)
         for k in (1, 3, 6):
             res[f"delayed_{k}"] = run_policy(w, strat, control_view(view, "delayed", k=k), cl)
         trend = cells[cid]["regime"] in ("trend_up", "trend_down")

@@ -816,7 +816,24 @@ def head_outputs(cells) -> dict:
 
 STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
 STRATEGY_PARAMS_SHA256 = "425572ca41ed4d99d29587d00262b70ec1637e72ddc747282bb5da8a3c7f589f"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+CLOSER_HEAD_CONTRACT = {
+    "name": "first-passage curve head (market-only best continuation), tools/strategy_output_simulation.BCHead",
+    "inputs": "market data only: the bars from the decision bar on, the per-bar spread profile, the session calendar (compulsory flats, rollovers) and the swap rates by side; NO position, entry, SL, TP, units or balance",
+    "indexing": "per decision bar b and side s; lead h = 1 .. H over the future bars b + h",
+    "horizon_H": "variable: the bars up to the first compulsory flat after b + 1 (<= one trading week of hourly bars)",
+    "units": "sigma of now = the causal decision sigma at b; values relative to closing now at the open of b + 1",
+    "channels": {"adv": "running adverse excursion reached by bar b + h (the stop side, shorts at ask)", "fav": "running favourable excursion reached by bar b + h (the take-profit side, through limit_through)",
+                 "pm": "best net value of a discretionary close decided at or before b + h (fill at the next open, exit cost and financing included)",
+                 "o": "open of b + h relative to the open of b + 1", "gap": "the gap test price of b + h (shorts at ask)", "cs": "stop exit cost relative to a market close now",
+                 "ct": "take-profit exit cost relative to a market close now", "fo": "financing accrued to an open fill at b + h", "fc": "financing accrued to an intrabar / close fill at b + h",
+                 "ff": "net value of the compulsory flat at the close of the last bar (scalar)"},
+    "decoder": "the strategy (L2) supplies only its position's remaining distances d_sl = s (liq_now - SL) / sigma and d_tp = s (TP - liq_now) / sigma; first stop bar = first h with adv >= d_sl, first take-profit bar = first h with fav >= d_tp (a shared bar goes to the stop unless the take-profit gaps at the open); BC = max(pm before the terminating bar, the termination's net value); A(t) = -BC in sigma of the trade",
+    "quality": "rho = sin(pi (level - 1/2)) at the reference lead h_ref = 24 bars; noise sd(h) = sigma_for_rho(rho, 1 sigma) x sqrt(h / 24), applied to adv / fav / pm (monotone where the truth is), output shrunk by rho^2",
+    "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)",
+}
 CONTRACT_CHANGELOG = (
+    {"when": "2026-10-28", "change": "the closer's output contract declared: the market-only first-passage curve head (closer_head)",
+     "why": "the architecture contract requires a market-only model observation; the earlier advantage head read the trade's own path (position-conditioned); the head's horizon, channels, units, decoder, horizon-dependent quality noise and the market-only proof are now part of the sealed identity"},
     {"when": "2026-10-27", "change": "contract regenerated from the code and re-sealed; the strategy parameter file and its sha are embedded",
      "why": "since 6a38ccf close_p_l / close_p_s / nop_veto are ABSOLUTE calibrated-probability thresholds (genes in [0.30, 0.95]); the committed contracts "
             "were edited by hand and drifted from default_contract() (TCN file: action_bef6627ca7881000 vs code action_db1380893d680db6; the U control "
@@ -911,6 +928,7 @@ def default_contract(architecture: dict | None = None) -> dict:
     doc["derived_from"] = {"identity": base.get("identity"), "why": "adversarial audit 2026-10-26: labels taught losing trades (TP 0.43 sigma vs constant SL 2 sigma), closers blind / leaky, DAgger contradictions, wrong probability in the gain rule"}
     doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256,
                                  "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"}
+    doc["closer_head"] = dict(CLOSER_HEAD_CONTRACT)
     doc["changelog"] = list(CONTRACT_CHANGELOG)
     return ACT.seal(doc)
 

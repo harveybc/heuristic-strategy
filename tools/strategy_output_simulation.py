@@ -292,6 +292,7 @@ class Quality:
 
 
 ADV_SCALE_SIGMA = 1.0            # declared scale of the advantage head's noise (sigma units of the trade)
+H_REF_BARS = 24                  # the closer head's quality rho is defined at this lead (one day of hourly bars); noise sd grows as sqrt(h / H_REF_BARS)
 
 
 def trade_path(env, pos) -> dict:
@@ -642,7 +643,7 @@ class SimCloser:
         if rho < 1.0 and cv:                                          # the head's quality: noisy curves (monotone where the truth is), rho^2 shrink
             L = len(cv["adv"])
             e = self.noise.draw(("bcx", b, si), int(self.t.day[r]), 3 * L)
-            sd = sigma_for_rho(rho, ADV_SCALE_SIGMA)
+            sd = sigma_for_rho(rho, ADV_SCALE_SIGMA) * np.sqrt(np.arange(1, L + 1) / H_REF_BARS)   # HORIZON-DEPENDENT: error grows with the lead
             cv = dict(cv)
             cv["adv"] = np.maximum.accumulate(cv["adv"] + sd * e[:L])
             cv["fav"] = np.maximum.accumulate(cv["fav"] + sd * e[L:2 * L])
