@@ -139,3 +139,53 @@ Cada paso crea una identidad nueva y se compara contra el anterior con las misma
 2. ¿La métrica principal del árbitro (utilidad en unidades de riesgo menos `λ` · incertidumbre) o la regla literal de mínima incertidumbre?
 3. ¿Ensemble o MC dropout como primera fuente de incertidumbre, dado que el carril RL usa PPO?
 4. ¿Se acepta la regla del 90 % del óptimo para los valores conservadores?
+
+## 12. Árbitro por diseño de mecanismos (variante, para el problema guiado por ZigZag)
+
+Propuesta del propietario (2026-10-28): tratar a los especialistas como agentes que compiten por un recurso compartido, el balance y el cupo de posición, cada uno con su ganancia contable. Musashi prepara una propuesta propia de teoría de juegos para su carril RL. Esta sección es la versión para **mi** problema, que es distinto: aprendizaje guiado por un experto (ZigZag multi-resolución), con etiquetas retrospectivas por nivel y no recompensas descubiertas por exploración.
+
+### 12.1 El juego
+
+| Elemento | En nuestro sistema |
+|---|---|
+| Jugadores | Especialistas (nivel L × acción); los cerradores pujan por mantener o liberar el cupo de la orden abierta |
+| Recurso | Cupo de posición único, margen `q · rel_volume · balance`, riesgo total acotado |
+| Puja | `b = E[neto]/riesgo_al_SL` reportada por el especialista, más su incertidumbre |
+| Asignación | El árbitro concede el cupo a la puja ganadora, o a nadie (NOP) si ninguna supera la reserva |
+| Pago | Costo de oportunidad: la mejor puja desplazada (segundo precio), incluida la del cerrador de la orden abierta |
+| Contabilidad | Libro por agente: neto realizado de sus órdenes menos su pago; es su señal de crédito |
+
+### 12.2 Qué cambia por ser guiado por un experto
+
+- **Los agentes no son estratégicos en el sentido clásico.** Una red entrenada con etiquetas no "miente" para ganar la subasta. Su falla equivalente es la **descalibración**: reportar confianza que no tiene. Por eso la veracidad (VCG o segundo precio) se traduce aquí en **calibración** medible. Penalizamos la descalibración con una regla de puntuación propia: log-loss o Brier sobre el resultado realizado de la puja. Es la versión aprendible de la compatibilidad de incentivos.
+- **El ZigZag da el contrafactual exacto en el simulador.** Para cada tick sabemos qué neto habría logrado cada especialista si hubiera ganado. Sin impacto de mercado, `do(acción)` se evalúa por repetición exacta. Con eso:
+  - el **valor de Shapley** de cada agente se calcula exactamente sobre coaliciones de niveles, sin aproximar; con 5 niveles son 32 coaliciones por panel;
+  - el **arrepentimiento** del árbitro frente al mejor agente en retrospectiva se mide directamente, tick a tick.
+- **La etiqueta del experto define una "puja ideal"** por nivel: el neto realizable del tramo de ese nivel desde t. La cabeza de cada especialista se entrena para pujar ese valor. El mecanismo se prueba primero con pujas ideales y con la escalera de calidad, igual que la estrategia actual.
+- **Presupuesto por agente con pesos multiplicativos (Hedge):** el peso de cada especialista en la reserva se ajusta por su neto contable pasado, sólo en calibración y validación interna, con arrepentimiento acotado `O(√(T log K))`. Es la protección formal contra "seguir adivinando".
+
+### 12.3 Propiedades que se exigen y se prueban (testigos, se sellan antes de correr)
+
+| ID | Propiedad | Testigo |
+|---|---|---|
+| MD-1 | Calibración (compatibilidad de incentivos aprendible) | ECE de la puja ≤ umbral por nivel; la utilidad del árbitro no mejora si un agente infla su puja (prueba de inflado sintético) |
+| MD-2 | Racionalidad individual | Ningún agente con Shapley ≤ 0 en calibración sigue recibiendo capital en confirmación |
+| MD-3 | Arrepentimiento acotado | Neto del árbitro ≥ mejor agente individual en retrospectiva − cota declarada, en el panel no visto |
+| MD-4 | Simetría | Espejo y canales intercambiados: mismas expectativas del panel de calificación |
+| MD-5 | No destruye el cierre | Testigos E y D7: la puja del cerrador por mantener compite con las aperturas sin forzar cierres destructivos |
+| MD-6 | Reserva útil | NOP gana cuando la mejor puja no paga costos; tasa de actividad dentro del contrato de negocio |
+
+### 12.4 Orden
+
+El mecanismo entra como variante del árbitro en MRT-2 y siguientes. Se compara en el mismo panel contra la utilidad principal, la mínima incertidumbre y el nivel fijo. No se adopta sin pasar MD-1 a MD-6 y el panel no visto.
+
+### 12.5 Criterios con que auditaré la propuesta de Musashi
+
+1. **Supuestos del modelo de juego.** ¿Los agentes son estratégicos o aprendidos? Si son aprendidos, ¿cómo se traduce la veracidad en algo medible?
+2. **Propiedades declaradas.** Compatibilidad de incentivos, racionalidad individual, balance presupuestario, eficiencia. ¿Cuáles se demuestran y cuáles se suponen?
+3. **Restricciones reales.** Cupo único de posición, SL/TP en el bróker, calendario, costos y financiación. ¿El mecanismo las respeta o las simplifica?
+4. **Asignación de crédito.** ¿La recompensa por agente es contable de verdad? ¿Qué pasa con la reentrada, que acopla las decisiones?
+5. **Cálculo.** Shapley exacto o aproximado, su costo y su varianza.
+6. **Garantías de arrepentimiento.** ¿Bajo qué supuestos (adversarial, bandido, estacionario) valen? ¿Valen con el cupo único?
+7. **Evidencia.** Controles pareados, semillas, panel no visto, controles negativos y testigos sellados antes de correr.
+8. **Separación de carriles.** Qué es común a RL puro y a guiado por experto, y qué no.
