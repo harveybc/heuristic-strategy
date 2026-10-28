@@ -6,8 +6,11 @@
 #     (2 x the measured build time of the last run, default 1800 s when none is known) -> failure
 #   * the pool is ready ("pool_ready" logged) and the ARCHIVE has not grown for STALL seconds (default 1200;
 #     the clock starts when the pool is ready, never during the admission wait or the build) -> failure
-# A failure writes an ALERT line and resumes the stage ONCE from the last checkpoint with workers - 2 (its own DEAP
-# job stopped first); a second failure writes DEAP_GAVE_UP (the slot plan then frees the slots) and exits.
+# A failure writes an ALERT line. The watchdog NEVER sends a signal (coordinator order 2026-10-28: process control only
+# through flag files and new launches; a stop needing a signal goes to the owner): when the DEAP process is still
+# alive it writes DEAP_NEEDS_STOP with the pids and the exact command, and exits; when it is gone (a failed or
+# finished-with-error run) it resumes the stage ONCE from the last checkpoint with workers - 2; a second failure
+# writes DEAP_GAVE_UP (the slot plan then frees the slots) and exits. STOP_WATCHDOG in the root: exit at the next poll.
 # Usage: param_stage_watchdog.sh <matrix root>
 #   env: JOBS_DEAP MEM_DEAP CODE VERIFY_PREFIX WARM_ARCHIVE JOBS_VERIFY (passed to the resume), POLL STALL BUILD_LIMIT_SEC,
 #        DRY_RUN=1 (alert only: no stop, no resume -- for the watchdog's own test)
@@ -27,6 +30,7 @@ log "armed: stage failure lines so far $n0; build limit ${BUILD_LIMIT} s (2 x th
 build_t0=""; ready_t0=""
 while [ ! -f $OUT/RESULT.json ]; do
   sleep $POLL
+  [ -f $R/STOP_WATCHDOG ] && { log "STOP_WATCHDOG: exit"; exit 0; }
   now=$(date +%s)
   n=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG)
   pids=$(deap_pids)
@@ -52,7 +56,11 @@ while [ ! -f $OUT/RESULT.json ]; do
   if [ $resumed -ge 1 ]; then
     touch $R/DEAP_GAVE_UP; log "ALERT: second failure after the resume: DEAP_GAVE_UP written, no further resume"; exit 1
   fi
-  for p in $(deap_pids); do kill -TERM $p; done; sleep 30
+  alive=$(deap_pids | tr '\n' ' ')
+  if [ -n "${alive// /}" ]; then
+    echo "$(date -u +%FT%TZ) $why; DEAP pids still alive: $alive; owner command: kill -TERM $alive" > $R/DEAP_NEEDS_STOP
+    log "ALERT: the DEAP is still alive (pids $alive): DEAP_NEEDS_STOP written for the owner; no signal sent; watchdog exits"; exit 1
+  fi
   J=$(( J > 4 ? J - 2 : 2 )); resumed=1; n0=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG); build_t0=""; ready_t0=""
   log "resuming the stage from the checkpoint with $J workers"
   FORCE_START=1 JOBS_DEAP=$J MEM_DEAP=${MEM_DEAP:-15G} CODE=${CODE:-$R/code} JOBS_VERIFY=${JOBS_VERIFY:-10} VERIFY_PREFIX=${VERIFY_PREFIX:-verify} WARM_ARCHIVE=${WARM_ARCHIVE:-} setsid nohup bash $R/code/tools/clean_round_chain/run_strategy_param_stage.sh $R >> $R/logs/param_stage_resume.log 2>&1 < /dev/null &
