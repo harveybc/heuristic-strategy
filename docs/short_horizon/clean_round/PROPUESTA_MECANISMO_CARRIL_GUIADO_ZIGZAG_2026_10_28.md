@@ -55,7 +55,7 @@ Diferencia esencial con la 112: aquí "0.9 de `p_act`" **sí** tiene una semánt
 
 ### 3.3 Recursos
 
-Un cupo de posición; margen `q·rel_volume·B` con `rel_volume = 0.10`; presupuesto de pérdida planificada; cuota de entradas por día; tiempo. El margen se libera al salir; la cuota no. La ganancia se acredita una vez al libro común. **Constantes de negocio:** las del contrato C3 vigente (capital 10 000, apalancamiento 100, hasta 4 entradas por día, corte 24 h antes del cierre forzado con 12 h declarada). Difieren de la 112 (50 / 1 / 12 h): pido al propietario un `BUSINESS_CONTRACT.json` único (hallazgo F-11 de mi auditoría).
+Un cupo de posición; margen `q·rel_volume·B` con `rel_volume = 0.10`; presupuesto de pérdida planificada; cuota de entradas por día; tiempo. El margen se libera al salir; la cuota no. La ganancia se acredita una vez al libro común. **Constantes de negocio (decididas por el propietario el 2026-10-28):** capital 10 000; `rel_volume` 0.10; **hasta 4 entradas por día** de negocio (el PDT ya no aplica); **sin entradas en las primeras 12 h** tras la reapertura semanal; **cierre forzado 12 h antes** del cierre semanal; **sin entradas en las 24 h anteriores al cierre forzado** (aceptado: evita abrir órdenes que el cierre forzado cortaría); apalancamiento 100 en este carril. Difieren de la 112 (apalancamiento 50, 1 entrada por día): el propietario fija 4 entradas por día para ambos carriles; el apalancamiento común queda por fijar. Estas constantes van a un `BUSINESS_CONTRACT.json` único (hallazgo F-11 de mi auditoría), no son genes.
 
 ## 4. Perfiles de orden por nivel (ningún precio lo estima la red)
 
