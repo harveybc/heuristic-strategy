@@ -1870,6 +1870,16 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
             "sec": round(time.time() - t0, 1)}
 
 
+def annotate_sigma(w: dict, trades: list) -> list:
+    """net_sigma / financing_sigma per trade (per unit, causal sigma of the entry bar): what mirror_check compares."""
+    sig = np.asarray(w["cx"].ds.sigma, float)
+    for t in trades:
+        s_ = float(sig[int(t["entry_bar_abs"])])
+        t["net_sigma"] = float(t["net_usd"]) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else float("nan")
+        t["financing_sigma"] = float(t.get("financing_usd", 0.0)) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else 0.0
+    return trades
+
+
 def mirror_check(trades_a: list, trades_b: list) -> dict:
     """The mirrored twin's ledger must mirror: same entry / exit bars, sides flipped, net equal up to the financing
     asymmetry (long and short swap rates differ) plus a relative tolerance."""
@@ -1921,11 +1931,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     vres = validity(wit, owit, swit)
     defects_sealed = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
     defects_v2 = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in owit) and v["pass"] is False)
-    sig = np.asarray(w["cx"].ds.sigma, float)
-    for t in roll["trades"]:
-        s_ = float(sig[int(t["entry_bar_abs"])])
-        t["net_sigma"] = float(t["net_usd"]) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else float("nan")
-        t["financing_sigma"] = float(t.get("financing_usd", 0.0)) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else 0.0
+    annotate_sigma(w, roll["trades"])
     rec = {"id": cell["id"], "seed": seed, "level": cell["level"], "regime": cell["regime"], "legs": cell["legs"], "mirror_of": cell.get("mirror_of"), "quality": cell["quality"],
            "witness": w["witness"], "achieved": w["sim"]["achieved"], "strategy": strat.to_dict(), "results": wit, "PASS": wit["PASS"], "PASS_sealed": wit["PASS_sealed"], "PASS_v2": wit["PASS_v2"],
            "oracle": {k: v for k, v in owit.items() if k != "summary"} | {"summary": owit["summary"]}, "oracle_PASS_sealed": owit["PASS_sealed"], "oracle_PASS_v2": owit["PASS_v2"],

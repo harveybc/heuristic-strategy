@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import copy
 import dataclasses
+import gc
 import json
 import math
 import multiprocessing as mp
@@ -82,6 +83,14 @@ def build_subset(cells: list, per_level: int = 1, seed: int = SEED, mirror_at_qu
     return out
 
 
+def _malloc_trim():
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        pass
+
+
 # ----------------------------------------------------------------------------- one cached world and one evaluation
 class CachedWorld:
     def __init__(self, cx, SCFG, AC, cell: dict, seed: int = 0):
@@ -116,6 +125,8 @@ class CachedWorld:
             for k in ("closes", "log", "positions", "attr"):
                 ro.pop(k, None)
         self.oracle_sharpe = float(orl["metrics"].get("sharpe_daily_sqrt365", float("nan")))
+        self._release()                                               # memory: the build's per-tick caches (head rows, new paths) are never read again
+        self._release_build(cx)
         # memory: what an evaluation never reads again (the raw head table -- the view holds its restricted copy -- and the
         # exploration visits, consumed by the gene map and the closer references above); ~270 MB per world before
         self.w.pop("table", None)
@@ -167,8 +178,45 @@ class CachedWorld:
         out = {"key": self.cell["subset_key"], "sharpe": sh if math.isfinite(sh) else -10.0, "fails": fails, "opens": wit["summary"]["opens"],
                "net_usd": wit["summary"]["net_usd"], "quality": float(self.cell["quality"]), "d7": d7}
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
-            out["_trades"], out["_episodes"], out["_pair"], out["_role"] = roll["trades"], ep_summary, self.cell["pair"], self.cell["role"]
+            out["_trades"], out["_episodes"], out["_pair"], out["_role"] = BM.annotate_sigma(self.w, roll["trades"]), ep_summary, self.cell["pair"], self.cell["role"]
+        self._release()
         return out
+
+    def _release_build(self, cx_base):
+        """Memory after the build: what only the build reads. The world's own feature matrix (cx.Xw: the learned C2 /
+        C3 heads' input; the simulated heads never read it) and, on a q < 1 world, the oracle view (read only by the
+        perfect-head exit layer); on a perfect world the oracle view's arrays that equal the view's share them. Set to
+        None, not emptied: a later reader fails loudly instead of reading zeros. The engine-truth tables stay (the
+        witnesses read them, some behind an 'is not None' guard that would change the result silently)."""
+        wcx = self.w["cx"]
+        if wcx is not cx_base and getattr(wcx, "Xw", None) is not None and wcx.Xw is not getattr(cx_base, "Xw", None):
+            object.__setattr__(wcx, "Xw", None)
+        if float(self.cell["quality"]) < 0.999:
+            self.ov = None
+        else:                                                         # at perfect heads the oracle view's tables equal the view's: one copy
+            for k, v in list(self.ov.items()):
+                u = self.view0.get(k)
+                if isinstance(v, np.ndarray) and isinstance(u, np.ndarray) and v is not u and v.shape == u.shape and v.dtype == u.dtype \
+                        and np.array_equal(v, u, equal_nan=v.dtype.kind == "f"):
+                    self.ov[k] = u
+        gc.collect()
+        _malloc_trim()
+
+    def _release(self):
+        """Memory (coordinator ruling 2026-10-28, <= 0.17 GB per world): between evaluations a world holds only what the
+        next evaluation reads. The market-only head's rows and the closer's per-position path / value cache are
+        recomputed on demand (deterministic: the same numbers), so they are dropped after every evaluation and after
+        the build, the closer cache back to the controls' paths; the hierarchy ladder of the last candidate is rebuilt
+        by the next evaluation; the freed heap goes back to the OS."""
+        bc = getattr(self.view0["closer"], "bc", None)
+        if bc is not None:
+            bc.rows.clear()
+        cache = self.view0["closer"].cache
+        cache.clear()
+        cache.update(self.cache_base)
+        self.w["ladder"] = None
+        gc.collect()
+        _malloc_trim()
 
 
 # ----------------------------------------------------------------------------- genome <-> parameter document
