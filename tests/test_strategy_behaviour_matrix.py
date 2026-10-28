@@ -494,3 +494,38 @@ def test_closer_filter_is_estimated_on_calibration_pairs_and_its_posterior_avera
         errs_last.append(abs((y - alpha) / beta - A_true))
         errs_post.append(abs(est - A_true))
     assert np.mean(errs_post) < np.mean(errs_last)
+
+
+def test_compact_ladder_levels_change_no_ladder_quantity():
+    """ZZ.compact_levels (memory, 2026-10-28): narrow exact dtypes and dropped unread arrays leave every ladder and causal
+    quantity bit-identical."""
+    from app.short_horizon.expert_guided import strategy_zz as ZZ
+    rng = np.random.default_rng(5)
+    n = 3000
+    c = 1.1 + np.cumsum(rng.normal(0, 4e-4, n))
+    o = np.r_[c[0], c[:-1]]
+    h = np.maximum(o, c) + np.abs(rng.normal(0, 2e-4, n))
+    l = np.minimum(o, c) - np.abs(rng.normal(0, 2e-4, n))
+    bars = pd.DataFrame({"OPEN": o, "HIGH": h, "LOW": l, "CLOSE": c}, index=_idx(n))
+    sig = np.full(n, 6e-4)
+    lv = ZZ.ladder_levels(bars, sig)
+    cp = ZZ.compact_levels(lv)
+    assert sum(a.nbytes for r in cp["arr"].values() for a in r.values()) < 0.6 * sum(a.nbytes for r in lv["arr"].values() for a in r.values())
+    for fn in (ZZ.ladder_quantities, ZZ.causal_quantities):
+        a, b = fn(bars, sig, cached=lv), fn(bars, sig, cached=cp)
+        for k, v in a.items():
+            if isinstance(v, np.ndarray):
+                assert v.dtype == b[k].dtype and np.array_equal(v, b[k], equal_nan=v.dtype.kind == "f"), k
+
+
+def test_cost_view_equals_the_array_expression_bit_for_bit():
+    from tools import strategy_output_simulation as S
+    rng = np.random.default_rng(9)
+    sp = rng.uniform(0, 3e-4, 5000)
+    idx = rng.integers(0, 5000, 700)
+    for adds in ((2e-5, 3.5e-5), (3.5e-5,)):
+        arr = sp / 2
+        for a in adds:
+            arr = arr + a
+        v = S._CostView(sp, *adds)
+        assert np.array_equal(v[idx], arr[idx]) and v[17] == arr[17] and np.array_equal(v[np.arange(10, 40)], arr[10:40])

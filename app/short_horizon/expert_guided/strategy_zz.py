@@ -120,6 +120,24 @@ def ladder_levels(bars, sigma, levels=DEFAULT_LEVELS) -> dict:
     return {"pivots": piv, "arr": {r: _level_arrays(o, hi, lo, c, sig, piv[r]) for r in levels}, "levels": tuple(levels), "n": len(c)}
 
 
+def compact_levels(lv: dict, roles=ROLES) -> dict:
+    """Memory (coordinator ruling 2026-10-28): the cached ladder levels in the narrowest EXACT dtypes -- leg_dir int8
+    (values -1 / 0 / 1), leg_end / leg_start int32 (bar indices) -- and mae_leg / leg_sigma kept only at the level
+    ladder_quantities reads them ('3', else the first coarse level). Every value ladder_quantities and
+    causal_quantities read is unchanged (no float rounding); room and f_open stay float64."""
+    arr, levels = lv["arr"], lv["levels"]
+    coarse = [r for r in roles["coarse"] if r in arr]
+    c0 = coarse[0] if coarse else levels[0]
+    keep = "3" if "3" in arr else c0
+    out = {}
+    for r, a in arr.items():
+        b = {"room": a["room"], "f_open": a["f_open"], "leg_dir": a["leg_dir"].astype(np.int8), "leg_end": a["leg_end"].astype(np.int32), "leg_start": a["leg_start"].astype(np.int32)}
+        if r == keep:
+            b["mae_leg"], b["leg_sigma"] = a["mae_leg"], a["leg_sigma"]
+        out[r] = b
+    return {**lv, "arr": out}
+
+
 def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | None = None, theta_f: float | None = None,
                       theta_mae: float = 0.5, theta_vol: float = 0.25, cached: dict | None = None) -> dict:
     """Per bar (hindsight; the IDEAL head outputs): coarse room / direction / tau, fine counter-pivot within h / tau /

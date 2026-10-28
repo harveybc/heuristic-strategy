@@ -326,6 +326,19 @@ BC_SL_GRID = tuple(float(x) for x in np.round(np.geomspace(0.02, 3.5, 40), 5))  
 BC_TP_GRID = tuple(float(x) for x in np.round(np.geomspace(0.05, 10.0, 64), 5))  # remaining TP distance (to k_tp_protect x MFE); dense: BC jumps where the TP stops being reachable
 
 
+class _CostView:
+    """sp / 2 + a1 + a2 + ..., evaluated on the indexed elements only (left to right, as the array expression did)."""
+
+    def __init__(self, sp, *adds):
+        self.sp, self.adds = sp, tuple(float(a) for a in adds)
+
+    def __getitem__(self, i):
+        x = self.sp[i] / 2
+        for a in self.adds:
+            x = x + a
+        return x
+
+
 class BCHead:
     """MARKET-ONLY best-continuation head (README: the model observation is market-only; position state belongs to the
     strategy layers). For a decision at bar b, side s and a hypothetical position at the current executable
@@ -347,9 +360,11 @@ class BCHead:
         self.n = n
         self.sp = np.array([prof.spread_at(int(v[k]), int(env.mo[int(env.seg_of[k])])) for k in range(n)], float)
         comm = prof.commission_per_lot_side / prof.lot_units
-        self.cost_m = self.sp / 2 + prof.slippage_market + comm
-        self.cost_s = self.sp / 2 + prof.slippage_stop + comm
-        self.cost_t = self.sp / 2 + comm
+        # the exit costs, computed on read from the spread (the same operations in the same order: bit-identical values;
+        # three float arrays per bar fewer per world, memory ruling 2026-10-28)
+        self.cost_m = _CostView(self.sp, prof.slippage_market, comm)
+        self.cost_s = _CostView(self.sp, prof.slippage_stop, comm)
+        self.cost_t = _CostView(self.sp, comm)
         seg = np.asarray(env.seg_of, np.int64)
         ff = np.array([bool(v[k] + E.H_NS >= env.ff[seg[k]] or k + 1 >= n or seg[k + 1] != seg[k] or k >= env.last) for k in range(n)], bool)
         self.nxt_ff = np.full(n, n - 1, np.int64)

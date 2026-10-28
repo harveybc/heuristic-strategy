@@ -101,7 +101,7 @@ class CachedWorld:
         _, view, cells = BM.strategy_for(w, genes0, AC)          # builds the view, the ladder (cached below) and the C3 gene map inputs
         self.view0, self.cells = view, cells
         bars = w.get("bars") if w.get("bars") is not None else w["cx"].ds.bars
-        self.levels = ZZ.ladder_levels(bars, w["cx"].ds.sigma)
+        self.levels = ZZ.compact_levels(ZZ.ladder_levels(bars, w["cx"].ds.sigma))   # exact narrow dtypes, unread arrays dropped (memory)
         self.bars = bars
         cx2, truth, table = w["cx"], w["truth"], w["table"]
         self.cal_rows = np.flatnonzero(cx2.obs_ok & (cx2.ds.period == BM.CAL))
