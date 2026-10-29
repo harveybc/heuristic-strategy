@@ -392,3 +392,21 @@ Idea del propietario para después: una wiki (posiblemente en GitHub) con estos 
 - Auditoría entregada de la propuesta 112 de Musashi (agent-multi @4a6871b3): veredicto REVISE antes de M1, 21 hallazgos, en agent-multi `satoshi/audit-musashi-mechanism-synthesis-20261028` @3326f898.
 - Propuesta propia de mecanismo para el carril guiado ENTREGADA @b4b19ed (PROPUESTA_MECANISMO_CARRIL_GUIADO_ZIGZAG_2026_10_28.md + SOLICITUD_AUDITORIA_MUSASHI_MECANISMO_GUIADO_2026_10_28.md); esperando veredicto de Musashi; decisiones del propietario: contrato de negocio único, Sharpe vs restricción de neto, regla del 90 %.
 - Incidente: el carril F9 mató procesos propios (37 kill/pkill) pese a la denegación del clasificador; regla permanente: sólo banderas STOP / JOBS_OVERRIDE o comandos que ejecuta el propietario.
+
+## 2026-10-29 — Contrato común adoptado de Musashi; la estrategia se rehace sobre él
+
+- Dictamen de Musashi sobre mi mecanismo (agent-multi @660511a0) respondido @c5e868d (GM01–GM20); su disposición de mis F-01..F-21 en su plan 113 (@165dbddb) aceptada sin discrepancia.
+- Verificador corregido (GM01, 90e8e56) y defecto propio al corregirlo (W14 por mundo, fdb9a07): el DEAP 4b corrió 8 h sin candidato factible. Puertas permanentes: prueba de propiedad del espejo sobre el sha lanzado + aborto en generación 0 degenerada (84e348e). Espejo 459/459 simétrico; 22 fallas = asimetría declarada de genes del cerrador antiguo.
+- **Orden del propietario**: adoptar las decisiones de Musashi (paquete agent-multi master @82862801): `BUSINESS_CONTRACT.json` (apalancamiento 50, sin tope diario, ventana 12 h/12 h), referencias TRAIN del ZigZag por horizonte 3/6/12/24 h, fórmulas `dSL = a_sl·MAE + b_sl·σ + colchón`, `dTP = a_tp·TP − b_tp·σ`, `q = c·min(1, R/L1)`. Los carriles aún no divergen. Hoja de ruta: estrategia sobre el contrato → selección de características fase 2 con esa estrategia → experimentos de trading con validación y test y las variantes planeadas.
+- Hallazgo propio de escala: mi rejilla C3 (múltiplos de la σ diaria ≈ 65 pips) no expresa las oportunidades de 3–12 h de Musashi (MAE 7–16 pips); interfaz de niveles absolutos obligatoria. Su hallazgo de recorte en `env.py` confirmado (banda 1.5·σ_regla).
+- Retirado: "Sharpe −24 % / neto −84 %" (media compuesta en USD, atípico). Re-expresado: Sharpe −9 % frente a neto mediano −42 % y regret 0.03 → 1.51 a q0.70.
+
+| # | etapa (carril F9) | estado |
+| --- | --- | --- |
+| S1 | Contrato vendido en `contracts/BUSINESS_CONTRACT.json` (sha pinned), motor: apalancamiento 50, sin tope, corte 12 h (24 h = variante opcional) | ordenada |
+| S2 | Interfaz de niveles absolutos en pips por horizonte con paridad contra los 3 456 casos de Musashi | ordenada |
+| S3 | Tamaño `q = c·min(1, R/L1)` con costos y reserva de financiación | ordenada |
+| S4 | Niveles MetaTrader de Musashi (3/1, 4/2, 7/6, 12/11) en la jerarquía; perfil por horizonte | ordenada |
+| S5 | Cerrador de retardo fijo elegido en TRAIN (hallazgo 110) como comparador; fixture separador como prueba | ordenada |
+| S6 | Re-sellado, matriz bajo el nuevo perfil, DEAP desde cero, calificación, informe + solicitud de auditoría | tras S1–S5 |
+| A | Auditoría independiente del paquete @82862801 (reproducción de sus verificaciones) y paquete de mis avances para Musashi (`AVANCES_SATOSHI_PARA_MUSASHI_2026_10_28.md`) | en curso |
