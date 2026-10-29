@@ -118,6 +118,22 @@ implementación sirve a la matriz, a las etiquetas y a producción. Impacto en l
 2020-01-02 → 2024-12-31): **un pivote por fold** (el primero del ZigZag experto, 2020-01-02 00:00); los diez niveles de
 reversión, idénticos.
 
+## 5c. Perfil full_f4: el menú de decisión (2026-10-29, fallo del coordinador)
+
+Bajo el contrato de negocio (`full_f4`) la política valora exactamente las órdenes que coloca. En cada barra de decisión
+el **menú** son las órdenes absolutas candidatas {(h, lado): h ∈ {3, 6, 12, 24}} construidas por
+`horizon_levels.levels` (cotización = cierre de la barra, referencias TRAIN de (h, lado), σ_h, genes de niveles, malla de
+1e-5) más NOP; un horizonte cuyo nivel MT no confirma el lado en esa barra no está en el menú
+(`app/short_horizon/expert_guided/menu.py`). La verdad del motor es la **reproducción exacta** de ese menú en el motor del
+perfil (neto en σ y USD, primera barrera, MAE / MFE, motivo de salida); las cabezas ideales, la escalera de calidad, el
+oráculo de la verdad, O*, el oráculo de retención, los episodios de entrada forzada y las visitas de exploración usan el
+mismo menú; el EV ordena (h, lado) y `horizon_rule` sólo desempata. W7 = el (h, lado) ejecutado es el mejor del menú de la
+verdad entre los permitidos (ambos lados); W2 / W10 juzgan la orden ejecutada; W13 tiene forma de menú (TP / SL = niveles
+del slot, 1 tick); W14 se juzga con su control (oráculo) y su forma corregida es el espejo con referencias
+intercambiadas por lado. El TP protector (k_tp_protect, tp_mode) queda inerte y fuera del genoma DEAP de `full_f4`. Bajo
+`full_f4` el espejo refleja alrededor de una constante en la malla de niveles (el redondeo piso / techo sólo se espeja si
+K está en la malla). La malla σ sigue sólo en `full_f3` / LEGACY, byte a byte. Contrato C3 v2.1, QUALIFICATION_SPEC v2.2.
+
 ## 6. Resultado (generado)
 
 <!-- BEHAVIOUR_MATRIX_FRAGMENT -->

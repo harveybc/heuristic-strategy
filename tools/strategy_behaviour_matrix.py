@@ -44,6 +44,7 @@ from app.short_horizon.expert_guided import oracle as OR  # noqa: E402
 from app.short_horizon.expert_guided import strategy_zz as ZZ  # noqa: E402
 from tools import strategy_hierarchy as H  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
+from app.short_horizon.expert_guided import menu as M  # noqa: E402
 
 BLOCK = "TRAIN"                     # the sustained span every cell is simulated and witnessed on (18 months for wf2022)
 CAL = S.CAL_BLOCK                   # the gene map's calibration block (INNER_A); synthetic as well
@@ -85,6 +86,15 @@ WITNESS_SPEC["v3_W4"] = {"W4_early_close_justified_v3": "v3' economic (2026-10-2
                          "rule": "admitted per cell where O* fails W4 v2 (VALIDITY_SPEC machinery); the owner's tie rule applied once with the same EPS_CLOSE as E3 / E4"}
 WITNESS_SPEC["v3"] = {"W8_early_close_at_switch_v3": "in every [switch, switch + lag]: (a) zero SL exits; (b) every exit that is not an early close had A(t) < -EPS_CLOSE at every earlier held tick (O* would also have held); (c') every strategy trade alive in the window: O*'s exit rule (close when A(t) >= -EPS_CLOSE) replayed on that SAME trade; wherever it closes the trade inside the window, the strategy early-closed it inside the window or earlier at a tick with A(t) >= -EPS_CLOSE; zero misses",
                       "rule": "admitted where VALIDITY_SPEC admits a corrected form for W8_early_close_at_switch (DEFECT, SEALED_UNVALIDATED or REPLAY_CONFLICT); it replaces v2 for that witness"}
+WITNESS_SPEC["menu_full_f4"] = {
+    "W7_best_cell": "full_f4 (ruling 2026-10-29): the executed (h, side) = the best of the truth menu among the allowed slots (truth confirmations, RR rule on the order's distances, RR floor on the truth MAE), both sides, >= 0.70; v2 identical",
+    "W2": "the executed order's slot (read from its own levels) has truth net > 0 (>= 0.90); wrong side over the truth menu's slots only (<= 0.10)",
+    "W10_spread_window": "the executed order's slot has truth net > 0 inside the x5 window",
+    "W1_W15_opportunity": "opportunities and high-risk rows over the truth menu's slots only",
+    "W9": "the SL term is the absolute SL's distance in sigma of the entry",
+    "W13_tpsl_track_sigma": "sealed form read literally (mean TP PRICE distance, second half / first half); corrected forms v2 = v3 = every executed TP / SL equals the decided slot's menu levels (1 tick)",
+    "W14_mirror": "sealed form (mirror world, same references) judged by the truth oracle on the same pair; corrected form W14_mirror_menu (mirror world, side-swapped TRAIN references) governs only where the oracle fails the sealed form non-vacuously; E6 follows the same control",
+    "rule": "full_f4 only; full_f3 / LEGACY witnesses unchanged (byte-identical)"}
 TIMING_EXIT_WITNESSES = ("W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W8_early_close_at_switch")
 MIN_CONTROL_EVENTS = 1              # a control's verdict counts only with at least this many events of the witnessed kind (declared; GM01)
 EPS_ECON = 0.05                     # sigma of the trade: the economic bound of a tolerated early close with remaining > EPS_CLOSE (W4 v3', GM02)
@@ -102,6 +112,14 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-29 (coordinator ruling ~05:50Z, full_f4 decision menu; lane F10)", "witness": "W2 / W7 / W10 / W13 / W14 / W15 / W1 opportunity under full_f4 (WITNESS_SPEC menu_full_f4)",
+     "defect": "under fbe52e7 the policy ranked the sides on sigma-cell predictions and executed absolute horizon orders: W2 / W7 judged a cell that was never placed (MENU_MISMATCH); W9 / W13 read an absolute SL / TP price as a sigma multiple",
+     "evidence": "B_cal_cutoff12 s0 (fbe52e7, rerun on the host): 643 trades, 376 SL exits, 196 of 642 re-opens one bar after the previous close; menu (this change): 348 trades, 0 SL, 342 TP",
+     "effect": "the witnesses judge the executed order against the truth of the menu; W14 keeps its sealed form, judged by the truth oracle, with the side-swapped-reference mirror as the corrected form; re-sealed (new SPEC_V3_SHA)"},
+    {"when": "2026-10-29 (lane F10, found by the first menu run)", "witness": "E2_exit_regret / E-series path cache (SimCloser.path)",
+     "defect": "the engine path cache was keyed by (entry bar, side, TP, SL) without the UNITS: the truth oracle and the strategy placed the same levels at the same bar with different balances (risk sizing), the first one's USD path was reused and E2 mixed its P* with the other's net (B_cal_cutoff12 s0: 51 + 62 trades with R in [0.3, 1) sigma)",
+     "evidence": "a fresh world without the oracle's prior rollout: max R 0.017 sigma on the same 335 strategy trades",
+     "effect": "units in the key (value() reads the same key); identical numbers wherever the units agree (LEGACY constant units)"},
     {"when": "2026-10-28T19:00Z (coordinator ruling on W14)", "witness": "W14_mirror (unchanged, sealed: mirror world, SAME parameter vector) + W14_swap diagnostic",
      "defect": "none in W14: under side-asymmetric LEGACY close genes (closer_mode 0: close_p_l / close_p_s, close_rem_rate_l / close_rem_rate_s) the mirror world's trades differ from the twin's; 22 of 459 (pair, genome) runs of the 51-genome property test, all from 6 legacy-closer genomes; none of the 23 advantage-closer genomes fails",
      "evidence": "W14_swap (mirror world, side-swapped vector) on the 22 failing cases: 22 / 22 exact mirrors (identical trade count and bars, sides flipped, per-unit net within 1.1e-13 sigma); 16 control runs (2 passing legacy-closer genomes x 8 pairs) exact under both vectors (1.6e-13 sigma)",
@@ -688,10 +706,9 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     table["cost_row"] = S.row_costs(cx, world["scfg"], truth.cost - C3.cost_sigma_of(cx, world["scfg"], 0.0, cal_rows))
     ref = C3.closer_reference_sides(table, S.closer_src_of(truth))
     view = C2.restrict(table, np.flatnonzero(cx.obs_ok & np.isin(cx.ds.period, [CAL, BLOCK])))
-    gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
-    strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto" in genes)
     # the hierarchy heads (multi-resolution ZigZag ladder): at the world's quality (perfect = hindsight only at quality 1;
     # 'ladder' below 1; 'causal' = the causal-confirmed control), and the causal burst flag; world["ladder"] keeps the hindsight
+    # (computed before the gene map: under full_f4 the EV reference reads the menu confirmations; the gene map reads none of these keys otherwise)
     bars = world.get("bars") if world.get("bars") is not None else cx.ds.bars
     qh, q = ZZ.head_quantities(bars, cx.ds.sigma, world.get("quality", 1.0), world.get("zz_mode"), world.get("seed", 0))
     world["ladder"], world["ladder_heads_mode"] = q, qh.get("head_mode", "perfect")
@@ -699,6 +716,12 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     keep = np.isfinite(view["pn"])
     for k, v in zz.items():
         view[k] = np.where(keep.reshape((-1,) + (1,) * (np.ndim(v) - 1)), v, np.nan) if np.ndim(v) else v
+    if truth.menu is not None:                                    # full_f4: the menu's orders (deterministic: the same for the heads and the truth)
+        for k in ("tp", "sl", "tp_s", "sl_s"):
+            view["menu_" + k] = truth.menu[k]
+        view["menu_stamp"] = truth.menu["stamp"]
+    gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
+    strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto" in genes)
     view["risk_burst"] = ZZ.burst_rows(bars, cx.ds.sigma, cx.ds.row_bar)
     if "mae" in table:
         view["mae"] = np.where(keep.reshape(-1, 1, 1), table["mae"], np.nan)
@@ -729,8 +752,16 @@ class PolicyOracle(PolicyC3Audit):
         if self.t.get("truth_burst") is not None and self.t["truth_burst"][r]:
             self.log.append((int(r), float("nan"), float("nan"), False, False, -1, False, -1, -1))
             return None
+        menu = M.is_menu(self.cells)
         for si in (0, 1):
             net = np.asarray(self._v("net", r, si), float)
+            if menu:                                                 # full_f4: the TRUTH menu (ideal confirmations), the declared slot rule
+                mae = self.t.get("mae")
+                ok = M.allowed(net, np.asarray(self.t["zz_menu"][r, si], float) == 1.0, self.t["menu_tp_s"][r, si], self.t["menu_sl_s"][r, si], 0.0, C3.RR_MARGIN_SIGMA,
+                               mae=None if mae is None else mae[r, si], rr_floor=ZZ.PARAMS["risk_reward_floor"])
+                ci = M.argmax_slot(net, ok, ZZ.PARAMS.get("horizon_rule", 0.0))
+                evs.append(float(net[ci]) if ci >= 0 else float("nan")); cells_.append(ci)
+                continue
             ok = C3.allowed_cells(net, self.cells, 0.0, C3.RR_MARGIN_SIGMA, cap, lo)
             if self.t.get("mae") is not None:
                 m = np.asarray(self.t["mae"][r, si], float)
@@ -751,6 +782,12 @@ class PolicyOracle(PolicyC3Audit):
         if chosen < 0:
             return None
         d = E.LONG if chosen == 0 else E.SHORT
+        if menu:
+            ci = cells_[chosen]
+            self.attr = getattr(self, "attr", [])
+            self.attr.append({"row": int(r), "chosen": chosen, "h": M.slot_h(ci), "blocked": "", "gate_l": "", "gate_s": "", "zz_dir": 0.0, "fresh": float("nan")})
+            out = (d, float(self.t["menu_tp"][r, chosen, ci]), float(self.t["menu_sl"][r, chosen, ci]))
+            return out + (evs[chosen],) if with_score else out
         out = (d, self.cells[cells_[chosen]][0], self.cells[cells_[chosen]][1])
         return out + (evs[chosen],) if with_score else out
 
@@ -1006,6 +1043,9 @@ Z1_TOL_SIGMA = 0.05
 def _envelope(pol, r, si):
     """The strategy's TP / SL envelope for side si at row r (the cell or protective TP rule), whatever the opener says;
     in the absolute-level profile the horizon's absolute prices (pol.absolute_envelope; None = no horizon: no episode)."""
+    if hasattr(pol, "_menu") and pol._menu():                     # full_f4: the menu envelope (menu.py); empty menu = no episode
+        e_ = pol.menu_envelope(r, si)
+        return (e_[1], e_[2]) if e_ is not None else None
     if hasattr(pol, "_absolute_mode") and pol._absolute_mode():
         lv = pol.absolute_envelope(r, si)
         return (lv["tp"], lv["sl"]) if lv is not None else None
@@ -1246,16 +1286,20 @@ def oracle_view(world: dict, view: dict) -> dict:
     net = np.full_like(truth.net, np.nan)
     for si in (0, 1):
         h = truth.hit3[:, si]
-        fin = np.isfinite(truth.net[:, si, :]).all(axis=1)
+        fin = np.isfinite(truth.net[:, si, :]).all(axis=1) if truth.menu is None else np.isfinite(truth.net[:, si, :]).any(axis=1)
         p3[:, si, 0] = np.where(fin & (h == 0), 1.0, 0.0)
         p3[:, si, 1] = np.where(fin & (h == 1), 1.0, 0.0)
         p3[:, si, 2] = np.where(fin & (h >= 0) & (h != 0) & (h != 1), 1.0, np.where(fin, 0.0, 1.0))   # unknown hit or no eligible entry -> TIME (no open)
         p3[fin & (h < 0), si, :] = (0.0, 0.0, 1.0)
         net[:, si, :] = np.where(fin.reshape(-1, 1), truth.net[:, si, :], -1.0)                  # the simulated table's convention: -1 = no eligible entry
+        if truth.menu is not None:
+            net[:, si, :] = np.where(np.isfinite(truth.net[:, si, :]), truth.net[:, si, :], -1.0)   # full_f4: a refused slot is a -1 slot
     keep = np.isfinite(view["pn"])
     ov["p3"] = np.where(keep.reshape(-1, 1, 1), p3, np.nan)
     ov["net"] = np.where(keep.reshape(-1, 1, 1), net, np.nan)
     ov["pn"] = np.where(keep, truth.nop.astype(float), np.nan)
+    if truth.menu is not None:                                       # full_f4: the oracles read the TRUTH menu (ideal confirmations)
+        ov["zz_menu"] = np.where(keep.reshape(-1, 1, 1), truth.menu["mask"].astype(float), np.nan)
     if truth.mae is not None:
         ov["mae"] = np.where(keep.reshape(-1, 1, 1), truth.mae, np.nan)
     meta = world.get("meta") or {}
@@ -1290,6 +1334,26 @@ def _cell_index(t, cells) -> int:
     return -1
 
 
+def menu_truth_net(truth, r: int, si: int) -> np.ndarray:
+    """full_f4: the truth net of the slots IN THE TRUTH MENU at (row, side) (NaN elsewhere); identity under the sigma grid."""
+    x = np.asarray(truth.net[r, si], float)
+    if truth.menu is None:
+        return x
+    return np.where(truth.menu["mask"][r, si], x, np.nan)
+
+
+def menu_truth_allowed(truth, r: int, si: int) -> np.ndarray:
+    """full_f4: the declared slot rule on the TRUTH (truth menu, executable, RR rule on the order's distances, RR floor on
+    the truth MAE): the slots a truth-acting policy may take (the oracle's own rule)."""
+    m = truth.menu
+    return M.allowed(truth.net[r, si], m["mask"][r, si], m["tp_s"][r, si], m["sl_s"][r, si], 0.0, C3.RR_MARGIN_SIGMA,
+                     mae=None if truth.mae is None else truth.mae[r, si], rr_floor=float(ZZ.PARAMS["risk_reward_floor"]))
+
+
+def menu_slot_of(t, truth, r: int, si: int) -> int:
+    return M.slot_of_trade(t, truth.menu["tp"][r, si], truth.menu["sl"][r, si], ZZ.LEVEL_TICK)
+
+
 def decision_offset(SCFG) -> int:
     """Bars between the decision row and the fill bar: the profile's entry delay plus the next-open fill."""
     return 1 + int(getattr(SCFG.profile, "entry_delay_bars", 1) or 0)
@@ -1306,8 +1370,9 @@ def truth_side_opportunity(truth, cx, a: int, b: int, bars: tuple | None = None)
     for r in rows:
         if not np.isfinite(truth.net[r]).any():
             continue
-        l_ = float(np.nanmax(truth.net[r, 0])) if np.isfinite(truth.net[r, 0]).any() else -np.inf
-        s_ = float(np.nanmax(truth.net[r, 1])) if np.isfinite(truth.net[r, 1]).any() else -np.inf
+        x0, x1 = menu_truth_net(truth, r, 0), menu_truth_net(truth, r, 1)       # full_f4: only the menu's slots are opportunities
+        l_ = float(np.nanmax(x0)) if np.isfinite(x0).any() else -np.inf
+        s_ = float(np.nanmax(x1)) if np.isfinite(x1).any() else -np.inf
         if max(l_, s_) > 0:
             best.append(1 if s_ > l_ else 0)
     return {"rows_with_opportunity": len(best), "share_short_better": float(np.mean(best)) if best else float("nan")}
@@ -1411,7 +1476,8 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         out["W8_early_close_at_switch_v2"] = {"value": {"sl_exits_in_switch_window": sl_win, "exits_in_switch_window": ex_win}, "threshold": "SL exits in [switch, switch + lag] <= max(1, 0.10 x exits there)",
                                               "pass": bool(sl_win <= max(1, 0.10 * ex_win)), "desc": "corrected form (admitted only where the oracle fails the sealed form): positions caught by the switch are closed early or reach TP, not the stop"}
     # W2 knowledge: truth net at the chosen cell > 0; not the worse side; cell = truth best
-    pos_ok, wrong, best_cell, best_allowed = [], [], [], []
+    pos_ok, wrong, best_cell, best_allowed, best_unconstrained = [], [], [], [], []
+    menu = truth.menu is not None
     dec = {x[0]: x for x in log}
     matched = 0
     for t in trades:
@@ -1421,13 +1487,26 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             continue
         si = _side(t)
         d_ = dec.get(rr)
-        ci = int(d_[7 + si]) if d_ is not None and d_[5] == si else _cell_index(t, cells)
-        matched += int(d_ is not None and d_[5] == si)
+        if menu:                                                       # full_f4: judge the EXECUTED order (its slot read from its own levels)
+            ci = menu_slot_of(t, truth, rr, si)
+            matched += int(d_ is not None and d_[5] == si and int(d_[7 + si]) == ci)
+        else:
+            ci = int(d_[7 + si]) if d_ is not None and d_[5] == si else _cell_index(t, cells)
+            matched += int(d_ is not None and d_[5] == si)
         net_c = float(truth.net[rr, si, ci]) if ci >= 0 else float("nan")
-        other = float(np.nanmax(truth.net[rr, 1 - si])) if np.isfinite(truth.net[rr, 1 - si]).any() else float("nan")
-        mine = float(np.nanmax(truth.net[rr, si])) if np.isfinite(truth.net[rr, si]).any() else float("nan")
+        xo, xm = menu_truth_net(truth, rr, 1 - si), menu_truth_net(truth, rr, si)
+        other = float(np.nanmax(xo)) if np.isfinite(xo).any() else float("nan")
+        mine = float(np.nanmax(xm)) if np.isfinite(xm).any() else float("nan")
         pos_ok.append(bool(np.isfinite(net_c) and net_c > 0))
         wrong.append(bool(np.isfinite(other) and np.isfinite(mine) and other > mine + 0.10))
+        if menu:                                                       # W7 (ruling): the chosen (h, side) = the best of the truth menu among the allowed slots, both sides
+            ok0, ok1 = menu_truth_allowed(truth, rr, 0), menu_truth_allowed(truth, rr, 1)
+            if ok0.any() or ok1.any():
+                top = max(float(np.max(np.where(ok0, truth.net[rr, 0], -np.inf))), float(np.max(np.where(ok1, truth.net[rr, 1], -np.inf))))
+                best_allowed.append(bool(ci >= 0 and np.isfinite(net_c) and net_c >= top - 1e-9))
+            jm = max(float(np.nanmax(xm)) if np.isfinite(xm).any() else -np.inf, float(np.nanmax(xo)) if np.isfinite(xo).any() else -np.inf)
+            best_unconstrained.append(bool(ci >= 0 and np.isfinite(net_c) and net_c >= jm - 1e-9))
+            continue
         best_cell.append(bool(ci >= 0 and np.isfinite(mine) and net_c >= mine - 1e-9))
         if np.isfinite(truth.net[rr, si]).all():                       # v2: the truth's best cell under the DECLARED cell rule (band + RR floor on the MAE)
             capr, lor = float(truth.cap[rr]), float(truth.lo[rr])
@@ -1440,8 +1519,16 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                                      "decisions_matched_to_trades": matched, "decision_row_offset": off}
     out["W2_wrong_side"] = {"value": float(np.mean(wrong)) if wrong else float("nan"), "threshold": THRESH["wrong_side_max"], "pass": bool(wrong) and float(np.mean(wrong)) <= THRESH["wrong_side_max"], "desc": "opens on the side whose truth best net is lower by > 0.10 sigma"}
     out["W7_best_cell"] = {"value": float(np.mean(best_cell)) if best_cell else float("nan"), "threshold": THRESH["best_cell_min"], "pass": bool(best_cell) and float(np.mean(best_cell)) >= THRESH["best_cell_min"], "desc": "chosen TP/SL cell = the truth's best cell"}
+    if menu:                                                           # full_f4 (ruling 2026-10-29): W7 = the chosen (h, side) is the best of the truth menu among the allowed slots
+        vm = float(np.mean(best_allowed)) if best_allowed else float("nan")
+        out["W7_best_cell"] = {"value": vm, "threshold": THRESH["best_cell_min"], "pass": bool(best_allowed) and vm >= THRESH["best_cell_min"], "n": len(best_allowed), "form": "menu",
+                               "desc": "full_f4 menu: the executed (h, side) = the best of the truth menu among the allowed slots (truth confirmations, RR rule, RR floor on the truth MAE), both sides",
+                               "diagnostic_unconstrained": {"value": float(np.mean(best_unconstrained)) if best_unconstrained else float("nan"), "n": len(best_unconstrained),
+                                                            "desc": "the executed (h, side) = the best in-menu slot of either side, no RR rule (reported, not a witness)"}}
     out["W7_best_cell_v2"] = {"value": float(np.mean(best_allowed)) if best_allowed else float("nan"), "threshold": THRESH["best_cell_min"], "pass": bool((not best_allowed) or float(np.mean(best_allowed)) >= THRESH["best_cell_min"]),
                               "desc": "corrected form (admitted only where a control fails the sealed form): chosen cell = the truth's best cell among those the DECLARED cell rule allows (per-bar band, RR floor on the MAE)", "n": len(best_allowed)}
+    if menu:                                                           # under the menu the ruling's form IS the sealed one: the corrected form is the same measurement
+        out["W7_best_cell_v2"] = dict(out["W7_best_cell"], desc="full_f4 menu: identical to W7_best_cell (the ruling's form is sealed; no corrected form)")
     # W3 NOP respected: opens on truth-NOP rows
     nop_rows = {int(r) for r in truth.rows if truth.nop[r] == 1 and truth.period[r] == BLOCK}
     opens_rows = [int(cx.rob[int(t["entry_bar_abs"]) - off]) for t in trades if int(t["entry_bar_abs"]) - off >= 0]
@@ -1523,7 +1610,8 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         for t in cross:
             s_ = float(sig[int(t["entry_bar_abs"])])
             loss_sigma = float(t["net_usd"]) / max(int(t["units"]), 1) / s_
-            bound = -(float(t["stop_loss"]) + float(meta["jump"]["sigma"]) * math.sqrt(24.0) + THRESH["gap_loss_extra_sigma_max"])
+            sl_term = abs(float(t["entry_price"]) - float(t["stop_loss"])) / s_ if menu else float(t["stop_loss"])   # full_f4: the SL is a price; its distance in sigma
+            bound = -(sl_term + float(meta["jump"]["sigma"]) * math.sqrt(24.0) + THRESH["gap_loss_extra_sigma_max"])
             worst.append(loss_sigma >= bound)
         out["W9_gap_loss_bounded"] = {"value": float(np.mean(worst)) if worst else float("nan"), "threshold": 1.0, "pass": bool((not worst) or all(worst)), "desc": "trades crossing the gap lose at most SL + gap + 0.5 sigma", "n_crossing": len(cross)}
     # W10 spread x5 window: opens inside the window need truth net > the window cost
@@ -1536,7 +1624,7 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         okk = []
         for t in ins:
             r = int(cx.rob[int(t["entry_bar_abs"]) - off])
-            ci = _cell_index(t, cells)
+            ci = (menu_slot_of(t, truth, r, _side(t)) if r >= 0 else -1) if menu else _cell_index(t, cells)
             okk.append(bool(r >= 0 and ci >= 0 and np.isfinite(truth.net[r, _side(t), ci]) and truth.net[r, _side(t), ci] > 0))
         out["W10_spread_window"] = {"value": float(np.mean(okk)) if okk else float("nan"), "threshold": 1.0, "pass": bool((not okk) or all(okk)), "desc": "opens inside the x5 window have truth net > 0 (cost included)", "n_inside": len(ins)}
         okr = [bool(float(t["net_usd"]) > 0) for t in ins]
@@ -1551,14 +1639,18 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     if cell["vol"] in ("step_lh", "step_hl", "ramp_up", "ramp_down") or cell["vol"].startswith(("vstep_", "vramp_")):
         vcb = (world.get("meta") or {}).get("vol_change_bar")
         mid = int(vcb) if (vcb is not None and cell["vol"].startswith(("vstep_", "vramp_"))) else a + (b - a) // 2
-        d1 = [abs(float(t["take_profit"])) * float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) < mid]
-        d2 = [abs(float(t["take_profit"])) * float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) >= mid]
+        if menu:                                                       # full_f4: the sealed quantity read literally, the TP PRICE distance of the order
+            d1 = [abs(float(t["take_profit"]) - float(t["entry_price"])) for t in trades if int(t["entry_bar_abs"]) < mid]
+            d2 = [abs(float(t["take_profit"]) - float(t["entry_price"])) for t in trades if int(t["entry_bar_abs"]) >= mid]
+        else:
+            d1 = [abs(float(t["take_profit"])) * float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) < mid]
+            d2 = [abs(float(t["take_profit"])) * float(sig[int(t["entry_bar_abs"])]) for t in trades if int(t["entry_bar_abs"]) >= mid]
         ratio = (float(np.mean(d2)) / float(np.mean(d1))) if d1 and d2 else float("nan")
         exp_up = cell["vol"] in ("step_lh", "ramp_up") or "_up_" in cell["vol"]
         out["W13_tpsl_track_sigma"] = {"value": ratio, "threshold": ">1" if exp_up else "<1", "pass": bool((not np.isfinite(ratio)) or (ratio > 1.0) == exp_up), "desc": "mean TP price distance second half / first half"}
         cl_ = np.asarray((world.get("bars") if world.get("bars") is not None else cx.ds.bars)["CLOSE"], float)
         dev13, n13 = [], 0
-        for t in trades:
+        for t in (trades if not menu else []):
             db = int(t["entry_bar_abs"]) - off
             r_ = int(cx.rob[db]) if db >= 0 else -1
             d_ = dec.get(r_) if r_ >= 0 else None
@@ -1574,7 +1666,7 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             dev13.append(abs(abs(float(t["take_profit"]) - float(cl_[db])) / (tp_m * s_) - 1.0))
         mx = float(max(dev13)) if dev13 else float("nan")
         dev13b, n13b = [], 0                                          # v3: the strategy's DECLARED TP rule (cell, or protective k x MFE), clipped at the engine's effective cap
-        for t in trades:
+        for t in (trades if not menu else []):
             db = int(t["entry_bar_abs"]) - off
             r_ = int(cx.rob[db]) if db >= 0 else -1
             d_ = dec.get(r_) if r_ >= 0 else None
@@ -1596,6 +1688,26 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
         mxb = float(max(dev13b)) if dev13b else float("nan")
         out["W13_tpsl_track_sigma_v3"] = {"value": {"max_relative_deviation": mxb, "trades_checked": n13b}, "threshold": "every TP distance = the declared TP rule x causal sigma (|ratio - 1| <= 0.02)",
                                           "pass": bool((not dev13b) or mxb <= 0.02), "desc": "corrected form v3 (admitted where a control fails the sealed form): the TP multiple is the declared rule, the cell's TP or the protective k_tp_protect x predicted MFE, clipped at the engine's effective cap; v2 checked the cell multiple only (written before the protective TP)"}
+        if menu:                                                       # full_f4: the declared level rule is the menu's: every executed TP / SL = its slot's levels (1 tick)
+            bad13, n13m = [], 0
+            for t in trades:
+                db = int(t["entry_bar_abs"]) - off
+                r_ = int(cx.rob[db]) if db >= 0 else -1
+                d_ = dec.get(r_) if r_ >= 0 else None
+                si = _side(t)
+                if d_ is None or d_[5] != si or int(d_[7 + si]) < 0:
+                    continue
+                j = int(d_[7 + si])
+                n13m += 1
+                dtp = abs(float(t["take_profit"]) - float(truth.menu["tp"][r_, si, j]))
+                dsl = abs(float(t["stop_loss"]) - float(truth.menu["sl"][r_, si, j]))
+                if not (dtp <= ZZ.LEVEL_TICK * (1 + 1e-6) and dsl <= ZZ.LEVEL_TICK * (1 + 1e-6)):
+                    bad13.append({"entry_bar": int(t["entry_bar_abs"]), "slot_h": M.slot_h(j), "d_tp": dtp, "d_sl": dsl})
+            m13 = {"value": {"trades_checked": n13m, "off_level": len(bad13), "cases": bad13[:10]}, "threshold": "every executed TP / SL = the menu level of the decided slot (|delta| <= 1 tick)",
+                   "pass": bool(not bad13), "form": "menu",
+                   "desc": "full_f4 menu form: the order's distances are the horizon references (absolute levels), not sigma multiples; the declared rule is the menu level, never inflated"}
+            out["W13_tpsl_track_sigma_v2"] = dict(m13)
+            out["W13_tpsl_track_sigma_v3"] = dict(m13)
     # per-side decision audit (proves the comparison)
     both = [x for x in log if x[3] and x[4]]
     won_l = sum(1 for x in both if x[5] == 0)
@@ -1618,6 +1730,8 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
     if truth.mae is not None:
         def high_risk(rr, si):
             net_r, mae_r = truth.net[rr, si], truth.mae[rr, si]
+            if menu:                                                   # full_f4: no allowed slot of the truth menu offers net > 0 with net >= k x MAE
+                return not bool((menu_truth_allowed(truth, rr, si) & (np.nan_to_num(net_r, nan=-np.inf) > 0)).any())
             if not np.isfinite(net_r).all():
                 return True
             capr, lor = float(truth.cap[rr]), float(truth.lo[rr])
@@ -2084,14 +2198,34 @@ def fixed_delay_policy(delay):
 HORIZON_DOMINANCE = 0.90
 
 
-def horizon_mix(roll: dict, view: dict) -> dict:
+def horizon_mix(roll: dict, view: dict, world: dict | None = None) -> dict:
     """RECORD SCHEMA (coordinator condition 2026-10-29): the horizon mix of the EXECUTED entries (the policy's attr: the
     h of every open it placed) and the availability mix under BOTH rules (zz_h / zz_h_alt over the decision rows); the
     flag fires when one horizon takes more than HORIZON_DOMINANCE of the executed entries AND of the available
     decisions under the other rule as well."""
     hs = [int(a["h"]) for a in (roll.get("attr") or []) if a.get("chosen", -1) >= 0 and a.get("h") is not None]
+    truth = (world or {}).get("truth")
+    if truth is not None and truth.menu is not None:                  # full_f4: the EXECUTED entries (the trades, their slot read from their own levels);
+        cx, off = world["cx"], decision_offset(world["scfg"])        # the attr list also holds decisions the best-of-day gate deferred
+        hs, unk = [], 0
+        for t in roll.get("trades") or []:
+            db = int(t["entry_bar_abs"]) - off
+            r = int(cx.rob[db]) if db >= 0 else -1
+            j = menu_slot_of(t, truth, r, _side(t)) if r >= 0 else -1
+            if j >= 0:
+                hs.append(M.slot_h(j))
+            else:
+                unk += 1
     ex = {f"h{h}": (sum(1 for x in hs if x == h) / len(hs) if hs else float("nan")) for h in (3, 6, 12, 24)}
     out = {"executed": ex, "n_executed": len(hs)}
+    if truth is not None and truth.menu is not None:
+        out["n_unmatched_trades"] = unk
+        zm = view.get("zz_menu")
+        if zm is not None:                                            # menu availability per horizon: share of decision rows (either side) where h confirms
+            z = np.asarray(zm, float)
+            okr = np.isfinite(z).all(axis=(1, 2))
+            out["menu_availability"] = {f"h{h}": float(np.mean((z[okr, :, j] == 1.0).any(axis=1))) if okr.any() else float("nan") for j, h in enumerate(M.MENU_HORIZONS)} | {"n_rows": int(okr.sum()),
+                                        "empty_menu_share": float(np.mean(~(z[okr] == 1.0).any(axis=(1, 2)))) if okr.any() else float("nan")}
     rule = None
     for key, name in (("zz_h", "active_rule"), ("zz_h_alt", "other_rule")):
         z = view.get(key)
@@ -2152,6 +2286,60 @@ def SP_exec_profile(world: dict) -> str:
     return "full_f4" if getattr(xv, "sizing_mode", "") == "risk_budget" else xv.identity
 
 
+def w14_control_status(o_seal: dict | None) -> str:
+    """VALIDITY_SPEC on the pair witness: the oracle's sealed W14 counts only with trades (non-vacuous); a failure = DEFECT
+    (the corrected form governs), a pass = VALIDATED (the sealed form governs), none = SEALED_UNVALIDATED (sealed governs)."""
+    nonvac = o_seal is not None and (int(o_seal["n_a"]) + int(o_seal["n_b"])) >= MIN_CONTROL_EVENTS
+    return "DEFECT" if (nonvac and not o_seal["pass"]) else ("VALIDATED" if nonvac else "SEALED_UNVALIDATED")
+
+
+def w14_menu_rule(rec: dict, cx, SCFG, AC, cell: dict, seed: int, genes: dict, twin_trades: dict, key: str, w: dict, oroll: dict) -> None:
+    """W14 under full_f4 (coordinator ruling 2026-10-29): the TRAIN references are side-specific, so in the mirror world a
+    buy becomes a sell and reads other references -- a DECLARED DATA asymmetry, the class of the legacy closer's
+    asymmetric genes. The sealed W14 (mirror world, same references) is judged by its control, the truth oracle on the
+    same pair; where the oracle FAILS it non-vacuously the witness defect is demonstrated and the corrected form
+    W14_mirror_menu (mirror world with side-SWAPPED references) governs, for the strategy and for E6 alike; where the
+    oracle passes, the sealed form governs. The swapped twin's discrepancy is also the code-symmetry evidence
+    (W14_swap-style, <= 1e-9 sigma expected at zero cost)."""
+    sealed = rec["results"]["W14_mirror"]
+    o_twin = twin_trades.get("__oracle__", {}).get(key, {}).get(cell["mirror_of"])
+    o_seal = mirror_check(o_twin, oroll["trades"]) if o_twin is not None else None
+    c2 = dict(cell, swap_refs=True)
+    w2 = cell_world(cx, SCFG, AC, c2, seed)
+    strat2, view2, cells2 = strategy_for(w2, genes, AC)
+    roll2 = rollout_cell(w2, strat2, view2, cells2)
+    ov2 = oracle_view(w2, view2)
+    oroll2 = rollout_oracle(w2, ov2, cells2)
+    annotate_sigma(w2, roll2["trades"])
+    annotate_sigma(w2, oroll2["trades"])
+    s_menu = mirror_check(twin_trades[key][cell["mirror_of"]], roll2["trades"])
+    o_menu = mirror_check(o_twin, oroll2["trades"]) if o_twin is not None else None
+    status = w14_control_status(o_seal)
+    gov = dict(s_menu if status == "DEFECT" else sealed)
+    gov.update({"form": "W14_mirror_menu" if status == "DEFECT" else "W14_mirror", "control_status": status,
+                "desc": "full_f4: " + ("mirror world with side-swapped references (the oracle fails the sealed form: declared data asymmetry)" if status == "DEFECT" else "sealed form (mirror world, same references)")})
+    rec["results"]["W14_mirror"] = gov
+    rec["w14"] = {"sealed": sealed, "menu_swapped_refs": s_menu, "oracle_sealed": o_seal, "oracle_menu_swapped_refs": o_menu, "control_status": status,
+                  "governing_form": gov["form"], "code_symmetry_max_net_discrepancy_sigma": s_menu.get("max_net_discrepancy_ex_financing_sigma"),
+                  "oracle_code_symmetry_max_net_discrepancy_sigma": (o_menu or {}).get("max_net_discrepancy_ex_financing_sigma"),
+                  "swapped_twin_trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll2["trades"]]}
+    if status == "DEFECT" and "E6_exit_mirror" in rec["exit"]["witnesses"]:  # E6 follows the same control: the swapped twin's episodes
+        ex2 = exit_layer_of(c2, w2, strat2, view2, cells2, roll2, oroll2, ov2)
+        ea = (twin_trades.get("__exit__", {}).get(key) or {}).get(cell["mirror_of"])
+        eb = ex2["episode_summary"]
+        dmax = max(abs(ea[0]["early"] - eb[1]["early"]), abs(ea[1]["early"] - eb[0]["early"]), abs(ea[0]["mean_R"] - eb[1]["mean_R"]), abs(ea[1]["mean_R"] - eb[0]["mean_R"]),
+                   abs(ea[0]["n"] - eb[1]["n"]), abs(ea[1]["n"] - eb[0]["n"]))
+        e6s = rec["exit"]["witnesses"]["E6_exit_mirror"]
+        e6 = {"value": {"max_discrepancy": dmax}, "threshold": 1e-9, "pass": bool(dmax <= 1e-9), "form": "E6_exit_mirror_menu", "sealed": e6s,
+              "desc": "full_f4: episode exit mix and mean R of the zero-cost twin and its mirror with side-swapped references"}
+        rec["exit"]["witnesses"]["E6_exit_mirror"] = e6
+        for lst in ("failing_effective", "failing_sealed"):
+            rec["exit"][lst] = [x for x in rec["exit"][lst] if x != "E6_exit_mirror"] + ([] if e6["pass"] else ["E6_exit_mirror"])
+        rec["exit"]["PASS_effective"] = not rec["exit"]["failing_effective"]
+        rec["exit"]["PASS_sealed"] = not rec["exit"]["failing_sealed"]
+        rec["PASS_effective"] = bool(rec["validity"]["PASS"] and rec["exit"]["PASS_effective"])
+
+
 def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, twin_trades: dict) -> dict:
     t0 = time.time()
     w = cell_world(cx, SCFG, AC, cell, seed)
@@ -2186,7 +2374,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "exec_profile": {"name": SP_exec_profile(w), "identity": (w["scfg"].variant.identity if w["scfg"].variant is not None else "legacy")},
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
-           "trade_summary": trade_summary(w, roll["trades"]), "horizon_mix": horizon_mix(roll, view),
+           "trade_summary": trade_summary(w, roll["trades"]), "horizon_mix": horizon_mix(roll, view, w),
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
            "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))
                                               and exit_layer["PASS_effective"]),
@@ -2195,6 +2383,9 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll["trades"]]}
     key = cell.get("mirror_of") or cell["id"]
     twin_trades.setdefault(key, {})[cell["id"]] = roll["trades"]
+    if w["truth"].menu is not None:                                   # full_f4: the oracle's ledger too (the W14 control) and the swapped-reference twin
+        annotate_sigma(w, oroll["trades"])
+        twin_trades.setdefault("__oracle__", {}).setdefault(key, {})[cell["id"]] = oroll["trades"]
     twin_exit = twin_trades.setdefault("__exit__", {})
     twin_exit.setdefault(key, {})[cell["id"]] = exit_layer["episode_summary"]
     if cell.get("mirror_of") and cell["mirror_of"] not in twin_trades.get(key, {}):
@@ -2215,8 +2406,10 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
                 rec["exit"]["failing_effective"].append("E6_exit_mirror"); rec["exit"]["failing_sealed"].append("E6_exit_mirror")
                 rec["exit"]["PASS_effective"] = rec["exit"]["PASS_sealed"] = False
                 rec["PASS_effective"] = False
+        if w["truth"].menu is not None:                               # full_f4: the W14 rule as sealed, judged by its control (coordinator ruling 2026-10-29)
+            w14_menu_rule(rec, cx, SCFG, AC, cell, seed, genes, twin_trades, key, w, oroll)
         rec["PASS"] = bool(rec["PASS"] and rec["results"]["W14_mirror"]["pass"])
-        rec["PASS_sealed"] = bool(rec["PASS_sealed"] and rec["results"]["W14_mirror"]["pass"])
+        rec["PASS_sealed"] = bool(rec["PASS_sealed"] and (rec.get("w14") or {}).get("sealed", rec["results"]["W14_mirror"])["pass"])   # the SEALED form, whatever governs
         rec["PASS_v2"] = bool(rec["PASS_v2"] and rec["results"]["W14_mirror"]["pass"])
         rec["PASS_effective"] = bool(rec["PASS_effective"] and rec["results"]["W14_mirror"]["pass"])
         rec["results"]["PASS"] = rec["PASS"]

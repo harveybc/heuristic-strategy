@@ -189,6 +189,17 @@ def ev_rows(table: dict, rows, si: int, cells, e_time: float, cost: float) -> np
     r = np.asarray(rows, np.int64)
     out = np.full(len(r), np.nan)
     cap, lo = table.get("cap"), table.get("lo")
+    from . import menu as M
+    if M.is_menu(cells):                                         # full_f4 decision menu: the same EV rule on the slot's own distances in sigma
+        for i, rr in enumerate(r):
+            net, p3 = np.asarray(table["net"][rr, si], float), np.asarray(table["p3"][rr, si], float)
+            if not (np.all(np.isfinite(net)) and np.all(np.isfinite(p3))):
+                continue
+            ok = M.allowed(net, np.asarray(table["zz_menu"][rr, si], float) == 1.0, table["menu_tp_s"][rr, si], table["menu_sl_s"][rr, si], cost)
+            if ok.any():
+                ci = M.argmax_slot(net, ok)
+                out[i] = float(p3[0]) * float(table["menu_tp_s"][rr, si, ci]) - float(p3[1]) * float(table["menu_sl_s"][rr, si, ci]) + float(p3[2]) * float(e_time) - float(cost)
+        return out
     for i, rr in enumerate(r):
         out[i] = best_cell_ev(table["net"][rr, si], table["p3"][rr, si], cells, e_time, cost,
                               cap=float(cap[rr]) if cap is not None else float("nan"), lo=float(lo[rr]) if lo is not None else float("nan"))[1]
@@ -852,6 +863,14 @@ CLOSER_HEAD_CONTRACT = {
     "horizon_map": "the head is market-only and horizon-free: it is decoded at the position's remaining distances whatever the opener's horizon (full_f4: the absolute SL / TP of the decision's MT horizon); the horizon enters the closer only through those distances",
     "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)",
 }
+MENU_CHANGELOG = {"when": "2026-10-29", "change": "v2.1 (full_f4 only): the DECISION MENU (menu.py; coordinator ruling ~05:50Z) -- the policy values exactly the orders it places: "
+                  "the candidate orders {(h, side): h in 3 / 6 / 12 / 24} built at the decision bar by horizon_levels.levels (+ NOP), a horizon without a confirming MT level "
+                  "out of the menu at that bar; the engine truth = the exact replay of THAT menu on the profile engine (net sigma and USD, first barrier, MAE / MFE, exit reason); "
+                  "heads, quality ladder, truth oracle, O*, hold oracle, forced-entry episodes and exploration visits on the same menu; EV ranks (h, side); horizon_rule = the "
+                  "tie-break among confirming horizons; W7 = the executed (h, side) is the best of the truth menu among the allowed slots, W2 / W10 judge the executed order; "
+                  "the protective TP (k_tp_protect x MFE, tp_mode) is INERT under full_f4 (a contracted TP is never inflated) and out of that profile's DEAP genome",
+                  "why": "tier 1 on fbe52e7 ranked the sides on sigma-cell predictions and executed absolute horizon orders (MENU_MISMATCH): 643 trades, 58 % SL exits, 31 % of re-opens "
+                         "within one bar of the previous close on B_cal_cutoff12 s0; supersedes fbe52e7's 'truth on sigma, orders absolute' for full_f4; full_f3 / LEGACY keep the sigma grid, byte-identical"}
 CONTRACT_CHANGELOG = (
     {"when": "2026-10-29", "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",
      "why": "S1-S6 of the owner's order 2026-10-29; the audited full_f3 profile stays the declared control (exec_profile full_f3 / absent): byte-identical"},
@@ -954,6 +973,15 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                                     "sizing": {"rule": "q = c x min(1, rho x balance / L1), L1 = units_max(q = 1) x (SL distance + cost per unit + funding reserve); units = floor(q x units_max); c = 1 (fixed until head confidence is calibrated); funding reserve 0",
                                                "cost_per_unit": "the engine's convention: slippage market + slippage stop + 2 x commission per lot / lot units; the spread is in the quotes; swaps by side per rollover in the P&L",
                                                "loss_bound_status": "a modeled stop loss, never a bound on gap losses (W9 stays)"},
+                                    "decision_menu": {"module": "app/short_horizon/expert_guided/menu.py", "horizons": [3, 6, 12, 24], "slots": "(h, side) absolute orders + NOP; the world's cells are ('H', h)",
+                                                      "membership": "a slot is in the menu at bar b iff its MT level confirms the side at b (HORIZON_RULE per level); none = NOP",
+                                                      "truth": "exact replay of every menu order on the profile engine (clean account, profile sizing and costs): net sigma / USD, first barrier, MAE / MFE, exit reason; the ideal confirmations as the truth menu",
+                                                      "ranking": "EV over the allowed slots of each side (RR rule on the order's own distances, RR floor on the MAE), the higher side wins; horizon_rule (finest | coarsest) breaks ties",
+                                                      "witnesses": "W7 = executed (h, side) best of the truth menu among the allowed slots (both sides); W2 / W10 judge the executed order's slot; W13 menu form = executed TP / SL equal the slot's levels (1 tick); W14 judged by its oracle control with the side-swapped-reference mirror as the corrected form",
+                                                      "inert_under_menu": {"k_tp_protect": "a contracted TP is never inflated", "tp_mode": "the protective envelope is off"},
+                                                      "ref_slot": "h = 6 (the 3-class opener head and E[net | TIME]; unused by ev_from_net = 1)",
+                                                      "exploration": "a slot drawn uniformly among the four horizons (confirmation-free order geometry)",
+                                                      "level_genes_guard": "the truth is stamped with a_sl / b_sl / buffer_pips / a_tp / b_tp / quantile; a policy with other level genes is refused (MENU_GENES_MISMATCH)"},
                                     "closers": {"fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
                                                 "separating_fixture": "native-engine unit test: quote 100, path 98 -> 104, A SL 99 / TP 106 -> CLOSE (A = +0.333, the next-open close is the optimum), B SL 97 / TP 104 -> HOLD; mirror; A' flips to HOLD iff market-close cost - stop cost > d_SL + EPS_CLOSE"}}
     doc["best_of_day"] = dict(BEST_OF_DAY)
@@ -975,7 +1003,7 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
     doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256,
                                  "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"}
     doc["closer_head"] = dict(CLOSER_HEAD_CONTRACT)
-    doc["changelog"] = list(CONTRACT_CHANGELOG)
+    doc["changelog"] = ([dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
     return ACT.seal(doc)
 
 

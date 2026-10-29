@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_20de05faf1865b14",
+ "identity": "action_e460e586088122b7",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -1256,6 +1256,27 @@
    "cost_per_unit": "the engine's convention: slippage market + slippage stop + 2 x commission per lot / lot units; the spread is in the quotes; swaps by side per rollover in the P&L",
    "loss_bound_status": "a modeled stop loss, never a bound on gap losses (W9 stays)"
   },
+  "decision_menu": {
+   "module": "app/short_horizon/expert_guided/menu.py",
+   "horizons": [
+    3,
+    6,
+    12,
+    24
+   ],
+   "slots": "(h, side) absolute orders + NOP; the world's cells are ('H', h)",
+   "membership": "a slot is in the menu at bar b iff its MT level confirms the side at b (HORIZON_RULE per level); none = NOP",
+   "truth": "exact replay of every menu order on the profile engine (clean account, profile sizing and costs): net sigma / USD, first barrier, MAE / MFE, exit reason; the ideal confirmations as the truth menu",
+   "ranking": "EV over the allowed slots of each side (RR rule on the order's own distances, RR floor on the MAE), the higher side wins; horizon_rule (finest | coarsest) breaks ties",
+   "witnesses": "W7 = executed (h, side) best of the truth menu among the allowed slots (both sides); W2 / W10 judge the executed order's slot; W13 menu form = executed TP / SL equal the slot's levels (1 tick); W14 judged by its oracle control with the side-swapped-reference mirror as the corrected form",
+   "inert_under_menu": {
+    "k_tp_protect": "a contracted TP is never inflated",
+    "tp_mode": "the protective envelope is off"
+   },
+   "ref_slot": "h = 6 (the 3-class opener head and E[net | TIME]; unused by ev_from_net = 1)",
+   "exploration": "a slot drawn uniformly among the four horizons (confirmation-free order geometry)",
+   "level_genes_guard": "the truth is stamped with a_sl / b_sl / buffer_pips / a_tp / b_tp / quantile; a policy with other level genes is refused (MENU_GENES_MISMATCH)"
+  },
   "closers": {
    "fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
    "separating_fixture": "native-engine unit test: quote 100, path 98 -> 104, A SL 99 / TP 106 -> CLOSE (A = +0.333, the next-open close is the optimum), B SL 97 / TP 104 -> HOLD; mirror; A' flips to HOLD iff market-close cost - stop cost > d_SL + EPS_CLOSE"
@@ -1305,6 +1326,11 @@
   "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)"
  },
  "changelog": [
+  {
+   "when": "2026-10-29",
+   "change": "v2.1 (full_f4 only): the DECISION MENU (menu.py; coordinator ruling ~05:50Z) -- the policy values exactly the orders it places: the candidate orders {(h, side): h in 3 / 6 / 12 / 24} built at the decision bar by horizon_levels.levels (+ NOP), a horizon without a confirming MT level out of the menu at that bar; the engine truth = the exact replay of THAT menu on the profile engine (net sigma and USD, first barrier, MAE / MFE, exit reason); heads, quality ladder, truth oracle, O*, hold oracle, forced-entry episodes and exploration visits on the same menu; EV ranks (h, side); horizon_rule = the tie-break among confirming horizons; W7 = the executed (h, side) is the best of the truth menu among the allowed slots, W2 / W10 judge the executed order; the protective TP (k_tp_protect x MFE, tp_mode) is INERT under full_f4 (a contracted TP is never inflated) and out of that profile's DEAP genome",
+   "why": "tier 1 on fbe52e7 ranked the sides on sigma-cell predictions and executed absolute horizon orders (MENU_MISMATCH): 643 trades, 58 % SL exits, 31 % of re-opens within one bar of the previous close on B_cal_cutoff12 s0; supersedes fbe52e7's 'truth on sigma, orders absolute' for full_f4; full_f3 / LEGACY keep the sigma grid, byte-identical"
+  },
   {
    "when": "2026-10-29",
    "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",

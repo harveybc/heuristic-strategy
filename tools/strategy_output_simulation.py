@@ -173,6 +173,7 @@ class Truth:
     stamp: dict
     mae: np.ndarray | None = None   # (n, 2, cells) engine maximum adverse excursion in sigma (NaN unknown); the MAE head's truth
     mfe: np.ndarray | None = None   # (n, 2, cells) engine maximum favourable excursion in sigma; the protective-TP head's truth
+    menu: dict | None = None        # full_f4 only (menu.py): mask (n, 2, 4) ideal confirmations, tp / sl prices, tp_s / sl_s, net_usd, exit_code, stamp
 
 
 def load_fold(fold: str, admitted: str, csv_dir: str):
@@ -270,6 +271,90 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
     return Truth(fold, [list(c) for c in cells], ref, rows, np.asarray(cx.ds.period), day, hit3, net, nop, e_time, cost, cap, lo, xvis,
                  {"entry_table": et["stamp"], "refused": {k: int(v_) for k, v_ in et["refused"].items()}, "explore_seed": explore_seed,
                   "exploration_prior": list(EXPLORATION_PRIOR)}, mae=mae_t, mfe=mfe_t)
+
+
+def menu_exploration(cx, prior, seed, ords: dict, mirror: bool = False):
+    """The full_f4 exploration visits for the closer references: the action prior as prior_random_cells, the order a
+    menu slot drawn uniformly among the four horizons at the decision row (the menu's order geometry, confirmation-free,
+    declared); ``mirror`` swaps LONG / SHORT BEFORE the slot's prices are read, so the mirror twin explores the
+    mirrored visits with orders of its own side."""
+    from app.short_horizon.expert_guided import menu as M
+    rng = np.random.default_rng(seed)
+    cum = np.cumsum(prior)
+    swap = {E.LONG: E.SHORT, E.SHORT: E.LONG}
+
+    def f(bar, r, st, env):
+        a = int(np.searchsorted(cum, rng.random() * cum[-1], side="right"))
+        j = int(rng.integers(0, len(M.MENU_HORIZONS)))
+        if mirror:
+            a = swap.get(a, a)
+        if a in (E.LONG, E.SHORT):
+            si = 0 if a == E.LONG else 1
+            tp, sl = float(ords["tp"][r, si, j]), float(ords["sl"][r, si, j])
+            if not (np.isfinite(tp) and np.isfinite(sl)):
+                return E.HOLD, 1.5, 2.0
+            return a, tp, sl
+        return a, 1.5, 2.0
+    return f
+
+
+def build_truth_menu(cx, SCFG, fold: str, contract: dict, bars, params: dict, explore_seed: int = 0, only_periods=None, mirror_exploration: bool = False,
+                     swap_refs: bool = False) -> Truth:
+    """The full_f4 engine truth (coordinator ruling 2026-10-29): the exact replay of the decision MENU (menu.py) on the
+    PROFILE engine: per (row, side, h) the net in sigma and USD, the first barrier, MAE / MFE, exit reason; the ideal
+    confirmations as the menu mask; the reality-based NOP over the menu; the exploration visits with menu orders. The
+    truth is stamped with the level genes (menu.check_stamp refuses a policy with other genes)."""
+    from app.short_horizon.expert_guided import menu as M
+    from app.short_horizon.expert_guided import strategy_zz as ZZ
+    cells = [list(c) for c in M.MENU_CELLS]
+    rb = np.asarray(cx.ds.row_bar, np.int64)
+    n = len(rb)
+    env = OC.make_env(cx, SCFG)
+    rows_sel = np.flatnonzero(cx.obs_ok & np.isin(cx.ds.period, list(only_periods))) if only_periods else OC.entry_rows(cx, env)
+    rows_sel = rows_sel[(rb[rows_sel] >= env.first) & (rb[rows_sel] < env.last)] if len(rows_sel) else rows_sel
+    close = np.asarray(bars["CLOSE"], float)
+    ords = M.orders(close, cx.ds.sigma, rb, params, swap_refs=swap_refs)
+    mask = M.rows_of_bars(M.confirmations(len(close), ZZ.mt_levels(bars)), rb)
+    et = M.entry_table(env, rows_sel, rb, ords)
+    rows = np.flatnonzero(cx.obs_ok)
+    ref = M.ref_slot()
+    e_time = []
+    tr_rows = np.flatnonzero(et["eligible"] & (np.asarray(cx.ds.period) == "TRAIN"))
+    for si in (0, 1):
+        h_, x_ = et["hit"][tr_rows, si, ref], et["net_sigma"][tr_rows, si, ref]
+        m_ = (h_ == OC.HIT_TIME) & np.isfinite(x_)
+        e_time.append(float(x_[m_].mean()) if m_.any() else 0.0)
+    cal_rows = np.flatnonzero(cx.obs_ok & (cx.ds.period == CAL_BLOCK))
+    from tools.expert_guided_e3m import COST_SIGMA
+    cost = C3.cost_sigma_of(cx, SCFG, float(COST_SIGMA), cal_rows)
+    cap, lo = C3.cap_arrays(cx, SCFG)
+    net = et["net_sigma"].astype(float)
+    nop = np.ones(n, np.int64)
+    for r in rows_sel:
+        best = -np.inf
+        for si in (0, 1):
+            ok = M.allowed(net[r, si], mask[r, si], ords["tp_s"][r, si], ords["sl_s"][r, si], base=cost, rr_margin=C3.RR_MARGIN_SIGMA)
+            if ok.any():
+                best = max(best, float(np.max(net[r, si][ok])))
+        nop[r] = 0 if best > cost else 1
+    v = cx.ds.bars.index.as_unit("ns").asi8
+    day = np.full(n, -1, np.int64)
+    okb = rb >= 0
+    day[okb] = (v[rb[okb]] // (24 * 3600 * 10 ** 9)).astype(np.int64)
+    xvis = {}
+    for p in (CAL_BLOCK, SEL_BLOCK, DEC_BLOCK):
+        if p in xvis or (only_periods and p not in only_periods):
+            continue
+        vis = OC.visit_positions(cx, p, menu_exploration(cx, list(EXPLORATION_PRIOR), explore_seed, ords, mirror=mirror_exploration), SCFG)
+        xt = OC.exit_table(cx, SCFG, vis)
+        xvis[p] = {"row": xt["row"], "bar": xt["bar"], "side": xt["side"], "remaining": xt["remaining"], "sl_first": xt["sl_first"],
+                   "censored": xt["censored"], "exit_bar": xt["exit_bar"]}
+    menu = {"mask": mask, "tp": ords["tp"], "sl": ords["sl"], "tp_s": ords["tp_s"], "sl_s": ords["sl_s"], "net_usd": et["net_usd"], "exit_code": et["exit_code"],
+            "exit_bar": et["exit_bar"], "stamp": ords["stamp"]}
+    return Truth(fold, cells, ref, rows, np.asarray(cx.ds.period), day, et["hit"][:, :, ref].astype(np.int64), net, nop, e_time, cost, cap, lo, xvis,
+                 {"entry_table": {"menu": True, "stamp": ords["stamp"], "horizons": list(M.MENU_HORIZONS), "ref_h": M.MENU_REF_H}, "refused": {k: int(v_) for k, v_ in et["refused"].items()},
+                  "explore_seed": explore_seed, "exploration_prior": list(EXPLORATION_PRIOR), "rows_replayed": int(len(rows_sel))},
+                 mae=et["mae"].astype(float), mfe=et["mfe"].astype(float), menu=menu)
 
 
 def save_truth(path: Path, t: Truth):
@@ -632,7 +717,7 @@ class SimCloser:
     def value(self, r, bar, pos):
         k = pos_key(pos, bar)
         if k not in self.cache:
-            pk = ("path", int(pos.entry_bar), int(pos.direction), round(float(pos.tp), 7), round(float(pos.sl), 7))
+            pk = ("path", int(pos.entry_bar), int(pos.direction), round(float(pos.tp), 7), round(float(pos.sl), 7), int(pos.units))
             path = self.cache.get(pk)
             i = int(np.searchsorted(path["bars"], int(bar))) if path is not None else -1
             if path is not None and i < len(path["bars"]) and int(path["bars"][i]) == int(bar):
@@ -651,7 +736,9 @@ class SimCloser:
         """The engine exit path restricted to the EXECUTABLE decision ticks (an observable row: the policy can decide
         there); the natural exit stays. Ticks of a missing-data run are not exits anyone can take: without the
         restriction A(t) compared an executable close with closes inside a missing run (behaviour matrix, LHS_48)."""
-        k = ("path", int(pos.entry_bar), int(pos.direction), round(float(pos.tp), 7), round(float(pos.sl), 7))
+        # the UNITS are part of the key (F10 2026-10-29): P is in USD of the position's own units; two policies placing the same
+        # levels at the same bar with different balances (risk sizing) shared one path and E2 mixed one's P with the other's net
+        k = ("path", int(pos.entry_bar), int(pos.direction), round(float(pos.tp), 7), round(float(pos.sl), 7), int(pos.units))
         if k not in self.cache:
             p = trade_path(self.env, pos)
             rob, ok = self.cx.rob, self.cx.obs_ok
@@ -852,11 +939,15 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
                 # corr(E[x|r], x) = rho, MAE / naive = sqrt(1 - rho^2); chance (rho 0) returns the naive mean, the oracle returns x
                 r_noisy = x + sigma_for_rho(qn, sd_net) * (0.5 * en[0] + math.sqrt(0.75) * en[1:])   # shared row + cell noise
                 t["net"][r, si, :] = mu_net + (qn ** 2) * (r_noisy - mu_net)
+            elif truth.menu is not None and np.isfinite(x).any():
+                # full_f4 menu: a slot the engine refused (levels not executable) is a -1 slot; the others carry the head
+                r_noisy = np.where(np.isfinite(x), x, 0.0) + sigma_for_rho(qn, sd_net) * (0.5 * en[0] + math.sqrt(0.75) * en[1:])
+                t["net"][r, si, :] = np.where(np.isfinite(x), mu_net + (qn ** 2) * (r_noisy - mu_net), -1.0)
             else:
                 t["net"][r, si, :] = -1.0                       # no eligible entry at this row: the strategy must not open here
             if truth.mae is not None:
                 xm = truth.mae[r, si]
-                if np.all(np.isfinite(xm)):
+                if np.all(np.isfinite(xm)) or (truth.menu is not None and np.isfinite(xm).any()):
                     em = noise.draw(("mae", int(r), si), day, nc)
                     sdm = float(np.nanstd(truth.mae[cal])) if np.isfinite(truth.mae[cal]).any() else 1.0
                     mum = float(np.nanmean(truth.mae[cal])) if np.isfinite(truth.mae[cal]).any() else 0.0
@@ -864,7 +955,7 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
                     t["mae"][r, si, :] = np.maximum(0.0, mum + (qn ** 2) * (rn - mum))
             if truth.mfe is not None:
                 xf = truth.mfe[r, si]
-                if np.all(np.isfinite(xf)):
+                if np.all(np.isfinite(xf)) or (truth.menu is not None and np.isfinite(xf).any()):
                     ef = noise.draw(("mfe", int(r), si), day, nc)
                     sdf = float(np.nanstd(truth.mfe[cal])) if np.isfinite(truth.mfe[cal]).any() else 1.0
                     muf = float(np.nanmean(truth.mfe[cal])) if np.isfinite(truth.mfe[cal]).any() else 0.0

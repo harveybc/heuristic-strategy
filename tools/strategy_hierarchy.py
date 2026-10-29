@@ -152,7 +152,7 @@ TREND_STRENGTH = {"weak": 0.5, "medium": 1.0, "strong": 2.0}     # multiples of 
 
 def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, seed: int, block: tuple, switch_fracs=None,
                       persistence: float | None = None, start: float = 1.10, mirror: bool = False, strength: str = "medium", jump: dict | None = None,
-                      strengths: list | None = None, vol_frac: float | None = None):
+                      strengths: list | None = None, vol_frac: float | None = None, mirror_tick: float | None = None):
     """Multi-leg hourly OHLC on the real calendar: coarse legs (regimes) switching at ``switch_fracs`` of the scoring
     block (the first leg runs from the start of the index, the last to its end), a volatility process (constant level,
     step, ramp, GARCH clustering with the given persistence), the L2 fine oscillation, and optionally the exact log
@@ -222,7 +222,7 @@ def synthetic_path_v2(index, base_sd: float, legs: tuple, vol: str, fine: str, s
     lo = np.minimum(o, c) * (1 - intr)
     bars = pd.DataFrame({"OPEN": o, "HIGH": hi, "LOW": lo, "CLOSE": c}, index=index)
     if mirror:
-        bars = mirror_bars(bars)
+        bars = mirror_bars(bars, tick=mirror_tick)
     meta = {"switch_bars": [int(x) for x in switches], "switch_fracs": [float(f) for f in switch_fracs], "legs": list(legs), "vol": vol,
             "persistence": float(pers), "block": [a, b], "mirror": bool(mirror), "strength": strength, "jump_bar": jump_bar, "jump": jump,
             "strengths": list(strengths) if strengths else [strength] * len(legs),
@@ -235,7 +235,7 @@ MS_SHORT_FINE = {"low": (1.5, 0.5), "medium": (2.5, 1.0), "high": (4.0, 2.0)}
 MS_VOL = ("none", "slow", "fast", "both")
 
 
-def synthetic_path_ms(index, base_sd: float, spec: dict, seed: int, block: tuple, mirror: bool = False, start: float = 1.10):
+def synthetic_path_ms(index, base_sd: float, spec: dict, seed: int, block: tuple, mirror: bool = False, start: float = 1.10, mirror_tick: float | None = None):
     """A MULTI-SCALE world as a sum of independent components, each with its own horizon, intensity and timing
     (owner 2026-10-27). ``spec``:
       long   {"legs": [...], "strengths": [...], "switch_fracs": [...]} or None   weeks-months (the AR(1) trend drift)
@@ -377,7 +377,7 @@ def synthetic_path_ms(index, base_sd: float, spec: dict, seed: int, block: tuple
     lo = np.minimum(o, c) * (1 - intr)
     bars = pd.DataFrame({"OPEN": o, "HIGH": hi, "LOW": lo, "CLOSE": c}, index=index)
     if mirror:
-        bars = mirror_bars(bars)
+        bars = mirror_bars(bars, tick=mirror_tick)
     meta = {"kind": "multi_scale", "block": [a, b], "mirror": bool(mirror), "spec": spec, "switch_bars": long_switches,
             "legs": list(lw["legs"]) if lw else ["range"], "strengths": list(lw.get("strengths") or []) if lw else [],
             "turning_points": {"long": long_switches, "medium": med_ends, "short": short_ext}, "burst_windows": burst_windows,
@@ -412,12 +412,14 @@ def pivot_matching(pivots_by_level: dict, turning_points: dict, block: tuple, to
     return {"per_level": out, "capture": capture, "tolerance_bars": tol}
 
 
-def mirror_bars(bars: pd.DataFrame) -> pd.DataFrame:
+def mirror_bars(bars: pd.DataFrame, tick: float | None = None) -> pd.DataFrame:
     """The exact PRICE mirror of a path: p' = K - p with K = max(HIGH) + min(LOW) (every price change negated), HIGH' =
     mirror(LOW), LOW' = mirror(HIGH). The engine works in price units (sigma from squared close differences, TP / SL
     distances, spreads), so the additive mirror keeps every distance, every sigma and every range identical and flips
     every move: the strategy's trades must mirror exactly (a log mirror would change the price-unit sigma)."""
     K = float(np.nanmax(bars["HIGH"])) + float(np.nanmin(bars["LOW"]))   # reflect around the middle of the path's range: the mirror
+    if tick is not None:                                                    # full_f4 (F10 2026-10-29): levels live on a tick grid (SL away, TP toward the entry);
+        K = round(K / float(tick)) * float(tick)                            # the floor / ceil rounding mirrors exactly only when K is ON the grid
     f = lambda x: K - np.asarray(x, float)  # noqa: E731                     # stays inside [min, max] (around the first close a strong
                                                                             # 3-year uptrend mirrored to prices near or below zero)
     return pd.DataFrame({"OPEN": f(bars["OPEN"]), "HIGH": f(bars["LOW"]), "LOW": f(bars["HIGH"]), "CLOSE": f(bars["CLOSE"])}, index=bars.index)
@@ -590,11 +592,14 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
     r = np.diff(np.log(ds.bars["CLOSE"].to_numpy(float)))
     base_sd = float(np.nanstd(r))
     meta = None
+    absolute = getattr(SCFG.variant, "level_mode", "sigma") == "absolute_pips"
+    from app.short_horizon.expert_guided import strategy_zz as _ZZ
+    mtick = _ZZ.LEVEL_TICK if absolute else None                      # full_f4: the mirror's reflection constant on the level grid (sigma profiles: unchanged)
     if leaf.get("ms"):
         import re as _re
         import zlib
         base_id = _re.sub(r"^(M_|S_)+", "", leaf["id"])
-        bars, meta = synthetic_path_ms(ds.bars.index, base_sd, leaf["ms"], (zlib.crc32(base_id.encode()) & 0xFFFF) + 7919 * int(seed), period_bars(ds, calendar_period), mirror=bool(leaf.get("mirror")))
+        bars, meta = synthetic_path_ms(ds.bars.index, base_sd, leaf["ms"], (zlib.crc32(base_id.encode()) & 0xFFFF) + 7919 * int(seed), period_bars(ds, calendar_period), mirror=bool(leaf.get("mirror")), mirror_tick=mtick)
     elif leaf.get("legs"):
         import zlib
         import re as _re
@@ -603,7 +608,7 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
         block = period_bars(ds, calendar_period)
         bars, meta = synthetic_path_v2(ds.bars.index, base_sd, tuple(leaf["legs"]), leaf["vol"], leaf["fine"], seed_v2, block, leaf.get("switch_fracs") or None,
                                        leaf.get("persistence"), mirror=bool(leaf.get("mirror")), strength=leaf.get("strength", "medium"), jump=leaf.get("jump"),
-                                       strengths=leaf.get("strengths"), vol_frac=leaf.get("vol_frac"))
+                                       strengths=leaf.get("strengths"), vol_frac=leaf.get("vol_frac"), mirror_tick=mtick)
     else:
         bars = synthetic_path(ds.bars.index, base_sd, leaf["regime"], leaf["vol"], leaf["fine"], seed)
     from tools.expert_guided_e1t import Ctx
@@ -634,9 +639,17 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
     # the engine TRUTH (outcome heads per cell of the sigma grid), the exploration visits and the truth-based controls
     # run on the SIGMA-LEVEL engine whatever the execution profile: the cell grid is a property of the world; the
     # profile's level mode (absolute per-horizon levels) governs the strategy's own orders only (S6, 2026-10-29)
-    S2_truth = S.truth_config(S2)
-    truth = S.build_truth(cx2, S2_truth, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
-                          mirror_exploration=bool(leaf.get("mirror")))
+    # full_f4 (coordinator ruling 2026-10-29, supersedes the line above for the absolute-level profile): the truth is the
+    # exact replay of the DECISION MENU (menu.py) on the PROFILE engine; the truth-based controls run on the profile too
+    if getattr(S2.variant, "level_mode", "sigma") == "absolute_pips":
+        from app.short_horizon.expert_guided import strategy_zz as ZZ
+        S2_truth = S2
+        truth = S.build_truth_menu(cx2, S2, "synthetic", AC, bars, ZZ.PARAMS, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
+                                   mirror_exploration=bool(leaf.get("mirror")), swap_refs=bool(leaf.get("swap_refs")))
+    else:
+        S2_truth = S.truth_config(S2)
+        truth = S.build_truth(cx2, S2_truth, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
+                              mirror_exploration=bool(leaf.get("mirror")))
     q = S.quality_for(leaf["variant"], float(leaf["quality"]))
     table, sim = S.simulate_table(cx2, S2_truth, truth, q, seed, side_swap=bool(leaf.get("mirror")))
     if meta is not None and meta.get("kind") == "multi_scale":

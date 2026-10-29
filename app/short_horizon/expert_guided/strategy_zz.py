@@ -250,7 +250,13 @@ def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     alt = HORIZON_RULES[1] if rule == HORIZON_RULES[0] else HORIZON_RULES[0]
     return {"room": room, "direction": direction, "tau_coarse": tau_coarse, "flip_age": flip_age, "counter": counter, "fresh": fresh, "tau_fine": tau_fine,
             "fstar": fstar, "votes": votes, "nop_hard": nop_hard, "nop_graded": nop_graded, "pivots": piv, "levels": tuple(levels), "h": h,
-            "horizon": horizon_of_decision(n, mt, rule), "horizon_alt": horizon_of_decision(n, mt, alt), "horizon_rule": rule, "sigma": np.asarray(sigma, float)}
+            "horizon": horizon_of_decision(n, mt, rule), "horizon_alt": horizon_of_decision(n, mt, alt), "horizon_rule": rule, "sigma": np.asarray(sigma, float),
+            "menu": _menu_confirmations(n, mt)}                     # full_f4 decision menu: (n, 2, 4) per-level confirmations (menu.py)
+
+
+def _menu_confirmations(n: int, mt: dict, causal: bool = False) -> np.ndarray:
+    from . import menu as M
+    return M.confirmations(n, mt, causal=causal)
 
 
 # ----------------------------------------------------------------------------- the hierarchy heads below perfect quality (README:
@@ -310,6 +316,9 @@ def degrade_quantities(q: dict, rho: float, seed: int) -> dict:
                 elif conf[t, j]:
                     filled[t, j] = last
         out["horizon"] = np.where(conf, filled, np.nan)
+    if "menu" in q:                                                  # full_f4: every (side, level) confirmation through the same ladder (drawn last:
+        from . import menu as M                                      # the earlier streams are unchanged)
+        out["menu"] = M.degrade_confirmations(np.asarray(q["menu"], bool), rho, rng, _ar1)
     out["head_mode"] = f"ladder rho={rho:.3f}"
     return out
 
@@ -369,6 +378,7 @@ def causal_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     rule = _rule_name(PARAMS.get("horizon_rule", 0.0))
     return {"room": nan2.copy(), "direction": direction, "tau_coarse": np.full(n, np.nan), "flip_age": fa, "counter": counter, "fresh": fresh,
             "horizon": horizon_of_decision(n, mt, rule, causal=True), "horizon_rule": rule, "sigma": np.asarray(sigma, float),
+            "menu": _menu_confirmations(n, mt, causal=True),
             "tau_fine": np.full(n, np.nan), "fstar": nan2.copy(), "votes": np.zeros((n, 2)), "nop_hard": np.zeros(n, bool), "nop_graded": np.zeros((n, 2), bool),
             "pivots": piv, "levels": tuple(levels), "h": h, "head_mode": "causal-confirmed"}
 
@@ -399,7 +409,8 @@ def to_rows(q: dict, row_bar) -> dict:
             "zz_flip_age": np.where(ok, q["flip_age"][b], np.nan) if "flip_age" in q else np.full(len(rb), np.inf),
             "zz_h": nan2(q["horizon"]) if "horizon" in q else np.full((len(rb), 2), np.nan),
             "zz_h_alt": nan2(q["horizon_alt"]) if "horizon_alt" in q else np.full((len(rb), 2), np.nan),
-            "zz_sigma": np.where(ok, q["sigma"][b], np.nan) if "sigma" in q else np.full(len(rb), np.nan)}
+            "zz_sigma": np.where(ok, q["sigma"][b], np.nan) if "sigma" in q else np.full(len(rb), np.nan),
+            "zz_menu": np.where(ok[:, None, None], np.asarray(q["menu"], float)[b], np.nan) if "menu" in q else np.full((len(rb), 2, 4), np.nan)}
 
 
 def burst_rows(bars, sigma, row_bar, window: int | None = None, ratio: float | None = None) -> np.ndarray:
@@ -423,10 +434,19 @@ def net_open_margin(view: dict, rows, cells, open_rate: float) -> float:
     and both sides, of the best allowed cell's predicted net (risk-reward floor applied) -- the same rule C3 applies to
     its EV reference."""
     vals = []
+    from . import menu as M
+    menu = M.is_menu(cells)
     for r in np.asarray(rows, np.int64):
         for si in (0, 1):
             net = view["net"][r, si]
             if not np.all(np.isfinite(net)):
+                continue
+            if menu:                                                 # full_f4: the best allowed menu slot (the policy's own rule)
+                mae = view.get("mae")
+                ok = M.allowed(net, np.asarray(view["zz_menu"][r, si], float) == 1.0, view["menu_tp_s"][r, si], view["menu_sl_s"][r, si], 0.0, C3.RR_MARGIN_SIGMA,
+                               mae=None if mae is None else mae[r, si], rr_floor=PARAMS["risk_reward_floor"])
+                if ok.any():
+                    vals.append(float(np.max(np.where(ok, net, -np.inf))))
                 continue
             cap, lo = view.get("cap"), view.get("lo")
             ok = C3.allowed_cells(net, cells, 0.0, C3.RR_MARGIN_SIGMA, float(cap[r]) if cap is not None else float("nan"), float(lo[r]) if lo is not None else float("nan"))
@@ -550,7 +570,54 @@ class PolicyC3Z(C3.PolicyC3):
         c = self.t.get("cost_row")
         return float(c[r]) if c is not None and np.isfinite(c[r]) else self.cost
 
+    # ---- full_f4: the decision MENU (menu.py; coordinator ruling 2026-10-29)
+    def _menu(self) -> bool:
+        from . import menu as M
+        m = getattr(self, "_is_menu", None)
+        if m is None:
+            m = self._is_menu = M.is_menu(self.cells)
+            if m and self.t.get("menu_stamp") is not None:
+                M.check_stamp(self.t["menu_stamp"], PARAMS)          # the guard: the truth's level genes are the policy's
+        return m
+
+    def _menu_mask(self, r, si) -> np.ndarray:
+        z = self.t.get("zz_menu")
+        if z is None:
+            raise ValueError("MENU_WITHOUT_CONFIRMATIONS: a full_f4 table needs zz_menu")
+        return np.asarray(z[r, si], float) == 1.0
+
+    def _menu_choice(self, r, si, cost):
+        from . import menu as M
+        net = np.asarray(self._v("net", r, si), float)
+        mask = self._menu_mask(r, si)
+        mae = self.t.get("mae")
+        ok = M.allowed(net, mask, self.t["menu_tp_s"][r, si], self.t["menu_sl_s"][r, si], 0.0 if PARAMS["ev_from_net"] >= 0.5 else cost, C3.RR_MARGIN_SIGMA,
+                       mae=None if mae is None else mae[r, si], rr_floor=PARAMS["risk_reward_floor"])
+        if not ok.any():
+            return -1, float("nan"), ("no_horizon" if not mask.any() else "rr_floor_or_band")
+        ci = M.argmax_slot(net, ok, PARAMS.get("horizon_rule", 0.0))
+        self._tp_order = float(self.t["menu_tp"][r, si, ci])           # the contracted TP, never inflated
+        if PARAMS["ev_from_net"] >= 0.5:
+            return ci, float(net[ci]), ""
+        p3 = np.asarray(self._v("p3", r, si), float)
+        tp_s, sl_s = float(self.t["menu_tp_s"][r, si, ci]), float(self.t["menu_sl_s"][r, si, ci])
+        return ci, float(p3[0]) * tp_s - float(p3[1]) * sl_s + float(p3[2]) * float(self.e_time[si]) - float(cost), ""
+
+    def menu_envelope(self, r, si):
+        """(slot, tp, sl) of side si at row r whatever the opener says (forced entry, seeded episodes): the best slot of the
+        menu by predicted net among those with TP >= SL, else the best of the menu; None when the menu is empty."""
+        from . import menu as M
+        net = np.asarray(self.t["net"][r, si], float)
+        mask = self._menu_mask(r, si) & np.isfinite(self.t["menu_tp"][r, si]) & np.isfinite(self.t["menu_sl"][r, si]) & np.isfinite(net)
+        ok = mask & (np.asarray(self.t["menu_tp_s"][r, si], float) >= np.asarray(self.t["menu_sl_s"][r, si], float))
+        ci = M.argmax_slot(net, ok if ok.any() else mask, PARAMS.get("horizon_rule", 0.0))
+        if ci < 0:
+            return None
+        return ci, float(self.t["menu_tp"][r, si, ci]), float(self.t["menu_sl"][r, si, ci])
+
     def side_choice(self, r, si, cost):
+        if self._menu():
+            return self._menu_choice(r, si, cost)
         net = np.asarray(self._v("net", r, si), float)
         p3 = np.asarray(self._v("p3", r, si), float)
         cap, lo = self._cap(r)
@@ -602,7 +669,7 @@ class PolicyC3Z(C3.PolicyC3):
                 chosen = 0 if cleared[0] else 1
         if chosen >= 0 and not blocked:                          # the hierarchy VETOES the winner, it never redirects to the other side
             room, ctr, fr = self.t.get("zz_room"), self.t.get("zz_counter"), self.t.get("zz_fresh")
-            tp = float(self.cells[cis[chosen]][0])
+            tp = float(self.t["menu_tp_s"][r, chosen, cis[chosen]]) if self._menu() else float(self.cells[cis[chosen]][0])   # the order's TP in sigma
             fa = self.t.get("zz_flip_age")
             settled = bool(fa is None or not np.isfinite(fa[r]) or fa[r] > PARAMS["zz_post_flip_bars"])     # right after a coarse flip, no exception
             strong = settled and bool(np.isfinite(evs[chosen]) and evs[chosen] >= PARAMS["zz_counter_net_frac"] * tp)   # the outcome heads say it pays most of its TP
@@ -623,6 +690,12 @@ class PolicyC3Z(C3.PolicyC3):
         if chosen < 0:
             return None
         d = E.LONG if chosen == 0 else E.SHORT
+        if self._menu():                                             # the order placed = the menu slot the EV ranked first
+            from . import menu as M
+            ci = cis[chosen]
+            self.attr[-1]["h"] = M.slot_h(ci)
+            out = (d, float(self.t["menu_tp"][r, chosen, ci]), float(self.t["menu_sl"][r, chosen, ci]))
+            return out + (evs[chosen],) if with_score else out
         if self._absolute_mode():
             lv = self.absolute_envelope(r, chosen)
             if lv is None:                                           # no horizon confirms, or the levels are not executable: NOP (declared)
@@ -765,6 +838,15 @@ class PolicyForced(PolicyC3Z):
             return None
         self.last_slot = slot
         si = int(slot % 2)
+        if self._menu():                                             # full_f4: the strategy's own menu envelope for that side; empty menu = no entry
+            env_ = self.menu_envelope(r, si)
+            if env_ is None:
+                self.log.append((int(r), float("nan"), float("nan"), False, False, -1, False, -1, -1))
+                return None
+            ci, tp, sl = env_
+            self.log.append((int(r), float("nan"), float("nan"), si == 0, si == 1, si, False, ci if si == 0 else -1, ci if si == 1 else -1))
+            out = (E.LONG if si == 0 else E.SHORT, tp, sl)
+            return out + (0.0,) if with_score else out
         net = np.asarray(self._v("net", r, si), float)
         cap, lo = self._cap(r)
         ok = C3.allowed_cells(net, self.cells, 0.0, 1e9, cap, lo) | np.zeros(len(self.cells), bool)

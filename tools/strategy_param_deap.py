@@ -56,6 +56,27 @@ FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)
          "risk_pct": "execution contract (owner's sizing rule), not a strategy coefficient", "entry_cutoff_hours": "execution contract (Friday cutoff)",
          "max_entries_per_day": "execution contract (daily cap)", "confirmation_lag_bars": "a witness constant, not consumed by the strategy",
          "open_margin_eps": "numerical guard against float ties on the quantile sample", "forced_every_bars": "the exit audit's episode schedule, not a trading coefficient", "tp_grid": "the cell grid of the outcome heads", "sl_grid": "the cell grid of the outcome heads"}
+# full_f4 (coordinator ruling 2026-10-29): the protective-TP genes are INERT under the decision menu (a contracted TP is never
+# inflated) and are excluded from that profile's genome, so the search does not spend dimensions on them (declared, not silent)
+from app.short_horizon.expert_guided import menu as _MENU  # noqa: E402
+INERT_FULL_F4 = dict(_MENU.INERT_UNDER_MENU)
+GENOME_F4 = tuple(k for k in GENOME if k not in INERT_FULL_F4)
+
+
+def genome_of(doc: dict) -> tuple:
+    """The genome a parameter document's profile searches: full_f4 without its inert genes, otherwise the full genome."""
+    return GENOME_F4 if SP.exec_profile_of(doc) == "full_f4" else GENOME
+
+
+def project(x: list, genome: tuple) -> list:
+    """A genome vector of the full GENOME projected on ``genome`` (warm starts from an archive of the full genome)."""
+    if len(x) == len(genome):
+        return list(x)
+    if len(x) != len(GENOME):
+        raise ValueError(f"GENOME_LENGTH:{len(x)}")
+    return [x[GENOME.index(k)] for k in genome]
+
+
 QUALITY_INDEPENDENT = ("W16_sl_tp_every_order", "W17_no_open_in_burst", "W0_activity", "W12_missing", "W11_cutoff")
 
 
@@ -192,7 +213,7 @@ class CachedWorld:
                "validity_v2": {k: vres[k] for k in ("not_evaluable", "unvalidated", "defects", "replay_conflicts", "evaluated")}, "fails_v1_retired": fails_v1 + exit_fails,
                "trades": len(roll["trades"]), "early_closes": sum(1 for t in roll["trades"] if t.get("exit_reason") == "EARLY"),
                "levels_clipped": int(roll["metrics"].get("n_levels_clipped", 0)) if isinstance(roll["metrics"], dict) else None,
-               "trade_stats": trade_stats(self.w, roll["trades"]), "horizon_mix": BM.horizon_mix(roll, view)}
+               "trade_stats": trade_stats(self.w, roll["trades"]), "horizon_mix": BM.horizon_mix(roll, view, self.w)}
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
             out["_trades"], out["_episodes"], out["_pair"], out["_role"] = BM.annotate_sigma(self.w, roll["trades"]), ep_summary, self.cell["pair"], self.cell["role"]
         self._release()
@@ -236,15 +257,20 @@ class CachedWorld:
 
 
 # ----------------------------------------------------------------------------- genome <-> parameter document
-def bounds() -> dict:
-    return {k: list(SP.BOUNDS[k]) for k in GENOME}
+def bounds(genome: tuple = GENOME) -> dict:
+    return {k: list(SP.BOUNDS[k]) for k in genome}
 
 
-def decode(x: list, base: dict) -> dict:
+def decode(x: list, base: dict, genome: tuple | None = None) -> dict:
+    """The parameter document of a genome vector; the genome is the full one or the full_f4 one, told apart by length
+    unless given."""
+    g = genome or (GENOME if len(x) == len(GENOME) else (GENOME_F4 if len(x) == len(GENOME_F4) else None))
+    if g is None:
+        raise ValueError(f"GENOME_LENGTH:{len(x)}")
     d = dict(base)
-    for k, u in zip(GENOME, x):
+    for k, u in zip(g, x):
         lo, hi = SP.BOUNDS[k]
-        v = lo + (hi - lo) * min(max(float(u), 0.0), 1.0)
+        v = min(max(lo + (hi - lo) * min(max(float(u), 0.0), 1.0), lo), hi)   # clipped: at u = 1 the float sum overshot hi (rho 0.010000000000000002 was refused)
         if k in INTEGER:
             v = int(round(v))
         if k in BINARY:
@@ -255,8 +281,8 @@ def decode(x: list, base: dict) -> dict:
     return SP.validate(d)
 
 
-def encode(doc: dict) -> list:
-    return [(float(doc[k]) - SP.BOUNDS[k][0]) / (SP.BOUNDS[k][1] - SP.BOUNDS[k][0]) for k in GENOME]
+def encode(doc: dict, genome: tuple = GENOME) -> list:
+    return [(float(doc[k]) - SP.BOUNDS[k][0]) / (SP.BOUNDS[k][1] - SP.BOUNDS[k][0]) for k in genome]
 
 
 # ----------------------------------------------------------------------------- the worker pool (one process per share of worlds)
@@ -444,6 +470,7 @@ def degenerate_gen0(recs: list) -> dict:
 def run_search(pool: Pool, base: dict, out: Path, population: int, generations: int, seed: int, log=print, init: list | None = None) -> dict:
     from deap import tools as DT
     rnd = random.Random(seed)
+    G = genome_of(base)
     ck = out / "CHECKPOINT.pkl"
     arch = out / "ARCHIVE.jsonl"
     if ck.exists():
@@ -453,10 +480,10 @@ def run_search(pool: Pool, base: dict, out: Path, population: int, generations: 
         log(json.dumps({"resume_from_generation": st["gen"]}))
     else:
         if init:
-            pop = [list(x) for x in init[:population]] + [[rnd.random() for _ in GENOME] for _ in range(population - len(init[:population]))]   # warm start
+            pop = [project(x, G) for x in init[:population]] + [[rnd.random() for _ in G] for _ in range(population - len(init[:population]))]   # warm start
             log(json.dumps({"warm_start_points": len(init[:population])}))
         else:
-            pop = [encode(base)] + [[rnd.random() for _ in GENOME] for _ in range(population - 1)]   # the canonical point is in generation 0
+            pop = [encode(base, G)] + [[rnd.random() for _ in G] for _ in range(population - 1)]   # the canonical point is in generation 0
         pop = [{"x": x, **{k: v for k, v in _eval(pool, x, base, arch, 0).items()}} for x in pop]
         gen0 = 1
         ck.write_bytes(pickle.dumps({"pop": pop, "gen": 0, "rng": rnd.getstate()}))
@@ -465,7 +492,7 @@ def run_search(pool: Pool, base: dict, out: Path, population: int, generations: 
         if dg["degenerate"]:                                          # the stage gate (coordinator order 2026-10-28): stop on our own, no signal
             (out / "FAILED_DEGENERATE_GEN0").write_text(json.dumps(dg, indent=1))
             raise DegenerateGen0(dg["reasons"])
-    nb = len(GENOME)
+    nb = len(G)
     for g in range(gen0, generations + 1):
         pop.sort(key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"]))
         elite = [dict(r) for r in pop[:ELITE]]
@@ -494,7 +521,7 @@ def run_search(pool: Pool, base: dict, out: Path, population: int, generations: 
 def _eval(pool: Pool, x: list, base: dict, arch: Path, gen: int) -> dict:
     doc = decode(x, base)
     r = pool.evaluate(doc)
-    rec = {"generation": gen, "params": {k: doc[k] for k in GENOME}, "fitness_sharpe": r["fitness_sharpe"], "n_failing_witnesses": r["n_failing_witnesses"],
+    rec = {"generation": gen, "params": {k: doc[k] for k in genome_of(base)}, "fitness_sharpe": r["fitness_sharpe"], "n_failing_witnesses": r["n_failing_witnesses"],
            "feasible": r["feasible"], "wall_sec": r["wall_sec"], "worker_maxrss_mb": r.get("worker_maxrss_mb"), "per_world": r["per_world"]}
     with open(arch, "a") as fh:
         fh.write(json.dumps(rec, default=float) + "\n")
@@ -540,7 +567,7 @@ def cmd_run(a):
         raise SystemExit(75)
     sub = json.loads(Path(a.subset).read_text())
     base = SP.load(a.params)
-    meta = {"seed": SEED, "population": a.population, "generations": a.generations, "elite": ELITE, "genome": GENOME, "bounds": bounds(), "fixed": FIXED, "tied": TIED,
+    meta = {"seed": SEED, "population": a.population, "generations": a.generations, "elite": ELITE, "genome": genome_of(base), "bounds": bounds(genome_of(base)), "inert_fixed": (INERT_FULL_F4 if genome_of(base) == GENOME_F4 else {}), "fixed": FIXED, "tied": TIED,
             "subset": a.subset, "subset_worlds": len(sub), "operating_quality": OPERATING_QUALITY, "quality_independent_constraints": QUALITY_INDEPENDENT,
             "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads, per-cell rule) incl. the sealed exit layer E0-E5 / EP / E1' / E2' / E7 / Z1 / E8, + quality-independent witnesses (0.70) + QUALIFICATION_SPEC D7 per side on the q < 1 worlds (E4 and regret <= the Bayes closer's + 0.05, phi 0.587)",
             "exit_spec_sha256": BM.EXIT_SPEC_SHA,
@@ -560,7 +587,7 @@ def cmd_run(a):
         pool.close()
         sys.exit(3)
     pool.close()
-    (out / "RESULT.json").write_text(json.dumps({"best": res["best"], "population": res["population"], "best_params": {k: v for k, v in zip(GENOME, res["best"]["x"])},
+    (out / "RESULT.json").write_text(json.dumps({"best": res["best"], "population": res["population"], "best_params": {k: v for k, v in zip(genome_of(base), res["best"]["x"])},
                                                  "wall_sec": time.time() - t0}, indent=1, default=float))
     log(json.dumps({"done": True, "best_sharpe": res["best"]["fitness_sharpe"], "best_failing": res["best"]["n_failing_witnesses"]}))
 

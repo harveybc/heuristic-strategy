@@ -1,5 +1,5 @@
 {
- "schema": "strategy_qualification.v2.1",
+ "schema": "strategy_qualification.v2.2",
  "sealed_before_running": "2026-10-28 (coordinator order after the architecture contract of the heuristic-strategy README, section 'Strategy architecture and design method'); none of the panels below has been run when this file is committed",
  "D3_unseen_confirmation": {
   "seeds": [
@@ -117,7 +117,8 @@
  "versions": {
   "v1": "2026-10-28 (sealed before running; constant expectations for the negative controls; monotone-in-quality a witness)",
   "v2": "2026-10-28 after Musashi's audit (agent-multi 660511a0) GM12 / GM13 / GM18: negative-control expectations produced by an INDEPENDENT construction (the truth oracle under the same intervention, replayed), v1 outcomes retained as history; monotone-in-quality a DIAGNOSTIC column, not a witness; D3 / D4-seeded verdicts with manifest completeness, paired identity and explicit NOT_EVALUABLE",
-  "v2.1": "2026-10-29 (business contract, S6): the TRAIN-selected fixed-delay closer as a named D7 comparator (finding 110); the sigma-scale witness list to re-validate under the full_f4 profile with the oracle control; the horizon-mix dominance flag; the record schema (net sigma per trade, win rate, starting balance, executed SL / TP pips, holding bars, horizon mix, levels_clipped, sizing refusals by reason)"
+  "v2.1": "2026-10-29 (business contract, S6): the TRAIN-selected fixed-delay closer as a named D7 comparator (finding 110); the sigma-scale witness list to re-validate under the full_f4 profile with the oracle control; the horizon-mix dominance flag; the record schema (net sigma per trade, win rate, starting balance, executed SL / TP pips, holding bars, horizon mix, levels_clipped, sizing refusals by reason)",
+  "v2.2": "2026-10-29 (coordinator ruling ~05:50Z, full_f4 DECISION MENU, tests first): the witness definitions under full_f4 change with the menu -- W7 = the executed (h, side) is the best of the truth menu among the allowed slots (truth confirmations, RR rule on the order's distances, RR floor on the truth MAE; both sides); W2 / W10 judge the executed order (its slot read from its own levels); W1 / W2 opportunities and W15 over the truth menu only; W9 reads the SL distance in sigma of the absolute SL; W13 sealed form read literally (TP price distance halves), its corrected forms v2 / v3 = executed TP / SL equal the decided slot's levels within 1 tick; W14: the sealed form (mirror world, same references) judged by its control, the truth oracle on the same pair; where the oracle fails it non-vacuously the corrected form W14_mirror_menu (mirror world with side-swapped TRAIN references, a declared data asymmetry) governs, for E6 as well; the horizon mix counts the executed trades; the full_f4 DEAP genome excludes the inert protective-TP genes (k_tp_protect, tp_mode); full_f3 / LEGACY unchanged"
  },
  "D8_profile_full_f4_sanity": {
   "sealed_before_running": "2026-10-29 (S6)",
@@ -127,10 +128,11 @@
   },
   "expected": "every behaviour witness PASS under VALIDITY_SPEC v2 (the sealed forms; a witness whose FORM depends on the sigma scale is listed below and re-validated with its designated control, never adapted to the strategy); n_levels_clipped = 0 in every record (absolute levels are never clipped); the horizon mix reported per record with the > 90 % dominance flag; sizing refusals reported by reason",
   "sigma_scale_witnesses": {
-   "W13_tpsl_track_sigma": "TP / SL as sigma multiples of the cell: under absolute levels the order's distances are the horizon references, not cell multiples; its sealed and v2 / v3 forms are evaluated as sealed and judged by the hold-oracle control (DEFECT only on a non-vacuous control failure)",
+   "W13_tpsl_track_sigma": "v2.2: sealed form evaluated literally on the TP price distance and judged by the hold oracle; corrected forms (v2 = v3) = every executed TP / SL equals its menu slot's levels (1 tick)",
    "W4_early_close_justified_v3": "EPS_ECON in sigma of the trade: unchanged (the trade's sigma is still the decision sigma)",
    "E_series": "regret, agreement and destructive-close shares in sigma of the trade: unchanged units",
-   "W7_best_cell": "the cell still ranks the sides by predicted net; the order's envelope is the horizon's: reported, judged by the control"
+   "W7_best_cell": "v2.2: under the menu the ruling's form is sealed: the executed (h, side) = the best of the truth menu among the allowed slots (no sigma cell); v2 identical",
+   "W14_mirror": "v2.2: sealed form judged by the truth oracle on the 9 pairs; corrected form W14_mirror_menu (side-swapped references) only where the oracle fails the sealed form; both reported; the swapped twin's discrepancy is the code-symmetry evidence (<= 1e-9 sigma expected at zero cost)"
   },
   "record_schema": [
    "trade_summary (net sigma per trade mean / median, win rate, starting balance, SL / TP pips p10 / p50 / p90, holding bars)",
