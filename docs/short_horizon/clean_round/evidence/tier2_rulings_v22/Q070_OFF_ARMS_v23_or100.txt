@@ -1,0 +1,98 @@
+{
+ "off_r3_443b7a1": {
+  "records": 72,
+  "sharpe_median_of_family_medians": 17.87157387526343,
+  "sharpe_median": 17.897881298889033,
+  "sharpe_mean": 17.528340400446503,
+  "net_sigma_per_trade_median_of_family_medians": 0.44881342409665037,
+  "trades_per_week_median": 9.251101321585903,
+  "early_close_share": 0.07259557344064387,
+  "reopen_1bar_share_median": 0.11451956051149678,
+  "witnesses": {
+   "W1_side": {
+    "PASS": 72
+   },
+   "W8_early_close_at_switch": {
+    "None": 45,
+    "FAIL": 9,
+    "PASS": 18
+   },
+   "W8_old_direction_after_lag": {
+    "None": 45,
+    "PASS": 27
+   },
+   "W17_no_open_in_burst": {
+    "None": 66,
+    "PASS": 5,
+    "FAIL": 1
+   },
+   "W4_early_close_justified": {
+    "FAIL": 72
+   }
+  }
+ },
+ "off_v22_or100": {
+  "records": 72,
+  "sharpe_median_of_family_medians": 16.963409560144882,
+  "sharpe_median": 17.016395890341677,
+  "sharpe_mean": 16.739033094620417,
+  "net_sigma_per_trade_median_of_family_medians": 0.4384308862705065,
+  "trades_per_week_median": 9.193080477060278,
+  "early_close_share": 0.06836678214878744,
+  "reopen_1bar_share_median": 0.1369149718206322,
+  "witnesses": {
+   "W1_side": {
+    "PASS": 72
+   },
+   "W8_early_close_at_switch": {
+    "None": 45,
+    "FAIL": 11,
+    "PASS": 16
+   },
+   "W8_old_direction_after_lag": {
+    "None": 45,
+    "PASS": 27
+   },
+   "W17_no_open_in_burst": {
+    "None": 66,
+    "PASS": 6
+   },
+   "W4_early_close_justified": {
+    "FAIL": 72
+   }
+  }
+ },
+ "off_v23_or100": {
+  "records": 72,
+  "sharpe_median_of_family_medians": 17.016985071187115,
+  "sharpe_median": 17.04274991083137,
+  "sharpe_mean": 16.772255577694242,
+  "net_sigma_per_trade_median_of_family_medians": 0.436830568258994,
+  "trades_per_week_median": 9.205973998065971,
+  "early_close_share": 0.07867885096094743,
+  "reopen_1bar_share_median": 0.13796644328063654,
+  "witnesses": {
+   "W1_side": {
+    "PASS": 72
+   },
+   "W8_early_close_at_switch": {
+    "None": 45,
+    "FAIL": 10,
+    "PASS": 17
+   },
+   "W8_old_direction_after_lag": {
+    "None": 45,
+    "PASS": 27
+   },
+   "W17_no_open_in_burst": {
+    "None": 66,
+    "PASS": 6
+   },
+   "W4_early_close_justified": {
+    "FAIL": 72
+   }
+  }
+ }
+}
+off_v22_or100-off_r3_443b7a1: n 72 mean dSharpe -0.789 median -0.792 95% CI [-0.901, -0.672] positive 2/72
+off_v23_or100-off_r3_443b7a1: n 72 mean dSharpe -0.756 median -0.790 95% CI [-0.869, -0.636] positive 4/72

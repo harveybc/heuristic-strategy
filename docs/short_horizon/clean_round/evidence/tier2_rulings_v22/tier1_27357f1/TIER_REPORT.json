@@ -1,0 +1,443 @@
+{
+ "records": 135,
+ "errors": 0,
+ "pass_effective": 134,
+ "fail_effective": 1,
+ "exec_profiles": {
+  "full_f4": 135
+ },
+ "profile_expected": "full_f4",
+ "profile_ok": true,
+ "levels_clipped_total": 0,
+ "levels_clipped_records": 0,
+ "levels_clipped_ok": true,
+ "engine_refusals_by_reason": {},
+ "gate_counters": {
+  "days": 51611,
+  "placed": 83174,
+  "deferred_observing": 0,
+  "deferred_below_best": 97282,
+  "below_threshold": 0,
+  "entry_gate_closed": 60702
+ },
+ "horizon_mix_executed_mean": {
+  "h3": 0.01348906936060389,
+  "h6": 0.07414649584274911,
+  "h12": 0.3063238848775651,
+  "h24": 0.6060405499190819
+ },
+ "horizon_dominance_flags": [],
+ "records_with_executed_entries": 135,
+ "witnesses": {
+  "W0_activity": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W10_spread_window": {
+   "PASS": 26,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W11_cutoff": {
+   "PASS": 54,
+   "unvalidated_strict": 54,
+   "defect_corrected": 0
+  },
+  "W12_missing": {
+   "PASS": 18,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W13_tpsl_track_sigma": {
+   "PASS": 58,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W14_mirror": {
+   "PASS": 9
+  },
+  "W15_no_open_high_risk": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W16_sl_tp_every_order": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W17_no_open_in_burst": {
+   "PASS": 9,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W1_side": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 77
+  },
+  "W2_truth_positive_open": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W2_wrong_side": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W3_nop": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 10
+  },
+  "W4_early_close_justified": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 135
+  },
+  "W4_sl_exits": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W5_reverse": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 77
+  },
+  "W6_volume": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W7_best_cell": {
+   "PASS": 135,
+   "unvalidated_strict": 0,
+   "defect_corrected": 0
+  },
+  "W8_early_close_at_switch": {
+   "PASS": 77,
+   "unvalidated_strict": 35,
+   "defect_corrected": 23
+  },
+  "W8_old_direction_after_lag": {
+   "PASS": 76,
+   "unvalidated_strict": 25,
+   "defect_corrected": 49,
+   "CONTROL_CONFLICT": 1
+  },
+  "W9_gap_loss_bounded": {
+   "PASS": 47,
+   "unvalidated_strict": 46,
+   "defect_corrected": 0
+  },
+  "WA_side_comparison": {
+   "PASS": 135,
+   "unvalidated_strict": 135,
+   "defect_corrected": 0
+  },
+  "exit:E1_sl_destined_closed_early_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E1_sl_destined_closed_early_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E1p_closed_before_SL_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E1p_closed_before_SL_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E2_exit_regret_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E2_exit_regret_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E2p_regret_SL_destined_BUY": {
+   "PASS": 133,
+   "excused_by_Ostar": 2,
+   "FAIL": 2
+  },
+  "exit:E2p_regret_SL_destined_SELL": {
+   "PASS": 133,
+   "excused_by_Ostar": 2,
+   "FAIL": 2
+  },
+  "exit:E3_tick_agreement_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E3_tick_agreement_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E4_no_destructive_close_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E4_no_destructive_close_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E5_early_close_vs_Ostar_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E5_early_close_vs_Ostar_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E6_exit_mirror": {
+   "PASS": 9,
+   "excused_by_Ostar": 0
+  },
+  "exit:E7_lateness_vs_Pstar_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E7_lateness_vs_Pstar_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E8_closer_quality_ladder_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:E8_closer_quality_ladder_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:EP_counts_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:EP_counts_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:Z1_zigzag_exit_label_BUY": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  },
+  "exit:Z1_zigzag_exit_label_SELL": {
+   "PASS": 135,
+   "excused_by_Ostar": 0
+  }
+ },
+ "activity": {
+  "trades_per_week_median": 8.36789513269582,
+  "trades_per_week_p10_p90": [
+   4.350273987321371,
+   10.31739550875685
+  ],
+  "early_close_share_pooled": 0.03112751581022916,
+  "records_with_zero_trades": 0
+ },
+ "net_sigma_per_trade_by_family": {
+  "B_cal": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5882152266770427
+  },
+  "B_fine": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.7612692158619924
+  },
+  "B_gap": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5557204478176418
+  },
+  "B_spread": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5920743943433757
+  },
+  "B_trans": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5625703709553471
+  },
+  "B_trend": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.6586825560161333
+  },
+  "B_vol": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.6082734987058765
+  },
+  "B_voldyn": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.7855785643139241
+  },
+  "F1": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5727636371181908
+  },
+  "F2": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.42739170302680035
+  },
+  "F3": {
+   "records": 6,
+   "median_of_net_sigma_per_trade_medians": 0.5715993651130149
+  },
+  "F4": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.37730803540626917
+  },
+  "F5": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5791167225250671
+  },
+  "H1": {
+   "records": 6,
+   "median_of_net_sigma_per_trade_medians": 0.7187879931412751
+  },
+  "H2": {
+   "records": 6,
+   "median_of_net_sigma_per_trade_medians": 0.4738475919857878
+  },
+  "H3": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.7804589224376937
+  },
+  "H4": {
+   "records": 6,
+   "median_of_net_sigma_per_trade_medians": 0.4570498303341933
+  },
+  "H5": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5529581074474282
+  },
+  "H6": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.4287024988078739
+  },
+  "I1": {
+   "records": 6,
+   "median_of_net_sigma_per_trade_medians": 0.4875748617468665
+  },
+  "I2": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5197669801983262
+  },
+  "I3": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.6446108607802241
+  },
+  "I4": {
+   "records": 3,
+   "median_of_net_sigma_per_trade_medians": 0.5650402052224096
+  },
+  "LHS": {
+   "records": 51,
+   "median_of_net_sigma_per_trade_medians": 0.25653776304137216
+  }
+ },
+ "w14_control_status": {
+  "DEFECT": 9
+ },
+ "w14_code_symmetry_max_sigma": 3.439470930288735e-13,
+ "horizon_unmatched_trades": 0,
+ "control_conflicts": [],
+ "w13_columns": {
+  "governing_PASS": 58,
+  "sealed_PASS": 54,
+  "sealed_FAIL": 4
+ },
+ "z1_control": {
+  "BUY:DEFECT": 135,
+  "SELL:DEFECT": 134,
+  "SELL:VALIDATED": 1
+ },
+ "w8_clause_b": {
+  "records": 77,
+  "clause_b_PASS": 77,
+  "not_evaluable_elements": 125,
+  "Ostar_pass_with_sealed_clause_b_False": 57,
+  "Ostar_pass_with_sealed_clause_b_True": 20
+ },
+ "sizing_by_side": {
+  "BUY": {
+   "trades": 40033,
+   "q_p10_p50_p90": [
+    0.3953326940536499,
+    0.5670532584190369,
+    0.8792092204093933
+   ],
+   "share_q_below_1": 0.931656383483626,
+   "funding_reserve_pips_p50_p90": [
+    2.8000001907348633,
+    6.579999923706055
+   ],
+   "loss_per_unit_pips_p50": 19.124433517456055
+  },
+  "SELL": {
+   "trades": 43141,
+   "q_p10_p50_p90": [
+    0.4717654883861542,
+    0.6267924904823303,
+    0.9525164365768433
+   ],
+   "share_q_below_1": 0.9172249136552235,
+   "funding_reserve_pips_p50_p90": [
+    0.0,
+    0.0
+   ],
+   "loss_per_unit_pips_p50": 18.610666275024414
+  }
+ },
+ "e_series_episode_early_share": {
+  "strategy_early_p10_p50_p90": [
+   0.401350250261902,
+   0.4672442941673711,
+   0.5738109425785481
+  ],
+  "Ostar_early_p10_p50_p90": [
+   0.401350250261902,
+   0.4672442941673711,
+   0.5738109425785481
+  ],
+  "max_abs_gap_to_Ostar": 0.0
+ },
+ "burst_gate": {
+  "records": 135,
+  "ratios": [
+   1.5
+  ],
+  "calm_trigger_share_raw_p50_p90": [
+   0.05973998065971849,
+   0.08430213817556678
+  ],
+  "calm_trigger_share_held_p50_p90": [
+   0.14505211131406467,
+   0.1821639626087891
+  ]
+ },
+ "closer_support": {
+  "status": {
+   "OK": 135
+  },
+  "records_extended": 24,
+  "max_extra_passes": 3
+ },
+ "trade_summary": {
+  "records": 135,
+  "median_net_usd_per_record": 8182919.070928854,
+  "net_sigma_per_trade_mean": 0.49069651847262163,
+  "net_sigma_per_trade_median": 0.5115049186518795,
+  "win_rate_mean": 0.999931765550466,
+  "trades_mean": 616.1037037037037,
+  "sl_pips_median_of_medians": 17.034390099051056,
+  "tp_pips_median_of_medians": 42.03578457200319,
+  "hold_bars_median_of_medians": 2.0,
+  "sharpe_mean": 18.25077027022665
+ },
+ "notes": []
+}
