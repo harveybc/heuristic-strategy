@@ -1,6 +1,6 @@
 # Forward paper test (LLM direction call), running summary
 
-Scored 2026-10-29 02:12:51.026611+00:00; decisions 132, with entry allowed 110. Power target: ~780 resolved hits (~21 weeks).
+Scored 2026-10-29 03:12:51.996911+00:00; decisions 133, with entry allowed 111. Power target: ~780 resolved hits (~21 weeks).
 
 | model | resolved hits | up rate | log-loss | Brier | accuracy |
 |---|---|---|---|---|---|
