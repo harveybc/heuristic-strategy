@@ -1,0 +1,11 @@
+First diverging decision against the truth oracle, tier 2 on 443b7a1 (FIRST_DIVERGENCE_vs_ORACLE.jsonl, 99 record-witness pairs).
+Counts are by the strategy's attribution at that decision (gates = per-side reasons the side was not cleared; blocked = the veto).
+
+W1_side (49): strategy NOP where the oracle opens, open-margin gate 46 (margin + rr_floor_or_band 43, margin + no_horizon 3),
+              burst 2, nop_veto 1.
+W8_old_direction_after_lag (24): open-margin gate 20 (margin + rr_floor_or_band 19, margin + no_horizon 1), burst 2, nop_veto 2.
+W0_activity (3): open-margin gate 3.
+W17_no_open_in_burst (23): strategy opens where the oracle does not 12, strategy NOP where the oracle opens 11 (burst 8, nop_veto 3);
+              the 26 opens inside planted burst windows come 3-10 bars after the window start with realized vol / sigma
+              0.49-1.98, below the gate's ratio 2.0.
+Correction to commit 10a2b64's message: the open-margin gate accounts for 69 of the 76 W1 / W8_old / W0 pairs, not "92 of 99".
