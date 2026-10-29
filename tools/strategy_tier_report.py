@@ -20,11 +20,36 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
+TRADE_KEYS = ("direction", "sizing_q", "funding_reserve_per_unit", "loss_per_unit")
+
+
+def trim(r: dict) -> dict:
+    """What report() reads of one record (tier 2: 4 345 records, 3.8 GB of JSON, do not fit in memory whole): the trades
+    reduced to their sizing fields, the oracle / O* readings reduced to the forms a DEFECT witness governs with."""
+    if r.get("error"):
+        return {"id": r.get("id"), "seed": r.get("seed"), "error": r["error"]}
+    out = {k: r.get(k) for k in ("id", "seed", "validity", "non_fills", "exec_profile", "horizon_mix", "trade_summary", "closer_support", "w14", "PASS_effective")}
+    ex = r.get("exit") or {}
+    out["exit"] = {k: ex.get(k) for k in ("witnesses", "defects_by_Ostar", "z1_control", "PASS_effective", "failing_effective", "episode_summary", "episode_exit_mix", "closer_sweep")}
+    res = r.get("results") or {}
+    forms = {x.get("governing_form") for x in ((r.get("validity") or {}).get("per_witness") or {}).values()}
+    keep = {"summary", "W0_activity", "W13_tpsl_track_sigma", "W8_early_close_at_switch_v3", "W14_mirror"} | forms
+    out["results"] = {k: v for k, v in res.items() if k in keep}
+    out["oracle"] = {k: v for k, v in (r.get("oracle") or {}).items() if k in forms}
+    os_ = r.get("ostar") or {}
+    out["ostar"] = {k: v for k, v in os_.items() if k in forms or k == "W8_early_close_at_switch_v3"}
+    sz = {1: [], -1: []}                                              # the sizing fields as compact float32 arrays (memory: ~2.6 M trades in tier 2)
+    for t in r.get("trades") or []:
+        if "sizing_q" in t:
+            sz[int(t["direction"])].append((t["sizing_q"], t["funding_reserve_per_unit"], t["loss_per_unit"]))
+    out["_sizing"] = {d: np.asarray(v, np.float32).reshape(-1, 3) for d, v in sz.items()}
+    return out
+
+
 def load(d: str) -> list:
     out = []
     for p in sorted(Path(d).glob("CELL_*.json")):
-        r = json.loads(p.read_text())
-        out.append(r)
+        out.append(trim(json.loads(p.read_text())))
     return out
 
 
@@ -110,13 +135,30 @@ def report(recs: list, expect_profile: str | None) -> dict:
             w8b["Ostar_pass_with_sealed_clause_b_" + str(bool(y.get("pass_with_sealed_clause_b")))] += 1
     qs = {1: [], -1: []}
     for r in ok:
-        for t in r.get("trades") or []:
-            if "sizing_q" in t:
-                qs[int(t["direction"])].append((float(t["sizing_q"]), float(t["funding_reserve_per_unit"]), float(t["loss_per_unit"])))
-    sizing_by_side = {("BUY" if d > 0 else "SELL"): ({"trades": len(v), "q_p10_p50_p90": [float(np.percentile([x[0] for x in v], p_)) for p_ in (10, 50, 90)],
-                                                     "share_q_below_1": float(np.mean([x[0] < 1.0 - 1e-12 for x in v])),
-                                                     "funding_reserve_pips_p50_p90": [float(np.percentile([x[1] * 1e4 for x in v], p_)) for p_ in (50, 90)],
-                                                     "loss_per_unit_pips_p50": float(np.median([x[2] * 1e4 for x in v]))} if v else {"trades": 0}) for d, v in qs.items()}
+        if r.get("_sizing") is not None:
+            for d_ in (1, -1):
+                qs[d_].append(r["_sizing"][d_])
+            continue
+        for d_ in (1, -1):
+            qs[d_].append(np.asarray([(float(t["sizing_q"]), float(t["funding_reserve_per_unit"]), float(t["loss_per_unit"])) for t in (r.get("trades") or [])
+                                      if "sizing_q" in t and int(t["direction"]) == d_], np.float64).reshape(-1, 3))
+    sizing_by_side = {}
+    for d, v in qs.items():
+        a = np.concatenate(v) if v else np.zeros((0, 3))
+        sizing_by_side["BUY" if d > 0 else "SELL"] = ({"trades": int(len(a)), "q_p10_p50_p90": [float(np.percentile(a[:, 0], p_)) for p_ in (10, 50, 90)],
+                                                      "share_q_below_1": float(np.mean(a[:, 0] < 1.0 - 1e-6)),
+                                                      "funding_reserve_pips_p50_p90": [float(np.percentile(a[:, 1] * 1e4, p_)) for p_ in (50, 90)],
+                                                      "loss_per_unit_pips_p50": float(np.median(a[:, 2] * 1e4))} if len(a) else {"trades": 0})
+    eps_s, eps_o = [], []
+    for r in ok:
+        em = (r.get("exit") or {}).get("episode_exit_mix") or {}
+        for si in ("0", "1"):
+            a, b = (em.get("strategy") or {}).get(si) or {}, (em.get("O*") or {}).get(si) or {}
+            if a.get("early") is not None and b.get("early") is not None:
+                eps_s.append(float(a["early"])); eps_o.append(float(b["early"]))
+    qq = lambda a: [float(np.nanpercentile(a, x)) for x in (10, 50, 90)] if a else []  # noqa: E731
+    e_series = {"strategy_early_p10_p50_p90": qq(eps_s), "Ostar_early_p10_p50_p90": qq(eps_o),
+                "max_abs_gap_to_Ostar": float(np.nanmax(np.abs(np.asarray(eps_s) - np.asarray(eps_o)))) if eps_s else float("nan")}
     sup = Counter(v.get("status") for r in ok for v in ((r.get("closer_support") or {}).values()))
     sup_passes = [int(v.get("extra_passes", 0)) for r in ok for v in ((r.get("closer_support") or {}).values())]
     out = {"records": len(recs), "errors": sum(1 for r in recs if r.get("error")), "pass_effective": eff, "fail_effective": len(ok) - eff,
@@ -130,7 +172,7 @@ def report(recs: list, expect_profile: str | None) -> dict:
                         "records_with_zero_trades": sum(1 for _, b in ec if b == 0)},
            "net_sigma_per_trade_by_family": per_family, "w14_control_status": dict(w14), "w14_code_symmetry_max_sigma": (max(w14_sym) if w14_sym else None),
            "horizon_unmatched_trades": unmatched, "control_conflicts": conflicts, "w13_columns": dict(w13), "z1_control": {f"{a}:{b}": n for (a, b), n in z1.items()}, "w8_clause_b": dict(w8b),
-           "sizing_by_side": sizing_by_side,
+           "sizing_by_side": sizing_by_side, "e_series_episode_early_share": e_series,
            "closer_support": {"status": dict(sup), "records_extended": sum(1 for x in sup_passes if x > 0), "max_extra_passes": max(sup_passes) if sup_passes else 0},
            "trade_summary": {"records": len(ts), "median_net_usd_per_record": float(np.median(nets)) if nets else float("nan"), "net_sigma_per_trade_mean": float(np.nanmean([t["net_sigma_per_trade_mean"] for t in ts])) if ts else float("nan"),
                              "net_sigma_per_trade_median": float(np.nanmedian([t["net_sigma_per_trade_median"] for t in ts])) if ts else float("nan"), "win_rate_mean": float(np.nanmean([t["win_rate"] for t in ts])) if ts else float("nan"),
@@ -149,6 +191,7 @@ def markdown(d: dict) -> str:
          f"| {k} | {v['records']} | {v['median_of_net_sigma_per_trade_medians']:.3f} |" for k, v in d["net_sigma_per_trade_by_family"].items()] + [
          "", f"W14 control status: {d['w14_control_status']}; swapped-reference code symmetry max {d['w14_code_symmetry_max_sigma']} sigma; trades without a matched menu slot: {d['horizon_unmatched_trades']}", "",
          f"Sizing by side (q, funding reserve in pips, loss per unit in pips): {d['sizing_by_side']}", "",
+         f"E-series episode early-close share, strategy vs O*: {d['e_series_episode_early_share']}", "",
          f"Control conflicts (CONTROL_CONFLICT, never PASS): {d['control_conflicts']}", "",
          f"W13 columns (menu form governing / sealed form): {d['w13_columns']}; Z1 control: {d['z1_control']}; W8 clause (b): {d['w8_clause_b']}; closer support: {d['closer_support']}", "",
          "## Witnesses (governing forms)", "", "| witness | PASS | FAIL | NOT_EVALUABLE | CONTROL_CONFLICT | sealed-unvalidated (strict) | defect-corrected | excused by O* |", "|---|---:|---:|---:|---:|---:|---:|---:|"]
