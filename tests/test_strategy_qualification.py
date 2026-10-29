@@ -55,7 +55,7 @@ def test_confirm_panel_requires_completeness_and_paired_identity_before_any_clai
 
 def test_qualification_spec_is_v2_with_construction_history_and_diagnostics():
     d = json.loads(Q.SPEC_PATH.read_text())
-    assert d["schema"] == "strategy_qualification.v2" and "v2" in d["versions"]
+    assert d["schema"].startswith("strategy_qualification.v2") and "v2" in d["versions"] and "v2.1" in d["versions"] and "D8_profile_full_f4_sanity" in d
     nc = d["D4_negative_controls"]
     assert "construction" in nc and "history_v1" in nc and "delta" in nc["expected"] and "monotonicity" in nc["diagnostics"]["delayed_sharpe_by_k"]
     d7 = d["D7_closer_quality_vs_information_limited_oracle"]

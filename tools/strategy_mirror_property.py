@@ -64,7 +64,7 @@ def main():
     sub = {c["subset_key"]: c for c in json.loads(Path(a.subset).read_text())}
     AC = S.contract_for_sim(str(S.CONTRACT))
     cx, SCFG = S.load_fold("wf2022", a.admitted, a.csv_dir)
-    SCFG = S.with_variant(SCFG, C3.FULL_F3)
+    SCFG = S.with_variant(SCFG, C3.exec_variant_of(json.loads(Path(a.point).read_text()) if a.point else SP.default_doc()))   # the launch point's profile
     pts = [(lambda d: d.get("params", d))(json.loads(x)) for x in Path(a.points_jsonl).read_text().splitlines() if x.strip()] if a.points_jsonl else None
     gs = genomes(a.n, a.seed, json.loads(Path(a.point).read_text()) if a.point else None, pts)
     bad = 0

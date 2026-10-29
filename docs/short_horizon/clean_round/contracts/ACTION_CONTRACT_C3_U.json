@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_85c461cafe27c128",
+ "identity": "action_14abb9f5ef19f22a",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -975,7 +975,7 @@
   },
   "params": {
    "file": "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json",
-   "sha256": "d96a2d4396dfa56cdc4d7f439299a19692965c32b7dceb1a2ea22a65f20bbcb1",
+   "sha256": "fdddbe481cce15e8676dcb8d2f2a2d87a733f20c3bab74ba60c42b47edb843be",
    "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"
   }
  },
@@ -1133,14 +1133,17 @@
   "event_clock_rule": "ev.<x>.hours_since -> 1 within 2 h after the event or 2 h before the next (period 24 h); ev.<x>.hours_to dropped (= 24 - hours_since, A1-4 duplicate)"
  },
  "exec_variant": {
-  "name": "full_f3",
-  "identity": "exec_709f9b1fa3512486",
+  "name": "full_f4",
+  "identity": "exec_9aa8d803d2a729d3",
   "options": {
    "reverse_counts_as_one_entry": true,
-   "sizing_mode": "risk",
+   "sizing_mode": "risk_budget",
    "risk_pct": 0.01,
-   "entry_cutoff_hours_before_flat": 24.0,
-   "short_trigger_on_ask": true
+   "entry_cutoff_hours_before_flat": null,
+   "short_trigger_on_ask": true,
+   "leverage": 50.0,
+   "no_daily_cap": true,
+   "level_mode": "absolute_pips"
   },
   "legacy_control": {
    "name": "legacy",
@@ -1159,7 +1162,9 @@
      "short_trigger_on_ask": true
     }
    },
-   "legacy": "exec_5d80473b21dc61a0"
+   "legacy": "exec_5d80473b21dc61a0",
+   "full_f3": "exec_709f9b1fa3512486",
+   "full_f4": "exec_9aa8d803d2a729d3"
   },
   "cutoff_eligibility": {
    "measured_on": "wf2022 INNER_A (2021-07..2022-01), cheat DIAGNOSTIC store, 2026-10-26 (slots.py)",
@@ -1180,6 +1185,80 @@
     ]
    },
    "consequence": "under the 1 entry/day cap the 24 h cutoff leaves ~4 slots/week, so the activity rule (CI90 lower bound >= 2.0) needs entries on most eligible days; both cutoffs stay declared variants and Phase 0's simulation decides which one the frozen parameters use (--exec-variant full_f3 | full_f3_12h | legacy)"
+  }
+ },
+ "business_contract": {
+  "file": "docs/short_horizon/clean_round/contracts/BUSINESS_CONTRACT.json",
+  "sha256": "73f32e43005da04ae44bcfffb576624513e8040aa8df3f06c521be5b7495b036",
+  "source": {
+   "repo": "agent-multi",
+   "commit": "82862801",
+   "path": "docs/work_plan/mechanism_synthesis/BUSINESS_CONTRACT.json"
+  },
+  "profile": {
+   "leverage": 50.0,
+   "rel_volume": 0.1,
+   "max_entries_per_day": null,
+   "entry_wait_after_session_open_hours": 12.0,
+   "forced_flat_before_session_close_hours": 12.0,
+   "max_simultaneous_positions": 1,
+   "early_close_enabled": true,
+   "schema": "mechanism_synthesis.business_contract.v1",
+   "sha256": "73f32e43005da04ae44bcfffb576624513e8040aa8df3f06c521be5b7495b036"
+  },
+  "levels": {
+   "mode": "absolute_pips",
+   "references": {
+    "file": "docs/short_horizon/clean_round/contracts/PROFILES.json",
+    "sha256": "aa2cb1f8f524db4091f8d3cd3b86b7b0f31af6f2ff71bb5a974f49e9d33d9d96",
+    "quantile": "median (ref_p75 = 1: p75)",
+    "status": "hindsight TRAIN oracle populations used as priors; our own level labels are recomputed after S4 and reported next to them"
+   },
+   "rule": "dSL = a_sl x MAE_ref + b_sl x sigma_h + buffer_pips x pip; dTP = a_tp x TP_ref - b_tp x sigma_h; SL rounded away from the entry, TP toward it, tick 1e-5; NOP when a level is not beyond the reference close and the liquidation-side quote by the broker minimum; no sigma bounds, no effectiveness band, nothing clipped; a contracted TP is never inflated",
+   "sigma_h": "sigma_h = causal_sigma(24 h, zigzag.causal_sigma at the decision) x sqrt(h / 24)",
+   "tick": 1e-05
+  },
+  "horizons": {
+   "members": {
+    "mt3h": {
+     "depth": 3,
+     "backstep": 1,
+     "hours": 3
+    },
+    "mt6h": {
+     "depth": 4,
+     "backstep": 2,
+     "hours": 6
+    },
+    "mt12h": {
+     "depth": 7,
+     "backstep": 6,
+     "hours": 12
+    },
+    "mt24h": {
+     "depth": 12,
+     "backstep": 11,
+     "hours": 24
+    }
+   },
+   "deviation_pips": 5.0,
+   "deviation_status": "declared constant, INERT in the replica (verified 2026-10-29)",
+   "rule": "a level confirms side s at bar b when its most recent pivot whose confirmation bar (zigzag.confirmation_bars_fast) is <= b is a VALLEY for a buy / a PEAK for a sell (the new leg runs in the trade's direction) and that confirmation lies within HORIZON_CONFIRM_WINDOW x h bars; the decision's horizon is the FINEST confirming level; no level confirming = no horizon (NOP in the absolute-level profile)",
+   "options": [
+    "finest",
+    "coarsest"
+   ],
+   "no_horizon": "NOP",
+   "d2": "the MT confirmations pass the same quality ladder as every hierarchy head; the causal-confirmed control reads every candidate at i + backstep"
+  },
+  "sizing": {
+   "rule": "q = c x min(1, rho x balance / L1), L1 = units_max(q = 1) x (SL distance + cost per unit + funding reserve); units = floor(q x units_max); c = 1 (fixed until head confidence is calibrated); funding reserve 0",
+   "cost_per_unit": "the engine's convention: slippage market + slippage stop + 2 x commission per lot / lot units; the spread is in the quotes; swaps by side per rollover in the P&L",
+   "loss_bound_status": "a modeled stop loss, never a bound on gap losses (W9 stays)"
+  },
+  "closers": {
+   "fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
+   "separating_fixture": "native-engine unit test: quote 100, path 98 -> 104, A SL 99 / TP 106 -> CLOSE (A = +0.333, the next-open close is the optimum), B SL 97 / TP 104 -> HOLD; mirror; A' flips to HOLD iff market-close cost - stop cost > d_SL + EPS_CLOSE"
   }
  },
  "best_of_day": {
@@ -1222,9 +1301,15 @@
   "decoder": "the strategy (L2) supplies only its position's remaining distances d_sl = s (liq_now - SL) / sigma and d_tp = s (TP - liq_now) / sigma; first stop bar = first h with adv >= d_sl, first take-profit bar = first h with fav >= d_tp (a shared bar goes to the stop unless the take-profit gaps at the open); BC = max(pm before the terminating bar, the termination's net value); A(t) = -BC in sigma of the trade",
   "quality": "below quality 1 the head is a CALIBRATED CONDITIONAL MEAN: y = BC + e, e = sd_e(h) x AR(1) stream across ticks (phi = 0.587, measured on the committed hourly predictor errors), sd_e(h) = sigma_for_rho(rho, sd_BC) x sqrt(h / 24) (rho at h_ref = 24 bars, h the decisive lead); BC_hat = mu + rho_h^2 (y - mu), rho_h^2 = sd_BC^2 / (sd_BC^2 + sd_e(h)^2), mu / sd_BC the calibration-block moments; a predictive-sd channel s_hat = sd_BC sqrt(1 - rho_h^2)",
   "decision_rule": "the strategy closes when A - z_close x s >= -closer_adv_margin on k_persist consecutive executable ticks (STRATEGY_PARAMS genes); with closer_filter = 1, (A, s) = the Kalman posterior mean / sd of A given this position's own past head outputs (strategy_zz.CloserFilterModel: A_hat = alpha(h) + beta(h) A + AR(1) eps, A a random walk; phi, variances, alpha / beta per lead bin and the prior ESTIMATED on the calibration block only, head output vs realized hindsight A), otherwise (A_hat, s_hat); at quality 1, s_hat = 0 and the head is read as is",
+  "horizon_map": "the head is market-only and horizon-free: it is decoded at the position's remaining distances whatever the opener's horizon (full_f4: the absolute SL / TP of the decision's MT horizon); the horizon enters the closer only through those distances",
   "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)"
  },
  "changelog": [
+  {
+   "when": "2026-10-29",
+   "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",
+   "why": "S1-S6 of the owner's order 2026-10-29; the audited full_f3 profile stays the declared control (exec_profile full_f3 / absent): byte-identical"
+  },
   {
    "when": "2026-10-28",
    "change": "the closer filters its own past head outputs per position (closer_filter gene; parameters estimated on the calibration block)",

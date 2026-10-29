@@ -1,5 +1,5 @@
 {
- "schema": "strategy_qualification.v2",
+ "schema": "strategy_qualification.v2.1",
  "sealed_before_running": "2026-10-28 (coordinator order after the architecture contract of the heuristic-strategy README, section 'Strategy architecture and design method'); none of the panels below has been run when this file is committed",
  "D3_unseen_confirmation": {
   "seeds": [
@@ -108,10 +108,36 @@
   "diagnostics_not_witnesses": {
    "monotone_in_quality": "E4 and regret non-decreasing as quality falls 1.00 -> 0.85 -> 0.70 (tolerance 0.02) -- DIAGNOSTIC column (GM12): for a fixed controller, noise can accidentally improve a biased decision and a worse closer can raise account turnover; non-monotonicity is reported, never a defect by itself"
   },
-  "reference_status": "named COMPARATOR, not an upper bound (GM19): its process variance sd_BC^2 / 24 is ~12x below the variance estimated on the calibration block (closer_ladder_filter); repaired comparators are new identities"
+  "reference_status": "named COMPARATOR, not an upper bound (GM19): its process variance sd_BC^2 / 24 is ~12x below the variance estimated on the calibration block (closer_ladder_filter); repaired comparators are new identities",
+  "comparators": {
+   "bayes": "the information-limited Bayes closer (named comparator, not a bound; GM19)",
+   "fixed_delay": "the fixed-delay closer whose delay is selected on the CALIBRATION block only (mean cash-risk-normalized regret over immediate .. 48 executable ticks and passive hold; a native termination before the delay keeps its own result; Musashi finding 110); reported per quality / phi next to the strategy and the Bayes closer; a strategy closer that does not beat it on regret is reported as such"
+  }
  },
  "versions": {
   "v1": "2026-10-28 (sealed before running; constant expectations for the negative controls; monotone-in-quality a witness)",
-  "v2": "2026-10-28 after Musashi's audit (agent-multi 660511a0) GM12 / GM13 / GM18: negative-control expectations produced by an INDEPENDENT construction (the truth oracle under the same intervention, replayed), v1 outcomes retained as history; monotone-in-quality a DIAGNOSTIC column, not a witness; D3 / D4-seeded verdicts with manifest completeness, paired identity and explicit NOT_EVALUABLE"
+  "v2": "2026-10-28 after Musashi's audit (agent-multi 660511a0) GM12 / GM13 / GM18: negative-control expectations produced by an INDEPENDENT construction (the truth oracle under the same intervention, replayed), v1 outcomes retained as history; monotone-in-quality a DIAGNOSTIC column, not a witness; D3 / D4-seeded verdicts with manifest completeness, paired identity and explicit NOT_EVALUABLE",
+  "v2.1": "2026-10-29 (business contract, S6): the TRAIN-selected fixed-delay closer as a named D7 comparator (finding 110); the sigma-scale witness list to re-validate under the full_f4 profile with the oracle control; the horizon-mix dominance flag; the record schema (net sigma per trade, win rate, starting balance, executed SL / TP pips, holding bars, horizon mix, levels_clipped, sizing refusals by reason)"
+ },
+ "D8_profile_full_f4_sanity": {
+  "sealed_before_running": "2026-10-29 (S6)",
+  "tiers": {
+   "tier1": "the 48-world DEAP subset's base cells + the 9 hard LHS cells with their S_/M_ twins + the 6 exit smoke cells (declared in the tier-1 queue), perfect heads, 3 seeds (twins at seed 0); must be clean before tier 2 is queued",
+   "tier2": "the full matrix 869 x 3 + S_/M_ twins"
+  },
+  "expected": "every behaviour witness PASS under VALIDITY_SPEC v2 (the sealed forms; a witness whose FORM depends on the sigma scale is listed below and re-validated with its designated control, never adapted to the strategy); n_levels_clipped = 0 in every record (absolute levels are never clipped); the horizon mix reported per record with the > 90 % dominance flag; sizing refusals reported by reason",
+  "sigma_scale_witnesses": {
+   "W13_tpsl_track_sigma": "TP / SL as sigma multiples of the cell: under absolute levels the order's distances are the horizon references, not cell multiples; its sealed and v2 / v3 forms are evaluated as sealed and judged by the hold-oracle control (DEFECT only on a non-vacuous control failure)",
+   "W4_early_close_justified_v3": "EPS_ECON in sigma of the trade: unchanged (the trade's sigma is still the decision sigma)",
+   "E_series": "regret, agreement and destructive-close shares in sigma of the trade: unchanged units",
+   "W7_best_cell": "the cell still ranks the sides by predicted net; the order's envelope is the horizon's: reported, judged by the control"
+  },
+  "record_schema": [
+   "trade_summary (net sigma per trade mean / median, win rate, starting balance, SL / TP pips p10 / p50 / p90, holding bars)",
+   "horizon_mix (executed shares, availability under both rules, dominance flag)",
+   "non_fills.levels_clipped",
+   "non_fills.engine_refused (by reason, incl. UNITS = sizing refusals)",
+   "exec_profile (name, identity)"
+  ]
  }
 }

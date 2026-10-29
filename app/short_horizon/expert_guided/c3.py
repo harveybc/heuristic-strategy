@@ -76,6 +76,16 @@ FULL_F4 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk_bud
                          short_trigger_on_ask=True, leverage=50.0, no_daily_cap=True, level_mode="absolute_pips",
                          note="full_f4 (business contract 73f32e43: leverage 50, no daily cap, 12 h cutoff, absolute levels, risk-budget sizing rho 0.005 c 1)")
 EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3, "full_f3_12h": FULL_F3_12H, "full_f4": FULL_F4}
+
+
+def exec_variant_of(params_doc: dict | None) -> "XV.ExecVariant":
+    """The execution variant a STRATEGY_PARAMS document selects: its exec_profile (absent = full_f3, the audited default,
+    byte-identical), with the document's rho carried by the variant when the profile sizes by risk budget."""
+    name = str((params_doc or {}).get("exec_profile", EXEC_DEFAULT))
+    xv = EXEC_VARIANTS[name]
+    if xv.sizing_mode == "risk_budget" and params_doc is not None and "rho" in params_doc:
+        xv = dataclasses.replace(xv, rho=float(params_doc["rho"]))
+    return xv
 CUTOFF_ELIGIBILITY = {"measured_on": "wf2022 INNER_A (2021-07..2022-01), cheat DIAGNOSTIC store, 2026-10-26 (slots.py)",
                       "eligible_days_per_week": {"legacy_12h_cutoff": 5.02, "full_f3_24h_cutoff": 3.98},
                       "eligible_bars_per_day_p10_p50_p90": {"legacy_12h_cutoff": [11, 20, 24], "full_f3_24h_cutoff": [10.3, 13, 24]},
@@ -824,7 +834,7 @@ def head_outputs(cells) -> dict:
 
 
 STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
-STRATEGY_PARAMS_SHA256 = "d96a2d4396dfa56cdc4d7f439299a19692965c32b7dceb1a2ea22a65f20bbcb1"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+STRATEGY_PARAMS_SHA256 = "fdddbe481cce15e8676dcb8d2f2a2d87a733f20c3bab74ba60c42b47edb843be"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
 CLOSER_HEAD_CONTRACT = {
     "name": "first-passage curve head (market-only best continuation), tools/strategy_output_simulation.BCHead",
     "inputs": "market data only: the bars from the decision bar on, the per-bar spread profile, the session calendar (compulsory flats, rollovers) and the swap rates by side; NO position, entry, SL, TP, units or balance",
@@ -839,9 +849,12 @@ CLOSER_HEAD_CONTRACT = {
     "decoder": "the strategy (L2) supplies only its position's remaining distances d_sl = s (liq_now - SL) / sigma and d_tp = s (TP - liq_now) / sigma; first stop bar = first h with adv >= d_sl, first take-profit bar = first h with fav >= d_tp (a shared bar goes to the stop unless the take-profit gaps at the open); BC = max(pm before the terminating bar, the termination's net value); A(t) = -BC in sigma of the trade",
     "quality": "below quality 1 the head is a CALIBRATED CONDITIONAL MEAN: y = BC + e, e = sd_e(h) x AR(1) stream across ticks (phi = 0.587, measured on the committed hourly predictor errors), sd_e(h) = sigma_for_rho(rho, sd_BC) x sqrt(h / 24) (rho at h_ref = 24 bars, h the decisive lead); BC_hat = mu + rho_h^2 (y - mu), rho_h^2 = sd_BC^2 / (sd_BC^2 + sd_e(h)^2), mu / sd_BC the calibration-block moments; a predictive-sd channel s_hat = sd_BC sqrt(1 - rho_h^2)",
     "decision_rule": "the strategy closes when A - z_close x s >= -closer_adv_margin on k_persist consecutive executable ticks (STRATEGY_PARAMS genes); with closer_filter = 1, (A, s) = the Kalman posterior mean / sd of A given this position's own past head outputs (strategy_zz.CloserFilterModel: A_hat = alpha(h) + beta(h) A + AR(1) eps, A a random walk; phi, variances, alpha / beta per lead bin and the prior ESTIMATED on the calibration block only, head output vs realized hindsight A), otherwise (A_hat, s_hat); at quality 1, s_hat = 0 and the head is read as is",
+    "horizon_map": "the head is market-only and horizon-free: it is decoded at the position's remaining distances whatever the opener's horizon (full_f4: the absolute SL / TP of the decision's MT horizon); the horizon enters the closer only through those distances",
     "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)",
 }
 CONTRACT_CHANGELOG = (
+    {"when": "2026-10-29", "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",
+     "why": "S1-S6 of the owner's order 2026-10-29; the audited full_f3 profile stays the declared control (exec_profile full_f3 / absent): byte-identical"},
     {"when": "2026-10-28", "change": "the closer filters its own past head outputs per position (closer_filter gene; parameters estimated on the calibration block)",
      "why": "QUALIFICATION_SPEC D7: the per-tick rule failed regret <= the information-limited Bayes closer + 0.05 (the Bayes closer averages the head history); coordinator ruling: a causal, market-only filter of the strategy's own past signals, never the simulator's true noise model"},
     {"when": "2026-10-28", "change": "the closer's output contract declared: the market-only first-passage curve head (closer_head)",
@@ -855,7 +868,7 @@ CONTRACT_CHANGELOG = (
 )
 
 
-def default_contract(architecture: dict | None = None) -> dict:
+def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_DEFAULT) -> dict:
     """C3 contract; the DEFAULT trunk is ``residual_tcn`` (owner 2026-10-26: every model of this line uses the TCN trunk);
     the u-design conv1d trunk is a declared CONTROL arm (``ACTION_CONTRACT_C3_U.json``), never the default."""
     base = C2.default_contract_geometry()
@@ -917,11 +930,32 @@ def default_contract(architecture: dict | None = None) -> dict:
     doc["loss_balance"] = dict(LOSS_BALANCE)
     doc["head_outputs"] = head_outputs(cells)
     doc["encoding_decisions"] = dict(ENCODING_DECISIONS)
-    doc["exec_variant"] = {"name": EXEC_DEFAULT, "identity": FULL_F3.identity, "options": FULL_F3.document(),
+    xv = EXEC_VARIANTS[exec_profile]
+    doc["exec_variant"] = {"name": exec_profile, "identity": xv.identity, "options": xv.document(),
                            "legacy_control": {"name": "legacy", "identity": XV.LEGACY.identity, "how": "--exec-variant legacy (declared control)"},
                            "fixes": "A4-1 reversal = one entry decision; A4-4 risk 1 % sizing; A4-9 entry cutoff 24 h before the forced flat; A4-12 ask-side short triggers",
-                           "alternatives": {"full_f3_12h": {"identity": FULL_F3_12H.identity, "options": FULL_F3_12H.document()}, "legacy": XV.LEGACY.identity},
+                           "alternatives": {"full_f3_12h": {"identity": FULL_F3_12H.identity, "options": FULL_F3_12H.document()}, "legacy": XV.LEGACY.identity,
+                                            "full_f3": FULL_F3.identity, "full_f4": FULL_F4.identity},
                            "cutoff_eligibility": dict(CUTOFF_ELIGIBILITY)}
+    if exec_profile == "full_f4":                                     # the shared business contract (owner decision 2026-10-29)
+        from . import business_contract as BC
+        from . import horizon_levels as HL
+        from . import strategy_zz as ZZ
+        doc["business_contract"] = {"file": str(BC.BUSINESS_CONTRACT_PATH.relative_to(BC.ROOT)), "sha256": BC.BUSINESS_CONTRACT_SHA256, "source": dict(BC.BUSINESS_CONTRACT_SOURCE),
+                                    "profile": BC.profile(),
+                                    "levels": {"mode": "absolute_pips", "references": {"file": str(HL.PROFILES_PATH.relative_to(HL.ROOT)), "sha256": HL.PROFILES_SHA256, "quantile": "median (ref_p75 = 1: p75)",
+                                                                                        "status": "hindsight TRAIN oracle populations used as priors; our own level labels are recomputed after S4 and reported next to them"},
+                                               "rule": "dSL = a_sl x MAE_ref + b_sl x sigma_h + buffer_pips x pip; dTP = a_tp x TP_ref - b_tp x sigma_h; SL rounded away from the entry, TP toward it, tick 1e-5; "
+                                                       "NOP when a level is not beyond the reference close and the liquidation-side quote by the broker minimum; no sigma bounds, no effectiveness band, nothing clipped; a contracted TP is never inflated",
+                                               "sigma_h": HL.SIGMA_H_RULE, "tick": ZZ.LEVEL_TICK},
+                                    "horizons": {"members": {k: {"depth": v[0], "backstep": v[1], "hours": v[2]} for k, v in ZZ.MT_HORIZONS.items()}, "deviation_pips": ZZ.MT_DEVIATION_PIPS,
+                                                 "deviation_status": "declared constant, INERT in the replica (verified 2026-10-29)", "rule": ZZ.HORIZON_RULE, "options": list(ZZ.HORIZON_RULES),
+                                                 "no_horizon": "NOP", "d2": "the MT confirmations pass the same quality ladder as every hierarchy head; the causal-confirmed control reads every candidate at i + backstep"},
+                                    "sizing": {"rule": "q = c x min(1, rho x balance / L1), L1 = units_max(q = 1) x (SL distance + cost per unit + funding reserve); units = floor(q x units_max); c = 1 (fixed until head confidence is calibrated); funding reserve 0",
+                                               "cost_per_unit": "the engine's convention: slippage market + slippage stop + 2 x commission per lot / lot units; the spread is in the quotes; swaps by side per rollover in the P&L",
+                                               "loss_bound_status": "a modeled stop loss, never a bound on gap losses (W9 stays)"},
+                                    "closers": {"fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
+                                                "separating_fixture": "native-engine unit test: quote 100, path 98 -> 104, A SL 99 / TP 106 -> CLOSE (A = +0.333, the next-open close is the optimum), B SL 97 / TP 104 -> HOLD; mirror; A' flips to HOLD iff market-close cost - stop cost > d_SL + EPS_CLOSE"}}
     doc["best_of_day"] = dict(BEST_OF_DAY)
     doc["outcomes"]["per_bar_band"] = "cells outside the engine's per-bar effective band [min_multiple, effective_cap] are not selectable at that bar (exec_variants.effective_cap / min_multiple)"
     doc["architecture"] = {k: architecture[k] for k in ARCH_KEYS}

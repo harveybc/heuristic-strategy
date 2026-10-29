@@ -47,10 +47,10 @@ def spec_sha() -> str:
     return hashlib.sha256(SPEC_PATH.read_bytes()).hexdigest()
 
 
-def load_base(admitted, csv_dir):
+def load_base(admitted, csv_dir, params_doc: dict | None = None):
     AC = S.contract_for_sim(str(S.CONTRACT))
     cx, SCFG = S.load_fold("wf2022", admitted, csv_dir)
-    return AC, cx, S.with_variant(SCFG, C3.FULL_F3)
+    return AC, cx, S.with_variant(SCFG, C3.exec_variant_of(params_doc))   # the parameter file's profile (absent = full_f3)
 
 
 def prepare(cx, SCFG, AC, cell: dict, seed: int, params: dict):
@@ -149,8 +149,8 @@ def control_verdict(s_strategy: float, s_construction: float, delta: float) -> s
 
 def cmd_controls(a):
     sp = spec()["D4_negative_controls"]
-    AC, cx, SCFG = load_base(a.admitted, a.csv_dir)
     params = SP.load(a.params)
+    AC, cx, SCFG = load_base(a.admitted, a.csv_dir, params)
     cells = {c["id"]: c for c in json.loads(Path(a.cells).read_text())}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -290,8 +290,8 @@ def seeded_verdict(summ: dict, recovery: dict, ages: list, min_sl: int = 30) -> 
 def cmd_seeded(a):
     sp = spec()
     ages = sp["D4_seeded_positions"]["entry_ages_bars"]
-    AC, cx, SCFG = load_base(a.admitted, a.csv_dir)
     params = SP.load(a.params)
+    AC, cx, SCFG = load_base(a.admitted, a.csv_dir, params)
     cells = {c["id"]: c for c in json.loads(Path(a.cells).read_text())}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

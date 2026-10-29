@@ -70,8 +70,8 @@ def main():
     a = ap.parse_args()
     AC = S.contract_for_sim(str(S.CONTRACT))
     cx, SCFG = S.load_fold("wf2022", a.admitted, a.csv_dir)
-    SCFG = S.with_variant(SCFG, C3.FULL_F3)
-    params = SP.validate({**SP.DEFAULTS, **json.loads(Path(a.params).read_text())})   # a point from before the z_close / k_persist genes carries their defaults
+    params = SP.validate({**SP.DEFAULTS, **json.loads(Path(a.params).read_text())})   # a point from before the newer genes carries their defaults
+    SCFG = S.with_variant(SCFG, C3.exec_variant_of(params))
     ZZ.configure(params)
     genes = SP.genes_c3(params)
     cells = {c["id"]: c for c in json.loads(Path(a.cells).read_text())}

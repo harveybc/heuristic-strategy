@@ -2134,6 +2134,16 @@ def cmd_cells(a):
     print(json.dumps({"cells": len(cells), "mirrored_pairs": sum(1 for c in cells if c["mirror"]), "levels": levels}))
 
 
+def SP_exec_profile(world: dict) -> str:
+    xv = world["scfg"].variant
+    if xv is None:
+        return "legacy"
+    for name, v in C3.EXEC_VARIANTS.items():
+        if v.document() == dataclasses.replace(xv, note=v.note).document() or v.identity == xv.identity:
+            return name
+    return "full_f4" if getattr(xv, "sizing_mode", "") == "risk_budget" else xv.identity
+
+
 def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, twin_trades: dict) -> dict:
     t0 = time.time()
     w = cell_world(cx, SCFG, AC, cell, seed)
@@ -2163,7 +2173,9 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "witness_defects_sealed": defects_sealed, "witness_defects_v2": defects_v2, "ladder_to_horizon": ladder_map,
            "attribution": wit.get("attribution"), "oracle_attribution": owit.get("attribution"),
            "non_fills": {"gate": (roll["metrics"].get("gate_stats") if isinstance(roll["metrics"], dict) else None),
-                         "engine_refused": {k: v for k, v in (roll["metrics"].items() if isinstance(roll["metrics"], dict) else []) if "refused" in str(k)}},
+                         "engine_refused": {k: v for k, v in (roll["metrics"].items() if isinstance(roll["metrics"], dict) else []) if "refused" in str(k)},
+                         "levels_clipped": (int(roll["metrics"].get("n_levels_clipped", 0)) if isinstance(roll["metrics"], dict) else None)},
+           "exec_profile": {"name": SP_exec_profile(w), "identity": (w["scfg"].variant.identity if w["scfg"].variant is not None else "legacy")},
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
            "trade_summary": trade_summary(w, roll["trades"]), "horizon_mix": horizon_mix(roll, view),
@@ -2219,9 +2231,9 @@ def cmd_run(a):
     out.mkdir(parents=True, exist_ok=True)
     AC = S.contract_for_sim(a.contract)
     cx, SCFG = S.load_fold(a.fold, a.admitted, a.csv_dir)
-    SCFG = S.with_variant(SCFG, C3.FULL_F3)
     from app.short_horizon.expert_guided import strategy_params as SP
     params_doc = SP.load(a.params)
+    SCFG = S.with_variant(SCFG, C3.exec_variant_of(params_doc))     # the parameter file's execution profile (absent = full_f3, byte-identical)
     ZZ.configure(params_doc)
     genes = SP.genes_c3(params_doc)
     params_sha = SP.sha256_of(a.params)

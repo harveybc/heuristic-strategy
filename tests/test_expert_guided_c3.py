@@ -24,7 +24,7 @@ CONTRACTS = ROOT / "docs/short_horizon/clean_round/contracts"
 # ----------------------------------------------------------------------------- contract
 def test_committed_c3_contract_is_the_sealed_default_and_passes_every_check():
     d = json.loads((CONTRACTS / "ACTION_CONTRACT_C3.json").read_text())
-    assert d == C3.default_contract() and d["architecture"]["trunk"] == "residual_tcn" and C3.validate(d) == [] and C2.encoding_audit(d)["verdict"] == "PASS"
+    assert d == C3.default_contract(exec_profile="full_f4") and d["architecture"]["trunk"] == "residual_tcn" and C3.validate(d) == [] and C2.encoding_audit(d)["verdict"] == "PASS"   # sealed v2 = the business-contract profile (2026-10-29)
     assert C3.is_c3(d) and not C2.is_c2(d) and d["identity"] == ACT.identity_of(d)
     for m in C3.OPENERS:
         assert d["specialists"][m]["decision"]["classes"] == ["TP_FIRST", "SL_FIRST", "TIME"]
@@ -250,7 +250,7 @@ def test_modules_and_bounds_for_c3():
 def test_two_sealed_variants_carry_the_architecture_and_differ_only_by_it():
     t = json.loads((CONTRACTS / "ACTION_CONTRACT_C3.json").read_text())          # DEFAULT = residual_tcn (owner order)
     u = json.loads((CONTRACTS / "ACTION_CONTRACT_C3_U.json").read_text())        # the u-trunk control arm
-    assert t == C3.default_contract() == C3.default_contract(C3.ARCH_TCN) and u == C3.default_contract(C3.ARCH_U)
+    assert t == C3.default_contract(exec_profile="full_f4") == C3.default_contract(C3.ARCH_TCN, exec_profile="full_f4") and u == C3.default_contract(C3.ARCH_U, exec_profile="full_f4")
     assert C3.validate(u) == [] and C3.validate(t) == [] and u["identity"] != t["identity"]
     assert u["architecture"]["trunk"] == "u" and t["architecture"]["trunk"] == "residual_tcn"
     diff = {k for k in u if u[k] != t[k]}

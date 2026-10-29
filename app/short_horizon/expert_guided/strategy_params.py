@@ -55,9 +55,14 @@ BOUNDS = {
     "confirmation_lag_bars": [24, 480], "open_margin_eps": [0.0, 1e-3],
     "closer_mode": [0.0, 1.0], "closer_adv_margin": [0.0, 1.0], "tp_mode": [0.0, 1.0], "k_tp_protect": [1.0, 4.0], "forced_every_bars": [6, 96], "zz_post_flip_bars": [0, 960], "zz_counter_net_frac": [0.0, 2.0], "ev_from_net": [0.0, 1.0], "close_margin_floor": [0.0, 2.0], "risk_reward_floor": [0.0, 3.0], "burst_window_bars": [2, 48], "burst_vol_ratio": [1.2, 6.0], "zz_room_tp_mult": [0.0, 3.0], "zz_fine_h": [1, 48],
     "zz_timing_gate": [0.0, 1.0], "zz_nop_gate": [0.0, 1.0], "zz_close_room": [-2.0, 5.0], "close_p_requires_rem_below": [-1.0, 1.0], "zz_theta_f": [0.0, 1.0], "zz_reverse_flip_bars": [0, 960], "z_close": [0.0, 3.0], "k_persist": [1, 6], "closer_filter": [0.0, 1.0],
+    # v2 (business contract, 2026-10-29): the absolute-level genes with Musashi's proposed search bounds, the risk budget rho,
+    # and the two declared categorical options (reference quantile, horizon rule)
+    "a_sl": [0.5, 2.0], "b_sl": [0.0, 1.0], "buffer_pips": [0.0, 5.0], "a_tp": [0.5, 2.0], "b_tp": [0.0, 1.0], "rho": [0.001, 0.01],
+    "ref_p75": [0.0, 1.0], "horizon_rule": [0.0, 1.0],
 }
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
-META_KEYS = {"schema", "note", "defaults_are", "sealed"}
+META_KEYS = {"schema", "note", "defaults_are", "sealed", "exec_profile"}
+EXEC_PROFILES = ("full_f3", "full_f4")       # exec_profile selects the execution profile (c3.EXEC_VARIANTS); absent = full_f3 (the audited lane-F3 default, byte-identical)
 DEFAULTS = {
     "open_rate_l": 0.45, "open_rate_s": 0.45, "nop_veto": 0.50,
     "close_rem_rate_l": 0.30, "close_rem_rate_s": 0.30, "close_p_l": 0.50, "close_p_s": 0.50,
@@ -68,7 +73,9 @@ DEFAULTS = {
     "tp_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "sl_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "open_margin_eps": 1e-6,
     "closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24, "zz_post_flip_bars": 240, "zz_counter_net_frac": 1.2, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
     "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1, "closer_filter": 1.0,
+    "a_sl": 1.0, "b_sl": 0.0, "buffer_pips": 1.0, "a_tp": 1.0, "b_tp": 0.0, "rho": 0.005, "ref_p75": 0.0, "horizon_rule": 0.0,
 }
+DEFAULT_EXEC_PROFILE = "full_f4"             # the v2 canonical point runs the shared business contract
 
 
 class StrategyParamsError(ValueError):
@@ -95,7 +102,13 @@ def validate(doc: dict) -> dict:
             raise StrategyParamsError(f"STRATEGY_PARAMS_OUT_OF_BOUNDS:{k}={v}")
     if abs(float(doc["open_rate_l"]) - float(doc["open_rate_s"])) > 1e-12:
         raise StrategyParamsError("STRATEGY_PARAMS_TIED_KEYS_DIFFER:open_rate_l != open_rate_s (C3 b27781e pools the open margin)")
+    if "exec_profile" in doc and doc["exec_profile"] not in EXEC_PROFILES:
+        raise StrategyParamsError(f"STRATEGY_PARAMS_EXEC_PROFILE_UNKNOWN:{doc['exec_profile']}")
     return doc
+
+
+def exec_profile_of(doc: dict) -> str:
+    return str(doc.get("exec_profile", "full_f3"))
 
 
 def load(path) -> dict:
@@ -103,8 +116,8 @@ def load(path) -> dict:
 
 
 def default_doc() -> dict:
-    return {"schema": "strategy_params.v1", "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS)",
-            "defaults_are": "canonical", **DEFAULTS}
+    return {"schema": "strategy_params.v2", "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
+            "defaults_are": "canonical", "exec_profile": DEFAULT_EXEC_PROFILE, **DEFAULTS}
 
 
 def sha256_of(path) -> str:

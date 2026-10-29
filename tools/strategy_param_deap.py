@@ -47,9 +47,10 @@ OPERATING_QUALITY = 0.70
 # the genome: every STRATEGY_PARAMS coefficient the C3Z strategy consumes; the others are fixed, with the reason
 GENOME = ("open_rate_l", "nop_veto", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "observe_bars",
           "rr_margin_sigma", "ev_from_net", "close_margin_floor", "risk_reward_floor", "burst_window_bars", "burst_vol_ratio", "zz_room_tp_mult",
-          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars", "closer_mode", "closer_adv_margin", "tp_mode", "k_tp_protect", "zz_reverse_flip_bars", "z_close", "k_persist", "closer_filter")
+          "zz_fine_h", "zz_timing_gate", "zz_nop_gate", "zz_close_room", "close_p_requires_rem_below", "zz_theta_f", "zz_counter_net_frac", "zz_post_flip_bars", "closer_mode", "closer_adv_margin", "tp_mode", "k_tp_protect", "zz_reverse_flip_bars", "z_close", "k_persist", "closer_filter",
+          "a_sl", "b_sl", "buffer_pips", "a_tp", "b_tp", "rho", "ref_p75", "horizon_rule")   # v2: the business-contract genes
 INTEGER = {"observe_bars", "burst_window_bars", "zz_fine_h", "zz_post_flip_bars", "zz_reverse_flip_bars", "k_persist"}
-BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate", "closer_mode", "tp_mode", "closer_filter"}
+BINARY = {"allow_reverse", "ev_from_net", "zz_timing_gate", "zz_nop_gate", "closer_mode", "tp_mode", "closer_filter", "ref_p75", "horizon_rule"}
 TIED = {"open_rate_s": "open_rate_l"}
 FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)", "v_alpha_l": "parametric volume family: not consumed by C3Z (risk sizing)",
          "risk_pct": "execution contract (owner's sizing rule), not a strategy coefficient", "entry_cutoff_hours": "execution contract (Friday cutoff)",
@@ -148,6 +149,9 @@ class CachedWorld:
         ZZ.configure(params)
         if "rr_margin_sigma" in params:
             C3.RR_MARGIN_SIGMA = float(params["rr_margin_sigma"])
+        xv = self.w["scfg"].variant
+        if xv is not None and getattr(xv, "sizing_mode", "") == "risk_budget" and "rho" in params:   # v2: the candidate's rho reaches the engine
+            self.w["scfg"] = dataclasses.replace(self.w["scfg"], variant=dataclasses.replace(xv, rho=float(params["rho"])))
         genes = SP.genes_c3(params)
         strat = C3.StrategyC3.from_genes(self.gm.to_absolute(genes), "nop_veto" in genes)
         view = dict(self.view0)
@@ -311,12 +315,12 @@ def _worker(conn, share: list, fold: str, admitted: str, csv_dir: str, contract:
 
 
 class Pool:
-    def __init__(self, subset: list, jobs: int, fold: str, admitted: str, csv_dir: str, contract: str):
+    def __init__(self, subset: list, jobs: int, fold: str, admitted: str, csv_dir: str, contract: str, params_doc: dict | None = None):
         ctx = mp.get_context("fork")
         if not _BASE:
             _BASE["AC"] = S.contract_for_sim(contract)
             cx, SCFG = S.load_fold(fold, admitted, csv_dir)
-            _BASE["cx"], _BASE["SCFG"] = cx, S.with_variant(SCFG, C3.FULL_F3)
+            _BASE["cx"], _BASE["SCFG"] = cx, S.with_variant(SCFG, C3.exec_variant_of(params_doc))   # the profile of the parameter file (absent = full_f3, byte-identical)
         groups = {}
         for c in subset:                                              # a twin / mirror pair shares one worker (W14 / E6 are judged there)
             groups.setdefault(c.get("pair") or c["subset_key"], []).append(c)
@@ -512,7 +516,7 @@ def cmd_measure(a):
     sub = json.loads(Path(a.subset).read_text())[: a.n]
     base = SP.load(a.params)
     t0 = time.time()
-    pool = Pool(sub, a.jobs, a.fold, a.admitted, a.csv_dir, a.contract)
+    pool = Pool(sub, a.jobs, a.fold, a.admitted, a.csv_dir, a.contract, base)
     build = time.time() - t0
     times = []
     for _ in range(a.reps):
@@ -545,7 +549,7 @@ def cmd_run(a):
     (out / "RUN_META.json").write_text(json.dumps(meta, indent=1, default=list))
     log = lambda m: (print(m, flush=True), open(out / "PROGRESS.log", "a").write(m + "\n"))  # noqa: E731
     t0 = time.time()
-    pool = Pool(sub, a.jobs, a.fold, a.admitted, a.csv_dir, a.contract)
+    pool = Pool(sub, a.jobs, a.fold, a.admitted, a.csv_dir, a.contract, base)
     log(json.dumps({"pool_ready_sec": time.time() - t0, "workers": len(pool.ready), "worker_build_maxrss_mb": [round(x["maxrss_mb"]) for x in pool.ready],
                     "defects": {k: v for x in pool.ready for k, v in x["defects"].items() if v}}))
     init = warm_population(Path(a.warm_archive), base, a.population) if getattr(a, "warm_archive", None) else None
