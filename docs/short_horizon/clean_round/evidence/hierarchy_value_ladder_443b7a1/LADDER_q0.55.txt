@@ -1,0 +1,111 @@
+{
+ "gated": {
+  "records": 72,
+  "sharpe_median_per_family": {
+   "B_cal": 0.48920613412762826,
+   "B_fine": 1.4071260531364533,
+   "B_gap": 0.5000400029184081,
+   "B_spread": 1.4232245794548062,
+   "B_trans": 0.7589757346028071,
+   "B_trend": 0.9952058795582474,
+   "B_vol": 1.4141895722932267,
+   "B_voldyn": 0.2560256807167744,
+   "F1": 0.0,
+   "F2": 0.0,
+   "F3": 1.5751740440259274,
+   "F4": 0.0,
+   "F5": 0.8844569514968275,
+   "H1": 0.0,
+   "H2": 0.0,
+   "H3": 0.9220920195409592,
+   "H4": 0.45885883799173255,
+   "H5": 1.4361183944948381,
+   "H6": 0.9055316800868134,
+   "I1": 1.3621497300788286,
+   "I2": 1.149222295894982,
+   "I3": 0.6723168831229792,
+   "I4": 1.3150848739926662,
+   "LHS": 0.0
+  },
+  "sharpe_median_of_family_medians": 0.8217163430498173,
+  "sharpe_mean_all": 0.6507501359519959,
+  "net_sigma_per_trade_median_of_family_medians": 0.17409559921557102,
+  "trades_per_week_median": 0.07736112603416782,
+  "early_close_share": 0.056363636363636366,
+  "W1": {
+   "PASS": 17,
+   "FAIL": 55
+  },
+  "W8_switch": {
+   "null": 45,
+   "PASS": 26,
+   "FAIL": 1
+  },
+  "W8_old_direction": {
+   "null": 45,
+   "PASS": 22,
+   "FAIL": 5
+  }
+ },
+ "off": {
+  "records": 72,
+  "sharpe_median_per_family": {
+   "B_cal": 2.2700845529812677,
+   "B_fine": 5.35718140711151,
+   "B_gap": 3.6833604095750765,
+   "B_spread": 2.8066614368072793,
+   "B_trans": 2.1073283375421594,
+   "B_trend": 1.859510264907714,
+   "B_vol": 1.8332358188190239,
+   "B_voldyn": 1.5900252821758656,
+   "F1": 0.0,
+   "F2": 0.0,
+   "F3": 1.9211566570096952,
+   "F4": 0.0,
+   "F5": 2.82037695851838,
+   "H1": 0.0,
+   "H2": 0.07096068863764987,
+   "H3": 1.2996412556269277,
+   "H4": 1.6806995394935484,
+   "H5": 3.264984361782845,
+   "H6": 1.1073484555283468,
+   "I1": 2.0523167023284907,
+   "I2": 1.4294668495356833,
+   "I3": 1.4616821417457426,
+   "I4": 3.6184235461400363,
+   "LHS": 0.0
+  },
+  "sharpe_median_of_family_medians": 1.7569676791562863,
+  "sharpe_mean_all": 1.7273599494796406,
+  "net_sigma_per_trade_median_of_family_medians": 0.2494423044205824,
+  "trades_per_week_median": 0.47706027721070166,
+  "early_close_share": 0.03564064801178203,
+  "W1": {
+   "PASS": 44,
+   "FAIL": 28
+  },
+  "W8_switch": {
+   "null": 45,
+   "PASS": 26,
+   "FAIL": 1
+  },
+  "W8_old_direction": {
+   "null": 45,
+   "PASS": 26,
+   "FAIL": 1
+  }
+ },
+ "ungated": {
+  "records": 0,
+  "sharpe_median_per_family": {},
+  "sharpe_median_of_family_medians": NaN,
+  "sharpe_mean_all": NaN,
+  "net_sigma_per_trade_median_of_family_medians": NaN,
+  "trades_per_week_median": NaN,
+  "early_close_share": 0.0,
+  "W1": {},
+  "W8_switch": {},
+  "W8_old_direction": {}
+ }
+}
+gated-off: n 72 mean dSharpe -1.077 median -0.855 95% CI [-1.322, -0.833] positive 2 / 72
