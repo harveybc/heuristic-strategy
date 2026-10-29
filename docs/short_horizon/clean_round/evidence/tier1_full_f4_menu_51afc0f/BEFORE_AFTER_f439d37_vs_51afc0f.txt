@@ -1,0 +1,17 @@
+records 135
+| W1_side | {'PASS': 108, 'FAIL': 27} | {'PASS': 122, 'FAIL': 13} |
+| W8_early_close_at_switch | {None: 58, 'PASS': 70, 'FAIL': 7} | {None: 58, 'PASS': 76, 'FAIL': 1} |
+| W8_old_direction_after_lag | {None: 58, 'PASS': 76, 'FAIL': 1} | {None: 58, 'PASS': 73, 'FAIL': 4} |
+| W17_no_open_in_burst | {None: 126, 'PASS': 8, 'FAIL': 1} | {None: 126, 'PASS': 9} |
+| W13_tpsl_track_sigma | {None: 77, 'PASS': 53, 'FAIL': 5} | {None: 77, 'PASS': 58} |
+| W0_activity | {'PASS': 135} | {'PASS': 135} |
+| W2_truth_positive_open | {'PASS': 135} | {'PASS': 135} |
+| W7_best_cell | {'PASS': 135} | {'PASS': 135} |
+| W4_sl_exits | {'PASS': 135} | {'PASS': 135} |
+| Z1 (both sides) | {'FAIL': 135} | {'PASS': 135} |
+| exit effective | {'FAIL': 135} | {'PASS': 135} |
+| PASS_effective | {False: 135} | {True: 121, False: 14} |
+opens total before/after 39078 26324 median per record 298.0 209.0
+after: validity failing {'W1_side': 13, 'W8_old_direction_after_lag': 4, 'W8_early_close_at_switch': 1}
+after: exit failing_effective {}
+after: not_evaluable {}
