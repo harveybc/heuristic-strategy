@@ -34,6 +34,7 @@ def test_earlier_identities_and_engine_defaults_are_unchanged():
     assert cfg.max_entries_per_day == 4 and cfg.sizing.leverage == 100.0 and cfg.sizing.rel_volume == 0.10
     f4 = C3.FULL_F4
     assert f4.leverage == 50.0 and f4.no_daily_cap and f4.entry_cutoff_hours_before_flat is None and not f4.is_legacy()
+    assert f4.sizing_mode == "risk_budget" and f4.level_mode == "absolute_pips" and f4.rho == 0.005 and f4.quality_c == 1.0
     assert f4.document()["leverage"] == 50.0 and f4.document()["no_daily_cap"] is True and C3.EXEC_VARIANTS["full_f4"] is f4
     with pytest.raises(ValueError):
         XV.ExecVariant(leverage=200.0)
@@ -72,8 +73,9 @@ def test_no_daily_cap_admits_more_than_four_entries_a_day_and_the_cap_still_refu
 
 def test_contract_leverage_halves_the_unit_cap_and_doubles_the_margin_per_unit():
     bars, cal, sig, sr = synth(weeks=1)
+    import dataclasses
     base = E.EnvConfig(level_policy="clip")
-    f4 = S.with_variant(base, C3.FULL_F4)
+    f4 = S.with_variant(base, dataclasses.replace(C3.FULL_F4, level_mode="sigma", sizing_mode="risk"))   # the leverage effect alone, sigma levels
     env_b, _ = run(bars, cal, sig, sr, base, _open_every_bar)
     env_4, _ = run(bars, cal, sig, sr, f4, _open_every_bar)
     tb, t4 = env_b.trades[0], env_4.trades[0]

@@ -328,7 +328,15 @@ class BarEnv:
                 ok, why = False, "LEVELS"
             units = None
             if ok:
-                if var is not None and var.sizing_mode == "risk":                   # A4-4 (declared variant)
+                if var is not None and var.sizing_mode == "risk_budget":            # S3 (business contract): q = c x min(1, rho B / L1)
+                    from .exec_variants import risk_budget_units
+                    prof = self.cfg.profile
+                    cost_per_unit = float(prof.slippage_market) + float(prof.slippage_stop) + 2.0 * float(prof.commission_per_lot_side) / float(prof.lot_units)
+                    rb = risk_budget_units(self.balance, float(self.c[b]), abs(float(self.c[b]) - lv[1]), cost_per_unit, float(var.funding_reserve_per_unit),
+                                           float(var.rho), float(var.quality_c), self.cfg.sizing)
+                    units = rb["units"]
+                    self.last_sizing = rb
+                elif var is not None and var.sizing_mode == "risk":                 # A4-4 (declared variant)
                     from .exec_variants import risk_units
                     units = risk_units(self.balance, float(self.c[b]), abs(float(self.c[b]) - lv[1]), var.risk_pct,
                                        self.cfg.sizing)

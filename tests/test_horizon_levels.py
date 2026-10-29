@@ -172,4 +172,5 @@ def test_engine_absolute_mode_applies_no_bounds_no_band_clips_nothing_and_keeps_
     sh = lambda b, r, st, env: ((E.SHORT if env.pos is None else E.HOLD),) + ask_side(b, env)  # noqa: E731
     env3, _ = run(bars, cal, sig, sr, cfg, sh)
     assert env3.counts["entries"] == 0 and env3.counts["refused_LEVELS"] > 0
-    assert XV.LEGACY.identity == "exec_5d80473b21dc61a0" and C3.FULL_F3.identity == "exec_709f9b1fa3512486" and "level_mode" not in C3.FULL_F4.document()
+    assert XV.LEGACY.identity == "exec_5d80473b21dc61a0" and C3.FULL_F3.identity == "exec_709f9b1fa3512486"
+    assert "level_mode" not in C3.FULL_F3.document() and C3.FULL_F4.document()["level_mode"] == "absolute_pips"

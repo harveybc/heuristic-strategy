@@ -37,7 +37,7 @@ from dataclasses import asdict, dataclass
 
 import numpy as np
 
-SIZING_MODES = ("notional_share", "risk")
+SIZING_MODES = ("notional_share", "risk", "risk_budget")   # risk_budget = the business contract's q = min(1, rho x balance / L1) (S3)
 LEVEL_MODES = ("sigma", "absolute_pips")
 
 
@@ -51,6 +51,9 @@ class ExecVariant:
     leverage: float | None = None                       # business contract 2026-10-29: the account leverage scenario (None = EnvConfig.sizing)
     no_daily_cap: bool = False                          # business contract 2026-10-29: max_entries_per_day = None (no strategy-imposed cap)
     level_mode: str = "sigma"                           # S2: "absolute_pips" = the policy passes SL / TP PRICES built by horizon_levels (no sigma bounds, no band)
+    rho: float = 0.005                                  # S3 risk_budget sizing: the risk budget share of the CURRENT balance (a gene from S6 on; baseline 0.005)
+    funding_reserve_per_unit: float = 0.0               # S3: funding reserve per unit added to the modeled loss (declared constant)
+    quality_c: float = 1.0                              # S3: c of q = c x min(1, R / L1); fixed 1 until head confidence is calibrated (coordinator ruling)
     note: str = ""
 
     def __post_init__(self):
@@ -64,6 +67,8 @@ class ExecVariant:
             raise ValueError("LEVERAGE_OUT_OF_RANGE:(0, 100]")
         if self.level_mode not in LEVEL_MODES:
             raise ValueError(f"LEVEL_MODE_UNKNOWN:{self.level_mode}")
+        if not (0 <= self.rho <= 1) or self.funding_reserve_per_unit < 0 or not (0 <= self.quality_c <= 1):
+            raise ValueError("RISK_BUDGET_PARAMS_OUT_OF_RANGE")
 
     def is_legacy(self) -> bool:
         """True when every option equals the audited default (the engine path is then byte-identical)."""
@@ -72,7 +77,7 @@ class ExecVariant:
     def document(self) -> dict:
         d = asdict(self)
         d.pop("note")
-        for k, default in (("leverage", None), ("no_daily_cap", False), ("level_mode", "sigma")):   # fields added 2026-10-29: absent at their defaults, so every earlier identity is unchanged
+        for k, default in (("leverage", None), ("no_daily_cap", False), ("level_mode", "sigma"), ("rho", 0.005), ("funding_reserve_per_unit", 0.0), ("quality_c", 1.0)):   # fields added 2026-10-29: absent at their defaults, so every earlier identity is unchanged
             if d[k] == default:
                 d.pop(k)
         return d
@@ -102,6 +107,26 @@ def calendar_clock_mask(base_mode: str = "none"):
 
 
 # ------------------------------------------------------------------------------------------------ A4-4 sizing
+def risk_budget_units(balance: float, price: float, stop_distance: float, cost_per_unit: float, funding_reserve: float, rho: float, quality: float, sizing) -> dict:
+    """S3 (business contract): q = quality x min(1, rho x balance / L1), L1 = units_max x loss_per_unit, loss_per_unit = the
+    rounded SL distance + the cost per unit + the funding reserve; units = order_units(q) (floor of q x units_max,
+    refused below the broker minimum or above the free margin). Returns {"units", "q", "loss_per_unit", "reason"}."""
+    from . import horizon_levels as HL
+    if not (np.isfinite(stop_distance) and stop_distance > 0 and balance > 0):
+        return {"units": None, "q": 0.0, "loss_per_unit": float("nan"), "reason": "STOP_DISTANCE"}
+    maximum = sizing.units_max(balance, price)
+    if maximum < sizing.min_units:
+        return {"units": None, "q": 0.0, "loss_per_unit": float("nan"), "reason": "BELOW_MINIMUM_UNITS"}
+    loss_per_unit = float(stop_distance) + float(cost_per_unit) + float(funding_reserve)
+    sized = HL.size_from_risk(balance, sizing.rel_volume, float(rho) * balance, maximum * loss_per_unit, float(quality))
+    if sized["q"] <= 0:
+        return {"units": None, "q": 0.0, "loss_per_unit": loss_per_unit, "reason": sized["reason"]}
+    u = sizing.order_units(balance, price, percentual_order_size=sized["q"], risk_accepts_minimum=False)
+    if u is None:
+        return {"units": None, "q": sized["q"], "loss_per_unit": loss_per_unit, "reason": "BELOW_MINIMUM_UNITS_OR_MARGIN"}
+    return {"units": int(u), "q": sized["q"], "loss_per_unit": loss_per_unit, "reason": "RISK_BOUNDED"}
+
+
 def risk_units(balance: float, price: float, stop_distance: float, risk_pct: float, sizing) -> int | None:
     """Integer units risking ``risk_pct`` of the balance at the stop, capped by the rel_volume/leverage rule and the
     margin; None when below the broker minimum or the stop distance is not usable."""

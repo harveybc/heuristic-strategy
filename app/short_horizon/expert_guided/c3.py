@@ -70,9 +70,11 @@ FULL_F3_12H = dataclasses.replace(FULL_F3, entry_cutoff_hours_before_flat=12.0, 
 # FULL_F4 = the shared business contract (owner decision 2026-10-29, business_contract.py, agent-multi 82862801): leverage 50,
 # rel_volume 0.10, NO strategy-imposed daily entry cap, entries from 12 h after the session open, forced flat 12 h before the
 # close and no entry at or after that cutoff (the calendar's own rule, entry_cutoff_hours_before_flat None: the 24 h rule of
-# FULL_F3 is the declared variant, default OFF); sizing stays risk mode until the contract's risk-budget sizing (S3)
-FULL_F4 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk", risk_pct=0.01, entry_cutoff_hours_before_flat=None,
-                         short_trigger_on_ask=True, leverage=50.0, no_daily_cap=True, note="full_f4 (business contract 73f32e43: leverage 50, no daily cap, 12 h cutoff)")
+# FULL_F3 is the declared variant, default OFF); absolute levels per horizon (S2) and the risk-budget sizing (S3: rho baseline
+# 0.005, c = 1, funding reserve 0; the genes join STRATEGY_PARAMS v2 in S6)
+FULL_F4 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk_budget", rho=0.005, entry_cutoff_hours_before_flat=None,
+                         short_trigger_on_ask=True, leverage=50.0, no_daily_cap=True, level_mode="absolute_pips",
+                         note="full_f4 (business contract 73f32e43: leverage 50, no daily cap, 12 h cutoff, absolute levels, risk-budget sizing rho 0.005 c 1)")
 EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3, "full_f3_12h": FULL_F3_12H, "full_f4": FULL_F4}
 CUTOFF_ELIGIBILITY = {"measured_on": "wf2022 INNER_A (2021-07..2022-01), cheat DIAGNOSTIC store, 2026-10-26 (slots.py)",
                       "eligible_days_per_week": {"legacy_12h_cutoff": 5.02, "full_f3_24h_cutoff": 3.98},
