@@ -4,7 +4,9 @@ net equal (W14 mirror_check) -- and no per-run W14 verdict. Evaluated through th
 (CachedWorld), so the test covers exactly what the optimiser scores. Two checks per (pair, genome): W14 as sealed
 (mirror world, SAME vector: a behaviour requirement; side-asymmetric legacy close genes fail it legitimately) and the
 diagnostic W14_swap (mirror world, SIDE-SWAPPED vector: code symmetry; coordinator ruling 2026-10-28, never a DEAP
-constraint). Exit 1 only on a W14_swap failure (a code asymmetry) or a per-run W14 verdict.
+constraint). Exit 1 only on a W14_swap failure (a code asymmetry) or a per-run W14 verdict. Under full_f4 (BM.w14_menu_rule)
+the symmetry form is the mirror world with side-SWAPPED references (the TRAIN references are side-specific, a declared
+data asymmetry); random genomes keep the base point's menu level genes (the MENU_GENES_MISMATCH guard).
 
   python tools/strategy_mirror_property.py --subset <SUBSET.json> --pairs LHS_46,... --n 50 [--point <json>] --admitted <d> --csv-dir <d> --out <jsonl>
 """
@@ -36,7 +38,10 @@ def genomes(n: int, seed: int, point: dict | None, points: list | None = None) -
         out.append((name, SP.validate(p)))
     rng = random.Random(seed)
     for i in range(n):
-        out.append((f"random_{i}", D.decode([rng.random() for _ in D.GENOME], base)))
+        d = D.decode([rng.random() for _ in D.GENOME], base)
+        if SP.exec_profile_of(base) == "full_f4":                    # the menu truth is built once per world with the base level genes (MENU_GENES_MISMATCH guard):
+            d = SP.validate({**d, **{k: base[k] for k in D.MENU_LEVEL_KEYS}})   # random genomes keep them (stage 1 sets them, stage 2 freezes them)
+        out.append((f"random_{i}", d))
     return out
 
 
@@ -73,20 +78,27 @@ def main():
             t0 = time.time()
             ws = D.CachedWorld(cx, SCFG, AC, sub[f"S_{pid}@q1.00"], 0)
             wm = D.CachedWorld(cx, SCFG, AC, sub[f"M_{pid}@q1.00"], 0)
+            menu = ws.w["truth"].menu is not None
+            # full_f4 (BM.w14_menu_rule): the TRAIN references are side-specific (a declared data asymmetry), so code symmetry is
+            # read on the mirror world with side-SWAPPED references; the sealed W14 (same references) stays a reported behaviour
+            wx = D.CachedWorld(cx, SCFG, AC, dict(sub[f"M_{pid}@q1.00"], swap_refs=True, role="Mswap", subset_key=f"Mswap_M_{pid}@q1.00"), 0) if menu else wm
             for name, doc in gs:
                 rs, rm = ws.evaluate(doc), wm.evaluate(doc)
                 w = BM.mirror_check(rs["_trades"], rm["_trades"])
                 per_run_w14 = [f for f in rs["fails"] + rm["fails"] if f.startswith("W14")]
-                sw = w if w["pass"] else BM.mirror_check(rs["_trades"], wm.evaluate(swap_sides(doc))["_trades"])   # W14_swap: needed only where W14 fails
+                rx = wx.evaluate(doc) if menu else rm
+                wsym = BM.mirror_check(rs["_trades"], rx["_trades"]) if menu else w
+                sw = wsym if wsym["pass"] else BM.mirror_check(rs["_trades"], wx.evaluate(swap_sides(doc))["_trades"])   # W14_swap: needed only where the symmetry form fails
                 code_ok = bool(sw["pass"] and not per_run_w14)
                 bad += int(not code_ok)
                 fh.write(json.dumps({"pair": pid, "genome": name, "pass": bool(w["pass"] and not per_run_w14), "W14_swap_pass": bool(sw["pass"]), "code_symmetric": code_ok,
+                                     "form": "swapped_refs_mirror (full_f4)" if menu else "mirror", "W14_sealed_same_refs_pass": bool(w["pass"]),
                                      "n": [w["n_a"], w["n_b"]], "bars_match": w["bars_match"], "sides_flipped": w["sides_flipped"],
                                      "max_net_dev_sigma": w["max_net_discrepancy_ex_financing_sigma"], "W14_swap_dev_sigma": sw["max_net_discrepancy_ex_financing_sigma"],
                                      "per_run_w14": per_run_w14}, default=float) + "\n")
                 fh.flush()
             print(json.dumps({"pair": pid, "genomes": len(gs), "sec": round(time.time() - t0)}), flush=True)
-            del ws, wm
+            del ws, wm, wx
     print(json.dumps({"code_symmetry_failures": bad}))
     sys.exit(1 if bad else 0)
 

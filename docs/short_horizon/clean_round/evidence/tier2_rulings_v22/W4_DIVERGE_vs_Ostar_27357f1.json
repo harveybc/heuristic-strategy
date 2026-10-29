@@ -1,0 +1,110 @@
+[
+ {
+  "record": "M_H1_medium_fast_s0",
+  "early_closes": 7,
+  "unjustified": 3,
+  "W4_sealed_share": 0.5714285714285714,
+  "unjustified_closes": [
+   {
+    "bar": 308,
+    "side": 0,
+    "entry_bar": 308,
+    "remaining": 0.010636508342831981,
+    "justified_sealed": false,
+    "head_A": -0.010636508342832028,
+    "path_A": -0.010636508342831981,
+    "head_minus_path": -4.683753385137379e-17,
+    "Ostar_closes_at_this_tick": true,
+    "Ostar_first_close_tick_on_this_trade": 308,
+    "strategy_rule_fires": true
+   },
+   {
+    "bar": 429,
+    "side": 0,
+    "entry_bar": 422,
+    "remaining": 0.004223611185384624,
+    "justified_sealed": false,
+    "head_A": -0.004223611185384624,
+    "path_A": -0.004223611185384624,
+    "head_minus_path": 0.0,
+    "Ostar_closes_at_this_tick": true,
+    "Ostar_first_close_tick_on_this_trade": 429,
+    "strategy_rule_fires": true
+   },
+   {
+    "bar": 8569,
+    "side": 0,
+    "entry_bar": 8567,
+    "remaining": 0.007687046066135406,
+    "justified_sealed": false,
+    "head_A": -0.007687046066135463,
+    "path_A": -0.007687046066135406,
+    "head_minus_path": -5.724587470723463e-17,
+    "Ostar_closes_at_this_tick": true,
+    "Ostar_first_close_tick_on_this_trade": 8569,
+    "strategy_rule_fires": true
+   }
+  ],
+  "decision_differences_vs_Ostar": [],
+  "max_abs_head_minus_path": 5.724587470723463e-17
+ },
+ {
+  "record": "M_H6_LHS_17_s0",
+  "early_closes": 7,
+  "unjustified": 2,
+  "W4_sealed_share": 0.7142857142857143,
+  "unjustified_closes": [
+   {
+    "bar": 2657,
+    "side": 0,
+    "entry_bar": 2656,
+    "remaining": 0.00037409275927165073,
+    "justified_sealed": false,
+    "head_A": -0.0003740927592716556,
+    "path_A": -0.00037409275927165073,
+    "head_minus_path": -4.87890977618477e-18,
+    "Ostar_closes_at_this_tick": true,
+    "Ostar_first_close_tick_on_this_trade": 2657,
+    "strategy_rule_fires": true
+   },
+   {
+    "bar": 7607,
+    "side": 0,
+    "entry_bar": 7600,
+    "remaining": 0.015526647773695543,
+    "justified_sealed": false,
+    "head_A": -0.01552664777369557,
+    "path_A": -0.015526647773695543,
+    "head_minus_path": -2.7755575615628914e-17,
+    "Ostar_closes_at_this_tick": true,
+    "Ostar_first_close_tick_on_this_trade": 7607,
+    "strategy_rule_fires": true
+   }
+  ],
+  "decision_differences_vs_Ostar": [],
+  "max_abs_head_minus_path": 1.0733601507606494e-16
+ },
+ {
+  "record": "S_H6_LHS_17_s0",
+  "early_closes": 7,
+  "unjustified": 1,
+  "W4_sealed_share": 0.8571428571428571,
+  "unjustified_closes": [
+   {
+    "bar": 2839,
+    "side": 0,
+    "entry_bar": 2836,
+    "remaining": 0.012696166795356623,
+    "justified_sealed": false,
+    "head_A": -0.01269616679535661,
+    "path_A": -0.012696166795356623,
+    "head_minus_path": 1.214306433183765e-17,
+    "Ostar_closes_at_this_tick": true,
+    "Ostar_first_close_tick_on_this_trade": 2839,
+    "strategy_rule_fires": true
+   }
+  ],
+  "decision_differences_vs_Ostar": [],
+  "max_abs_head_minus_path": 1.1102230246251565e-16
+ }
+]

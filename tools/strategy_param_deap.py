@@ -60,6 +60,7 @@ FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)
 # inflated) and are excluded from that profile's genome, so the search does not spend dimensions on them (declared, not silent)
 from app.short_horizon.expert_guided import menu as _MENU  # noqa: E402
 INERT_FULL_F4 = dict(_MENU.INERT_UNDER_MENU)
+MENU_LEVEL_KEYS = tuple(_MENU.LEVEL_GENES) + ("ref_p75",)     # the genes the full_f4 menu truth is stamped with (stage 1 grid; frozen in stage 2 and in the mirror property test)
 GENOME_F4 = tuple(k for k in GENOME if k not in INERT_FULL_F4) + ("z_veto",)   # z_veto: the veto gate (ruling 2026-10-29), consumed under full_f4 only
 
 
@@ -181,6 +182,7 @@ class CachedWorld:
             for k in ("closes", "log", "positions", "attr"):
                 ro.pop(k, None)
         self.oracle_sharpe = float(orl["metrics"].get("sharpe_daily_sqrt365", float("nan")))
+        self.oracle_trades = BM.annotate_sigma(w, [dict(t) for t in orl["trades"]]) if (cell.get("pair") and w["truth"].menu is not None) else None
         self._release()                                               # memory: the build's per-tick caches (head rows, new paths) are never read again
         self._release_build(cx)
         # memory: what an evaluation never reads again (the raw head table -- the view holds its restricted copy -- and the
@@ -241,9 +243,12 @@ class CachedWorld:
                "validity_v2": {k: vres[k] for k in ("not_evaluable", "unvalidated", "defects", "replay_conflicts", "evaluated")}, "fails_v1_retired": fails_v1 + exit_fails,
                "trades": len(roll["trades"]), "early_closes": sum(1 for t in roll["trades"] if t.get("exit_reason") == "EARLY"),
                "levels_clipped": int(roll["metrics"].get("n_levels_clipped", 0)) if isinstance(roll["metrics"], dict) else None,
-               "trade_stats": trade_stats(self.w, roll["trades"]), "activity": activity_stats(self.w, roll["trades"]), "horizon_mix": BM.horizon_mix(roll, view, self.w)}
+               "trade_stats": trade_stats(self.w, roll["trades"]), "activity": activity_stats(self.w, roll["trades"]), "horizon_mix": BM.horizon_mix(roll, view, self.w),
+               "burst_gate": wit.get("burst_gate"), "w17": (wit["W17_no_open_in_burst"]["pass"] if isinstance(wit.get("W17_no_open_in_burst"), dict) else None)}   # ruling B: W17 next to the calm-bar gate share
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
             out["_trades"], out["_episodes"], out["_pair"], out["_role"] = BM.annotate_sigma(self.w, roll["trades"]), ep_summary, self.cell["pair"], self.cell["role"]
+            if self.w["truth"].menu is not None:                      # full_f4: the W14 control (the truth oracle on the same pair), BM.w14_menu_rule
+                out["_oracle_trades"] = self.oracle_trades
         self._release()
         return out
 
@@ -336,18 +341,43 @@ def judge_pairs(res: list) -> None:
                     r["fails"].append("W14_mirror_NOT_EVALUABLE")
             continue
         w14 = BM.mirror_check(a["_trades"], b["_trades"])
+        eb_src = b
+        if a.get("_oracle_trades") is not None and b.get("_oracle_trades") is not None:   # full_f4: BM.w14_menu_rule, the matrix's governing verdict
+            status = BM.w14_control_status(BM.mirror_check(a["_oracle_trades"], b["_oracle_trades"]))
+            sw = pr.get("Mswap")
+            if status == "DEFECT":                                    # the oracle fails the sealed form: the side-swapped-reference mirror governs (W14 and E6)
+                if sw is None:
+                    b["fails"].append("W14_mirror_NOT_EVALUABLE")
+                    w14, eb_src = {"pass": True}, None
+                else:
+                    w14, eb_src = BM.mirror_check(a["_trades"], sw["_trades"]), sw
+            b["w14_control_status"] = status
         if not w14["pass"]:
             b["fails"].append("W14_mirror")
-        ea, eb = a.get("_episodes"), b.get("_episodes")
+        ea, eb = a.get("_episodes"), (eb_src or {}).get("_episodes")
         if ea and eb:
             g = lambda d, k: d.get(k, d.get(str(k)))  # noqa: E731
             dmax = max(abs(g(ea, 0)["early"] - g(eb, 1)["early"]), abs(g(ea, 1)["early"] - g(eb, 0)["early"]), abs(g(ea, 0)["mean_R"] - g(eb, 1)["mean_R"]),
                        abs(g(ea, 1)["mean_R"] - g(eb, 0)["mean_R"]), abs(g(ea, 0)["n"] - g(eb, 1)["n"]), abs(g(ea, 1)["n"] - g(eb, 0)["n"]))
             if not dmax <= 1e-9:
                 b["fails"].append("E6_exit_mirror")
+    res[:] = [r for r in res if r.get("_role") != "Mswap"]           # the swapped-reference mirror is the W14 control world: never scored itself
     for r in res:
-        for k in ("_trades", "_episodes", "_pair", "_role"):
+        for k in ("_trades", "_episodes", "_pair", "_role", "_oracle_trades"):
             r.pop(k, None)
+
+
+def with_swap_worlds(subset: list, params_doc: dict | None) -> list:
+    """full_f4 (BM.w14_menu_rule): every exact-mirror world of a twin / mirror pair gets its side-swapped-reference copy
+    (role Mswap, same pair), the world the governing W14 / E6 read where the oracle fails the sealed form; the copy is
+    judged, never scored (judge_pairs drops it)."""
+    if SP.exec_profile_of(params_doc or {}) != "full_f4":
+        return list(subset)
+    out = list(subset)
+    for c in subset:
+        if c.get("pair") and c.get("role") == "M":
+            out.append(dict(c, swap_refs=True, role="Mswap", subset_key="Mswap_" + c["subset_key"]))
+    return out
 
 
 def _worker(conn, share: list, fold: str, admitted: str, csv_dir: str, contract: str):
@@ -379,6 +409,7 @@ class Pool:
             cx, SCFG = S.load_fold(fold, admitted, csv_dir)
             _BASE["cx"], _BASE["SCFG"] = cx, S.with_variant(SCFG, C3.exec_variant_of(params_doc))   # the profile of the parameter file (absent = full_f3, byte-identical)
         groups = {}
+        subset = with_swap_worlds(subset, params_doc)                 # full_f4: the W14 control world of every pair
         for c in subset:                                              # a twin / mirror pair shares one worker (W14 / E6 are judged there)
             groups.setdefault(c.get("pair") or c["subset_key"], []).append(c)
         shares = [[] for _ in range(jobs)]
