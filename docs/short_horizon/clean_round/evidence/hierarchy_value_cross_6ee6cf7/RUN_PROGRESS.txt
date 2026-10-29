@@ -1,0 +1,6 @@
+2026-10-29T13:32:50Z ev0.62 zz0.80 gated done 72
+2026-10-29T14:25:29Z ev0.62 zz0.80 off done 72
+2026-10-29T15:13:59Z ev0.62 zz0.90 gated done 72
+2026-10-29T16:06:45Z ev0.62 zz0.90 off done 72
+2026-10-29T16:55:57Z ev0.70 zz0.90 gated done 72
+2026-10-29T17:49:48Z ev0.70 zz0.90 off done 72

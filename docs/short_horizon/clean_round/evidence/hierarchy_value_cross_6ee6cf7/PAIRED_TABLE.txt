@@ -1,0 +1,16 @@
+Cross-quality hierarchy arm (coordinator ruling 2026-10-29), code 6ee6cf7, 24 DEAP-subset worlds x seeds 0-2 (72 paired records per arm),
+gated (z_veto 2) vs off (z_veto 0); EV heads at q_ev, hierarchy heads at q_zz. Headline (coordinator's f10_armcmp + paired bootstrap):
+
+| arm            | gated - off daily Sharpe, mean [95 % CI] | gated better | net sigma / trade gated vs off | trades / week gated vs off | W8 switch FAIL gated vs off |
+|----------------|------------------------------------------|--------------|--------------------------------|----------------------------|-----------------------------|
+| ev0.62 / zz0.80 | -5.48 [-5.80, -5.16]                    | 0 / 72       | 0.377 vs 0.339                 | 1.87 vs 8.05               | 2 vs 13                     |
+| ev0.62 / zz0.90 | -5.99 [-6.38, -5.59]                    | 0 / 72       | 0.476 vs 0.344                 | 1.29 vs 8.14               | 1 vs 13                     |
+| ev0.70 / zz0.90 | -7.58 [-7.84, -7.30]                    | 0 / 72       | 0.500 vs 0.447                 | 2.39 vs 9.33               | 3 vs 10                     |
+
+Reading: a better-informed hierarchy raises per-trade quality (up to +38 % sigma per trade) and cuts switch failures, but it
+removes 70-85 % of the trades, so daily Sharpe always prefers off. Under the owner's Sharpe-only fitness, z_veto -> 0 is expected.
+
+Lane F10 re-computation (RECOMPUTE_lane_F10.txt, same records, f10_armcmp.py, bootstrap 5000 resamples seed 20261029): means,
+sigma per trade, trades per week, W8 switch FAIL counts and 0 / 72 identical; bootstrap 95 % CIs [-5.807, -5.162], [-6.398, -5.582],
+[-7.848, -7.290] (within 0.02 of the headline's, a different resampling). Trades removed by the gate: 76.8 %, 84.2 %, 74.4 %.
+Not in the headline: W1_side FAIL gated vs off 5 vs 1, 7 vs 0, 2 vs 0 (the gated arm fails W1 more often).
