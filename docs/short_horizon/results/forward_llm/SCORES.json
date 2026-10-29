@@ -1,6 +1,6 @@
 {
- "decisions": 138,
- "entry_decisions": 116,
+ "decisions": 139,
+ "entry_decisions": 117,
  "by_model": {
   "baseline_momentum24": {
    "resolved_hits": 3,
@@ -25,13 +25,13 @@
   }
  },
  "status_counts": {
-  "PENDING": 67,
+  "PENDING": 68,
   "FINAL": 49
  },
  "outcome_counts": {
-  "NaN": 67,
+  "NaN": 68,
   "TIMEOUT": 46,
   "LOWER": 3
  },
- "scored_utc": "2026-10-29 08:12:54.031056+00:00"
+ "scored_utc": "2026-10-29 09:12:54.830102+00:00"
 }
