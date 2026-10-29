@@ -36,7 +36,7 @@ cd $CODE
 log "subset: $(tail -1 $R/logs/deap_subset.log | cut -c1-200)"
 $CR -q -W ${WAIT_DEAP:-43200} -m ${MEM_DEAP:-18G} -t ${TIME_DEAP:-43200}s -n deap-strategy-params -- $PY tools/strategy_param_deap.py run --subset $OUT/SUBSET.json --params $P0 \
    --admitted $R/data/admitted --csv-dir $R/data/sel15 --jobs ${JOBS_DEAP:-10} --out $OUT ${WARM_ARCHIVE:+--warm-archive $WARM_ARCHIVE} > $R/logs/deap_run.log 2>&1 \
-   && log "DEAP DONE: $(grep '"done"' $OUT/PROGRESS.log | tail -1)" || { log "DEAP FAILED (see logs/deap_run.log)"; exit 1; }
+   && log "DEAP DONE: $(grep '"done"' $OUT/PROGRESS.log | tail -1)" || { if [ -f $OUT/FAILED_DEGENERATE_GEN0 ]; then log "FAILED_DEGENERATE_GEN0: the search stopped itself after generation 0 ($(python3 -c "import json; print('; '.join(json.load(open('$OUT/FAILED_DEGENERATE_GEN0'))['reasons']))" 2>/dev/null)); no resume"; exit 3; fi; log "DEAP FAILED (see logs/deap_run.log)"; exit 1; }
 for k in $(seq 0 ${MAX_RANK:-9}); do
   $PY tools/strategy_param_deap.py best --archive $OUT/ARCHIVE.jsonl --params $P0 --k $k --allow-infeasible --out $OUT/CANDIDATE_k$k.json > $R/logs/deap_best_k$k.log 2>&1 || { log "no feasible point at rank $k"; exit 2; }
   log "re-verifying rank $k on the full matrix: $(tail -1 $R/logs/deap_best_k$k.log | cut -c1-200)"

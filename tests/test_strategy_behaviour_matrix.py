@@ -544,3 +544,28 @@ def test_cost_view_equals_the_array_expression_bit_for_bit():
             arr = arr + a
         v = S._CostView(sp, *adds)
         assert np.array_equal(v[idx], arr[idx]) and v[17] == arr[17] and np.array_equal(v[np.arange(10, 40)], arr[10:40])
+
+
+def test_generation0_degeneracy_gate():
+    """The standing pre-launch gate (coordinator order 2026-10-28): after generation 0 the search stops on its own when
+    every candidate has the same failing count, a witness fails in every candidate in every world where it is evaluated,
+    or a NOT_EVALUABLE verdict is in every candidate; shared failures in only some worlds are reported, not a stop."""
+    from tools import strategy_param_deap as D
+    worlds = [("A@q1.00", 1.0), ("M_X@q1.00", 1.0), ("M_Y@q1.00", 1.0), ("B@q0.70", 0.7), ("C@q0.70", 0.7)]
+
+    def rec(nf, fails):
+        return {"n_failing_witnesses": nf, "per_world": [{"key": k, "quality": q, "fails": list(fails.get(k, []))} for k, q in worlds]}
+
+    w14 = [rec(10 + i, {"M_X@q1.00": ["W14_mirror"], "M_Y@q1.00": ["W14_mirror"], "A@q1.00": ["W7_best_cell"] if i % 2 else []}) for i in range(4)]
+    d = D.degenerate_gen0(w14)
+    assert d["degenerate"] and any(r.startswith("(b) W14_mirror") for r in d["reasons"])
+    same = [rec(7, {"A@q1.00": ["W7_best_cell"] if i else ["W5_reverse"]}) for i in range(4)]
+    assert D.degenerate_gen0(same)["degenerate"] and D.degenerate_gen0(same)["reasons"][0].startswith("(a)")
+    shared = [rec(10 + i, {"B@q0.70": ["D7_regret_BUY"], "C@q0.70": ["D7_regret_BUY"] if i % 2 else []}) for i in range(4)]
+    d = D.degenerate_gen0(shared)
+    assert not d["degenerate"] and d["every_candidate_some_worlds"] == [{"witness": "D7_regret_BUY", "worlds_failing_in_every_candidate": 1, "worlds_evaluated": 2}]
+    ne = [rec(3 + i, {"M_X@q1.00": ["W14_mirror_NOT_EVALUABLE"]}) for i in range(3)]
+    assert D.degenerate_gen0(ne)["degenerate"]
+    healthy = [rec(i, {"A@q1.00": ["W7_best_cell"]} if i % 2 else {}) for i in range(5)]
+    assert not D.degenerate_gen0(healthy)["degenerate"]
+    assert not D.degenerate_gen0(healthy[:1])["degenerate"]

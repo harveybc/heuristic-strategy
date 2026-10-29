@@ -367,6 +367,62 @@ def warm_population(archive: Path, base: dict, k: int) -> list:
     return out
 
 
+class DegenerateGen0(RuntimeError):
+    pass
+
+
+DEGENERACY_RULE = ("generation-0 degeneracy (coordinator order 2026-10-28, standing for every DEAP launch): the search stops "
+                   "on its own after generation 0 when (a) every candidate has the same failing count, or (b) one witness fails "
+                   "in 100 % of the candidates in EVERY world where it was evaluated (a constraint no parameter vector can "
+                   "move: the W14 verifier defect of run 4b failed 9 / 9 pairs in 16 / 16 candidates), or (c) a "
+                   "NOT_EVALUABLE verdict appears in every candidate; (b') a witness failing in 100 % of the candidates in "
+                   "only SOME worlds is reported, not a stop (a narrow warm start shares real failures)")
+
+
+def _applicable_worlds(witness: str, per_world: list) -> list:
+    """The worlds where a witness is evaluated, from the subset: W14 on the mirror worlds, D7 on the q < 1 worlds, any
+    other witness on every world (so (b) never fires for a witness that fails only where it applies to a few)."""
+    base = witness.replace("_NOT_EVALUABLE", "")
+    if base.startswith("W14"):
+        return sorted(w["key"] for w in per_world if w["key"].startswith("M_"))
+    if base.startswith("D7_"):
+        return sorted(w["key"] for w in per_world if float(w.get("quality", 1.0)) < 0.999)
+    return sorted(w["key"] for w in per_world)
+
+
+def degenerate_gen0(recs: list) -> dict:
+    """DEGENERACY_RULE on the archive records of generation 0 (each with n_failing_witnesses and per_world
+    [{key, quality, fails}])."""
+    n = len(recs)
+    out = {"rule": DEGENERACY_RULE, "candidates": n, "degenerate": False, "reasons": [], "every_candidate_some_worlds": []}
+    if n < 2:
+        out["reasons"].append("fewer than 2 candidates: not judged")
+        return out
+    counts = sorted({int(r["n_failing_witnesses"]) for r in recs})
+    if len(counts) == 1:
+        out["degenerate"] = True
+        out["reasons"].append(f"(a) every candidate has the same failing count {counts[0]}")
+    hits = {}
+    for i, r in enumerate(recs):
+        for w in r["per_world"]:
+            for f in w["fails"]:
+                hits.setdefault(f, {}).setdefault(w["key"], set()).add(i)
+    for f, by_world in sorted(hits.items()):
+        always = sorted(k for k, idx in by_world.items() if len(idx) == n)
+        if not always:
+            continue
+        applicable = _applicable_worlds(f, recs[0]["per_world"])
+        if "NOT_EVALUABLE" in f:
+            out["degenerate"] = True
+            out["reasons"].append(f"(c) {f} in every candidate ({len(always)} worlds)")
+        elif applicable and set(applicable) <= set(always):
+            out["degenerate"] = True
+            out["reasons"].append(f"(b) {f} fails in {n} / {n} candidates in all {len(applicable)} worlds where it is evaluated")
+        else:
+            out["every_candidate_some_worlds"].append({"witness": f, "worlds_failing_in_every_candidate": len(always), "worlds_evaluated": len(applicable)})
+    return out
+
+
 def run_search(pool: Pool, base: dict, out: Path, population: int, generations: int, seed: int, log=print, init: list | None = None) -> dict:
     from deap import tools as DT
     rnd = random.Random(seed)
@@ -386,6 +442,11 @@ def run_search(pool: Pool, base: dict, out: Path, population: int, generations: 
         pop = [{"x": x, **{k: v for k, v in _eval(pool, x, base, arch, 0).items()}} for x in pop]
         gen0 = 1
         ck.write_bytes(pickle.dumps({"pop": pop, "gen": 0, "rng": rnd.getstate()}))
+        dg = degenerate_gen0([json.loads(x) for x in arch.read_text().splitlines() if x.strip() and json.loads(x).get("generation") == 0])
+        log(json.dumps({"gen0_degeneracy": dg}))
+        if dg["degenerate"]:                                          # the stage gate (coordinator order 2026-10-28): stop on our own, no signal
+            (out / "FAILED_DEGENERATE_GEN0").write_text(json.dumps(dg, indent=1))
+            raise DegenerateGen0(dg["reasons"])
     nb = len(GENOME)
     for g in range(gen0, generations + 1):
         pop.sort(key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"]))
@@ -474,7 +535,12 @@ def cmd_run(a):
     log(json.dumps({"pool_ready_sec": time.time() - t0, "workers": len(pool.ready), "worker_build_maxrss_mb": [round(x["maxrss_mb"]) for x in pool.ready],
                     "defects": {k: v for x in pool.ready for k, v in x["defects"].items() if v}}))
     init = warm_population(Path(a.warm_archive), base, a.population) if getattr(a, "warm_archive", None) else None
-    res = run_search(pool, base, out, a.population, a.generations, SEED, log, init=init)
+    try:
+        res = run_search(pool, base, out, a.population, a.generations, SEED, log, init=init)
+    except DegenerateGen0 as e:                                       # the stage reads FAILED_DEGENERATE_GEN0 and stops without a resume
+        log(json.dumps({"FAILED_DEGENERATE_GEN0": list(e.args[0])}))
+        pool.close()
+        sys.exit(3)
     pool.close()
     (out / "RESULT.json").write_text(json.dumps({"best": res["best"], "population": res["population"], "best_params": {k: v for k, v in zip(GENOME, res["best"]["x"])},
                                                  "wall_sec": time.time() - t0}, indent=1, default=float))

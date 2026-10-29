@@ -31,6 +31,7 @@ build_t0=""; ready_t0=""
 while [ ! -f $OUT/RESULT.json ]; do
   sleep $POLL
   [ -f $R/STOP_WATCHDOG ] && { log "STOP_WATCHDOG: exit"; exit 0; }
+  [ -f $OUT/FAILED_DEGENERATE_GEN0 ] && { log "FAILED_DEGENERATE_GEN0 present: the search stopped itself; no resume; watchdog exits"; exit 0; }
   now=$(date +%s)
   n=$(grep -c "\[param-stage\] DEAP FAILED" $R/LOG)
   pids=$(deap_pids)
