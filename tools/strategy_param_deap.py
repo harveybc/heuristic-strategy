@@ -63,6 +63,15 @@ INERT_FULL_F4 = dict(_MENU.INERT_UNDER_MENU)
 GENOME_F4 = tuple(k for k in GENOME if k not in INERT_FULL_F4) + ("z_veto",)   # z_veto: the veto gate (ruling 2026-10-29), consumed under full_f4 only
 
 
+def bounds_table(genome: tuple, doc: dict | None = None) -> dict:
+    """The bounds table a genome is encoded on (STRATEGY_PARAMS v2.2, ruling A): the parameter document's own profile table
+    when a document is given (full_f4 -> strategy_params.BOUNDS_F4, open_rate up to 1.0); otherwise the full_f4 genome on
+    BOUNDS_F4 and the full genome on the audited full_f3 table BOUNDS (byte-identical)."""
+    if doc is not None:
+        return SP.bounds_of(SP.exec_profile_of(doc))
+    return SP.bounds_of("full_f4") if tuple(genome) == GENOME_F4 else SP.BOUNDS
+
+
 def genome_of(doc: dict) -> tuple:
     """The genome a parameter document's profile searches: full_f4 without its inert genes, otherwise the full genome."""
     return GENOME_F4 if SP.exec_profile_of(doc) == "full_f4" else GENOME
@@ -75,11 +84,14 @@ def project(x: list, genome: tuple, base: dict | None = None) -> list:
         return list(x)
     if len(x) != len(GENOME):
         raise ValueError(f"GENOME_LENGTH:{len(x)}")
+    tb = bounds_table(genome, base)
     def enc(k):
         if base is None or k not in base:
             return 0.5
-        lo, hi = SP.BOUNDS[k]
+        lo, hi = tb[k]
         return (float(base[k]) - lo) / (hi - lo)
+    # v2.2: a full-genome vector is read on the same table encode / decode use for ``base`` (the document's profile table);
+    # an archive encoded before v2.2 on the full_f3 table must be decoded with that table first (warm starts are not planned)
     return [x[GENOME.index(k)] if k in GENOME else enc(k) for k in genome]
 
 
@@ -274,7 +286,8 @@ class CachedWorld:
 
 # ----------------------------------------------------------------------------- genome <-> parameter document
 def bounds(genome: tuple = GENOME) -> dict:
-    return {k: list(SP.BOUNDS[k]) for k in genome}
+    tb = bounds_table(genome)
+    return {k: list(tb[k]) for k in genome}
 
 
 def decode(x: list, base: dict, genome: tuple | None = None) -> dict:
@@ -284,8 +297,9 @@ def decode(x: list, base: dict, genome: tuple | None = None) -> dict:
     if g is None:
         raise ValueError(f"GENOME_LENGTH:{len(x)}")
     d = dict(base)
+    tb = bounds_table(g, base)
     for k, u in zip(g, x):
-        lo, hi = SP.BOUNDS[k]
+        lo, hi = tb[k]
         v = min(max(lo + (hi - lo) * min(max(float(u), 0.0), 1.0), lo), hi)   # clipped: at u = 1 the float sum overshot hi (rho 0.010000000000000002 was refused)
         if k in INTEGER:
             v = int(round(v))
@@ -298,7 +312,8 @@ def decode(x: list, base: dict, genome: tuple | None = None) -> dict:
 
 
 def encode(doc: dict, genome: tuple = GENOME) -> list:
-    return [(float(doc[k]) - SP.BOUNDS[k][0]) / (SP.BOUNDS[k][1] - SP.BOUNDS[k][0]) for k in genome]
+    tb = bounds_table(genome, doc)
+    return [(float(doc[k]) - tb[k][0]) / (tb[k][1] - tb[k][0]) for k in genome]
 
 
 # ----------------------------------------------------------------------------- the worker pool (one process per share of worlds)

@@ -454,8 +454,11 @@ def test_close_rule_at_quality_one_reproduces_the_perfect_head_rule_and_persiste
         def value(self, r, bar, pos):
             return 0.0, 0.0
 
-    def run(a, s):
-        pol = types.SimpleNamespace(s=types.SimpleNamespace(early_close=True), t={"closer": Stub(a, s)}, positions={}, closes=[])
+    def run(a, s, menu=False):
+        from app.short_horizon.expert_guided import menu as M
+        pol = types.SimpleNamespace(s=types.SimpleNamespace(early_close=True), t={"closer": Stub(a, s)}, positions={}, closes=[],
+                                    cells=list(M.MENU_CELLS) if menu else [(1.0, 1.0)])   # v2.2: the rule reads the policy's profile (menu = full_f4)
+        pol._menu = types.MethodType(ZZ.PolicyC3Z._menu, pol)
         return [ZZ.PolicyC3Z.close_now(pol, 0, 0, b, pos) for b in range(len(a))]
 
     pos = E.Position(1, 1000, 10, 1.1, 1.09, 1.12, 0.001, 0, {})
@@ -472,6 +475,8 @@ def test_close_rule_at_quality_one_reproduces_the_perfect_head_rule_and_persiste
         assert run(a, [0.0] * len(a)) == [False, False, False, True, False, False, True, False]
         ZZ.PARAMS.update(z_close=1.0, k_persist=1)
         assert run(a, [0.5] * len(a)) == [x - 0.5 >= -0.02 for x in a]
+        assert run(a, [0.0] * len(a), menu=True) == [x > 0 for x in a]      # full_f4 (ruling C): ties HOLD, the margin is inert
+        assert run(a, [0.1] * len(a), menu=True) == [x - 0.1 > 0 for x in a]
     finally:
         ZZ.PARAMS.clear()
         ZZ.PARAMS.update(old)

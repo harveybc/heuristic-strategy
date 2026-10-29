@@ -90,6 +90,22 @@ def test_fixture_A_with_realistic_costs_stays_close_and_the_planted_A_prime_flip
         assert (_advantage(envm, cxm, b, 1, 6.0, d_sl) < -BM.EPS_CLOSE) == want_hold, ("mirror", delta)
 
 
+def test_the_menu_closer_rule_flips_A_prime_at_d_SL_ties_hold():
+    """v2.2 (ruling C): under full_f4 the strategy closes only when A > 0 (z_close x s_hat = 0 at quality 1), ties HOLD;
+    so A' flips to HOLD exactly when the market-close cost exceeds the stop-exit cost by d_SL (A = d_SL - delta), the
+    bare engine threshold; the witnesses keep EPS_CLOSE (the previous test). Both sides asserted."""
+    from app.short_horizon.expert_guided import strategy_zz as ZZ
+    d_sl = 0.05
+    base = E.executable_profile()
+    for delta, want_hold in ((d_sl + 0.01, True), (d_sl - 0.01, False), (d_sl + 0.005, True), (d_sl - 0.005, False), (0.0, False), (0.10, True)):
+        prof = dataclasses.replace(base, slippage_market=base.slippage_stop + delta)
+        env, cx, b = _planted(prof=prof)
+        a = _advantage(env, cx, b, 0, 6.0, d_sl)
+        assert ZZ.advantage_close(a, 0.0, True) is (not want_hold), (delta, a)
+        envm, cxm, _ = _planted(mirror=True, prof=prof)
+        assert ZZ.advantage_close(_advantage(envm, cxm, b, 1, 6.0, d_sl), 0.0, True) is (not want_hold), ("mirror", delta)
+
+
 def test_fixed_delay_selection_on_calibration_paths():
     # three episodes: the optimum exit is at tick 2 (then the path decays to the stop); passive hold loses; immediate close gives 0
     paths = [{"P": np.array([0.0, 2.0, 5.0, 3.0, 1.0, -1.0]), "hold_net": -10.0, "risk": 10.0},

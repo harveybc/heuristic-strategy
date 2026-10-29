@@ -1,6 +1,6 @@
 {
  "schema": "strategy_params.v2",
- "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; v2.1 (2026-10-29) adds z_veto (the hierarchy vetoes bind only on low-confidence slots, full_f4); exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
+ "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; v2.1 (2026-10-29) adds z_veto (the hierarchy vetoes bind only on low-confidence slots, full_f4); v2.2 (2026-10-29, tier-2 rulings A / B) makes the bounds and defaults PER PROFILE: full_f4 widens open_rate to [0.002, 1.0], bounds burst_vol_ratio to [1.2, 2.5] with the canonical value 1.5 (BOUNDS_F4 / DEFAULTS_F4); full_f3 keeps BOUNDS / DEFAULTS byte-identical; exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
  "defaults_are": "canonical",
  "exec_profile": "full_f4",
  "open_rate_l": 0.45,
@@ -60,7 +60,7 @@
  "close_margin_floor": 0.0,
  "risk_reward_floor": 0.5,
  "burst_window_bars": 6,
- "burst_vol_ratio": 2.0,
+ "burst_vol_ratio": 1.5,
  "zz_room_tp_mult": 1.75,
  "zz_fine_h": 6,
  "zz_timing_gate": 1.0,

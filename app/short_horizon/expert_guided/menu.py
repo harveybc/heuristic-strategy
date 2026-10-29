@@ -34,7 +34,8 @@ MENU_REF_H = 6
 LEVEL_GENES = ("a_sl", "b_sl", "buffer_pips", "a_tp", "b_tp")
 GENE_RESOLUTION = {"a_sl": 0.01, "b_sl": 0.01, "buffer_pips": 0.1, "a_tp": 0.01, "b_tp": 0.01}   # the declared resolution of the level genes (truth cache key)
 INERT_UNDER_MENU = {"k_tp_protect": "a contracted TP is never inflated: the protective k x MFE envelope is off under full_f4",
-                    "tp_mode": "selects the protective TP envelope, off under full_f4"}
+                    "tp_mode": "selects the protective TP envelope, off under full_f4",
+                    "closer_adv_margin": "v2.2 (ruling C): the advantage closer closes only when A_hat - z_close x s_hat > 0 under full_f4 (ties HOLD, strategy_zz.ADVANTAGE_CLOSE_RULE); the margin is not read"}
 
 
 class MenuGeneMismatch(ValueError):

@@ -116,6 +116,16 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-29 (coordinator ruling D on tier 2 of 443b7a1)", "witness": "exit:Z1_zigzag_exit_label (corrected form Z1_scaled_to_the_order_SL, full_f4): CONTROL_CONFLICT",
+     "defect": "M_LHS_36 s0 (SELL declared match 0.949) and S_H3_Lstrong_Mhigh_Shigh_with s0 (SELL 0.932) fail the corrected form; the designated control (the truth oracle's episodes) reads the same",
+     "evidence": "evidence/tier2_full_f4_menu_443b7a1/GOVERNING_FORM_FAILURES.jsonl",
+     "effect": "the exit witness is typed CONTROL_CONFLICT where the strategy AND its control fail the corrected form (never PASS; the exit layer lists it under control_conflicts and keeps it in failing_effective); no ladder level added; no witness form changed",
+     "audit_request": "most likely wrong"},
+    {"when": "2026-10-29 (coordinator ruling B on tier 2 of 443b7a1)", "witness": "W17_no_open_in_burst (sealed, unchanged)",
+     "defect": "the sealed W17 forbids truth-positive opens in planted burst windows whose MEASURED risk is not high: the 26 opens of the 23 failing records were all truth-positive TP exits (net 0.127-0.871 sigma) decided at realized vol / sigma 0.49-1.98 (< 2 at every open bar); in 9 of the 14 windows holding them rv / sigma never exceeded 2 after the detection lag. Instrument check: the generator delivers as declared (the multiplier applies to the noise component; total realized vol 0.58-1.00 of the declared multiplier, median 0.88, against the same path without the burst)",
+     "evidence": "evidence/tier2_rulings_v22/BURST_CHECK.json",
+     "effect": "no witness change: W17 stays a DEAP constraint; burst_vol_ratio 1.5 under full_f4 (STRATEGY_PARAMS v2.2) and a stage-2 gene in [1.2, 2.5], so the search trades W17 against calm-bar activity (the calm-bar gate-trigger share is reported next to W17)",
+     "audit_request": "most likely wrong"},
     {"when": "2026-10-29 (coordinator ruling on tier-1 round 3, 443b7a1)", "witness": "W8_old_direction_after_lag (v2 governing) on LHS_50 s2: CONTROL_CONFLICT",
      "defect": "the designated control (the truth oracle) fails the governing corrected form as well: oracle old-direction share after the lag 0.642, strategy 0.637, limit max(0.40, truth 0.523 + 0.10) = 0.623; the strategy is closer to the truth than the oracle",
      "evidence": "evidence/tier1_full_f4_menu_443b7a1/FAILING_DETAIL.txt",
@@ -1786,6 +1796,19 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
             diag.append({"decision_bar": db, "window": [w for w in bw if w[0] <= db < w[1]][0], "rv_over_sigma": rv / float(sg[db]) if sg[db] > 0 else float("nan")})
         out["W17_no_open_in_burst"] = {"value": len(inside), "threshold": 0, "pass": bool(len(inside) == 0), "desc": f"opens decided inside a burst window after {BURST_DETECTION_LAG} bars",
                                        "n_windows": len(bw), "inside": diag}
+    if world["truth"].menu is not None:                              # full_f4 (ruling B follow-up): the gate's trigger share outside the planted windows (never a witness)
+        bars_ = world.get("bars") if world.get("bars") is not None else cx.ds.bars
+        a_, b_ = H.period_bars(cx.ds, BLOCK)
+        rows_ = np.arange(a_, b_)
+        calm = np.ones(len(rows_), bool)
+        for t0, t1 in bw:
+            calm[max(int(t0) - a_, 0):max(int(t1) - a_, 0)] = False
+        raw = ZZ.burst_rows(bars_, cx.ds.sigma, rows_)
+        held = ZZ.burst_rows(bars_, cx.ds.sigma, rows_, hold=ZZ.burst_hold_bars(True))
+        out["burst_gate"] = {"burst_vol_ratio": float(ZZ.PARAMS["burst_vol_ratio"]), "burst_window_bars": int(ZZ.PARAMS["burst_window_bars"]), "calm_bars": int(calm.sum()),
+                             "calm_trigger_share_raw": float(raw[calm].mean()) if calm.any() else float("nan"),
+                             "calm_trigger_share_held": float(held[calm].mean()) if calm.any() else float("nan"),
+                             "desc": "share of block bars outside the planted burst windows where the causal burst gate is on (raw rv / sigma > ratio; held = with burst_hold_bars)"}
     # attribution: which horizon's signal triggered each behaviour (reported, not a pass / fail)
     at = roll.get("attr") or []
     opens_at = [x for x in at if x["chosen"] >= 0]
@@ -2134,6 +2157,9 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
             if st_ == "DEFECT":
                 epw[k] = dict(sw_[k], form="Z1_scaled_to_the_order_SL", sealed_form=epw[k], control=z1_control[side],
                               desc="full_f4 corrected form (the oracle fails the sealed form): the net-value ladder adds levels at 0.5 / 0.25 / 0.125 of the order's own SL distance; declared level = the finest")
+                if epw[k].get("pass") is False and ows[k].get("pass") is False:   # ruling D (2026-10-29): the control fails the corrected form too
+                    epw[k]["status"] = "CONTROL_CONFLICT"                     # never PASS; typed apart from a strategy FAIL; no ladder level added
+                    z1_control[side]["witness_status"] = "CONTROL_CONFLICT"
     if light:                                                         # the optimiser's constraint set: E8 (closer quality ladder) is not computed
         epw = {k: v for k, v in epw.items() if not k.startswith("E8_")}
     epw_star = episode_witnesses(star_ep, star_ep, hold_ep, z1, {1.0: star_ep})
@@ -2174,6 +2200,7 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
             "defects_by_Ostar": defects, "sealed_unvalidated": e_unvalidated, "failing_sealed": sealed_fail, "failing_effective": eff_fail, "PASS_sealed": not sealed_fail, "PASS_effective": not eff_fail,
             "episodes": {"n": len(eps), "by_side_class": {si: {c: sum(1 for e in eps if e["side"] == si and e["class"] == c) for c in ("SL", "TP", "TIME")} for si in (0, 1)}},
             "episode_summary": summ, "exit_loss_curves": curves, "closer_sweep": sweep, "z1_control": z1_control,
+            **({"control_conflicts": sorted(k for k, v in allw.items() if isinstance(v, dict) and v.get("status") == "CONTROL_CONFLICT")} if z1_control is not None else {}),   # full_f4 only (ruling D)
             "censored_by_block_end": {"strategy": {si: st_n[si].get("censored_by_block_end", 0) for si in (0, 1)}, "hold_oracle": {si: st_hold[si].get("censored_by_block_end", 0) for si in (0, 1)}, "O*": {si: st_star[si].get("censored_by_block_end", 0) for si in (0, 1)}},
             "normal_exit_mix": {"strategy": {si: st_n[si]["mix"] for si in (0, 1)}, "hold_oracle": {si: st_hold[si]["mix"] for si in (0, 1)}, "O*": {si: st_star[si]["mix"] for si in (0, 1)}},
             "episode_exit_mix": {name: {si: {c: float(np.mean([x["class"] == c and (not x["early"]) for x in ep if x["side"] == si] or [np.nan])) for c in ("SL", "TP", "TIME")} | {"early": float(np.mean([x["early"] for x in ep if x["side"] == si] or [np.nan]))} for si in (0, 1)}

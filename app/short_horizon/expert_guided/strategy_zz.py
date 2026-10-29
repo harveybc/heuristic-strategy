@@ -447,6 +447,20 @@ BURST_HOLD_RULE = ("burst_hold_bars (declared strategy rule, ruling 2026-10-29, 
                    "(byte-identical), burst_window_bars under full_f4")
 
 
+ADVANTAGE_CLOSE_RULE = ("full_f4 (coordinator ruling C on tier 2 of 443b7a1, 2026-10-29, matching Musashi's close/hold controller): the advantage "
+                        "closer closes only when A_hat - z_close x s_hat > 0 (a tie HOLDS); closer_adv_margin is INERT under the menu; full_f3 / LEGACY "
+                        "keep A_hat - z_close x s_hat >= -closer_adv_margin (byte-identical); EPS_CLOSE stays the witnesses' tolerance only (O*, E-series, W4 v3')")
+
+
+def advantage_close(a: float, s_hat: float, menu: bool) -> bool:
+    """The per-tick condition of the advantage closer (ADVANTAGE_CLOSE_RULE): strict > 0 under the menu (ties HOLD), the
+    margin rule otherwise."""
+    if not np.isfinite(a):
+        return False
+    x = float(a) - PARAMS["z_close"] * (float(s_hat) if np.isfinite(s_hat) else 0.0)
+    return bool(x > 0.0) if menu else bool(x >= -PARAMS["closer_adv_margin"])
+
+
 def burst_hold_bars(menu: bool) -> int:
     return int(round(PARAMS["burst_window_bars"])) if menu else 0
 
@@ -868,7 +882,7 @@ class PolicyC3Z(C3.PolicyC3):
                         a, s_hat = filter_step(self._kf_state(), key, model, a, full[3], full[7], bar)
             else:
                 a, s_hat = cl.advantage(r, bar, pos), 0.0
-            cond = bool(np.isfinite(a) and (a - PARAMS["z_close"] * (s_hat if np.isfinite(s_hat) else 0.0)) >= -PARAMS["closer_adv_margin"])
+            cond = advantage_close(a, s_hat, self._menu())             # full_f4: > 0, ties HOLD (ADVANTAGE_CLOSE_RULE); full_f3: >= -closer_adv_margin
             self._persist = getattr(self, "_persist", {})
             self._persist[key] = self._persist.get(key, 0) + 1 if cond else 0
             dec = bool(cond and self._persist[key] >= int(round(PARAMS["k_persist"])))

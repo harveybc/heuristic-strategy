@@ -30,7 +30,7 @@ def test_menu_cells_are_not_numbers_and_the_menu_is_declared():
     with pytest.raises(ValueError):                                  # a sigma-grid reading of a menu slot fails loudly
         float(M.MENU_CELLS[0][0])
     assert M.MENU_HORIZONS[M.ref_slot()] == M.MENU_REF_H == 6
-    assert set(M.INERT_UNDER_MENU) == {"k_tp_protect", "tp_mode"}
+    assert set(M.INERT_UNDER_MENU) == {"k_tp_protect", "tp_mode", "closer_adv_margin"}   # v2.2 (ruling C): ties HOLD, the margin is not read
 
 
 def test_per_level_confirmations_agree_with_the_rule_named_horizon():
@@ -239,23 +239,23 @@ def test_full_f4_contract_v2_1_declares_the_menu_and_full_f3_is_unchanged():
         d = json.loads(open("docs/short_horizon/clean_round/contracts/" + name).read())
         dm = d["business_contract"]["decision_menu"]
         assert dm["horizons"] == [3, 6, 12, 24] and "exact replay" in dm["truth"] and "MENU_GENES_MISMATCH" in dm["level_genes_guard"]
-        assert set(dm["inert_under_menu"]) == {"k_tp_protect", "tp_mode"}
-        assert d["changelog"][:3] == [C3.MENU_CHANGELOG_V23, C3.MENU_CHANGELOG_V22, C3.MENU_CHANGELOG] and d["changelog"][3:] == [dict(x) for x in C3.CONTRACT_CHANGELOG]
+        assert set(dm["inert_under_menu"]) == {"k_tp_protect", "tp_mode", "closer_adv_margin"} and "a tie HOLDS" in dm["closer_rule"]
+        assert d["changelog"][:4] == [C3.MENU_CHANGELOG_V24, C3.MENU_CHANGELOG_V23, C3.MENU_CHANGELOG_V22, C3.MENU_CHANGELOG] and d["changelog"][4:] == [dict(x) for x in C3.CONTRACT_CHANGELOG]
     f3 = C3.default_contract(C3.ARCH_TCN)
     assert f3["changelog"] == [dict(x) for x in C3.CONTRACT_CHANGELOG] and "business_contract" not in f3   # the menu entry is the full_f4 contract's only
     q = json.loads(open("docs/short_horizon/clean_round/contracts/QUALIFICATION_SPEC.json").read())
-    assert q["schema"] == "strategy_qualification.v2.4" and "z_veto" in q["versions"]["v2.4"] and "W14_mirror_menu" in q["versions"]["v2.2"] and "NOT_APPLICABLE" in q["versions"]["v2.3"] and "W14_mirror" in q["D8_profile_full_f4_sanity"]["sigma_scale_witnesses"]
+    assert q["schema"] == "strategy_qualification.v2.5" and "ties HOLD" in q["versions"]["v2.5"] and "z_veto" in q["versions"]["v2.4"] and "W14_mirror_menu" in q["versions"]["v2.2"] and "NOT_APPLICABLE" in q["versions"]["v2.3"] and "W14_mirror" in q["D8_profile_full_f4_sanity"]["sigma_scale_witnesses"]
 
 
 def test_full_f4_genome_excludes_the_inert_protective_tp_genes():
     from app.short_horizon.expert_guided import strategy_params as SP
     from tools import strategy_param_deap as D
-    assert set(D.GENOME) - set(D.GENOME_F4) == {"k_tp_protect", "tp_mode"} and set(D.GENOME_F4) - set(D.GENOME) == {"z_veto"} and len(D.GENOME_F4) == len(D.GENOME) - 1
+    assert set(D.GENOME) - set(D.GENOME_F4) == {"k_tp_protect", "tp_mode", "closer_adv_margin"} and set(D.GENOME_F4) - set(D.GENOME) == {"z_veto"} and len(D.GENOME_F4) == len(D.GENOME) - 2
     base = SP.default_doc()
     assert base["exec_profile"] == "full_f4" and D.genome_of(base) == D.GENOME_F4
     assert D.genome_of({k: v for k, v in base.items() if k != "exec_profile"}) == D.GENOME          # full_f3: the full genome
     doc = D.decode([1.0] * len(D.GENOME_F4), base)
-    assert doc["k_tp_protect"] == base["k_tp_protect"] and doc["tp_mode"] == base["tp_mode"] and doc["a_sl"] == 2.0
+    assert doc["k_tp_protect"] == base["k_tp_protect"] and doc["tp_mode"] == base["tp_mode"] and doc["closer_adv_margin"] == base["closer_adv_margin"] and doc["a_sl"] == 2.0
     x = D.encode(base)
     assert D.project(x, D.GENOME_F4, base) == D.encode(base, D.GENOME_F4)
 

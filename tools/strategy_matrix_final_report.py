@@ -220,7 +220,7 @@ def witness_counts(recs: list) -> list:
 
 def params_table(canon: dict, opt: dict | None) -> list:
     L = ["| clave | canónico (v10) | punto DEAP | límites | en el genoma | toca un límite (punto DEAP) | significado |", "| --- | ---: | ---: | --- | --- | --- | --- |"]
-    for k, (lo, hi) in SP.BOUNDS.items():
+    for k, (lo, hi) in SP.bounds_of(SP.exec_profile_of(opt or canon)).items():   # v2.2: the point's own profile table
         cv, ov = canon.get(k), (opt or {}).get(k)
         hit = ""
         if k in D.GENOME and ov is not None and isinstance(ov, (int, float)):

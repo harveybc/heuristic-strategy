@@ -33,7 +33,7 @@ def trim(r: dict) -> dict:
     out["exit"] = {k: ex.get(k) for k in ("witnesses", "defects_by_Ostar", "z1_control", "PASS_effective", "failing_effective", "episode_summary", "episode_exit_mix", "closer_sweep")}
     res = r.get("results") or {}
     forms = {x.get("governing_form") for x in ((r.get("validity") or {}).get("per_witness") or {}).values()}
-    keep = {"summary", "W0_activity", "W13_tpsl_track_sigma", "W8_early_close_at_switch_v3", "W14_mirror"} | forms
+    keep = {"summary", "W0_activity", "W13_tpsl_track_sigma", "W8_early_close_at_switch_v3", "W14_mirror", "burst_gate"} | forms
     out["results"] = {k: v for k, v in res.items() if k in keep}
     out["oracle"] = {k: v for k, v in (r.get("oracle") or {}).items() if k in forms}
     os_ = r.get("ostar") or {}
@@ -77,7 +77,7 @@ def report(recs: list, expect_profile: str | None) -> dict:
         ex = r.get("exit") or {}
         for k, v in (ex.get("witnesses") or {}).items():
             if isinstance(v, dict) and "pass" in v:
-                wit["exit:" + k]["PASS" if v["pass"] else "FAIL"] += 1
+                wit["exit:" + k]["CONTROL_CONFLICT" if (v.get("status") == "CONTROL_CONFLICT" and not v["pass"]) else ("PASS" if v["pass"] else "FAIL")] += 1   # ruling D: Z1 typed apart
                 wit["exit:" + k]["excused_by_Ostar"] += int(k in (ex.get("defects_by_Ostar") or []))
         w14 = (r.get("results") or {}).get("W14_mirror")
         if w14:
@@ -159,6 +159,11 @@ def report(recs: list, expect_profile: str | None) -> dict:
     qq = lambda a: [float(np.nanpercentile(a, x)) for x in (10, 50, 90)] if a else []  # noqa: E731
     e_series = {"strategy_early_p10_p50_p90": qq(eps_s), "Ostar_early_p10_p50_p90": qq(eps_o),
                 "max_abs_gap_to_Ostar": float(np.nanmax(np.abs(np.asarray(eps_s) - np.asarray(eps_o)))) if eps_s else float("nan")}
+    bg = [(r.get("results") or {}).get("burst_gate") for r in ok]
+    bg = [x for x in bg if isinstance(x, dict)]
+    burst_gate = ({"records": len(bg), "ratios": sorted({x["burst_vol_ratio"] for x in bg}),
+                   "calm_trigger_share_raw_p50_p90": [float(np.nanpercentile([x["calm_trigger_share_raw"] for x in bg], p_)) for p_ in (50, 90)],
+                   "calm_trigger_share_held_p50_p90": [float(np.nanpercentile([x["calm_trigger_share_held"] for x in bg], p_)) for p_ in (50, 90)]} if bg else {"records": 0})
     sup = Counter(v.get("status") for r in ok for v in ((r.get("closer_support") or {}).values()))
     sup_passes = [int(v.get("extra_passes", 0)) for r in ok for v in ((r.get("closer_support") or {}).values())]
     out = {"records": len(recs), "errors": sum(1 for r in recs if r.get("error")), "pass_effective": eff, "fail_effective": len(ok) - eff,
@@ -172,7 +177,7 @@ def report(recs: list, expect_profile: str | None) -> dict:
                         "records_with_zero_trades": sum(1 for _, b in ec if b == 0)},
            "net_sigma_per_trade_by_family": per_family, "w14_control_status": dict(w14), "w14_code_symmetry_max_sigma": (max(w14_sym) if w14_sym else None),
            "horizon_unmatched_trades": unmatched, "control_conflicts": conflicts, "w13_columns": dict(w13), "z1_control": {f"{a}:{b}": n for (a, b), n in z1.items()}, "w8_clause_b": dict(w8b),
-           "sizing_by_side": sizing_by_side, "e_series_episode_early_share": e_series,
+           "sizing_by_side": sizing_by_side, "e_series_episode_early_share": e_series, "burst_gate": burst_gate,
            "closer_support": {"status": dict(sup), "records_extended": sum(1 for x in sup_passes if x > 0), "max_extra_passes": max(sup_passes) if sup_passes else 0},
            "trade_summary": {"records": len(ts), "median_net_usd_per_record": float(np.median(nets)) if nets else float("nan"), "net_sigma_per_trade_mean": float(np.nanmean([t["net_sigma_per_trade_mean"] for t in ts])) if ts else float("nan"),
                              "net_sigma_per_trade_median": float(np.nanmedian([t["net_sigma_per_trade_median"] for t in ts])) if ts else float("nan"), "win_rate_mean": float(np.nanmean([t["win_rate"] for t in ts])) if ts else float("nan"),
@@ -192,6 +197,7 @@ def markdown(d: dict) -> str:
          "", f"W14 control status: {d['w14_control_status']}; swapped-reference code symmetry max {d['w14_code_symmetry_max_sigma']} sigma; trades without a matched menu slot: {d['horizon_unmatched_trades']}", "",
          f"Sizing by side (q, funding reserve in pips, loss per unit in pips): {d['sizing_by_side']}", "",
          f"E-series episode early-close share, strategy vs O*: {d['e_series_episode_early_share']}", "",
+         f"Burst gate outside the planted windows (calm-bar trigger share): {d.get('burst_gate')}", "",
          f"Control conflicts (CONTROL_CONFLICT, never PASS): {d['control_conflicts']}", "",
          f"W13 columns (menu form governing / sealed form): {d['w13_columns']}; Z1 control: {d['z1_control']}; W8 clause (b): {d['w8_clause_b']}; closer support: {d['closer_support']}", "",
          "## Witnesses (governing forms)", "", "| witness | PASS | FAIL | NOT_EVALUABLE | CONTROL_CONFLICT | sealed-unvalidated (strict) | defect-corrected | excused by O* |", "|---|---:|---:|---:|---:|---:|---:|---:|"]

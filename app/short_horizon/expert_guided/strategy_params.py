@@ -62,6 +62,15 @@ BOUNDS = {
     # v2.1 (coordinator ruling 2026-10-29): the hierarchy vetoes act only on low-confidence slots, EV / sd_pred < z_veto (full_f4)
     "z_veto": [0.0, 4.0],
 }
+# v2.2 (coordinator ruling A on tier 2 of 443b7a1, 2026-10-29): PER-PROFILE bounds. BOUNDS above is the full_f3 table (the
+# audited lane-F3 profile, byte-identical, pinned by tests/test_strategy_params_v22.py); full_f4 selects BOUNDS_F4, which widens
+# the pooled open rate to [0.002, 1.0]: the open-margin gate was the first diverging decision against the truth oracle in 69 of
+# the 76 W1_side / W8_old_direction_after_lag / W0_activity failures (evidence/tier2_full_f4_menu_443b7a1/FIRST_DIVERGENCE_SUMMARY.txt);
+# under the menu the margin is the (1 - open_rate) quantile of the best allowed predicted net, floored at 0 (strategy_zz.net_open_margin),
+# so open_rate = 1.0 puts the margin at the reference's minimum (the 0 quantile), floored at 0
+# (ruling B, same review): burst_vol_ratio's full_f4 search range is [1.2, 2.5] and its full_f4 canonical value 1.5 (DEFAULTS_F4)
+BOUNDS_F4 = {**BOUNDS, "open_rate_l": [0.002, 1.0], "open_rate_s": [0.002, 1.0], "burst_vol_ratio": [1.2, 2.5]}
+BOUNDS_BY_PROFILE = {"full_f3": BOUNDS, "full_f4": BOUNDS_F4}
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
 META_KEYS = {"schema", "note", "defaults_are", "sealed", "exec_profile"}
 EXEC_PROFILES = ("full_f3", "full_f4")       # exec_profile selects the execution profile (c3.EXEC_VARIANTS); absent = full_f3 (the audited lane-F3 default, byte-identical)
@@ -78,6 +87,12 @@ DEFAULTS = {
     "a_sl": 1.0, "b_sl": 0.0, "buffer_pips": 1.0, "a_tp": 1.0, "b_tp": 0.0, "rho": 0.005, "ref_p75": 0.0, "horizon_rule": 0.0, "z_veto": 2.0,
 }
 DEFAULT_EXEC_PROFILE = "full_f4"             # the v2 canonical point runs the shared business contract
+# v2.2 (coordinator ruling B on tier 2 of 443b7a1, 2026-10-29): PER-PROFILE defaults. DEFAULTS above is the full_f3 point
+# (byte-identical); full_f4 lowers the causal burst gate's ratio to 1.5 x sigma: the 26 opens inside planted burst windows
+# (W17, 23 records) came 3-10 bars into the window at realized vol / sigma 0.49-1.98, every one truth-positive
+# (evidence/tier2_full_f4_menu_443b7a1 + the instrument check in the v2.2 evidence folder)
+DEFAULTS_F4 = {**DEFAULTS, "burst_vol_ratio": 1.5}
+DEFAULTS_BY_PROFILE = {"full_f3": DEFAULTS, "full_f4": DEFAULTS_F4}
 
 
 class StrategyParamsError(ValueError):
@@ -86,13 +101,16 @@ class StrategyParamsError(ValueError):
 
 def validate(doc: dict) -> dict:
     """Refuses an unknown key, a missing key, an out-of-bounds value or a tied pair that differs."""
+    if "exec_profile" in doc and doc["exec_profile"] not in EXEC_PROFILES:
+        raise StrategyParamsError(f"STRATEGY_PARAMS_EXEC_PROFILE_UNKNOWN:{doc['exec_profile']}")
+    bounds = bounds_of(exec_profile_of(doc))
     unknown = sorted(set(doc) - set(BOUNDS) - set(LIST_KEYS) - META_KEYS)
     if unknown:
         raise StrategyParamsError(f"STRATEGY_PARAMS_UNKNOWN_KEY:{unknown}")
     missing = sorted((set(BOUNDS) | set(LIST_KEYS)) - set(doc))
     if missing:
         raise StrategyParamsError(f"STRATEGY_PARAMS_MISSING_KEY:{missing}")
-    for k, (lo, hi) in BOUNDS.items():
+    for k, (lo, hi) in bounds.items():
         v = doc[k]
         if v is None and k == "nop_veto":
             continue
@@ -104,8 +122,6 @@ def validate(doc: dict) -> dict:
             raise StrategyParamsError(f"STRATEGY_PARAMS_OUT_OF_BOUNDS:{k}={v}")
     if abs(float(doc["open_rate_l"]) - float(doc["open_rate_s"])) > 1e-12:
         raise StrategyParamsError("STRATEGY_PARAMS_TIED_KEYS_DIFFER:open_rate_l != open_rate_s (C3 b27781e pools the open margin)")
-    if "exec_profile" in doc and doc["exec_profile"] not in EXEC_PROFILES:
-        raise StrategyParamsError(f"STRATEGY_PARAMS_EXEC_PROFILE_UNKNOWN:{doc['exec_profile']}")
     return doc
 
 
@@ -113,13 +129,23 @@ def exec_profile_of(doc: dict) -> str:
     return str(doc.get("exec_profile", "full_f3"))
 
 
+def bounds_of(profile: str) -> dict:
+    """The bounds table of an execution profile (v2.2): full_f3 = BOUNDS (audited, byte-identical), full_f4 = BOUNDS_F4."""
+    if profile not in BOUNDS_BY_PROFILE:
+        raise StrategyParamsError(f"STRATEGY_PARAMS_EXEC_PROFILE_UNKNOWN:{profile}")
+    return BOUNDS_BY_PROFILE[profile]
+
+
 def load(path) -> dict:
     return validate(json.loads(Path(path).read_text()))
 
 
-def default_doc() -> dict:
-    return {"schema": "strategy_params.v2", "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; v2.1 (2026-10-29) adds z_veto (the hierarchy vetoes bind only on low-confidence slots, full_f4); exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
-            "defaults_are": "canonical", "exec_profile": DEFAULT_EXEC_PROFILE, **DEFAULTS}
+def default_doc(profile: str = DEFAULT_EXEC_PROFILE) -> dict:
+    """The canonical parameter document of a profile (v2.2: per-profile defaults and bounds; the committed file is the full_f4 one)."""
+    if profile not in DEFAULTS_BY_PROFILE:
+        raise StrategyParamsError(f"STRATEGY_PARAMS_EXEC_PROFILE_UNKNOWN:{profile}")
+    return {"schema": "strategy_params.v2", "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; v2.1 (2026-10-29) adds z_veto (the hierarchy vetoes bind only on low-confidence slots, full_f4); v2.2 (2026-10-29, tier-2 rulings A / B) makes the bounds and defaults PER PROFILE: full_f4 widens open_rate to [0.002, 1.0], bounds burst_vol_ratio to [1.2, 2.5] with the canonical value 1.5 (BOUNDS_F4 / DEFAULTS_F4); full_f3 keeps BOUNDS / DEFAULTS byte-identical; exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
+            "defaults_are": "canonical", "exec_profile": profile, **DEFAULTS_BY_PROFILE[profile]}
 
 
 def sha256_of(path) -> str:

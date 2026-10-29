@@ -13,7 +13,7 @@ FILE = ROOT / "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
 
 def test_committed_file_loads_and_is_the_canonical_default():
     doc = SP.load(FILE)
-    for k, v in SP.DEFAULTS.items():
+    for k, v in SP.DEFAULTS_BY_PROFILE[SP.exec_profile_of(doc)].items():   # v2.2: the committed file is the full_f4 point (per-profile defaults)
         assert doc[k] == v, k
     g = SP.genes_c3(doc)
     assert set(g) == {"open_rate", "close_rem_rate_l", "close_rem_rate_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto"}

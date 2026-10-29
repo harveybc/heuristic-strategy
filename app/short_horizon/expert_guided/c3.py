@@ -114,6 +114,17 @@ SIDE_SYMMETRY_RULE = ("open: EV_L and EV_S are computed by the same function wit
 # left no probe point with an activity lower bound >= 2.0 (smoke: best 2.67/week mean, bound below 2.0)
 Q_BOUNDS = {"open_rate": [0.002, 0.50], "close_rem_rate_l": [0.0, 0.60], "close_rem_rate_s": [0.0, 0.60],
             "close_p_l": [0.30, 0.95], "close_p_s": [0.30, 0.95], "allow_reverse": [0.0, 1.0], "nop_veto": [0.30, 0.95]}
+# v2.4 (coordinator ruling A on tier 2 of 443b7a1, 2026-10-29): the full_f4 contract carries its OWN quantile-gene table with
+# open_rate widened to [0.002, 1.0] (strategy_params.BOUNDS_F4; the open-margin gate was the first divergence in 69 of the 76
+# W1 / W8_old / W0 failures); Q_BOUNDS stays the audited table of full_f3 / full_f3_12h / legacy, byte-identical
+Q_BOUNDS_F4 = {**Q_BOUNDS, "open_rate": [0.002, 1.0]}
+
+
+def q_bounds_of(exec_profile: str) -> dict:
+    """The quantile-gene table a contract of this execution profile seals: full_f4 -> Q_BOUNDS_F4, every other -> Q_BOUNDS."""
+    return Q_BOUNDS_F4 if exec_profile == "full_f4" else Q_BOUNDS
+
+
 GENES = ("open_margin", "close_margin_l", "close_margin_s", "close_p_l", "close_p_s", "allow_reverse", "nop_veto")
 SPECIALISTS, OPENERS, CLOSERS, SIDE_OF = C2.SPECIALISTS, C2.OPENERS, C2.CLOSERS, C2.SIDE_OF
 NET_BOUND, REM_BOUND, GEOMETRY, N_GEO = C2.NET_BOUND, C2.REM_BOUND, C2.GEOMETRY, C2.N_GEO
@@ -845,7 +856,11 @@ def head_outputs(cells) -> dict:
 
 
 STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
-STRATEGY_PARAMS_SHA256 = "8a4324910b0c9bc91626132b5de118220157a00289a4e77506d2d4f2f9a96071"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+STRATEGY_PARAMS_SHA256 = "f46690bd84a7a880ecef0ccdfa51d4cdf97d4599bccf46a4fe1bd2f5dcc8bb57"   # v2.2 (2026-10-29, tier-2 rulings A / B); the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+# the full_f3 / full_f3_12h / legacy contracts keep the parameter reference they were sealed with (v2.1, the committed file at
+# git 443b7a1): the v2.2 changes are full_f4-only (per-profile bounds / defaults), the full_f3 point (strategy_params.DEFAULTS)
+# is unchanged, and their identities stay byte-identical (tests/test_strategy_params_v22.py)
+STRATEGY_PARAMS_SHA256_F3 = "8a4324910b0c9bc91626132b5de118220157a00289a4e77506d2d4f2f9a96071"
 CLOSER_HEAD_CONTRACT = {
     "name": "first-passage curve head (market-only best continuation), tools/strategy_output_simulation.BCHead",
     "inputs": "market data only: the bars from the decision bar on, the per-bar spread profile, the session calendar (compulsory flats, rollovers) and the swap rates by side; NO position, entry, SL, TP, units or balance",
@@ -886,6 +901,13 @@ MENU_CHANGELOG_V23 = {"when": "2026-10-29", "change": "v2.3 (full_f4 only; struc
                       "(STRATEGY_PARAMS v2.1); the risk-budget entries record q / loss per unit / funding reserve in the ledger",
                       "why": "every hierarchy veto could only remove truth-positive slots under perfect heads (51afc0f: W1 13 FAIL, W8_old_direction 1 -> 4, -33 % activity); "
                              "a veto is a prior that should act only when the heads are uncertain"}
+MENU_CHANGELOG_V24 = {"when": "2026-10-29", "change": "v2.4 (full_f4 only; coordinator rulings A-D on tier 2 of 443b7a1): (A) open_rate's upper bound 1.0 in the full_f4 "
+                      "gene table (Q_BOUNDS_F4; the full_f3 table Q_BOUNDS unchanged); (B) burst_vol_ratio 1.5 x sigma (STRATEGY_PARAMS v2.2 per-profile defaults, full_f4 "
+                      "bounds [1.2, 2.5]); (C) the advantage closer closes only when A_hat - z_close x s_hat > 0, ties HOLD, closer_adv_margin inert (matching Musashi's "
+                      "controller; EPS_CLOSE stays the witnesses' tolerance); (D) Z1 failed on the corrected form by the strategy and by the truth oracle = CONTROL_CONFLICT",
+                      "why": "tier 2 (4 345 records): the open-margin gate was the first diverging decision against the truth oracle in 69 of the 76 W1 / W8_old / W0 failures; "
+                             "W17: 26 truth-positive opens 3-10 bars into planted bursts at realized vol / sigma 0.49-1.98; W4: 3 closes inside the tie band; Z1 SELL 0.949 / 0.932 "
+                             "with the oracle reading the same (evidence/tier2_full_f4_menu_443b7a1, evidence/tier2_rulings_v22)"}
 CONTRACT_CHANGELOG = (
     {"when": "2026-10-29", "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",
      "why": "S1-S6 of the owner's order 2026-10-29; the audited full_f3 profile stays the declared control (exec_profile full_f3 / absent): byte-identical"},
@@ -927,7 +949,7 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                        "units": base["outcomes"]["units"], "target_clip": [list(NET_BOUND), list(REM_BOUND)], "min_target_std": MIN_TARGET_STD}
     doc["calibration"] = {"method": CALIBRATION_METHOD, "fit_block": "INNER_A", "ece_bins": 15, "heads": [f"{m}.decision" for m in SPECIALISTS],
                           "openers": "temperature scaling on the 3-class logits (argmax-preserving), NLL on a declared grid", "closers_and_nop": "platt_binary"}
-    st = ACT.v13_strategy_block(doc["strategy"], Q_BOUNDS, {
+    st = ACT.v13_strategy_block(doc["strategy"], q_bounds_of(exec_profile), {
         "open_margin": "quantile(EV over the allowed cells POOLED over both sides, calibration flat rows, 1 - open_rate): one absolute margin for both sides",
         "close_margin_l": "-quantile(predicted remaining value, calibration LONG positioned visits, close_rem_rate_l)",
         "close_margin_s": "-quantile(predicted remaining value, calibration SHORT positioned visits, close_rem_rate_s)",
@@ -993,7 +1015,12 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                                                       "truth": "exact replay of every menu order on the profile engine (clean account, profile sizing and costs): net sigma / USD, first barrier, MAE / MFE, exit reason; the ideal confirmations as the truth menu",
                                                       "ranking": "EV over the allowed slots of each side (RR rule on the order's own distances, RR floor on the MAE), the higher side wins; horizon_rule (finest | coarsest) breaks ties",
                                                       "witnesses": "W7 = executed (h, side) best of the truth menu among the allowed slots (both sides); W2 / W10 judge the executed order's slot; W13 menu form = executed TP / SL equal the slot's levels (1 tick); W14 judged by its oracle control with the side-swapped-reference mirror as the corrected form",
-                                                      "inert_under_menu": {"k_tp_protect": "a contracted TP is never inflated", "tp_mode": "the protective envelope is off"},
+                                                      "inert_under_menu": {"k_tp_protect": "a contracted TP is never inflated", "tp_mode": "the protective envelope is off",
+                                                                           "closer_adv_margin": "v2.4: the advantage closer needs A_hat - z_close x s_hat > 0 (ties HOLD); the margin is not read"},
+                                                      "closer_rule": "v2.4 (ruling C): " + ZZ.ADVANTAGE_CLOSE_RULE,
+                                                      "open_rate_bound": "v2.4 (ruling A): open_rate in [0.002, 1.0] (Q_BOUNDS_F4 / strategy_params.BOUNDS_F4); 1.0 = the 0 quantile (minimum) of the calibration reference, floored at 0",
+                                                      "burst_vol_ratio": "v2.4 (ruling B): the causal burst gate fires at realized vol > 1.5 x sigma under full_f4 (strategy_params.DEFAULTS_F4; full_f4 bounds [1.2, 2.5]); 2.0 under full_f3",
+                                                      "z1_control_conflict": "v2.4 (ruling D): Z1 on the corrected form failed by the strategy AND by its control (the truth oracle's episodes) is typed CONTROL_CONFLICT (never PASS), no ladder level added",
                                                       "ref_slot": "h = 6 (the 3-class opener head and E[net | TIME]; unused by ev_from_net = 1)",
                                                       "exploration": "a slot drawn uniformly among the four horizons (confirmation-free order geometry)",
                                                       "level_genes_guard": "the truth is stamped with a_sl / b_sl / buffer_pips / a_tp / b_tp / quantile; a policy with other level genes is refused (MENU_GENES_MISMATCH)",
@@ -1020,10 +1047,10 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                          "openers_and_nop": "fitted once in round 0 (their rows are every clean-account eligible flat row)"}
     doc["constraints"]["teacher"] = "none"
     doc["derived_from"] = {"identity": base.get("identity"), "why": "adversarial audit 2026-10-26: labels taught losing trades (TP 0.43 sigma vs constant SL 2 sigma), closers blind / leaky, DAgger contradictions, wrong probability in the gain rule"}
-    doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256,
+    doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256 if exec_profile == "full_f4" else STRATEGY_PARAMS_SHA256_F3,
                                  "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"}
     doc["closer_head"] = dict(CLOSER_HEAD_CONTRACT)
-    doc["changelog"] = ([dict(MENU_CHANGELOG_V23), dict(MENU_CHANGELOG_V22), dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
+    doc["changelog"] = ([dict(MENU_CHANGELOG_V24), dict(MENU_CHANGELOG_V23), dict(MENU_CHANGELOG_V22), dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
     return ACT.seal(doc)
 
 
@@ -1078,7 +1105,7 @@ def validate(doc: dict) -> list:
         errs.append("C3_CONTRACT_CALIBRATION")
     s = doc.get("strategy") or {}
     genes = s.get("genes") or {}
-    if s.get("gene_space") != ACT.GENE_SPACE_Q or tuple(genes) != GENES_Q or genes != Q_BOUNDS:
+    if s.get("gene_space") != ACT.GENE_SPACE_Q or tuple(genes) != GENES_Q or genes != q_bounds_of(str((doc.get("exec_variant") or {}).get("name"))):
         errs.append(f"C3_CONTRACT_GENES:{list(genes)}")
     errs += [f"C3_CONTRACT_{e}" for e in ACT.v13_rule_errors(s, True)]
     if s.get("side_symmetry") != SIDE_SYMMETRY_RULE:
