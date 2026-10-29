@@ -82,7 +82,7 @@ def masked_state(st, mask):
 @dataclass(frozen=True)
 class EnvConfig:
     capital: float = 10_000.0
-    max_entries_per_day: int = 4
+    max_entries_per_day: int | None = 4
     min_orders_per_week: float = 3.0
     tp_bounds: tuple = (0.25, 3.0)          # sigma multiples
     sl_bounds: tuple = (0.5, 3.0)
@@ -114,6 +114,7 @@ class Position:
     sigma: float
     seg: int
     entry_cost: dict
+    relative_size: float | None = None
 
 
 class BarEnv:
@@ -173,7 +174,7 @@ class BarEnv:
             return False, "BEFORE_OPERATIONAL_START"
         if self.v[k] >= self.ec[si] or self.v[k] + H_NS >= self.ff[si]:
             return False, "ENTRY_CUTOFF"
-        if self.entries_day.get(self.business_day(k), 0) >= self.cfg.max_entries_per_day:
+        if self.cfg.max_entries_per_day is not None and self.entries_day.get(self.business_day(k), 0) >= self.cfg.max_entries_per_day:
             return False, "DAILY_CAP"
         if self.balance <= 0:
             return False, "RUIN"
@@ -194,7 +195,7 @@ class BarEnv:
         to_ff = max(0.0, (self.ff[si] - t_end) / H_NS) / 24.0
         k = min(b + 1, len(self.v) - 1)
         day = self.business_day(k) if int(self.seg_of[k]) == si else (si, -1)
-        share = self.entries_day.get(day, 0) / self.cfg.max_entries_per_day
+        share = self.entries_day.get(day, 0) / self.cfg.max_entries_per_day if self.cfg.max_entries_per_day is not None else 0.
         ok, _ = self.entry_gate(b)
         s = self.decision_sigma(b)
         s = s if np.isfinite(s) and s > 0 else 1e-4
@@ -307,6 +308,26 @@ class BarEnv:
         return {"spread": units * prof.spread_at(when, int(self.mo[si])) / 2, "slippage": units * slip,
                 "commission": units / prof.lot_units * prof.commission_per_lot_side}
 
+    def _prepare_entry(self, b, direction, tp_mult, sl_mult):
+        """Default entry preparation; an absolute adapter may override this boundary."""
+        k = b + 1
+        lv = self._levels(b, direction, tp_mult, sl_mult)
+        if lv is None:
+            return None, "LEVELS"
+        units = self.cfg.sizing.order_units(self.balance, self.entry_fill_price(k, direction), self.cfg.percentual_order_size)
+        if units is None:
+            return None, "UNITS"
+        tp, sl, clipped = lv
+        o = self.entry_fill_price(k, direction)
+        liquidation = self.quote_price(k, self.o[k], -direction)
+        if not ((sl < o < tp) if direction > 0 else (tp < o < sl)):
+            return None, "GAP_BEYOND_LEVEL"
+        if not ((sl < liquidation < tp) if direction > 0 else (tp < liquidation < sl)):
+            return None, "GAP_BEYOND_LEVEL"
+        if min(abs(sl-o), abs(tp-o), abs(sl-liquidation), abs(tp-liquidation)) < self.cfg.rules.min_distance:
+            return None, "FILL_DISTANCE"
+        return (tp, sl, int(units), clipped, None), "OK"
+
     def _close(self, k: int, price: float, at_open: bool, reason: str, ambiguous: bool = False,
                known_close: bool = False, quoted: bool = False):
         p, prof = self.pos, self.cfg.profile
@@ -342,7 +363,8 @@ class BarEnv:
                "rollovers": rolls, "entry_cost_usd": entry_cost, "exit_cost_usd": exit_cost,
                "net_usd": gross - entry_cost - exit_cost, "notional_usd": p.units * (p.entry_price + price),
                "stop_loss": p.sl, "take_profit": p.tp, "margin_usd": p.units * p.entry_price / self.cfg.sizing.leverage,
-               "percentual_order_size": self.cfg.percentual_order_size, "rel_volume": self.cfg.sizing.rel_volume}
+               "percentual_order_size": self.cfg.percentual_order_size if p.relative_size is None else p.relative_size,
+               "rel_volume": self.cfg.sizing.rel_volume}
         self.trades.append(rec)
         if quote_mode:
             rec.update(accounting_version="quote_side_v3", execution_price_mode="bid_ask_v3",
@@ -389,31 +411,17 @@ class BarEnv:
         # 2) the entry fills at the open of b + 1 when every rule allows it
         if want_entry:
             ok, why = self.entry_gate(b)
-            lv = self._levels(b, want_entry, tp_mult, sl_mult) if ok else None
-            if ok and lv is None:
-                ok, why = False, "LEVELS"
-            units = None
             if ok:
-                units = self.cfg.sizing.order_units(self.balance, self.entry_fill_price(k,want_entry), self.cfg.percentual_order_size)
-                if units is None:
-                    ok, why = False, "UNITS"
-            if ok:
-                tp, sl, clipped = lv
-                o = self.entry_fill_price(k,want_entry)
-                liquidation = self.quote_price(k,self.o[k],-want_entry)
-                if not ((sl < o < tp) if want_entry > 0 else (tp < o < sl)):
-                    ok, why = False, "GAP_BEYOND_LEVEL"
-                elif not ((sl < liquidation < tp) if want_entry > 0 else (tp < liquidation < sl)):
-                    ok, why = False, "GAP_BEYOND_LEVEL"
-                elif min(abs(sl - o), abs(tp - o),abs(sl-liquidation),abs(tp-liquidation)) < self.cfg.rules.min_distance:
-                    ok, why = False, "FILL_DISTANCE"
+                prepared, why = self._prepare_entry(b, want_entry, tp_mult, sl_mult)
+                ok = prepared is not None
             if not ok:
                 self.counts["refused_" + why] += 1
                 info["refused"] = why
             else:
+                tp, sl, units, clipped, relative_size = prepared
                 self.counts["levels_clipped"] += int(clipped)
                 self.pos = Position(want_entry, int(units), k, self.entry_fill_price(k,want_entry), sl, tp, self.decision_sigma(b),
-                                    int(self.seg_of[k]), self._fill_cost(units, k, "MARKET"))
+                                    int(self.seg_of[k]), self._fill_cost(units, k, "MARKET"), relative_size)
                 day = self.business_day(k)
                 self.entries_day[day] = self.entries_day.get(day, 0) + 1
                 self.counts["entries"] += 1
@@ -479,7 +487,7 @@ class BarEnv:
         m["min_orders_per_week_rule"] = f"period average >= {self.cfg.min_orders_per_week:g} (not per week)"
         m["max_entries_per_day"] = max(days.values(), default=0)
         m["valid_weekly_rule"] = bool(m["orders_per_week"] >= self.cfg.min_orders_per_week)
-        m["valid"] = bool(m["valid_weekly_rule"] and m["max_entries_per_day"] <= self.cfg.max_entries_per_day
+        m["valid"] = bool(m["valid_weekly_rule"] and (self.cfg.max_entries_per_day is None or m["max_entries_per_day"] <= self.cfg.max_entries_per_day)
                           and not m["ruined"] and math.isfinite(m["sharpe_daily_sqrt365"]))
         m["equity"] = res.equity
         m["daily_equity"] = res.daily_equity

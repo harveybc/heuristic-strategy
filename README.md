@@ -61,6 +61,11 @@ Paste this into Claude Code, Cursor, Codex, GitHub Copilot or any coding agent w
 
 ## Strategy architecture and design method
 
+The opt-in [absolute-order and early-close execution contract](docs/short_horizon/ABSOLUTE_ORDER_INTERFACE_2026_10_29.md)
+documents next-open templates, per-position volume, calendar gates and native
+counterfactual verification. Its synthetic qualification does not certify a
+learned policy or replace the default engine behavior.
+
 This section is the shared design contract for prediction-driven strategies,
 RL policies and expert-guided policies. It describes **required behavior**, not
 a claim that every existing plugin already implements it. Existing code is
