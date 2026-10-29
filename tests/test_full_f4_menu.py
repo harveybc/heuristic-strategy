@@ -518,3 +518,17 @@ def test_a_governing_form_typed_not_evaluable_gets_its_own_status():
     ostar = {k: {"pass": False, "events": 3}}
     v = BM.validity(wit, {}, ostar, [k])
     assert v["per_witness"][k]["status"] == "NOT_EVALUABLE" and v["per_witness"][k]["pass"] is False and k in v["not_evaluable"] and not v["PASS"]
+
+
+def test_control_conflict_is_typed_when_the_control_fails_the_governing_corrected_form():
+    from tools import strategy_behaviour_matrix as BM
+    k = "W8_old_direction_after_lag"
+    wit = {k: {"pass": False, "value": 0.70}, k + "_v2": {"pass": False, "value": 0.637}}
+    hold = {k: {"pass": False, "events": 5, "value": 0.70}, k + "_v2": {"pass": False, "events": 5, "value": 0.642}}
+    v = BM.validity(wit, hold, None, [k], menu=True)
+    x = v["per_witness"][k]
+    assert x["status"] == "CONTROL_CONFLICT" and x["pass"] is False and x["control_conflict"] == {"strategy": 0.637, "control": 0.642, "form": k + "_v2"}
+    assert k in v["control_conflicts"] and not v["PASS"]
+    assert BM.validity(wit, hold, None, [k])["per_witness"][k]["status"] == "DEFECT"     # full_f3: unchanged
+    hold[k + "_v2"]["pass"] = True
+    assert BM.validity(wit, hold, None, [k], menu=True)["per_witness"][k]["status"] == "DEFECT"   # the control passes the corrected form: a strategy failure

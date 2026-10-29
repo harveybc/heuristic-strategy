@@ -111,6 +111,16 @@ def build_subset(cells: list, per_level: int = 1, seed: int = SEED, mirror_at_qu
     return out
 
 
+def activity_stats(world: dict, trades: list) -> dict:
+    """The activity next to the Sharpe (coordinator ruling 2026-10-29: Sharpe-only selection trades activity for Sharpe;
+    the owner sees it): trades per week of the block, the share of re-opens one bar or less after the previous close."""
+    a, b = H.period_bars(world["cx"].ds, BM.BLOCK)
+    weeks = max((b - a) / (24 * 5), 1e-9)
+    tr = sorted(trades, key=lambda t: int(t["entry_bar_abs"]))
+    gaps = [int(tr[i + 1]["entry_bar_abs"]) - int(tr[i]["exit_bar_abs"]) for i in range(len(tr) - 1)]
+    return {"trades_per_week": len(tr) / weeks, "reopen_1bar_share": (sum(1 for g in gaps if g <= 1) / len(gaps)) if gaps else float("nan")}
+
+
 def trade_stats(world: dict, trades: list) -> dict:
     """The record-schema trade summary (BM.trade_summary): net sigma per trade mean / median, win rate, starting balance,
     SL / TP pips and holding bars p10 / p50 / p90; for the business-contract comparison and the reports (never a witness)."""
@@ -219,7 +229,7 @@ class CachedWorld:
                "validity_v2": {k: vres[k] for k in ("not_evaluable", "unvalidated", "defects", "replay_conflicts", "evaluated")}, "fails_v1_retired": fails_v1 + exit_fails,
                "trades": len(roll["trades"]), "early_closes": sum(1 for t in roll["trades"] if t.get("exit_reason") == "EARLY"),
                "levels_clipped": int(roll["metrics"].get("n_levels_clipped", 0)) if isinstance(roll["metrics"], dict) else None,
-               "trade_stats": trade_stats(self.w, roll["trades"]), "horizon_mix": BM.horizon_mix(roll, view, self.w)}
+               "trade_stats": trade_stats(self.w, roll["trades"]), "activity": activity_stats(self.w, roll["trades"]), "horizon_mix": BM.horizon_mix(roll, view, self.w)}
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
             out["_trades"], out["_episodes"], out["_pair"], out["_role"] = BM.annotate_sigma(self.w, roll["trades"]), ep_summary, self.cell["pair"], self.cell["role"]
         self._release()
@@ -377,7 +387,10 @@ class Pool:
         res = [r for o in outs for r in o["results"]]
         n_fail = sum(len(r["fails"]) for r in res)
         sh = float(np.mean([r["sharpe"] for r in res]))
-        return {"fitness_sharpe": sh, "n_failing_witnesses": n_fail, "feasible": n_fail == 0, "per_world": res, "wall_sec": max(o["sec"] for o in outs),
+        act = {"trades_per_week_mean": float(np.mean([r["activity"]["trades_per_week"] for r in res])) if res else float("nan"),
+               "reopen_1bar_share_median": float(np.nanmedian([r["activity"]["reopen_1bar_share"] for r in res])) if res else float("nan"),
+               "net_sigma_per_trade_median": float(np.nanmedian([r["trade_stats"].get("net_sigma_per_trade_median", np.nan) for r in res])) if res else float("nan")}
+        return {"fitness_sharpe": sh, "n_failing_witnesses": n_fail, "feasible": n_fail == 0, "per_world": res, "activity": act, "wall_sec": max(o["sec"] for o in outs),
                 "worker_maxrss_mb": [round(o.get("maxrss_mb", 0.0)) for o in outs]}
 
     def close(self):
@@ -528,6 +541,7 @@ def _eval(pool: Pool, x: list, base: dict, arch: Path, gen: int) -> dict:
     doc = decode(x, base)
     r = pool.evaluate(doc)
     rec = {"generation": gen, "params": {k: doc[k] for k in genome_of(base)}, "fitness_sharpe": r["fitness_sharpe"], "n_failing_witnesses": r["n_failing_witnesses"],
+           "activity": r.get("activity"),                             # trades / week, 1-bar re-open share, net sigma per trade next to the Sharpe (ruling 2026-10-29)
            "feasible": r["feasible"], "wall_sec": r["wall_sec"], "worker_maxrss_mb": r.get("worker_maxrss_mb"), "per_world": r["per_world"]}
     with open(arch, "a") as fh:
         fh.write(json.dumps(rec, default=float) + "\n")

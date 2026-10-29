@@ -116,6 +116,11 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-29 (coordinator ruling on tier-1 round 3, 443b7a1)", "witness": "W8_old_direction_after_lag (v2 governing) on LHS_50 s2: CONTROL_CONFLICT",
+     "defect": "the designated control (the truth oracle) fails the governing corrected form as well: oracle old-direction share after the lag 0.642, strategy 0.637, limit max(0.40, truth 0.523 + 0.10) = 0.623; the strategy is closer to the truth than the oracle",
+     "evidence": "evidence/tier1_full_f4_menu_443b7a1/FAILING_DETAIL.txt",
+     "effect": "no further witness change is admissible: typed CONTROL_CONFLICT (never PASS) with both readings (VALIDITY_SPEC, full_f4); not a strategy defect, does not block tier 2; listed under 'most likely wrong' in the audit request",
+     "audit_request": "most likely wrong"},
     {"when": "2026-10-29 (coordinator rulings on tier 1 of f439d37)", "witness": "W13 / W8 switch v3 clause (b) / Z1 under full_f4 (WITNESS_SPEC menu_full_f4 v2.3)",
      "defect": "W13: the sealed requirement came from the sigma-grid design; the owner's adoption of the absolute-level contract (2026-10-29) changed the requirement (no sigma scaling at b = 0), not the result. W8 (b): 6 of the 7 tier-1 failures were trades with a TP inside the ENTRY bar (no held tick: A undefined), scored 'O* would not hold'. Z1: the net-value ladder's finest level (0.1 sigma) cannot resolve orders with ~17-pip SLs (median declared match 0.82; full_f3 400 / 400 pass)",
      "evidence": "tier 1 of f439d37 (evidence/tier1_full_f4_menu_f439d37); the controls on the 51afc0f rerun (evidence/tier1_full_f4_menu_51afc0f): O* read through W8 v3 fails the SEALED clause (b) in 57 of 77 switch records, every one only through trades with zero held decision ticks (vacuity demonstrated by the control); the truth oracle fails the sealed Z1 in 269 of 270 record-sides (declared match p10 / p50 / p90 0.633 / 0.822 / 0.912) and reaches 0.965-1.000 (p50 1.000) on the scaled ladder",
@@ -1983,7 +1988,19 @@ def _nonvacuous(x) -> bool:
     return isinstance(x, dict) and x.get("pass") in (True, False) and x.get("events") is not None and int(x["events"]) >= MIN_CONTROL_EVENTS
 
 
-def validity(wit: dict, hold: dict, ostar: dict | None, expected: list | None = None) -> dict:
+def control_conflict(wit: dict, ctrl: dict | None, k: str, form: str) -> dict | None:
+    """CONTROL_CONFLICT (ruling 2026-10-29, full_f4): the corrected form governs because the designated control failed
+    the sealed form, the strategy fails the corrected form, and the control fails the corrected form too (non-vacuously):
+    no further witness change is admissible; typed CONTROL_CONFLICT, never PASS, with both readings."""
+    if form == k or not isinstance(wit.get(form), dict) or wit[form].get("pass") is not False:
+        return None
+    c = (ctrl or {}).get(form)
+    if not (isinstance(c, dict) and c.get("pass") is False):
+        return None
+    return {"strategy": wit[form].get("value"), "control": c.get("value"), "form": form}
+
+
+def validity(wit: dict, hold: dict, ostar: dict | None, expected: list | None = None, menu: bool = False) -> dict:
     """VALIDITY_SPEC v2 applied to one run's witnesses (Musashi GM01, coordinator order 2026-10-28). Per expected witness:
     NOT_EVALUABLE when the run did not produce it (never PASS); otherwise ONE designated control (O* for the timing /
     exit witnesses, the hold oracle for the rest): DEFECT when it fails the sealed form NON-vacuously (events >=
@@ -2026,6 +2043,11 @@ def validity(wit: dict, hold: dict, ostar: dict | None, expected: list | None = 
                      "control_events": {nm: (c or {}).get("events") if isinstance(c, dict) else None}, "designated_control": nm}
         if replay is not None:
             status[k]["replay"] = replay
+        if menu and st == "DEFECT" and not p:
+            cc = control_conflict(wit, ctrl, k, form)
+            if cc is not None:
+                status[k]["status"] = "CONTROL_CONFLICT"
+                status[k]["control_conflict"] = cc
         if not p:
             failing.append(k)
     evaluated = len(keys) - len(not_ev)
@@ -2033,7 +2055,8 @@ def validity(wit: dict, hold: dict, ostar: dict | None, expected: list | None = 
             "not_evaluable": sorted(not_ev),
             "unvalidated": sorted(k for k, x in status.items() if x["status"] == "SEALED_UNVALIDATED"),
             "defects": sorted(k for k, x in status.items() if x["status"] == "DEFECT"),
-            "replay_conflicts": sorted(k for k, x in status.items() if x["status"] == "REPLAY_CONFLICT")}
+            "replay_conflicts": sorted(k for k, x in status.items() if x["status"] == "REPLAY_CONFLICT"),
+            "control_conflicts": sorted(k for k, x in status.items() if x["status"] == "CONTROL_CONFLICT")}
 
 
 def validity_v1_retired(wit: dict, hold: dict, ostar: dict | None) -> dict:
@@ -2419,7 +2442,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
         if w["truth"].menu is not None:                               # the control's own reading (ruling 2026-10-29): O*'s trades through the same v3 clauses
             swit["W8_early_close_at_switch_v3"] = w8_switch_v3(w, sroll, sroll, view["closer"].with_quality(1.0))
     expected_ids = expected_witness_ids(cell, w)
-    vres = validity(wit, owit, swit, expected_ids)
+    vres = validity(wit, owit, swit, expected_ids, menu=w["truth"].menu is not None)
     defects_sealed = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
     defects_v2 = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and (k.endswith("_v2") or (k + "_v2") not in owit) and v["pass"] is False)
     annotate_sigma(w, roll["trades"])

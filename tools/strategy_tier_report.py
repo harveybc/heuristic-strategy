@@ -30,12 +30,22 @@ def load(d: str) -> list:
 
 def report(recs: list, expect_profile: str | None) -> dict:
     wit = defaultdict(lambda: Counter())
+    conflicts = []
     for r in recs:
         if r.get("error"):
             wit["ERROR"]["FAIL"] += 1
             continue
         for k, x in ((r.get("validity") or {}).get("per_witness") or {}).items():
             st = x["status"]
+            if st == "DEFECT" and not x["pass"] and x.get("governing_form", k) != k:      # CONTROL_CONFLICT typed post hoc on records that predate it (ruling 2026-10-29)
+                c = (r.get("ostar" if x.get("designated_control") == "O*" else "oracle") or {}).get(x["governing_form"])
+                if isinstance(c, dict) and c.get("pass") is False:
+                    st = "CONTROL_CONFLICT"
+                    conflicts.append({"record": f"{r['id']}_s{r['seed']}", "witness": k, "form": x["governing_form"],
+                                      "strategy": (r.get("results") or {}).get(x["governing_form"], {}).get("value"), "control": c.get("value")})
+            if st == "CONTROL_CONFLICT":
+                wit[k]["CONTROL_CONFLICT"] += 1
+                continue
             wit[k]["NOT_EVALUABLE" if st == "NOT_EVALUABLE" else ("PASS" if x["pass"] else "FAIL")] += 1
             wit[k]["unvalidated_strict"] += int(st == "SEALED_UNVALIDATED")
             wit[k]["defect_corrected"] += int(st in ("DEFECT", "REPLAY_CONFLICT"))
@@ -119,7 +129,7 @@ def report(recs: list, expect_profile: str | None) -> dict:
                         "early_close_share_pooled": (sum(a for a, _ in ec) / max(sum(b for _, b in ec), 1)) if ec else float("nan"),
                         "records_with_zero_trades": sum(1 for _, b in ec if b == 0)},
            "net_sigma_per_trade_by_family": per_family, "w14_control_status": dict(w14), "w14_code_symmetry_max_sigma": (max(w14_sym) if w14_sym else None),
-           "horizon_unmatched_trades": unmatched, "w13_columns": dict(w13), "z1_control": {f"{a}:{b}": n for (a, b), n in z1.items()}, "w8_clause_b": dict(w8b),
+           "horizon_unmatched_trades": unmatched, "control_conflicts": conflicts, "w13_columns": dict(w13), "z1_control": {f"{a}:{b}": n for (a, b), n in z1.items()}, "w8_clause_b": dict(w8b),
            "sizing_by_side": sizing_by_side,
            "closer_support": {"status": dict(sup), "records_extended": sum(1 for x in sup_passes if x > 0), "max_extra_passes": max(sup_passes) if sup_passes else 0},
            "trade_summary": {"records": len(ts), "median_net_usd_per_record": float(np.median(nets)) if nets else float("nan"), "net_sigma_per_trade_mean": float(np.nanmean([t["net_sigma_per_trade_mean"] for t in ts])) if ts else float("nan"),
@@ -139,10 +149,11 @@ def markdown(d: dict) -> str:
          f"| {k} | {v['records']} | {v['median_of_net_sigma_per_trade_medians']:.3f} |" for k, v in d["net_sigma_per_trade_by_family"].items()] + [
          "", f"W14 control status: {d['w14_control_status']}; swapped-reference code symmetry max {d['w14_code_symmetry_max_sigma']} sigma; trades without a matched menu slot: {d['horizon_unmatched_trades']}", "",
          f"Sizing by side (q, funding reserve in pips, loss per unit in pips): {d['sizing_by_side']}", "",
+         f"Control conflicts (CONTROL_CONFLICT, never PASS): {d['control_conflicts']}", "",
          f"W13 columns (menu form governing / sealed form): {d['w13_columns']}; Z1 control: {d['z1_control']}; W8 clause (b): {d['w8_clause_b']}; closer support: {d['closer_support']}", "",
-         "## Witnesses (governing forms)", "", "| witness | PASS | FAIL | NOT_EVALUABLE | sealed-unvalidated (strict) | defect-corrected | excused by O* |", "|---|---:|---:|---:|---:|---:|---:|"]
+         "## Witnesses (governing forms)", "", "| witness | PASS | FAIL | NOT_EVALUABLE | CONTROL_CONFLICT | sealed-unvalidated (strict) | defect-corrected | excused by O* |", "|---|---:|---:|---:|---:|---:|---:|---:|"]
     for k, v in d["witnesses"].items():
-        L.append(f"| {k} | {v.get('PASS', 0)} | {v.get('FAIL', 0)} | {v.get('NOT_EVALUABLE', 0)} | {v.get('unvalidated_strict', 0)} | {v.get('defect_corrected', 0)} | {v.get('excused_by_Ostar', 0)} |")
+        L.append(f"| {k} | {v.get('PASS', 0)} | {v.get('FAIL', 0)} | {v.get('NOT_EVALUABLE', 0)} | {v.get('CONTROL_CONFLICT', 0)} | {v.get('unvalidated_strict', 0)} | {v.get('defect_corrected', 0)} | {v.get('excused_by_Ostar', 0)} |")
     t = d["trade_summary"]
     L += ["", "## Trade summary (record schema)", "", f"records {t['records']}; net sigma / trade mean {t['net_sigma_per_trade_mean']:.3f} (median {t['net_sigma_per_trade_median']:.3f}); win rate {t['win_rate_mean']:.3f}; trades / record {t['trades_mean']:.0f}; "
           f"SL pips median {t['sl_pips_median_of_medians']:.1f}; TP pips median {t['tp_pips_median_of_medians']:.1f}; hold bars median {t['hold_bars_median_of_medians']:.1f}; Sharpe mean {t['sharpe_mean']:.2f}", ""]
