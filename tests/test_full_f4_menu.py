@@ -240,24 +240,24 @@ def test_full_f4_contract_v2_1_declares_the_menu_and_full_f3_is_unchanged():
         dm = d["business_contract"]["decision_menu"]
         assert dm["horizons"] == [3, 6, 12, 24] and "exact replay" in dm["truth"] and "MENU_GENES_MISMATCH" in dm["level_genes_guard"]
         assert set(dm["inert_under_menu"]) == {"k_tp_protect", "tp_mode"}
-        assert d["changelog"][:2] == [C3.MENU_CHANGELOG_V22, C3.MENU_CHANGELOG] and d["changelog"][2:] == [dict(x) for x in C3.CONTRACT_CHANGELOG]
+        assert d["changelog"][:3] == [C3.MENU_CHANGELOG_V23, C3.MENU_CHANGELOG_V22, C3.MENU_CHANGELOG] and d["changelog"][3:] == [dict(x) for x in C3.CONTRACT_CHANGELOG]
     f3 = C3.default_contract(C3.ARCH_TCN)
     assert f3["changelog"] == [dict(x) for x in C3.CONTRACT_CHANGELOG] and "business_contract" not in f3   # the menu entry is the full_f4 contract's only
     q = json.loads(open("docs/short_horizon/clean_round/contracts/QUALIFICATION_SPEC.json").read())
-    assert q["schema"] == "strategy_qualification.v2.3" and "W14_mirror_menu" in q["versions"]["v2.2"] and "NOT_APPLICABLE" in q["versions"]["v2.3"] and "W14_mirror" in q["D8_profile_full_f4_sanity"]["sigma_scale_witnesses"]
+    assert q["schema"] == "strategy_qualification.v2.4" and "z_veto" in q["versions"]["v2.4"] and "W14_mirror_menu" in q["versions"]["v2.2"] and "NOT_APPLICABLE" in q["versions"]["v2.3"] and "W14_mirror" in q["D8_profile_full_f4_sanity"]["sigma_scale_witnesses"]
 
 
 def test_full_f4_genome_excludes_the_inert_protective_tp_genes():
     from app.short_horizon.expert_guided import strategy_params as SP
     from tools import strategy_param_deap as D
-    assert set(D.GENOME) - set(D.GENOME_F4) == {"k_tp_protect", "tp_mode"} and len(D.GENOME_F4) == len(D.GENOME) - 2
+    assert set(D.GENOME) - set(D.GENOME_F4) == {"k_tp_protect", "tp_mode"} and set(D.GENOME_F4) - set(D.GENOME) == {"z_veto"} and len(D.GENOME_F4) == len(D.GENOME) - 1
     base = SP.default_doc()
     assert base["exec_profile"] == "full_f4" and D.genome_of(base) == D.GENOME_F4
     assert D.genome_of({k: v for k, v in base.items() if k != "exec_profile"}) == D.GENOME          # full_f3: the full genome
     doc = D.decode([1.0] * len(D.GENOME_F4), base)
     assert doc["k_tp_protect"] == base["k_tp_protect"] and doc["tp_mode"] == base["tp_mode"] and doc["a_sl"] == 2.0
     x = D.encode(base)
-    assert D.project(x, D.GENOME_F4) == D.encode(base, D.GENOME_F4)
+    assert D.project(x, D.GENOME_F4, base) == D.encode(base, D.GENOME_F4)
 
 
 def test_closer_path_cache_is_keyed_by_the_units():
@@ -416,6 +416,7 @@ def test_coarse_room_veto_reads_the_order_horizon_room_under_the_menu_only():
         t["zz_room"] = np.full((6, 2), 0.1)                            # the coarse leg leaves no room for a sell ...
         t["zz_menu_room"] = np.full((6, 2, 4), np.nan)
         t["zz_menu_room"][0, 1, 0] = 2.0                              # ... the h3 leg that confirms it has 2 sigma of room
+        t["net_sd_pred"] = np.ones(6)                                  # an uncertain head (EV 0.3 / sd 1 < z_veto 2): the veto may bind (v2.3 gate)
         assert _policy(t).open_decision(0) == (E.SHORT, t["menu_tp"][0, 1, 0], t["menu_sl"][0, 1, 0])
         t["zz_menu_room"][0, 1, 0] = 0.2                              # the order's own horizon has no room: vetoed
         pol = _policy(t)
@@ -440,3 +441,80 @@ def test_burst_hold_rule_keeps_the_gate_on_after_its_last_firing_bar_and_is_off_
     last = int(np.flatnonzero(f0)[-1])
     assert f6[last:last + 7].all() and not f6[last + 7] and (f6 >= f0).all()
     assert ZZ.burst_hold_bars(False) == 0 and ZZ.burst_hold_bars(True) == int(ZZ.PARAMS["burst_window_bars"])
+
+
+def test_hierarchy_vetoes_bind_only_on_low_confidence_winners_under_the_menu():
+    """Ruling 2026-10-29: at quality 1 (sd_pred 0) no veto binds and the strategy's opens equal the truth oracle's menu
+    choices on a planted table where every hierarchy veto would fire; with an uncertain head (sd_pred > 0) the vetoes
+    bind on the low-confidence winners (EV / sd_pred < z_veto) only; z_veto 0 = off; the 'ungated' arm is the old rule."""
+    from tools import strategy_behaviour_matrix as BM
+    old, arm = dict(ZZ.PARAMS), ZZ.VETO_ARM
+    try:
+        ZZ.PARAMS.update(zz_nop_gate=1.0, zz_timing_gate=1.0, ev_from_net=1.0, risk_reward_floor=0.0, horizon_rule=0.0, z_veto=2.0, zz_room_tp_mult=1.75, zz_counter_net_frac=99.0)
+        rng = np.random.default_rng(3)
+        n = 40
+        t = _menu_table(n)
+        t["net"] = rng.normal(0.3, 0.4, (n, 2, 4))
+        t["zz_menu"] = (rng.random((n, 2, 4)) < 0.7).astype(float)
+        t["zz_counter"] = np.ones((n, 2))                              # fine_counter_pivot would veto every winner
+        t["zz_nop_hard"] = (rng.random(n) < 0.3).astype(float)
+        t["zz_room"] = np.zeros((n, 2))
+        t["zz_menu_room"] = np.zeros((n, 2, 4))                         # coarse_room would veto every winner
+        t["net_sd_pred"] = np.zeros(n)
+        strat = C3.StrategyC3(0.0, 0.0, 0.0, 0.5, 0.5, True, None, True)
+        pol = ZZ.PolicyC3Z(t, strat, M.MENU_CELLS, (0.0, 0.0), 0.0, observe_bars=0)
+        orc = BM.PolicyOracle(t, BM.ORACLE_STRATEGY, M.MENU_CELLS, (0.0, 0.0), 0.0)
+        opened = 0
+        for r in range(n):
+            a, b = pol.open_decision(r), orc.open_decision(r)
+            assert a == b, r                                            # q1: the strategy's open IS the truth oracle's menu choice
+            opened += int(a is not None)
+        assert opened >= 20
+        t["net_sd_pred"] = np.full(n, 1.0)                              # an uncertain head: sd_pred 1 sigma
+        t["net"][0] = -1.0
+        t["net"][0, 0, 0], t["zz_menu"][0, 0, 0] = 0.5, 1.0             # EV 0.5 / 1 < 2: low confidence, the veto binds
+        t["net"][1] = -1.0
+        t["net"][1, 0, 0], t["zz_menu"][1, 0, 0] = 3.0, 1.0             # EV 3 / 1 >= 2: confident, no veto
+        t["zz_nop_hard"][:2] = 0.0
+        pol = ZZ.PolicyC3Z(t, strat, M.MENU_CELLS, (0.0, 0.0), 0.0, observe_bars=0)
+        assert pol.open_decision(0) is None and pol.attr[-1]["blocked"] in ("coarse_room", "fine_counter_pivot")
+        assert pol.open_decision(1) is not None
+        ZZ.PARAMS["z_veto"] = 0.0                                       # vetoes off
+        assert ZZ.PolicyC3Z(t, strat, M.MENU_CELLS, (0.0, 0.0), 0.0, observe_bars=0).open_decision(0) is not None
+        ZZ.PARAMS["z_veto"] = 2.0
+        ZZ.VETO_ARM = "ungated"                                         # the old rule: binds whatever the confidence
+        t["net_sd_pred"][:] = 0.0
+        assert ZZ.PolicyC3Z(t, strat, M.MENU_CELLS, (0.0, 0.0), 0.0, observe_bars=0).open_decision(1) is None
+    finally:
+        ZZ.PARAMS.clear()
+        ZZ.PARAMS.update(old)
+        ZZ.VETO_ARM = arm
+
+
+def test_z_veto_is_a_declared_gene_and_the_records_carry_the_sizing():
+    from app.short_horizon.expert_guided import strategy_params as SP
+    assert SP.BOUNDS["z_veto"] == [0.0, 4.0] and SP.DEFAULTS["z_veto"] == 2.0 and SP.load(C3.STRATEGY_PARAMS_FILE)["z_veto"] == 2.0
+    bars, cal, sig, sr = synth(weeks=2)
+    cfg = S.with_variant(E.EnvConfig(level_policy="clip"), C3.FULL_F4)
+    env = E.BarEnv(bars, cal, sig, sr, bars.index[0], bars.index[-1] + pd.Timedelta(hours=1), cfg)
+    for b in range(env.first + 3, env.last - 10, 9):
+        OC._clean(env)
+        ref = float(env.c[b])
+        env.step(b, E.LONG, round(ref + 6e-4, 5), round(ref - 5e-4, 5))
+        if env.pos is not None:
+            k = env.pos.entry_bar
+            while env.pos is not None and k < env.last:
+                env.step(k, E.HOLD)
+                k += 1
+            t = env.trades[-1]
+            assert 0 < t["sizing_q"] <= 1 and abs(t["funding_reserve_per_unit"] - env.funding_reserve_to_flat(int(t["entry_bar_abs"]), 1)) < 1e-15
+            assert t["loss_per_unit"] > t["funding_reserve_per_unit"]
+
+
+def test_a_governing_form_typed_not_evaluable_gets_its_own_status():
+    from tools import strategy_behaviour_matrix as BM
+    k = "W8_early_close_at_switch"
+    wit = {k: {"pass": False}, k + "_v3": {"pass": False, "status": "NOT_EVALUABLE"}}
+    ostar = {k: {"pass": False, "events": 3}}
+    v = BM.validity(wit, {}, ostar, [k])
+    assert v["per_witness"][k]["status"] == "NOT_EVALUABLE" and v["per_witness"][k]["pass"] is False and k in v["not_evaluable"] and not v["PASS"]

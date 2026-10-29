@@ -933,6 +933,8 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
     if len(dec_rows):
         dec[dec_rows[len(dec_rows) // 2:]] = True
     t = {"net": np.full((n, 2, nc), np.nan), "p3": np.full((n, 2, 3), np.nan), "pn": np.full(n, np.nan), "cap": truth.cap, "lo": truth.lo}
+    if truth.menu is not None:                  # full_f4: the net head's declared predictive sd per row, sd(x) sqrt(1 - rho^2) (0 at quality 1; the veto gate)
+        t["net_sd_pred"] = np.full(n, np.nan)
     if truth.mae is not None:
         t["mae"] = np.full((n, 2, nc), np.nan)
     if truth.mfe is not None:
@@ -948,6 +950,8 @@ def simulate_table(cx, SCFG, truth: Truth, q: Quality, seed: int, rho_day: float
         if dec[r] and q.decision_drop > 0:
             qo = {si: max(0.5, v - q.decision_drop) for si, v in qo.items()}
             qn, qnp = rho_of_level(max(0.5, q.net - q.decision_drop)), max(0.5, qnp - q.decision_drop)
+        if "net_sd_pred" in t:
+            t["net_sd_pred"][r] = sd_net if q.const_net else sd_net * math.sqrt(max(0.0, 1.0 - qn * qn))   # a constant head carries no information: rho 0
         for si in (0, 1):
             h = int(truth.hit3[r, si])
             e = noise.draw(("open", int(r), si), day, 2)

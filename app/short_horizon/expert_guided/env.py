@@ -103,6 +103,7 @@ class Position:
     sigma: float
     seg: int
     entry_cost: dict
+    sizing: dict | None = None               # risk-budget sizing of the entry (q, loss per unit, funding reserve); None outside risk_budget (byte-identical)
 
 
 class BarEnv:
@@ -295,6 +296,8 @@ class BarEnv:
                "net_usd": gross - entry_cost - exit_cost, "notional_usd": p.units * (p.entry_price + price),
                "stop_loss": p.sl, "take_profit": p.tp, "margin_usd": p.units * p.entry_price / self.cfg.sizing.leverage,
                "percentual_order_size": self.cfg.percentual_order_size, "rel_volume": self.cfg.sizing.rel_volume}
+        if getattr(p, "sizing", None):
+            rec.update({"sizing_q": p.sizing["q"], "loss_per_unit": p.sizing["loss_per_unit"], "funding_reserve_per_unit": p.sizing["funding_reserve"]})
         self.trades.append(rec)
         self.balance += rec["net_usd"]
         self.counts["closes"] += 1
@@ -375,6 +378,8 @@ class BarEnv:
                 self.counts["levels_clipped"] += int(clipped)
                 self.pos = Position(want_entry, int(units), k, float(self.o[k]), sl, tp, self.decision_sigma(b),
                                     int(self.seg_of[k]), self._fill_cost(units, k, "MARKET"))
+                if var is not None and var.sizing_mode == "risk_budget":            # recorded so the funding-reserve effect is measured (ruling 2026-10-29)
+                    self.pos.sizing = {"q": float(rb["q"]), "loss_per_unit": float(rb["loss_per_unit"]), "funding_reserve": float(reserve)}
                 day = self.business_day(k)
                 self.entries_day[day] = self.entries_day.get(day, 0) + 1
                 self.counts["entries"] += 1

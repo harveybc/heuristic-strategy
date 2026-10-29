@@ -54,7 +54,8 @@ HORIZON_RULE = ("a level confirms side s at bar b when its most recent pivot who
 PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 1.2, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
           "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1, "closer_filter": 1.0,
           "a_sl": 1.0, "b_sl": 0.0, "buffer_pips": 1.0, "a_tp": 1.0, "b_tp": 0.0, "ref_p75": 0.0,   # S2/S4 absolute-level genes (STRATEGY_PARAMS v2 in S6); ref_p75 = the declared reference option
-          "horizon_rule": 0.0}                                       # S4: 0 = finest confirming MT level names the horizon, 1 = coarsest (declared options; a gene in S6)
+          "horizon_rule": 0.0,                                       # S4: 0 = finest confirming MT level names the horizon, 1 = coarsest (declared options; a gene in S6)
+          "z_veto": 2.0}                                             # full_f4 (ruling 2026-10-29): a hierarchy veto binds only when EV / sd_pred < z_veto (0 = vetoes off)
 HORIZON_RULES = ("finest", "coarsest")
 LEVEL_TICK = 1e-5                     # the price grid of the absolute levels (declared)
 
@@ -438,6 +439,9 @@ def to_rows(q: dict, row_bar) -> dict:
             "zz_menu_room": np.where(ok[:, None, None], np.asarray(q["menu_room"], float)[b], np.nan) if "menu_room" in q else np.full((len(rb), 2, 4), np.nan)}
 
 
+VETO_ARM = "gated"                    # "gated" (the rule) | "ungated" (the pre-2026-10-29 vetoes, an experiment arm set by the runner's --veto-arm)
+VETO_GATE_RULE = ("full_f4 (ruling 2026-10-29): nop_hard / coarse_room / fine_counter_pivot bind on the winning slot only when EV / sd_pred < z_veto; "
+                  "sd_pred = sd(x) sqrt(1 - rho^2) of the net head at its quality (0 at quality 1); z_veto a gene [0, 4], baseline 2, 0 = off; full_f3 ungated")
 BURST_HOLD_RULE = ("burst_hold_bars (declared strategy rule, ruling 2026-10-29, not a gene): once the causal burst gate fires it stays on "
                    "for burst_hold_bars bars after its last firing bar (the gate cannot know that the burst has ended); 0 under full_f3 / LEGACY "
                    "(byte-identical), burst_window_bars under full_f4")
@@ -612,6 +616,22 @@ class PolicyC3Z(C3.PolicyC3):
         return float(c[r]) if c is not None and np.isfinite(c[r]) else self.cost
 
     # ---- full_f4: the decision MENU (menu.py; coordinator ruling 2026-10-29)
+    def _veto_binds(self, r, chosen: int, evs) -> bool:
+        """VETO_GATE_RULE: the hierarchy vetoes (nop_hard, coarse_room, fine_counter_pivot) bind on the winner only when the
+        net head is unsure of it, EV / sd_pred < z_veto, sd_pred = the head's declared predictive sd sd(x) sqrt(1 - rho^2)
+        of the row (0 at quality 1: never binds); z_veto = 0: vetoes off. VETO_ARM 'ungated' (a declared experiment arm,
+        never a parameter point): the old rule, the vetoes bind whatever the confidence."""
+        if VETO_ARM == "ungated":
+            return True
+        z = float(PARAMS.get("z_veto", 2.0))
+        if z <= 0.0:
+            return False
+        sd = self.t.get("net_sd_pred")
+        s_ = float(sd[r]) if sd is not None and np.isfinite(sd[r]) else 0.0
+        if s_ <= 0.0:
+            return False
+        return bool(np.isfinite(evs[chosen]) and evs[chosen] / s_ < z)
+
     def _menu(self) -> bool:
         from . import menu as M
         m = getattr(self, "_is_menu", None)
@@ -701,14 +721,20 @@ class PolicyC3Z(C3.PolicyC3):
                 gates[si] = "margin"
                 continue
             cleared[si] = True
-        blocked = "nop_veto" if vetoed else ("burst" if burst else ("nop_hard" if nop_hard else ""))
+        menu = self._menu()
+        blocked = "nop_veto" if vetoed else ("burst" if burst else ("nop_hard" if (nop_hard and not menu) else ""))
         chosen = -1
         if cleared[0] or cleared[1]:
             if cleared[0] and cleared[1]:
                 chosen = -1 if abs(evs[0] - evs[1]) <= C3.TIE_EPS else (0 if evs[0] > evs[1] else 1)
             else:
                 chosen = 0 if cleared[0] else 1
-        if chosen >= 0 and not blocked:                          # the hierarchy VETOES the winner, it never redirects to the other side
+        gate = True
+        if menu:                                                 # full_f4 (ruling 2026-10-29): a hierarchy veto binds only on a low-confidence winner
+            gate = chosen >= 0 and self._veto_binds(r, chosen, evs)
+            if not blocked and nop_hard and gate:
+                blocked = "nop_hard"
+        if chosen >= 0 and not blocked and gate:                 # the hierarchy VETOES the winner, it never redirects to the other side
             room, ctr, fr = self.t.get("zz_room"), self.t.get("zz_counter"), self.t.get("zz_fresh")
             tp = float(self.t["menu_tp_s"][r, chosen, cis[chosen]]) if self._menu() else float(self.cells[cis[chosen]][0])   # the order's TP in sigma
             fa = self.t.get("zz_flip_age")

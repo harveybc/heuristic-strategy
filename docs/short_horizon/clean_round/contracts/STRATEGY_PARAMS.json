@@ -1,6 +1,6 @@
 {
  "schema": "strategy_params.v2",
- "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
+ "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; v2.1 (2026-10-29) adds z_veto (the hierarchy vetoes bind only on low-confidence slots, full_f4); exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
  "defaults_are": "canonical",
  "exec_profile": "full_f4",
  "open_rate_l": 0.45,
@@ -79,5 +79,6 @@
  "b_tp": 0.0,
  "rho": 0.005,
  "ref_p75": 0.0,
- "horizon_rule": 0.0
+ "horizon_rule": 0.0,
+ "z_veto": 2.0
 }

@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_83fd32e00bdaa2d7",
+ "identity": "action_bcbe8dfb5d958ed1",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -975,7 +975,7 @@
   },
   "params": {
    "file": "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json",
-   "sha256": "fdddbe481cce15e8676dcb8d2f2a2d87a733f20c3bab74ba60c42b47edb843be",
+   "sha256": "8a4324910b0c9bc91626132b5de118220157a00289a4e77506d2d4f2f9a96071",
    "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"
   }
  },
@@ -1280,7 +1280,8 @@
    "coarse_room_at_order_horizon": "v2.2: the coarse_room veto reads the room of the confirming MT level of the order's h (degraded like the coarse room under D2; NaN under the causal control)",
    "burst_hold_bars": "v2.2: the causal burst gate stays on burst_window_bars bars after its last firing bar (declared, not a gene; 0 under full_f3)",
    "closer_support": "v2.2: >= 30 uncensored calibration-block exploration visits per side; below it up to 8 extra seeded passes (seed + 1000 k), the same rule for every world; still below = NOT_EVALUABLE",
-   "head_exactness": "v2.2: float64 first-passage curves and gap-tick decoding: at quality 1 head A = path A within 1e-9 sigma on every positioned tick"
+   "head_exactness": "v2.2: float64 first-passage curves and gap-tick decoding: at quality 1 head A = path A within 1e-9 sigma on every positioned tick",
+   "veto_gate": "v2.3: hierarchy vetoes bind only when EV / sd_pred < z_veto (sd_pred = sd(x) sqrt(1 - rho^2); gene z_veto [0, 4], baseline 2; 0 = off)"
   },
   "closers": {
    "fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
@@ -1331,6 +1332,11 @@
   "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)"
  },
  "changelog": [
+  {
+   "when": "2026-10-29",
+   "change": "v2.3 (full_f4 only; structural ruling on the 51afc0f rerun): uncertainty-gated hierarchy vetoes -- nop_hard / coarse_room / fine_counter_pivot bind on the winning slot only when EV / sd_pred < z_veto, sd_pred = the net head's declared predictive sd sd(x) sqrt(1 - rho^2) (0 at quality 1: with perfect heads the menu's EV ranking already equals the truth and no veto binds); z_veto a gene [0, 4], baseline 2, 0 = off (STRATEGY_PARAMS v2.1); the risk-budget entries record q / loss per unit / funding reserve in the ledger",
+   "why": "every hierarchy veto could only remove truth-positive slots under perfect heads (51afc0f: W1 13 FAIL, W8_old_direction 1 -> 4, -33 % activity); a veto is a prior that should act only when the heads are uncertain"
+  },
   {
    "when": "2026-10-29",
    "change": "v2.2 (full_f4 only; tier-1 review rulings): (1) the coarse_room veto reads the room of the ORDER's horizon (the leg of the MT level that confirms the slot), not the coarsest ladder level -- tier 1 showed coarse_room removing counter-leg truth-positive slots only (LHS_46 s0: 198 counter vs 1 with); fine_counter_pivot / nop_hard unchanged (side-neutral); (2) burst_hold_bars: once the causal burst gate fires it stays on for burst_window_bars bars (declared rule, not a gene; 0 under full_f3); (3) the funding reserve of the risk-budget sizing = the known financing cost per unit to the forced flat (Musashi's DA26 rule; exec option funding_reserve_rule, new full_f4 exec identity); (4) the market-only closer head is decoded exactly (float64 curves, gap ticks included): at quality 1 its A equals the path's A within 1e-9 sigma on every positioned tick",

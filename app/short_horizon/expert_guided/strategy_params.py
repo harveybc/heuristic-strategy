@@ -59,6 +59,8 @@ BOUNDS = {
     # and the two declared categorical options (reference quantile, horizon rule)
     "a_sl": [0.5, 2.0], "b_sl": [0.0, 1.0], "buffer_pips": [0.0, 5.0], "a_tp": [0.5, 2.0], "b_tp": [0.0, 1.0], "rho": [0.001, 0.01],
     "ref_p75": [0.0, 1.0], "horizon_rule": [0.0, 1.0],
+    # v2.1 (coordinator ruling 2026-10-29): the hierarchy vetoes act only on low-confidence slots, EV / sd_pred < z_veto (full_f4)
+    "z_veto": [0.0, 4.0],
 }
 LIST_KEYS = {"tp_grid": [0.25, 4.0], "sl_grid": [0.25, 4.0]}
 META_KEYS = {"schema", "note", "defaults_are", "sealed", "exec_profile"}
@@ -73,7 +75,7 @@ DEFAULTS = {
     "tp_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "sl_grid": [0.5, 0.75, 1.0, 1.5, 2.0], "open_margin_eps": 1e-6,
     "closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24, "zz_post_flip_bars": 240, "zz_counter_net_frac": 1.2, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
     "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1, "closer_filter": 1.0,
-    "a_sl": 1.0, "b_sl": 0.0, "buffer_pips": 1.0, "a_tp": 1.0, "b_tp": 0.0, "rho": 0.005, "ref_p75": 0.0, "horizon_rule": 0.0,
+    "a_sl": 1.0, "b_sl": 0.0, "buffer_pips": 1.0, "a_tp": 1.0, "b_tp": 0.0, "rho": 0.005, "ref_p75": 0.0, "horizon_rule": 0.0, "z_veto": 2.0,
 }
 DEFAULT_EXEC_PROFILE = "full_f4"             # the v2 canonical point runs the shared business contract
 
@@ -116,7 +118,7 @@ def load(path) -> dict:
 
 
 def default_doc() -> dict:
-    return {"schema": "strategy_params.v2", "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
+    return {"schema": "strategy_params.v2", "note": "every strategy coefficient; defaults = the canonical point; bounds in app/short_horizon/expert_guided/strategy_params.py (BOUNDS); v2 (2026-10-29) adds the business-contract genes a_sl / b_sl / buffer_pips / a_tp / b_tp / rho and the declared options ref_p75 / horizon_rule; v2.1 (2026-10-29) adds z_veto (the hierarchy vetoes bind only on low-confidence slots, full_f4); exec_profile selects the execution profile (full_f3 = the audited lane-F3 profile, full_f4 = the shared business contract)",
             "defaults_are": "canonical", "exec_profile": DEFAULT_EXEC_PROFILE, **DEFAULTS}
 
 

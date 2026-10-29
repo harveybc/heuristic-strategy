@@ -98,6 +98,15 @@ def report(recs: list, expect_profile: str | None) -> dict:
         y = ((r.get("ostar") or {}).get("W8_early_close_at_switch_v3") or {}).get("value") or {}
         if y:
             w8b["Ostar_pass_with_sealed_clause_b_" + str(bool(y.get("pass_with_sealed_clause_b")))] += 1
+    qs = {1: [], -1: []}
+    for r in ok:
+        for t in r.get("trades") or []:
+            if "sizing_q" in t:
+                qs[int(t["direction"])].append((float(t["sizing_q"]), float(t["funding_reserve_per_unit"]), float(t["loss_per_unit"])))
+    sizing_by_side = {("BUY" if d > 0 else "SELL"): ({"trades": len(v), "q_p10_p50_p90": [float(np.percentile([x[0] for x in v], p_)) for p_ in (10, 50, 90)],
+                                                     "share_q_below_1": float(np.mean([x[0] < 1.0 - 1e-12 for x in v])),
+                                                     "funding_reserve_pips_p50_p90": [float(np.percentile([x[1] * 1e4 for x in v], p_)) for p_ in (50, 90)],
+                                                     "loss_per_unit_pips_p50": float(np.median([x[2] * 1e4 for x in v]))} if v else {"trades": 0}) for d, v in qs.items()}
     sup = Counter(v.get("status") for r in ok for v in ((r.get("closer_support") or {}).values()))
     sup_passes = [int(v.get("extra_passes", 0)) for r in ok for v in ((r.get("closer_support") or {}).values())]
     out = {"records": len(recs), "errors": sum(1 for r in recs if r.get("error")), "pass_effective": eff, "fail_effective": len(ok) - eff,
@@ -111,6 +120,7 @@ def report(recs: list, expect_profile: str | None) -> dict:
                         "records_with_zero_trades": sum(1 for _, b in ec if b == 0)},
            "net_sigma_per_trade_by_family": per_family, "w14_control_status": dict(w14), "w14_code_symmetry_max_sigma": (max(w14_sym) if w14_sym else None),
            "horizon_unmatched_trades": unmatched, "w13_columns": dict(w13), "z1_control": {f"{a}:{b}": n for (a, b), n in z1.items()}, "w8_clause_b": dict(w8b),
+           "sizing_by_side": sizing_by_side,
            "closer_support": {"status": dict(sup), "records_extended": sum(1 for x in sup_passes if x > 0), "max_extra_passes": max(sup_passes) if sup_passes else 0},
            "trade_summary": {"records": len(ts), "median_net_usd_per_record": float(np.median(nets)) if nets else float("nan"), "net_sigma_per_trade_mean": float(np.nanmean([t["net_sigma_per_trade_mean"] for t in ts])) if ts else float("nan"),
                              "net_sigma_per_trade_median": float(np.nanmedian([t["net_sigma_per_trade_median"] for t in ts])) if ts else float("nan"), "win_rate_mean": float(np.nanmean([t["win_rate"] for t in ts])) if ts else float("nan"),
@@ -128,6 +138,7 @@ def markdown(d: dict) -> str:
          "## Activity", "", f"{d['activity']}", "", "## Net per family (median of the per-record median net sigma per trade)", "", "| family | records | median net sigma / trade |", "|---|---:|---:|"] + [
          f"| {k} | {v['records']} | {v['median_of_net_sigma_per_trade_medians']:.3f} |" for k, v in d["net_sigma_per_trade_by_family"].items()] + [
          "", f"W14 control status: {d['w14_control_status']}; swapped-reference code symmetry max {d['w14_code_symmetry_max_sigma']} sigma; trades without a matched menu slot: {d['horizon_unmatched_trades']}", "",
+         f"Sizing by side (q, funding reserve in pips, loss per unit in pips): {d['sizing_by_side']}", "",
          f"W13 columns (menu form governing / sealed form): {d['w13_columns']}; Z1 control: {d['z1_control']}; W8 clause (b): {d['w8_clause_b']}; closer support: {d['closer_support']}", "",
          "## Witnesses (governing forms)", "", "| witness | PASS | FAIL | NOT_EVALUABLE | sealed-unvalidated (strict) | defect-corrected | excused by O* |", "|---|---:|---:|---:|---:|---:|---:|"]
     for k, v in d["witnesses"].items():

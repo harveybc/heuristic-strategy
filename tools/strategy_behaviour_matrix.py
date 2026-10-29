@@ -97,6 +97,7 @@ WITNESS_SPEC["menu_full_f4"] = {
     "W13_applicability": "v2.3 (ruling 2026-10-29, owner decision 10-29): the sealed W13 applies only where the profile declares sigma scaling (b_sl > 0 or b_tp > 0); at b_sl = b_tp = 0 it is NOT_APPLICABLE and the menu form governs; the sealed measurement stays reported (sealed_form)",
     "W8_clause_b": "v2.3 (ruling 2026-10-29, GM01): a non-early exit with zero held decision ticks is NOT_EVALUABLE for clause (b), out of its denominator; all elements vacuous = the clause NOT_EVALUABLE, never PASS",
     "Z1": "v2.3 (ruling 2026-10-29): judged by its control, the truth oracle's episodes; where the oracle fails the sealed form, the corrected form adds net-value ladder levels at 0.5 / 0.25 / 0.125 of the order's own SL distance (declared level: the finest)",
+    "NOT_EVALUABLE_column": "v2.4 (ruling 2026-10-29): a governing form typed NOT_EVALUABLE gets the NOT_EVALUABLE status in VALIDITY_SPEC (its own column): never PASS, never FAIL",
     "rule": "full_f4 only; full_f3 / LEGACY witnesses unchanged (byte-identical)"}
 TIMING_EXIT_WITNESSES = ("W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W8_early_close_at_switch")
 MIN_CONTROL_EVENTS = 1              # a control's verdict counts only with at least this many events of the witnessed kind (declared; GM01)
@@ -1312,6 +1313,7 @@ def oracle_view(world: dict, view: dict) -> dict:
     ov["pn"] = np.where(keep, truth.nop.astype(float), np.nan)
     if truth.menu is not None:                                       # full_f4: the oracles read the TRUTH menu (ideal confirmations)
         ov["zz_menu"] = np.where(keep.reshape(-1, 1, 1), truth.menu["mask"].astype(float), np.nan)
+        ov["net_sd_pred"] = np.zeros(n)                              # the truth table: no predictive uncertainty
     if truth.mae is not None:
         ov["mae"] = np.where(keep.reshape(-1, 1, 1), truth.mae, np.nan)
     meta = world.get("meta") or {}
@@ -2014,6 +2016,12 @@ def validity(wit: dict, hold: dict, ostar: dict | None, expected: list | None = 
             replay = {"non_early_exits": val3.get("non_early_exits"), "Ostar_same_trade_misses": val3.get("Ostar_same_trade_misses"), "eps_close_sigma": EPS_CLOSE}
         form = corr if (st in ("DEFECT", "REPLAY_CONFLICT") and corr) else k
         p = bool(wit[form]["pass"])
+        if wit[form].get("status") == "NOT_EVALUABLE":                 # a governing form typed NOT_EVALUABLE (e.g. W8 v3 all-vacuous clause (b)): its own column,
+            status[k] = {"status": "NOT_EVALUABLE", "failed_by": [], "validated_by": [], "governing_form": form, "pass": False,   # never PASS, never FAIL
+                         "control_events": {nm: (c or {}).get("events") if isinstance(c, dict) else None}, "designated_control": nm, "control_status": st}
+            not_ev.append(k)
+            failing.append(k)
+            continue
         status[k] = {"status": st, "failed_by": [nm] if st == "DEFECT" else [], "validated_by": [nm] if st == "VALIDATED" else [], "governing_form": form, "pass": p,
                      "control_events": {nm: (c or {}).get("events") if isinstance(c, dict) else None}, "designated_control": nm}
         if replay is not None:
@@ -2428,6 +2436,8 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
            "trade_summary": trade_summary(w, roll["trades"]), "horizon_mix": horizon_mix(roll, view, w),
            "closer_support": (w["truth"].stamp or {}).get("closer_support"),
+           "veto_arm": {"arm": ("ungated" if ZZ.VETO_ARM == "ungated" else ("off" if float(ZZ.PARAMS.get("z_veto", 2.0)) <= 0 else "gated")), "z_veto": float(ZZ.PARAMS.get("z_veto", 2.0))},
+           "sharpe_daily": (float(roll["metrics"].get("sharpe_daily_sqrt365", float("nan"))) if isinstance(roll["metrics"], dict) else None),
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
            "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))
                                               and exit_layer["PASS_effective"]),
@@ -2493,6 +2503,10 @@ def cmd_run(a):
     params_doc = SP.load(a.params)
     SCFG = S.with_variant(SCFG, C3.exec_variant_of(params_doc))     # the parameter file's execution profile (absent = full_f3, byte-identical)
     ZZ.configure(params_doc)
+    arm = getattr(a, "veto_arm", "gated") or "gated"
+    if arm == "off":
+        ZZ.PARAMS["z_veto"] = 0.0
+    ZZ.VETO_ARM = "ungated" if arm == "ungated" else "gated"
     genes = SP.genes_c3(params_doc)
     params_sha = SP.sha256_of(a.params)
     (out / "PARAMS_SHA.txt").write_text(params_sha + "  " + str(a.params) + "\n")
@@ -2832,6 +2846,8 @@ def main():
     r.add_argument("--params", default=str(ROOT / "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"), help="every strategy coefficient (validated; sha recorded)")
     r.add_argument("--ids", default=None)
     r.add_argument("--force", action="store_true")
+    r.add_argument("--veto-arm", default="gated", choices=("gated", "off", "ungated"),
+                   help="full_f4 experiment arm (ruling 2026-10-29): gated = the rule (z_veto of the parameter file), off = z_veto 0, ungated = the pre-ruling vetoes")
     r.add_argument("--out", required=True)
     rp = sub.add_parser("report")
     rp.add_argument("--cells", required=True)

@@ -845,7 +845,7 @@ def head_outputs(cells) -> dict:
 
 
 STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
-STRATEGY_PARAMS_SHA256 = "fdddbe481cce15e8676dcb8d2f2a2d87a733f20c3bab74ba60c42b47edb843be"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+STRATEGY_PARAMS_SHA256 = "8a4324910b0c9bc91626132b5de118220157a00289a4e77506d2d4f2f9a96071"   # the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
 CLOSER_HEAD_CONTRACT = {
     "name": "first-passage curve head (market-only best continuation), tools/strategy_output_simulation.BCHead",
     "inputs": "market data only: the bars from the decision bar on, the per-bar spread profile, the session calendar (compulsory flats, rollovers) and the swap rates by side; NO position, entry, SL, TP, units or balance",
@@ -880,6 +880,12 @@ MENU_CHANGELOG_V22 = {"when": "2026-10-29", "change": "v2.2 (full_f4 only; tier-
                       "positioned tick",
                       "why": "coordinator rulings on tier 1 of f439d37 (W1 27 / W8 7 / W17 1 strategy defects with the oracle passing; DA26 cross-lane finding; D1 head "
                              "exactness at LHS_05 s1 bar 5964, where the head returned NaN on a gap tick and the path A was -0.0015 sigma)"}
+MENU_CHANGELOG_V23 = {"when": "2026-10-29", "change": "v2.3 (full_f4 only; structural ruling on the 51afc0f rerun): uncertainty-gated hierarchy vetoes -- nop_hard / coarse_room / "
+                      "fine_counter_pivot bind on the winning slot only when EV / sd_pred < z_veto, sd_pred = the net head's declared predictive sd sd(x) sqrt(1 - rho^2) "
+                      "(0 at quality 1: with perfect heads the menu's EV ranking already equals the truth and no veto binds); z_veto a gene [0, 4], baseline 2, 0 = off "
+                      "(STRATEGY_PARAMS v2.1); the risk-budget entries record q / loss per unit / funding reserve in the ledger",
+                      "why": "every hierarchy veto could only remove truth-positive slots under perfect heads (51afc0f: W1 13 FAIL, W8_old_direction 1 -> 4, -33 % activity); "
+                             "a veto is a prior that should act only when the heads are uncertain"}
 CONTRACT_CHANGELOG = (
     {"when": "2026-10-29", "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",
      "why": "S1-S6 of the owner's order 2026-10-29; the audited full_f3 profile stays the declared control (exec_profile full_f3 / absent): byte-identical"},
@@ -994,7 +1000,8 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                                                       "coarse_room_at_order_horizon": "v2.2: the coarse_room veto reads the room of the confirming MT level of the order's h (degraded like the coarse room under D2; NaN under the causal control)",
                                                       "burst_hold_bars": "v2.2: the causal burst gate stays on burst_window_bars bars after its last firing bar (declared, not a gene; 0 under full_f3)",
                                                       "closer_support": "v2.2: >= 30 uncensored calibration-block exploration visits per side; below it up to 8 extra seeded passes (seed + 1000 k), the same rule for every world; still below = NOT_EVALUABLE",
-                                                      "head_exactness": "v2.2: float64 first-passage curves and gap-tick decoding: at quality 1 head A = path A within 1e-9 sigma on every positioned tick"},
+                                                      "head_exactness": "v2.2: float64 first-passage curves and gap-tick decoding: at quality 1 head A = path A within 1e-9 sigma on every positioned tick",
+                                                      "veto_gate": "v2.3: hierarchy vetoes bind only when EV / sd_pred < z_veto (sd_pred = sd(x) sqrt(1 - rho^2); gene z_veto [0, 4], baseline 2; 0 = off)"},
                                     "closers": {"fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
                                                 "separating_fixture": "native-engine unit test: quote 100, path 98 -> 104, A SL 99 / TP 106 -> CLOSE (A = +0.333, the next-open close is the optimum), B SL 97 / TP 104 -> HOLD; mirror; A' flips to HOLD iff market-close cost - stop cost > d_SL + EPS_CLOSE"}}
     doc["best_of_day"] = dict(BEST_OF_DAY)
@@ -1016,7 +1023,7 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
     doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256,
                                  "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"}
     doc["closer_head"] = dict(CLOSER_HEAD_CONTRACT)
-    doc["changelog"] = ([dict(MENU_CHANGELOG_V22), dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
+    doc["changelog"] = ([dict(MENU_CHANGELOG_V23), dict(MENU_CHANGELOG_V22), dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
     return ACT.seal(doc)
 
 

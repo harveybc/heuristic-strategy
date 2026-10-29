@@ -60,7 +60,7 @@ FIXED = {"tp_a_l": "parametric TP / SL family: not consumed by C3Z (cell family)
 # inflated) and are excluded from that profile's genome, so the search does not spend dimensions on them (declared, not silent)
 from app.short_horizon.expert_guided import menu as _MENU  # noqa: E402
 INERT_FULL_F4 = dict(_MENU.INERT_UNDER_MENU)
-GENOME_F4 = tuple(k for k in GENOME if k not in INERT_FULL_F4)
+GENOME_F4 = tuple(k for k in GENOME if k not in INERT_FULL_F4) + ("z_veto",)   # z_veto: the veto gate (ruling 2026-10-29), consumed under full_f4 only
 
 
 def genome_of(doc: dict) -> tuple:
@@ -68,13 +68,19 @@ def genome_of(doc: dict) -> tuple:
     return GENOME_F4 if SP.exec_profile_of(doc) == "full_f4" else GENOME
 
 
-def project(x: list, genome: tuple) -> list:
-    """A genome vector of the full GENOME projected on ``genome`` (warm starts from an archive of the full genome)."""
+def project(x: list, genome: tuple, base: dict | None = None) -> list:
+    """A genome vector of the full GENOME projected on ``genome`` (warm starts from an archive of the full genome); a gene
+    of ``genome`` absent from GENOME (z_veto) takes the base document's encoded value (0.5 without a base)."""
     if len(x) == len(genome):
         return list(x)
     if len(x) != len(GENOME):
         raise ValueError(f"GENOME_LENGTH:{len(x)}")
-    return [x[GENOME.index(k)] for k in genome]
+    def enc(k):
+        if base is None or k not in base:
+            return 0.5
+        lo, hi = SP.BOUNDS[k]
+        return (float(base[k]) - lo) / (hi - lo)
+    return [x[GENOME.index(k)] if k in GENOME else enc(k) for k in genome]
 
 
 QUALITY_INDEPENDENT = ("W16_sl_tp_every_order", "W17_no_open_in_burst", "W0_activity", "W12_missing", "W11_cutoff")
@@ -480,7 +486,7 @@ def run_search(pool: Pool, base: dict, out: Path, population: int, generations: 
         log(json.dumps({"resume_from_generation": st["gen"]}))
     else:
         if init:
-            pop = [project(x, G) for x in init[:population]] + [[rnd.random() for _ in G] for _ in range(population - len(init[:population]))]   # warm start
+            pop = [project(x, G, base) for x in init[:population]] + [[rnd.random() for _ in G] for _ in range(population - len(init[:population]))]   # warm start
             log(json.dumps({"warm_start_points": len(init[:population])}))
         else:
             pop = [encode(base, G)] + [[rnd.random() for _ in G] for _ in range(population - 1)]   # the canonical point is in generation 0
