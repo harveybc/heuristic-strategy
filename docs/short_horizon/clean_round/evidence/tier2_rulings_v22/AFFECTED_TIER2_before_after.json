@@ -1,0 +1,171 @@
+{
+ "before": {
+  "records": 100,
+  "missing": [],
+  "errors": 0,
+  "witnesses": {
+   "W0_activity": {
+    "PASS": 97,
+    "FAIL": 3
+   },
+   "W1_side": {
+    "FAIL": 49,
+    "PASS": 51
+   },
+   "W8_old_direction_after_lag": {
+    "PASS": 47,
+    "absent": 27,
+    "FAIL": 24,
+    "CONTROL_CONFLICT": 2
+   },
+   "W8_early_close_at_switch": {
+    "PASS": 73,
+    "absent": 27
+   },
+   "W17_no_open_in_burst": {
+    "absent": 76,
+    "FAIL": 23,
+    "PASS": 1
+   },
+   "W4_early_close_justified": {
+    "PASS": 97,
+    "FAIL": 3
+   },
+   "W2_truth_positive_open": {
+    "PASS": 100
+   },
+   "W7_best_cell": {
+    "PASS": 100
+   },
+   "W13_tpsl_track_sigma": {
+    "absent": 57,
+    "PASS": 43
+   },
+   "exit:Z1_zigzag_exit_label_SELL": {
+    "PASS": 98,
+    "FAIL": 2
+   },
+   "exit:Z1_zigzag_exit_label_BUY": {
+    "PASS": 100
+   },
+   "exit:E3_tick_agreement_BUY": {
+    "PASS": 100
+   },
+   "exit:E3_tick_agreement_SELL": {
+    "PASS": 100
+   },
+   "exit:E2p_regret_SL_destined_BUY": {
+    "PASS": 99,
+    "FAIL": 1
+   },
+   "exit:E2p_regret_SL_destined_SELL": {
+    "PASS": 99,
+    "FAIL": 1
+   }
+  },
+  "failing_pairs": {
+   "W0_activity:FAIL": 3,
+   "W17_no_open_in_burst:FAIL": 23,
+   "W1_side:FAIL": 49,
+   "W4_early_close_justified:FAIL": 3,
+   "W8_old_direction_after_lag:FAIL": 24,
+   "exit:Z1_zigzag_exit_label_SELL:FAIL": 2
+  },
+  "sharpe_median": 16.745286452719682,
+  "sharpe_mean": 15.370067407214178,
+  "net_sigma_per_trade_median": 0.44466191009884165,
+  "trades_per_week_median": 7.516922746319974,
+  "opens": 57101,
+  "early_close_share": 0.02973678219295634,
+  "sl_exits": 0,
+  "burst_gate_calm_raw_median": null,
+  "burst_gate_calm_held_median": null
+ },
+ "after": {
+  "records": 100,
+  "missing": [],
+  "errors": 0,
+  "witnesses": {
+   "W0_activity": {
+    "PASS": 95,
+    "FAIL": 5
+   },
+   "W1_side": {
+    "FAIL": 45,
+    "PASS": 55
+   },
+   "W8_old_direction_after_lag": {
+    "PASS": 58,
+    "absent": 27,
+    "FAIL": 13,
+    "CONTROL_CONFLICT": 2
+   },
+   "W8_early_close_at_switch": {
+    "PASS": 72,
+    "absent": 27,
+    "FAIL": 1
+   },
+   "W17_no_open_in_burst": {
+    "absent": 76,
+    "PASS": 15,
+    "FAIL": 9
+   },
+   "W4_early_close_justified": {
+    "PASS": 100
+   },
+   "W2_truth_positive_open": {
+    "PASS": 100
+   },
+   "W7_best_cell": {
+    "PASS": 100
+   },
+   "W13_tpsl_track_sigma": {
+    "absent": 57,
+    "PASS": 43
+   },
+   "exit:Z1_zigzag_exit_label_SELL": {
+    "PASS": 98,
+    "CONTROL_CONFLICT": 2
+   },
+   "exit:Z1_zigzag_exit_label_BUY": {
+    "PASS": 100
+   },
+   "exit:E3_tick_agreement_BUY": {
+    "PASS": 91,
+    "FAIL": 9
+   },
+   "exit:E3_tick_agreement_SELL": {
+    "PASS": 94,
+    "FAIL": 6
+   },
+   "exit:E2p_regret_SL_destined_BUY": {
+    "PASS": 99,
+    "FAIL": 1
+   },
+   "exit:E2p_regret_SL_destined_SELL": {
+    "PASS": 99,
+    "FAIL": 1
+   }
+  },
+  "failing_pairs": {
+   "W0_activity:FAIL": 3,
+   "W17_no_open_in_burst:FAIL": 9,
+   "W17_no_open_in_burst:PASS": 14,
+   "W1_side:FAIL": 45,
+   "W1_side:PASS": 4,
+   "W4_early_close_justified:PASS": 3,
+   "W8_old_direction_after_lag:FAIL": 13,
+   "W8_old_direction_after_lag:PASS": 11,
+   "exit:Z1_zigzag_exit_label_SELL:CONTROL_CONFLICT": 2
+  },
+  "sharpe_median": 15.98388822380204,
+  "sharpe_mean": 14.824169762138725,
+  "net_sigma_per_trade_median": 0.44393217297003185,
+  "trades_per_week_median": 7.097883313634899,
+  "opens": 52563,
+  "early_close_share": 0.0012175865152293439,
+  "sl_exits": 0,
+  "burst_gate_calm_raw_median": 0.06135167078543032,
+  "burst_gate_calm_held_median": 0.14666380143977653
+ }
+}
