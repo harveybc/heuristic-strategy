@@ -82,3 +82,17 @@ def test_swap_worlds_only_under_full_f4():
     f4 = D.with_swap_worlds(sub, SP.default_doc())
     assert len(f4) == 4 and f4[-1]["role"] == "Mswap" and f4[-1]["swap_refs"] is True and f4[-1]["pair"] == "X"
     assert D.with_swap_worlds(sub, SP.default_doc("full_f3")) == sub
+
+
+def test_stage2_genome_freezes_the_level_genes():
+    assert set(D.GENOME_F4) - set(D.GENOME_F4_STAGE2) == set(D.MENU_LEVEL_KEYS) and {"z_veto", "burst_vol_ratio", "closer_adv_margin"} <= set(D.GENOME_F4_STAGE2)
+    base = SP.validate({**SP.default_doc(), "a_sl": 1.5, "ref_p75": 1.0})
+    try:
+        D.STAGE["freeze_level_genes"] = True
+        g = D.genome_of(base)
+        assert g == D.GENOME_F4_STAGE2 and D.bounds(g)["burst_vol_ratio"] == [1.2, 2.5]
+        doc = D.decode([1.0] * len(g), base)
+        assert doc["a_sl"] == 1.5 and doc["ref_p75"] == 1.0 and doc["burst_vol_ratio"] == 2.5 and doc["open_rate_l"] == 1.0
+    finally:
+        D.STAGE["freeze_level_genes"] = False
+    assert D.genome_of(base) == D.GENOME_F4

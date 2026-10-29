@@ -122,9 +122,12 @@ def cmd_run(a):
     base = SP.load(a.params)
     if SP.exec_profile_of(base) != "full_f4":
         raise SystemExit("LEVEL_GRID_NEEDS_FULL_F4")
-    pts = grid_points()[: a.max_points] if a.max_points else grid_points()   # --max-points: a smoke run only (never the stage)
+    if getattr(a, "points_json", None):                              # stage 3: an explicit list of level points (the top stage-1 points) at the --params genes
+        pts = [{k: float(p[k]) for k in LEVEL_GRID} for p in json.loads(Path(a.points_json).read_text())]
+    else:
+        pts = grid_points()[: a.max_points] if a.max_points else grid_points()   # --max-points: a smoke run only (never the stage)
     groups = groups_of(D.with_swap_worlds(sub, base))                # full_f4: each pair group carries its side-swapped-reference control world
-    meta = {"stage": 1, "grid": {k: list(v) for k, v in LEVEL_GRID.items()}, "points": len(pts), "subset": a.subset, "subset_worlds": len(sub), "groups": len(groups),
+    meta = {"stage": 3 if getattr(a, "points_json", None) else 1, "grid": {k: list(v) for k, v in LEVEL_GRID.items()}, "points": len(pts), "point_list": pts, "subset": a.subset, "subset_worlds": len(sub), "groups": len(groups),
             "params_base_sha256": SP.sha256_of(a.params), "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds (Sharpe only)",
             "constraint": "Deb constraint domination: failing witnesses first (the DEAP's constraint set: strategy_param_deap.CachedWorld.evaluate + judge_pairs)",
             "truth": "rebuilt per point (world-major tasks: (point, world group))", "gate": f"generation-0 degeneracy rule on the first {GATE_POINTS} points",
@@ -193,7 +196,7 @@ def cmd_report(a):
     meta = json.loads((out / "RUN_META.json").read_text())
     allt = [json.loads(x) for x in (out / "TASKS.jsonl").read_text().splitlines() if x.strip()]
     agg = aggregate(allt, meta["groups"])
-    pts = grid_points()[: meta["points"]]
+    pts = meta.get("point_list") or grid_points()[: meta["points"]]
     ranked = sorted(agg.values(), key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"]))
     for k, r in enumerate(ranked):
         r["rank"] = k + 1
@@ -208,6 +211,30 @@ def cmd_report(a):
     print(json.dumps({k: res[k] for k in ("points_complete", "points_total", "feasible_points", "best_feasible")}, default=float))
 
 
+def cmd_compare(a):
+    """Stage 3 (ruling 2026-10-29): the top stage-1 points re-evaluated with the stage-2 champion's genes; per point the
+    paired per-world Sharpe difference against the frozen point, its mean and standard error; another level point wins
+    when it is feasible (or no worse on the constraint) and its mean paired difference exceeds 1 SE -> re-run stage 2 once."""
+    out = Path(a.out)
+    meta = json.loads((out / "RUN_META.json").read_text())
+    allt = [json.loads(x) for x in (out / "TASKS.jsonl").read_text().splitlines() if x.strip()]
+    agg = aggregate(allt, meta["groups"])
+    pts = meta["point_list"]
+    sh = {i: {w["key"]: w["sharpe"] for t in allt if t["point"] == i for w in t["per_world"]} for i in agg}
+    f = a.frozen
+    rows = []
+    for i in sorted(agg):
+        keys = sorted(set(sh[i]) & set(sh[f]))
+        d = np.array([sh[i][k] - sh[f][k] for k in keys], float)
+        se = float(np.std(d, ddof=1) / np.sqrt(len(d))) if len(d) > 1 else float("nan")
+        rows.append({"index": i, "params": pts[i], "fitness_sharpe": agg[i]["fitness_sharpe"], "n_failing_witnesses": agg[i]["n_failing_witnesses"], "feasible": agg[i]["feasible"],
+                     "paired_mean_dsharpe_vs_frozen": float(d.mean()) if len(d) else float("nan"), "se": se, "worlds": len(d),
+                     "wins_by_more_than_1se": bool(i != f and len(d) > 1 and agg[i]["n_failing_witnesses"] <= agg[f]["n_failing_witnesses"] and d.mean() > se)})
+    res = {"frozen_index": f, "frozen_params": pts[f], "rows": rows, "rerun_stage2": any(r["wins_by_more_than_1se"] for r in rows)}
+    (out / "STAGE3_RESULT.json").write_text(json.dumps(res, indent=1, default=float))
+    print(json.dumps({"rerun_stage2": res["rerun_stage2"], "rows": [{k: r[k] for k in ("index", "paired_mean_dsharpe_vs_frozen", "se", "n_failing_witnesses", "wins_by_more_than_1se")} for r in rows]}, default=float))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -220,11 +247,15 @@ def main():
     r.add_argument("--contract", default=str(S.CONTRACT))
     r.add_argument("--jobs", type=int, default=8)
     r.add_argument("--max-points", type=int, default=0, help="smoke runs only: the first N grid points")
+    r.add_argument("--points-json", default=None, help="stage 3: a JSON list of level points to evaluate at the --params genes (instead of the grid)")
     r.add_argument("--out", required=True)
     p = sub.add_parser("report")
     p.add_argument("--out", required=True)
+    c = sub.add_parser("compare")
+    c.add_argument("--out", required=True, help="a stage-3 run folder")
+    c.add_argument("--frozen", type=int, required=True, help="the index (in the stage-3 point list) of the frozen stage-1 point")
     a = ap.parse_args()
-    {"run": cmd_run, "report": cmd_report}[a.cmd](a)
+    {"run": cmd_run, "report": cmd_report, "compare": cmd_compare}[a.cmd](a)
 
 
 if __name__ == "__main__":

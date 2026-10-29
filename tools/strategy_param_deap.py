@@ -64,18 +64,26 @@ MENU_LEVEL_KEYS = tuple(_MENU.LEVEL_GENES) + ("ref_p75",)     # the genes the fu
 GENOME_F4 = tuple(k for k in GENOME if k not in INERT_FULL_F4) + ("z_veto",)   # z_veto: the veto gate (ruling 2026-10-29), consumed under full_f4 only
 
 
+# stage 2 (coordinator ruling 2026-10-29): the stage-1 level point is FROZEN (the menu truth is built once per world with it)
+# and the search runs over the other full_f4 genes; set by run --freeze-level-genes (z_veto and burst_vol_ratio included)
+GENOME_F4_STAGE2 = tuple(k for k in GENOME_F4 if k not in MENU_LEVEL_KEYS)
+STAGE = {"freeze_level_genes": False}
+
+
 def bounds_table(genome: tuple, doc: dict | None = None) -> dict:
     """The bounds table a genome is encoded on (STRATEGY_PARAMS v2.2, ruling A): the parameter document's own profile table
     when a document is given (full_f4 -> strategy_params.BOUNDS_F4, open_rate up to 1.0); otherwise the full_f4 genome on
     BOUNDS_F4 and the full genome on the audited full_f3 table BOUNDS (byte-identical)."""
     if doc is not None:
         return SP.bounds_of(SP.exec_profile_of(doc))
-    return SP.bounds_of("full_f4") if tuple(genome) == GENOME_F4 else SP.BOUNDS
+    return SP.bounds_of("full_f4") if tuple(genome) in (GENOME_F4, GENOME_F4_STAGE2) else SP.BOUNDS
 
 
 def genome_of(doc: dict) -> tuple:
     """The genome a parameter document's profile searches: full_f4 without its inert genes, otherwise the full genome."""
-    return GENOME_F4 if SP.exec_profile_of(doc) == "full_f4" else GENOME
+    if SP.exec_profile_of(doc) == "full_f4":
+        return GENOME_F4_STAGE2 if STAGE["freeze_level_genes"] else GENOME_F4
+    return GENOME
 
 
 def project(x: list, genome: tuple, base: dict | None = None) -> list:
@@ -298,7 +306,7 @@ def bounds(genome: tuple = GENOME) -> dict:
 def decode(x: list, base: dict, genome: tuple | None = None) -> dict:
     """The parameter document of a genome vector; the genome is the full one or the full_f4 one, told apart by length
     unless given."""
-    g = genome or (GENOME if len(x) == len(GENOME) else (GENOME_F4 if len(x) == len(GENOME_F4) else None))
+    g = genome or {len(GENOME): GENOME, len(GENOME_F4): GENOME_F4, len(GENOME_F4_STAGE2): GENOME_F4_STAGE2}.get(len(x))
     if g is None:
         raise ValueError(f"GENOME_LENGTH:{len(x)}")
     d = dict(base)
@@ -633,7 +641,8 @@ def cmd_run(a):
         raise SystemExit(75)
     sub = json.loads(Path(a.subset).read_text())
     base = SP.load(a.params)
-    meta = {"seed": SEED, "population": a.population, "generations": a.generations, "elite": ELITE, "genome": genome_of(base), "bounds": bounds(genome_of(base)), "inert_fixed": (INERT_FULL_F4 if genome_of(base) == GENOME_F4 else {}), "fixed": FIXED, "tied": TIED,
+    STAGE["freeze_level_genes"] = bool(getattr(a, "freeze_level_genes", False))
+    meta = {"stage": 2 if STAGE["freeze_level_genes"] else None, "frozen_level_genes": ({k: base[k] for k in MENU_LEVEL_KEYS} if STAGE["freeze_level_genes"] else None), "seed": SEED, "population": a.population, "generations": a.generations, "elite": ELITE, "genome": genome_of(base), "bounds": bounds(genome_of(base)), "inert_fixed": (INERT_FULL_F4 if genome_of(base) in (GENOME_F4, GENOME_F4_STAGE2) else {}), "fixed": FIXED, "tied": TIED,
             "subset": a.subset, "subset_worlds": len(sub), "operating_quality": OPERATING_QUALITY, "quality_independent_constraints": QUALITY_INDEPENDENT,
             "fitness": "mean daily Sharpe (sqrt 365) over the subset worlds", "constraint": "number of failing sealed / effective witnesses (perfect heads, per-cell rule) incl. the sealed exit layer E0-E5 / EP / E1' / E2' / E7 / Z1 / E8, + quality-independent witnesses (0.70) + QUALIFICATION_SPEC D7 per side on the q < 1 worlds (E4 and regret <= the Bayes closer's + 0.05, phi 0.587)",
             "exit_spec_sha256": BM.EXIT_SPEC_SHA,
@@ -712,6 +721,7 @@ def main():
             r.add_argument("--generations", type=int, default=GENERATIONS)
             r.add_argument("--out", required=True)
             r.add_argument("--warm-archive", default=None, help="an earlier run's ARCHIVE.jsonl: generation 0 = its top points re-scored under the current rule")
+            r.add_argument("--freeze-level-genes", action="store_true", help="stage 2 (full_f4): the parameter file's level genes are frozen (the stage-1 point); the genome is GENOME_F4_STAGE2")
     b = sub.add_parser("best")
     b.add_argument("--archive", required=True)
     b.add_argument("--params", default=str(ROOT / "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"))
