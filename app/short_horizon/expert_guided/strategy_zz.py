@@ -251,7 +251,21 @@ def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     return {"room": room, "direction": direction, "tau_coarse": tau_coarse, "flip_age": flip_age, "counter": counter, "fresh": fresh, "tau_fine": tau_fine,
             "fstar": fstar, "votes": votes, "nop_hard": nop_hard, "nop_graded": nop_graded, "pivots": piv, "levels": tuple(levels), "h": h,
             "horizon": horizon_of_decision(n, mt, rule), "horizon_alt": horizon_of_decision(n, mt, alt), "horizon_rule": rule, "sigma": np.asarray(sigma, float),
-            "menu": _menu_confirmations(n, mt)}                     # full_f4 decision menu: (n, 2, 4) per-level confirmations (menu.py)
+            "menu": _menu_confirmations(n, mt),                     # full_f4 decision menu: (n, 2, 4) per-level confirmations (menu.py)
+            "menu_room": _menu_rooms(bars, sigma, mt)}              # full_f4: the remaining room of each MT level's current leg, per side (the coarse_room veto at the order's horizon)
+
+
+def _menu_rooms(bars, sigma, mt: dict) -> np.ndarray:
+    """(n, 2, 4): per MT horizon level, the room of its leg at each bar and side (the _level_arrays construction on the
+    level's final pivots: side x (leg end - close) / sigma), in menu-slot order."""
+    from . import menu as M
+    o, hi, lo, c = (np.asarray(bars[k], float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
+    sig = np.asarray(sigma, float)
+    by_h = {v[2]: k for k, v in MT_HORIZONS.items()}
+    out = np.full((len(c), 2, len(M.MENU_HORIZONS)), np.nan)
+    for j, h in enumerate(M.MENU_HORIZONS):
+        out[:, :, j] = _level_arrays(o, hi, lo, c, sig, mt[by_h[h]]["pivots"])["room"]
+    return out
 
 
 def _menu_confirmations(n: int, mt: dict, causal: bool = False) -> np.ndarray:
@@ -319,6 +333,16 @@ def degrade_quantities(q: dict, rho: float, seed: int) -> dict:
     if "menu" in q:                                                  # full_f4: every (side, level) confirmation through the same ladder (drawn last:
         from . import menu as M                                      # the earlier streams are unchanged)
         out["menu"] = M.degrade_confirmations(np.asarray(q["menu"], bool), rho, rng, _ar1)
+    if "menu_room" in q:                                             # full_f4: each level's room as the coarse room (conditional mean, AR(1) noise)
+        mr = np.asarray(q["menu_room"], float).copy()
+        for j in range(mr.shape[2]):
+            x = mr[:, :, j]
+            fin_ = np.isfinite(x)
+            if fin_.any():
+                mu, sd = float(np.mean(x[fin_])), float(np.std(x[fin_]))
+                u = np.stack([_ar1(rng, n, 0.99), _ar1(rng, n, 0.99)], axis=1)
+                mr[:, :, j] = np.where(fin_, mu + rho * rho * (x - mu) + rho * k * sd * u, np.nan)
+        out["menu_room"] = mr
     out["head_mode"] = f"ladder rho={rho:.3f}"
     return out
 
@@ -378,7 +402,7 @@ def causal_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     rule = _rule_name(PARAMS.get("horizon_rule", 0.0))
     return {"room": nan2.copy(), "direction": direction, "tau_coarse": np.full(n, np.nan), "flip_age": fa, "counter": counter, "fresh": fresh,
             "horizon": horizon_of_decision(n, mt, rule, causal=True), "horizon_rule": rule, "sigma": np.asarray(sigma, float),
-            "menu": _menu_confirmations(n, mt, causal=True),
+            "menu": _menu_confirmations(n, mt, causal=True), "menu_room": np.full((n, 2, 4), np.nan),
             "tau_fine": np.full(n, np.nan), "fstar": nan2.copy(), "votes": np.zeros((n, 2)), "nop_hard": np.zeros(n, bool), "nop_graded": np.zeros((n, 2), bool),
             "pivots": piv, "levels": tuple(levels), "h": h, "head_mode": "causal-confirmed"}
 
@@ -410,11 +434,22 @@ def to_rows(q: dict, row_bar) -> dict:
             "zz_h": nan2(q["horizon"]) if "horizon" in q else np.full((len(rb), 2), np.nan),
             "zz_h_alt": nan2(q["horizon_alt"]) if "horizon_alt" in q else np.full((len(rb), 2), np.nan),
             "zz_sigma": np.where(ok, q["sigma"][b], np.nan) if "sigma" in q else np.full(len(rb), np.nan),
-            "zz_menu": np.where(ok[:, None, None], np.asarray(q["menu"], float)[b], np.nan) if "menu" in q else np.full((len(rb), 2, 4), np.nan)}
+            "zz_menu": np.where(ok[:, None, None], np.asarray(q["menu"], float)[b], np.nan) if "menu" in q else np.full((len(rb), 2, 4), np.nan),
+            "zz_menu_room": np.where(ok[:, None, None], np.asarray(q["menu_room"], float)[b], np.nan) if "menu_room" in q else np.full((len(rb), 2, 4), np.nan)}
 
 
-def burst_rows(bars, sigma, row_bar, window: int | None = None, ratio: float | None = None) -> np.ndarray:
-    """Causal burst flag per row: realized vol over the last ``window`` bars (scaled to 24 h) > ``ratio`` x causal sigma."""
+BURST_HOLD_RULE = ("burst_hold_bars (declared strategy rule, ruling 2026-10-29, not a gene): once the causal burst gate fires it stays on "
+                   "for burst_hold_bars bars after its last firing bar (the gate cannot know that the burst has ended); 0 under full_f3 / LEGACY "
+                   "(byte-identical), burst_window_bars under full_f4")
+
+
+def burst_hold_bars(menu: bool) -> int:
+    return int(round(PARAMS["burst_window_bars"])) if menu else 0
+
+
+def burst_rows(bars, sigma, row_bar, window: int | None = None, ratio: float | None = None, hold: int = 0) -> np.ndarray:
+    """Causal burst flag per row: realized vol over the last ``window`` bars (scaled to 24 h) > ``ratio`` x causal sigma;
+    ``hold`` > 0: the flag stays on for ``hold`` bars after each firing bar (BURST_HOLD_RULE; causal: bar t reads fires <= t)."""
     w = int(PARAMS["burst_window_bars"] if window is None else window)
     k = float(PARAMS["burst_vol_ratio"] if ratio is None else ratio)
     c = np.asarray(bars["CLOSE"], float)
@@ -424,6 +459,12 @@ def burst_rows(bars, sigma, row_bar, window: int | None = None, ratio: float | N
     rv[w:] = np.sqrt((cs[w:] - cs[:-w]) * 24.0 / w)
     sig = np.asarray(sigma, float)
     flag = np.where(np.isfinite(rv) & np.isfinite(sig) & (sig > 0), rv > k * sig, False)
+    if int(hold) > 0:
+        fired = np.flatnonzero(flag)
+        held = np.zeros(len(c), bool)
+        for t in fired:
+            held[t:min(len(c), t + int(hold) + 1)] = True
+        flag = held
     rb = np.asarray(row_bar, np.int64)
     ok = (rb >= 0) & (rb < len(c))
     return np.where(ok, flag[np.where(ok, rb, 0)], False)
@@ -673,7 +714,10 @@ class PolicyC3Z(C3.PolicyC3):
             fa = self.t.get("zz_flip_age")
             settled = bool(fa is None or not np.isfinite(fa[r]) or fa[r] > PARAMS["zz_post_flip_bars"])     # right after a coarse flip, no exception
             strong = settled and bool(np.isfinite(evs[chosen]) and evs[chosen] >= PARAMS["zz_counter_net_frac"] * tp)   # the outcome heads say it pays most of its TP
-            if room is not None and np.isfinite(room[r, chosen]) and room[r, chosen] < PARAMS["zz_room_tp_mult"] * tp \
+            rv = float(room[r, chosen]) if room is not None else float("nan")
+            if self._menu() and self.t.get("zz_menu_room") is not None:   # full_f4 (ruling 2026-10-29): the room of the ORDER's horizon (its confirming MT level h)
+                rv = float(self.t["zz_menu_room"][r, chosen, cis[chosen]])
+            if np.isfinite(rv) and rv < PARAMS["zz_room_tp_mult"] * tp \
                     and not (fr is not None and fr[r, chosen] == 1.0) and not strong:   # against the long horizon only at a confirmed fine counter-pivot or a strong predicted net
                 blocked = "coarse_room"
             elif PARAMS["zz_timing_gate"] >= 0.5 and ctr is not None and ctr[r, chosen] == 1.0:

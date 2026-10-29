@@ -4,6 +4,7 @@ a horizon without a confirming MT level is not in the menu; the engine truth is 
 profile engine; the policy (and the oracle) rank (h, side) by EV and place exactly the menu's prices, the horizon rule
 only breaks ties; an empty menu is a NOP; the level genes of the truth are the policy's (guard); the legacy sigma-grid
 paths are untouched."""
+import dataclasses
 import math
 
 import numpy as np
@@ -239,11 +240,11 @@ def test_full_f4_contract_v2_1_declares_the_menu_and_full_f3_is_unchanged():
         dm = d["business_contract"]["decision_menu"]
         assert dm["horizons"] == [3, 6, 12, 24] and "exact replay" in dm["truth"] and "MENU_GENES_MISMATCH" in dm["level_genes_guard"]
         assert set(dm["inert_under_menu"]) == {"k_tp_protect", "tp_mode"}
-        assert d["changelog"][0] == C3.MENU_CHANGELOG and d["changelog"][1:] == [dict(x) for x in C3.CONTRACT_CHANGELOG]
+        assert d["changelog"][:2] == [C3.MENU_CHANGELOG_V22, C3.MENU_CHANGELOG] and d["changelog"][2:] == [dict(x) for x in C3.CONTRACT_CHANGELOG]
     f3 = C3.default_contract(C3.ARCH_TCN)
     assert f3["changelog"] == [dict(x) for x in C3.CONTRACT_CHANGELOG] and "business_contract" not in f3   # the menu entry is the full_f4 contract's only
     q = json.loads(open("docs/short_horizon/clean_round/contracts/QUALIFICATION_SPEC.json").read())
-    assert q["schema"] == "strategy_qualification.v2.2" and "W14_mirror_menu" in q["versions"]["v2.2"] and "W14_mirror" in q["D8_profile_full_f4_sanity"]["sigma_scale_witnesses"]
+    assert q["schema"] == "strategy_qualification.v2.3" and "W14_mirror_menu" in q["versions"]["v2.2"] and "NOT_APPLICABLE" in q["versions"]["v2.3"] and "W14_mirror" in q["D8_profile_full_f4_sanity"]["sigma_scale_witnesses"]
 
 
 def test_full_f4_genome_excludes_the_inert_protective_tp_genes():
@@ -319,3 +320,123 @@ def test_tick_aligned_mirror_makes_the_menu_orders_exact_mirrors_under_swapped_r
     assert np.allclose(a["tp_s"][:, 0], b["tp_s"][:, 1], atol=1e-9) and np.allclose(a["sl_s"][:, 1], b["sl_s"][:, 0], atol=1e-9)
     c = M.orders(m["CLOSE"].to_numpy(float), sig, rb, GENES)                             # same references: side-specific, not a mirror
     assert not np.allclose(a["sl_s"][:, 0], c["sl_s"][:, 1], atol=1e-9)
+
+
+def _his_funding(env, entry_ns, d, flat_ns):
+    """Musashi's DA26 funding() (agent-multi dynamic_account_panel), restated: positive-only cost per unit of every
+    rollover t with entry < t (<= the forced flat), x3 at the profile's triple rollover index."""
+    f = env.cfg.profile
+    rate = max(0.0, -(f.swap_long_per_lot if d == 1 else f.swap_short_per_lot) / f.lot_units)
+    si = int(env.seg_of[int(np.searchsorted(env.v, entry_ns))])
+    rolls = [(int(x), 3 if i == f.triple_swap_rollover_index else 1) for i, x in enumerate(env.cal.rollover_ns(si), 1)]
+    return sum(rate * n for t, n in rolls if entry_ns < t <= flat_ns)
+
+
+def test_full_f4_sizing_reserves_the_financing_to_the_forced_flat_across_the_triple_rollover():
+    from tests.test_risk_budget_sizing import _run_capturing
+    assert C3.FULL_F4.funding_reserve_rule == "to_forced_flat" and C3.FULL_F3.funding_reserve_rule == "constant"
+    assert "funding_reserve_rule" not in C3.FULL_F3.document() and C3.FULL_F3.identity == "exec_709f9b1fa3512486"   # full_f3 identity unchanged
+    bars, cal, sig, sr = synth(weeks=2)
+    cfg = S.with_variant(E.EnvConfig(level_policy="clip"), C3.FULL_F4)
+    seen = {1: [], -1: []}
+    for d in (1, -1):
+        def act(b, r, st, env, d=d):
+            if env.pos is not None:
+                return (E.CLOSE if b - env.pos.entry_bar >= 3 else E.HOLD), 1.0, 1.0
+            ref = float(env.c[b])
+            return (E.LONG if d > 0 else E.SHORT), ref + d * 60e-4, ref - d * 30e-4
+        env, m, sized = _run_capturing(bars, cal, sig, sr, cfg, act)
+        prof = cfg.profile
+        cost = prof.slippage_market + prof.slippage_stop + 2 * prof.commission_per_lot_side / prof.lot_units
+        for t, s_ in zip(env.trades, sized):
+            k = int(t["entry_bar_abs"])
+            flat = int(env.ff[int(env.seg_of[k])])
+            want = _his_funding(env, int(env.v[k]), d, flat)
+            assert abs(env.funding_reserve_to_flat(k, d) - want) < 1e-15
+            assert abs(s_["loss_per_unit"] - (abs(s_["ref"] - t["stop_loss"]) + cost + want)) < 1e-12
+            umax = cfg.sizing.units_max(s_["balance"], s_["ref"])
+            q = HL.size_from_risk(s_["balance"], 0.1, 0.005 * s_["balance"], umax * s_["loss_per_unit"], 1.0)["q"]   # the shared primitive (parity-tested to his)
+            assert abs(q - s_["q"]) < 1e-12 and t["units"] == int(math.floor(q * umax))
+            seen[d].append(want)
+    assert max(seen[-1]) == 0.0                                       # a sell earns the swap here: no reserve
+    rate = -cfg.profile.swap_long_per_lot / cfg.profile.lot_units
+    assert any(abs(x - rate * 6) < 1e-15 for x in seen[1])            # a Monday buy crosses 4 rollovers incl. the triple: 1 + 1 + 3 + 1
+    assert min(seen[1]) >= 0.0 and max(seen[1]) > 0.0
+
+
+def test_exact_head_reproduces_the_path_advantage_on_every_positioned_tick_under_full_f4():
+    """D1 at quality 1 (ruling 2026-10-29): the market-only head's A equals the engine path's A within 1e-9 sigma of the
+    trade on EVERY positioned tick of a full_f4 world, gap ticks included (the open of b + 1 already beyond a level: a
+    short's TP triggers on the ask, so a bid between TP - spread and TP leaves the order alive beyond its level)."""
+    import types
+    checked, gap_ticks, worst = 0, 0, 0.0
+    for seed in range(7, 13):
+        bars, cal, sig, sr = synth(weeks=3, seed=seed)
+        cfg = S.with_variant(E.EnvConfig(level_policy="clip"), C3.FULL_F4)
+        env = E.BarEnv(bars, cal, sig, sr, bars.index[0], bars.index[-1] + pd.Timedelta(hours=1), cfg)
+        cx = types.SimpleNamespace(rob=np.arange(len(bars)), obs_ok=np.ones(len(bars), bool))
+        cl = object.__new__(S.SimCloser)
+        cl.cx, cl.SCFG, cl.q, cl.dec, cl.cache, cl.cache_static = cx, cfg, S.Quality(), None, {}, {}
+        cl.env = OC.make_env(types.SimpleNamespace(ds=types.SimpleNamespace(bars=bars, cal=cal, sigma=sig, sigma_rule=sr)), cfg, end=bars.index[-1] + pd.Timedelta(hours=1))
+        cl.bc = S.BCHead(cl.env, cx, exact=True)
+        assert cl.bc.exact
+        positions = []
+        for b in range(env.first + 2, env.last - 30, 3):              # narrow absolute orders: barriers within a few bars
+            for d in (1, -1):
+                OC._clean(env)
+                ref = float(env.c[b])
+                info = env.step(b, E.LONG if d > 0 else E.SHORT, round(ref + d * 6e-4, 5), round(ref - d * 5e-4, 5))
+                if info["entry"] and env.pos is not None:
+                    positions.append(dataclasses.replace(env.pos))
+        OC._clean(env)
+        for pos in positions:
+            path = cl.path(pos)
+            for b in path["bars"]:
+                a_path = S.path_advantage(path, int(b))
+                if not np.isfinite(a_path):
+                    continue
+                liq0 = float(cl.env.o[int(b) + 1])
+                gap_ticks += int(pos.direction * (pos.tp - liq0) <= 0 or pos.direction * (liq0 - pos.sl) <= 0)
+                full = cl.advantage_full(int(b), int(b), pos)
+                assert np.isfinite(full[0]), (int(b), pos)
+                worst = max(worst, abs(float(full[0]) - a_path))
+                checked += 1
+    assert checked >= 500 and worst <= 1e-9, (checked, worst)
+    assert gap_ticks >= 1, gap_ticks                                  # the fixture exercises ticks beyond a level
+
+
+def test_coarse_room_veto_reads_the_order_horizon_room_under_the_menu_only():
+    old = dict(ZZ.PARAMS)
+    try:
+        ZZ.PARAMS.update(zz_nop_gate=0.0, zz_timing_gate=0.0, ev_from_net=1.0, risk_reward_floor=0.0, horizon_rule=0.0, zz_room_tp_mult=1.75, zz_counter_net_frac=99.0)
+        t = _menu_table()
+        t["net"][0, 1] = [0.3, -1, -1, -1]                             # a counter-leg SELL h3 order, truth-positive
+        t["zz_menu"][0, 1] = [1, 0, 0, 0]
+        t["menu_tp_s"][0, 1] = [0.4, 1, 1, 1]
+        t["zz_room"] = np.full((6, 2), 0.1)                            # the coarse leg leaves no room for a sell ...
+        t["zz_menu_room"] = np.full((6, 2, 4), np.nan)
+        t["zz_menu_room"][0, 1, 0] = 2.0                              # ... the h3 leg that confirms it has 2 sigma of room
+        assert _policy(t).open_decision(0) == (E.SHORT, t["menu_tp"][0, 1, 0], t["menu_sl"][0, 1, 0])
+        t["zz_menu_room"][0, 1, 0] = 0.2                              # the order's own horizon has no room: vetoed
+        pol = _policy(t)
+        assert pol.open_decision(0) is None and pol.attr[-1]["blocked"] == "coarse_room"
+        q = ZZ.ladder_quantities(_bars(_swings(800, 30, 0.004, seed=2)), np.full(800, 0.004))
+        assert q["menu_room"].shape == (800, 2, 4) and np.isfinite(q["menu_room"]).any()
+    finally:
+        ZZ.PARAMS.clear()
+        ZZ.PARAMS.update(old)
+
+
+def test_burst_hold_rule_keeps_the_gate_on_after_its_last_firing_bar_and_is_off_by_default():
+    n = 200
+    c = 1.1 + np.zeros(n)
+    c[100:104] += np.array([0.01, -0.01, 0.01, -0.01])               # a short burst
+    bars = _bars(c)
+    sig = np.full(n, 0.002)
+    rb = np.arange(n)
+    f0 = ZZ.burst_rows(bars, sig, rb)
+    f6 = ZZ.burst_rows(bars, sig, rb, hold=6)
+    assert np.array_equal(f0, ZZ.burst_rows(bars, sig, rb, hold=0)) and f0.any()
+    last = int(np.flatnonzero(f0)[-1])
+    assert f6[last:last + 7].all() and not f6[last + 7] and (f6 >= f0).all()
+    assert ZZ.burst_hold_bars(False) == 0 and ZZ.burst_hold_bars(True) == int(ZZ.PARAMS["burst_window_bars"])

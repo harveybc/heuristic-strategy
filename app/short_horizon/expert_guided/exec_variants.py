@@ -39,6 +39,7 @@ import numpy as np
 
 SIZING_MODES = ("notional_share", "risk", "risk_budget")   # risk_budget = the business contract's q = min(1, rho x balance / L1) (S3)
 LEVEL_MODES = ("sigma", "absolute_pips")
+FUNDING_RESERVE_RULES = ("constant", "to_forced_flat")
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,9 @@ class ExecVariant:
     rho: float = 0.005                                  # S3 risk_budget sizing: the risk budget share of the CURRENT balance (a gene from S6 on; baseline 0.005)
     funding_reserve_per_unit: float = 0.0               # S3: funding reserve per unit added to the modeled loss (declared constant)
     quality_c: float = 1.0                              # S3: c of q = c x min(1, R / L1); fixed 1 until head confidence is calibrated (coordinator ruling)
+    funding_reserve_rule: str = "constant"              # 2026-10-29 (DA26, Musashi's rule): "to_forced_flat" = the known financing COST per unit from the
+                                                        # fill to the forced flat (calendar rollovers x the profile's swap by side, triple counted, credits
+                                                        # never reduce it), added to the modeled loss; "constant" = funding_reserve_per_unit
     note: str = ""
 
     def __post_init__(self):
@@ -69,6 +73,8 @@ class ExecVariant:
             raise ValueError(f"LEVEL_MODE_UNKNOWN:{self.level_mode}")
         if not (0 <= self.rho <= 1) or self.funding_reserve_per_unit < 0 or not (0 <= self.quality_c <= 1):
             raise ValueError("RISK_BUDGET_PARAMS_OUT_OF_RANGE")
+        if self.funding_reserve_rule not in FUNDING_RESERVE_RULES:
+            raise ValueError(f"FUNDING_RESERVE_RULE_UNKNOWN:{self.funding_reserve_rule}")
 
     def is_legacy(self) -> bool:
         """True when every option equals the audited default (the engine path is then byte-identical)."""
@@ -77,7 +83,7 @@ class ExecVariant:
     def document(self) -> dict:
         d = asdict(self)
         d.pop("note")
-        for k, default in (("leverage", None), ("no_daily_cap", False), ("level_mode", "sigma"), ("rho", 0.005), ("funding_reserve_per_unit", 0.0), ("quality_c", 1.0)):   # fields added 2026-10-29: absent at their defaults, so every earlier identity is unchanged
+        for k, default in (("leverage", None), ("no_daily_cap", False), ("level_mode", "sigma"), ("rho", 0.005), ("funding_reserve_per_unit", 0.0), ("quality_c", 1.0), ("funding_reserve_rule", "constant")):   # fields added 2026-10-29: absent at their defaults, so every earlier identity is unchanged
             if d[k] == default:
                 d.pop(k)
         return d

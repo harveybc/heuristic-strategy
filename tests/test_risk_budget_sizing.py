@@ -49,11 +49,14 @@ def test_risk_budget_units_in_the_engine_match_the_primitive_and_respect_the_bud
     for t, s_ in zip(env.trades, sized):
         umax = cfg.sizing.units_max(s_["balance"], s_["ref"])
         assert t["units"] == int(math.floor(s_["q"] * umax)) and t["units"] >= 1
-        loss = t["units"] * (abs(s_["ref"] - t["stop_loss"]) + cost + 0.0)
+        # coordinator ruling 2026-10-29 (DA26, Musashi's rule): under FULL_F4 the funding reserve is the known financing cost
+        # per unit to the forced flat (it was the constant 0 when this test was written in S3); the long side here pays swap
+        reserve = env.funding_reserve_to_flat(int(t["entry_bar_abs"]), 1)
+        loss = t["units"] * (abs(s_["ref"] - t["stop_loss"]) + cost + reserve)
         assert loss <= 0.005 * s_["balance"] + 1e-9                    # the modeled loss within rho x the balance at entry
-        assert abs(s_["loss_per_unit"] - (abs(s_["ref"] - t["stop_loss"]) + cost)) < 1e-15
+        assert abs(s_["loss_per_unit"] - (abs(s_["ref"] - t["stop_loss"]) + cost + reserve)) < 1e-15
         # the same q from the shared sizing primitive on the same inputs (our constants, the engine's SL distance)
-        sized = HL.size_from_risk(s_["balance"], 0.1, 0.005 * s_["balance"], umax * (abs(s_["ref"] - t["stop_loss"]) + cost), 1.0)
+        sized = HL.size_from_risk(s_["balance"], 0.1, 0.005 * s_["balance"], umax * (abs(s_["ref"] - t["stop_loss"]) + cost + reserve), 1.0)
         assert abs(sized["q"] - s_["q"]) < 1e-12 and t["units"] == int(math.floor(sized["q"] * umax))
         assert abs(t["margin_usd"] - t["units"] * t["entry_price"] / 50.0) < 1e-9
     assert env.counts["levels_clipped"] == 0 and m["n_levels_clipped"] == 0

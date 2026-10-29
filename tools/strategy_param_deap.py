@@ -180,7 +180,7 @@ class CachedWorld:
         keep = np.isfinite(view["pn"])
         for k, v in ZZ.to_rows(qh, self.w["cx"].ds.row_bar).items():
             view[k] = np.where(keep.reshape((-1,) + (1,) * (np.ndim(v) - 1)), v, np.nan)
-        view["risk_burst"] = ZZ.burst_rows(self.bars, self.w["cx"].ds.sigma, self.w["cx"].ds.row_bar)
+        view["risk_burst"] = ZZ.burst_rows(self.bars, self.w["cx"].ds.sigma, self.w["cx"].ds.row_bar, hold=ZZ.burst_hold_bars(self.w["truth"].menu is not None))
         if ZZ.PARAMS["ev_from_net"] >= 0.5:
             strat = dataclasses.replace(strat, open_margin=ZZ.net_open_margin(view, self.cal_rows, self.cells, float(genes["open_rate"])))
         self.w["ladder"] = q

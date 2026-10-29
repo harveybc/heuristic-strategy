@@ -94,6 +94,9 @@ WITNESS_SPEC["menu_full_f4"] = {
     "W9": "the SL term is the absolute SL's distance in sigma of the entry",
     "W13_tpsl_track_sigma": "sealed form read literally (mean TP PRICE distance, second half / first half); corrected forms v2 = v3 = every executed TP / SL equals the decided slot's menu levels (1 tick)",
     "W14_mirror": "sealed form (mirror world, same references) judged by the truth oracle on the same pair; corrected form W14_mirror_menu (mirror world, side-swapped TRAIN references) governs only where the oracle fails the sealed form non-vacuously; E6 follows the same control",
+    "W13_applicability": "v2.3 (ruling 2026-10-29, owner decision 10-29): the sealed W13 applies only where the profile declares sigma scaling (b_sl > 0 or b_tp > 0); at b_sl = b_tp = 0 it is NOT_APPLICABLE and the menu form governs; the sealed measurement stays reported (sealed_form)",
+    "W8_clause_b": "v2.3 (ruling 2026-10-29, GM01): a non-early exit with zero held decision ticks is NOT_EVALUABLE for clause (b), out of its denominator; all elements vacuous = the clause NOT_EVALUABLE, never PASS",
+    "Z1": "v2.3 (ruling 2026-10-29): judged by its control, the truth oracle's episodes; where the oracle fails the sealed form, the corrected form adds net-value ladder levels at 0.5 / 0.25 / 0.125 of the order's own SL distance (declared level: the finest)",
     "rule": "full_f4 only; full_f3 / LEGACY witnesses unchanged (byte-identical)"}
 TIMING_EXIT_WITNESSES = ("W4_sl_exits", "W4_early_close_justified", "W5_reverse", "W8_early_close_at_switch")
 MIN_CONTROL_EVENTS = 1              # a control's verdict counts only with at least this many events of the witnessed kind (declared; GM01)
@@ -112,6 +115,10 @@ VALIDITY_SPEC = {
     "applies_to": "the strategy and every DEAP candidate, identically; the sealed verdict stays in every record",
 }
 WITNESS_CHANGELOG = [
+    {"when": "2026-10-29 (coordinator rulings on tier 1 of f439d37)", "witness": "W13 / W8 switch v3 clause (b) / Z1 under full_f4 (WITNESS_SPEC menu_full_f4 v2.3)",
+     "defect": "W13: the sealed requirement came from the sigma-grid design; the owner's adoption of the absolute-level contract (2026-10-29) changed the requirement (no sigma scaling at b = 0), not the result. W8 (b): 6 of the 7 tier-1 failures were trades with a TP inside the ENTRY bar (no held tick: A undefined), scored 'O* would not hold'. Z1: the net-value ladder's finest level (0.1 sigma) cannot resolve orders with ~17-pip SLs (median declared match 0.82; full_f3 400 / 400 pass)",
+     "evidence": "tier 1 of f439d37 (evidence/tier1_full_f4_menu_f439d37); the controls' readings (O* through W8 v3, the oracle through Z1) are in the rerun's records",
+     "effect": "W13 NOT_APPLICABLE at b_sl = b_tp = 0 (menu form governs); W8 (b) vacuous elements NOT_EVALUABLE; Z1 corrected form where the oracle fails the sealed one; re-sealed (new SPEC_V3_SHA)"},
     {"when": "2026-10-29 (coordinator ruling ~05:50Z, full_f4 decision menu; lane F10)", "witness": "W2 / W7 / W10 / W13 / W14 / W15 / W1 opportunity under full_f4 (WITNESS_SPEC menu_full_f4)",
      "defect": "under fbe52e7 the policy ranked the sides on sigma-cell predictions and executed absolute horizon orders: W2 / W7 judged a cell that was never placed (MENU_MISMATCH); W9 / W13 read an absolute SL / TP price as a sigma multiple",
      "evidence": "B_cal_cutoff12 s0 (fbe52e7, rerun on the host): 643 trades, 376 SL exits, 196 of 642 re-opens one bar after the previous close; menu (this change): 348 trades, 0 SL, 342 TP",
@@ -722,7 +729,7 @@ def strategy_for(world: dict, genes: dict, AC: dict):
         view["menu_stamp"] = truth.menu["stamp"]
     gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
     strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto" in genes)
-    view["risk_burst"] = ZZ.burst_rows(bars, cx.ds.sigma, cx.ds.row_bar)
+    view["risk_burst"] = ZZ.burst_rows(bars, cx.ds.sigma, cx.ds.row_bar, hold=ZZ.burst_hold_bars(truth.menu is not None))   # full_f4: BURST_HOLD_RULE
     if "mae" in table:
         view["mae"] = np.where(keep.reshape(-1, 1, 1), table["mae"], np.nan)
     if ZZ.PARAMS["ev_from_net"] >= 0.5:                          # the pooled margin on the net reference (same quantile rule as C3)
@@ -1146,7 +1153,10 @@ def run_episodes(world: dict, eps: list, decide, closer) -> list:
 NET_LADDER_SIGMA = (2.0, 1.0, 0.5, 0.25, 0.1)   # reversal thresholds of the trade's own net-value ZigZag, in sigma of the trade
 
 
-def zigzag_exit_check(world: dict, eps: list, closer) -> dict:
+Z1_SL_FRACTIONS = (0.5, 0.25, 0.125)  # full_f4 corrected Z1 (ruling 2026-10-29): net-value ladder levels at fractions of the ORDER's own SL distance
+
+
+def zigzag_exit_check(world: dict, eps: list, closer, sl_fractions: tuple = ()) -> dict:
     """Z1: per ladder level, the ZigZag-derived exit of each SL-destined episode (the most favourable pivot inside
     [entry, SL bar)) and whether its engine net is within Z1_TOL_SIGMA of P*_pre.
     Declared label generator: the trade's OWN ZigZag -- reversal pivots of its cost-inclusive executable net path
@@ -1176,14 +1186,16 @@ def zigzag_exit_check(world: dict, eps: list, closer) -> dict:
         p_star = float(np.max(P))
         # the trade's own net-value ZigZag
         y = np.r_[P, path["hold_net"]] / u / sg
-        for thr in NET_LADDER_SIGMA:
+        d_sl_trade = abs(float(pos.entry_price) - float(pos.sl)) / sg if sg > 0 else float("nan")
+        ladder = [(f"net:{t:g}sigma", t) for t in NET_LADDER_SIGMA] + [(f"sl:{f:g}", f * d_sl_trade) for f in sl_fractions if np.isfinite(d_sl_trade) and d_sl_trade > 0]
+        for name_, thr in ladder:
             # the order's value starts at the entry: an anchor one threshold below y[0] precedes it, so the entry tick
             # itself can be a peak (a reversal ZigZag never confirms a pivot at the first point of its series)
             yy = np.r_[y[0] - 2.0 * thr, y]
             pv, _ = OR.reversal_pivots(yy, yy, thr)
             peaks = [(int(p[0]) - 1, p[1], p[2]) for p in pv if int(p[1]) == Zg.PEAK and 1 <= int(p[0]) <= len(bars)]
             ok = bool(peaks) and abs(float(P[int(max(peaks, key=lambda p: p[2])[0])]) - p_star) / u / sg <= Z1_TOL_SIGMA
-            bump(f"net:{thr:g}sigma", si, ok)
+            bump(name_, si, ok)
         # the price ladders (for comparison)
         want = Zg.PEAK if si == 0 else Zg.VALLEY
         for lvl, pv in price_ladders.items():
@@ -1198,7 +1210,7 @@ def zigzag_exit_check(world: dict, eps: list, closer) -> dict:
                 ok = k < len(bars) and abs(float(P[k]) - p_star) / u / sg <= Z1_TOL_SIGMA
             bump(lvl, si, ok)
     res = {lvl: {si: (v[si][0] / v[si][1] if v[si][1] else float("nan")) for si in (0, 1)} for lvl, v in counts.items()}
-    declared = f"net:{NET_LADDER_SIGMA[-1]:g}sigma"
+    declared = f"sl:{sl_fractions[-1]:g}" if sl_fractions else f"net:{NET_LADDER_SIGMA[-1]:g}sigma"
     best = {si: max(((lvl, v[si]) for lvl, v in res.items() if np.isfinite(v[si])), key=lambda x: x[1], default=(None, float("nan"))) for si in (0, 1)}
     coarsest_ok = {si: next((f"net:{t:g}sigma" for t in NET_LADDER_SIGMA if res.get(f"net:{t:g}sigma", {}).get(si, 0) >= 0.95), None) for si in (0, 1)}
     return {"per_level": res, "declared_level": declared, "declared": res.get(declared, {0: float("nan"), 1: float("nan")}), "best": best, "coarsest_level_reaching_0.95": coarsest_ok}
@@ -1708,6 +1720,11 @@ def witnesses(cell: dict, world: dict, roll: dict, cells) -> dict:
                    "desc": "full_f4 menu form: the order's distances are the horizon references (absolute levels), not sigma multiples; the declared rule is the menu level, never inflated"}
             out["W13_tpsl_track_sigma_v2"] = dict(m13)
             out["W13_tpsl_track_sigma_v3"] = dict(m13)
+            if float(ZZ.PARAMS.get("b_sl", 0.0)) == 0.0 and float(ZZ.PARAMS.get("b_tp", 0.0)) == 0.0:
+                # ruling 2026-10-29 (owner decision 10-29: the absolute-level contract has no sigma scaling at b_sl = b_tp = 0): the sealed
+                # requirement "TP distance follows sigma" is NOT_APPLICABLE; the menu form governs; the sealed measurement stays reported
+                out["W13_tpsl_track_sigma"] = dict(m13, applicability="NOT_APPLICABLE (b_sl = b_tp = 0: the profile declares no sigma scaling)",
+                                                   sealed_form=out["W13_tpsl_track_sigma"])
     # per-side decision audit (proves the comparison)
     both = [x for x in log if x[3] and x[4]]
     won_l = sum(1 for x in both if x[5] == 0)
@@ -1873,6 +1890,8 @@ def w8_switch_v3(world: dict, roll: dict, sroll: dict, closer) -> dict:
     pp = roll.get("positions") or {}
     closes = roll.get("closes") or []
     sl_n, held_ok, n_non_early, rows, misses, n_alive = 0, True, 0, [], [], 0
+    menu = world.get("truth") is not None and getattr(world["truth"], "menu", None) is not None
+    held_ok_sealed, n_b_ev, n_b_ne = True, 0, 0
     for s_ in sw:
         w0, w1 = int(s_), int(s_) + LAG
         for t in roll["trades"]:
@@ -1890,7 +1909,15 @@ def w8_switch_v3(world: dict, roll: dict, sroll: dict, closer) -> dict:
                     aa = [x for x in aa if np.isfinite(x)]
                     best = float(max(aa)) if aa else float("nan")
                     ok = bool(np.isfinite(best) and best < -EPS_CLOSE)
+                    if menu and not aa:                                # full_f4 (ruling 2026-10-29, GM01): a trade with zero held decision ticks is
+                        n_b_ne += 1                                    # NOT_EVALUABLE for clause (b), out of its denominator, never a pass
+                        held_ok_sealed &= ok
+                        rows.append({"switch": w0, "entry": eb, "exit": xb, "reason": t["exit_reason"], "side": "BUY" if si == 0 else "SELL",
+                                     "best_A_of_an_earlier_close_sigma": best, "Ostar_would_hold": None, "clause_b": "NOT_EVALUABLE (zero held ticks)"})
+                        continue
+                    n_b_ev += 1
                     held_ok &= ok
+                    held_ok_sealed &= ok
                     rows.append({"switch": w0, "entry": eb, "exit": xb, "reason": t["exit_reason"], "side": "BUY" if si == 0 else "SELL",
                                  "best_A_of_an_earlier_close_sigma": best, "Ostar_would_hold": ok})
             if eb < w1 and xb > w0:                                    # (c'): every trade alive in the window, O*'s rule on the same trade
@@ -1904,10 +1931,15 @@ def w8_switch_v3(world: dict, roll: dict, sroll: dict, closer) -> dict:
                 if not ok_c:
                     misses.append({"switch": w0, "entry": eb, "exit": xb, "reason": t["exit_reason"], "side": "BUY" if si == 0 else "SELL", "Ostar_close_tick": int(tau), "strategy_close_tick": dt})
     n_win = sum(1 for s_ in sw for t in roll["trades"] if s_ <= int(t["exit_bar_abs"]) < s_ + LAG)
-    return {"value": {"sl_exits_in_window": sl_n, "non_early_exits": rows, "trades_alive_in_window": n_alive, "Ostar_same_trade_misses": misses},
+    clause_b_ne = bool(menu and n_b_ne > 0 and n_b_ev == 0)        # every element of (b) was vacuous: the clause is NOT_EVALUABLE, not PASS
+    passed = bool(sl_n == 0 and held_ok and not misses and not clause_b_ne)
+    return {"value": {"sl_exits_in_window": sl_n, "non_early_exits": rows, "trades_alive_in_window": n_alive, "Ostar_same_trade_misses": misses,
+                      "clause_b": {"evaluable": n_b_ev, "not_evaluable_zero_held_ticks": n_b_ne, "status": "NOT_EVALUABLE" if clause_b_ne else ("PASS" if held_ok else "FAIL")},
+                      "pass_with_sealed_clause_b": bool(sl_n == 0 and held_ok_sealed and not misses)},
+            "status": "NOT_EVALUABLE" if (clause_b_ne and sl_n == 0 and not misses) else None,
             "threshold": "(a) 0 SL exits in [switch, switch + lag]; (b) every non-early exit there had A(t) < -EPS_CLOSE at every earlier held tick; "
                          "(c') every trade alive in the window that O*'s rule (A >= -EPS_CLOSE) closes inside it was early-closed by the strategy inside it or earlier at A >= -EPS_CLOSE: 0 misses",
-            "pass": bool(sl_n == 0 and held_ok and not misses), "conflict_shown": bool(n_non_early > 0 and held_ok), "events": n_win, "form": "v3c'",
+            "pass": passed, "conflict_shown": bool(n_non_early > 0 and held_ok), "events": n_win, "form": "v3c'",
             "desc": "corrected form v3 with the same-trade (c') (coordinator rulings 2026-10-27; E4 wins the demonstrated conflict): admitted only where VALIDITY_SPEC admits a corrected form"}
 
 
@@ -2052,6 +2084,24 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
     star_ep = run_episodes(w, eps, lambda r, si, bar, pos: bool(S.path_advantage(closer.path(pos), bar) >= -EPS_CLOSE), closer)
     z1 = zigzag_exit_check(w, eps, closer)
     epw = episode_witnesses(lad[1.0], star_ep, hold_ep, z1, lad)
+    z1_control = None
+    if w["truth"].menu is not None:                                   # full_f4 (ruling 2026-10-29): Z1 judged by its control, the truth oracle's episodes
+        eps_o = build_episodes(w, ORACLE_STRATEGY, ov, cells, every=EPISODE_EVERY_BARS * (2 if light else 1))
+        z1_o, z1_os = zigzag_exit_check(w, eps_o, closer), zigzag_exit_check(w, eps_o, closer, Z1_SL_FRACTIONS)
+        z1_s = zigzag_exit_check(w, eps, closer, Z1_SL_FRACTIONS)
+        ow = episode_witnesses(star_ep, star_ep, hold_ep, z1_o, {1.0: star_ep})
+        ows = episode_witnesses(star_ep, star_ep, hold_ep, z1_os, {1.0: star_ep})
+        sw_ = episode_witnesses(lad[1.0], star_ep, hold_ep, z1_s, lad)
+        z1_control = {}
+        for side in ("BUY", "SELL"):
+            k = f"Z1_zigzag_exit_label_{side}"
+            n_sl = sum(1 for e in eps_o if e["class"] == "SL" and e["side"] == (0 if side == "BUY" else 1))
+            st_ = "DEFECT" if (n_sl >= MIN_CONTROL_EVENTS and ow[k]["pass"] is False) else ("VALIDATED" if n_sl >= MIN_CONTROL_EVENTS else "SEALED_UNVALIDATED")
+            z1_control[side] = {"status": st_, "oracle_sealed": ow[k]["value"]["declared_match"], "oracle_corrected": ows[k]["value"]["declared_match"],
+                                "oracle_sl_destined_episodes": n_sl, "strategy_sealed": epw[k]["value"]["declared_match"], "strategy_corrected": sw_[k]["value"]["declared_match"]}
+            if st_ == "DEFECT":
+                epw[k] = dict(sw_[k], form="Z1_scaled_to_the_order_SL", sealed_form=epw[k], control=z1_control[side],
+                              desc="full_f4 corrected form (the oracle fails the sealed form): the net-value ladder adds levels at 0.5 / 0.25 / 0.125 of the order's own SL distance; declared level = the finest")
     if light:                                                         # the optimiser's constraint set: E8 (closer quality ladder) is not computed
         epw = {k: v for k, v in epw.items() if not k.startswith("E8_")}
     epw_star = episode_witnesses(star_ep, star_ep, hold_ep, z1, {1.0: star_ep})
@@ -2091,7 +2141,7 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
     return {"witnesses": allw, "oracle_star_witnesses": {k: v for k, v in allw_star.items() if isinstance(v, dict) and "pass" in v},
             "defects_by_Ostar": defects, "sealed_unvalidated": e_unvalidated, "failing_sealed": sealed_fail, "failing_effective": eff_fail, "PASS_sealed": not sealed_fail, "PASS_effective": not eff_fail,
             "episodes": {"n": len(eps), "by_side_class": {si: {c: sum(1 for e in eps if e["side"] == si and e["class"] == c) for c in ("SL", "TP", "TIME")} for si in (0, 1)}},
-            "episode_summary": summ, "exit_loss_curves": curves, "closer_sweep": sweep,
+            "episode_summary": summ, "exit_loss_curves": curves, "closer_sweep": sweep, "z1_control": z1_control,
             "censored_by_block_end": {"strategy": {si: st_n[si].get("censored_by_block_end", 0) for si in (0, 1)}, "hold_oracle": {si: st_hold[si].get("censored_by_block_end", 0) for si in (0, 1)}, "O*": {si: st_star[si].get("censored_by_block_end", 0) for si in (0, 1)}},
             "normal_exit_mix": {"strategy": {si: st_n[si]["mix"] for si in (0, 1)}, "hold_oracle": {si: st_hold[si]["mix"] for si in (0, 1)}, "O*": {si: st_star[si]["mix"] for si in (0, 1)}},
             "episode_exit_mix": {name: {si: {c: float(np.mean([x["class"] == c and (not x["early"]) for x in ep if x["side"] == si] or [np.nan])) for c in ("SL", "TP", "TIME")} | {"early": float(np.mean([x["early"] for x in ep if x["side"] == si] or [np.nan]))} for si in (0, 1)}
@@ -2358,6 +2408,8 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
     swit = witnesses(cell, w, sroll, cells)
     if "W8_early_close_at_switch" in wit:
         wit["W8_early_close_at_switch_v3"] = w8_switch_v3(w, roll, sroll, view["closer"].with_quality(1.0))
+        if w["truth"].menu is not None:                               # the control's own reading (ruling 2026-10-29): O*'s trades through the same v3 clauses
+            swit["W8_early_close_at_switch_v3"] = w8_switch_v3(w, sroll, sroll, view["closer"].with_quality(1.0))
     expected_ids = expected_witness_ids(cell, w)
     vres = validity(wit, owit, swit, expected_ids)
     defects_sealed = sorted(k for k, v in owit.items() if isinstance(v, dict) and "pass" in v and not k.endswith("_v2") and v["pass"] is False)
@@ -2375,12 +2427,17 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
            "trade_summary": trade_summary(w, roll["trades"]), "horizon_mix": horizon_mix(roll, view, w),
+           "closer_support": (w["truth"].stamp or {}).get("closer_support"),
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
            "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))
                                               and exit_layer["PASS_effective"]),
            "PASS_sealed_excluding_defective_witnesses": bool(all(v["pass"] for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k) and k not in defects_sealed)),
            "sec": round(time.time() - t0, 1),
            "trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll["trades"]]}
+    if any((v or {}).get("status") == "NOT_EVALUABLE" for v in (rec.get("closer_support") or {}).values()):
+        rec["validity"]["not_evaluable"] = sorted(set(rec["validity"]["not_evaluable"]) | {"closer_reference_support"})   # typed, never silently fitted
+        rec["validity"]["PASS"] = False
+        rec["PASS_effective"] = False
     key = cell.get("mirror_of") or cell["id"]
     twin_trades.setdefault(key, {})[cell["id"]] = roll["trades"]
     if w["truth"].menu is not None:                                   # full_f4: the oracle's ledger too (the W14 control) and the swapped-reference twin

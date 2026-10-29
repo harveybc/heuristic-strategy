@@ -273,6 +273,15 @@ def build_truth(cx, SCFG, fold: str, cells, contract: dict, explore_seed: int = 
                   "exploration_prior": list(EXPLORATION_PRIOR)}, mae=mae_t, mfe=mfe_t)
 
 
+CLOSER_SUPPORT_MIN_PER_SIDE = 30       # declared minimum (ruling 2026-10-29): uncensored calibration-block exploration visits per side
+EXPLORATION_EXTRA_PASSES_MAX = 8       # the same extension rule for every world: extra seeded passes (seed + 1000 k) while a side is below the minimum
+
+
+def _side_support(xt: dict) -> list:
+    ok = np.isfinite(xt["remaining"]) & ~np.asarray(xt["censored"], bool)
+    return [int(np.sum(ok & (np.asarray(xt["side"]) == si))) for si in (0, 1)]
+
+
 def menu_exploration(cx, prior, seed, ords: dict, mirror: bool = False):
     """The full_f4 exploration visits for the closer references: the action prior as prior_random_cells, the order a
     menu slot drawn uniformly among the four horizons at the decision row (the menu's order geometry, confirmation-free,
@@ -341,19 +350,27 @@ def build_truth_menu(cx, SCFG, fold: str, contract: dict, bars, params: dict, ex
     day = np.full(n, -1, np.int64)
     okb = rb >= 0
     day[okb] = (v[rb[okb]] // (24 * 3600 * 10 ** 9)).astype(np.int64)
-    xvis = {}
+    xvis, support = {}, {}
     for p in (CAL_BLOCK, SEL_BLOCK, DEC_BLOCK):
         if p in xvis or (only_periods and p not in only_periods):
             continue
         vis = OC.visit_positions(cx, p, menu_exploration(cx, list(EXPLORATION_PRIOR), explore_seed, ords, mirror=mirror_exploration), SCFG)
         xt = OC.exit_table(cx, SCFG, vis)
+        passes = 0
+        while min(_side_support(xt)) < CLOSER_SUPPORT_MIN_PER_SIDE and passes < EXPLORATION_EXTRA_PASSES_MAX:
+            passes += 1                                               # the declared extension: one more seeded exploration pass of the same prior
+            vis2 = OC.visit_positions(cx, p, menu_exploration(cx, list(EXPLORATION_PRIOR), explore_seed + 1000 * passes, ords, mirror=mirror_exploration), SCFG)
+            xt = OC.concat_exit_tables(xt, OC.exit_table(cx, SCFG, vis2))
+        sup = _side_support(xt)
+        support[p] = {"extra_passes": passes, "visits_by_side": sup, "min_per_side": CLOSER_SUPPORT_MIN_PER_SIDE,
+                      "status": "OK" if min(sup) >= CLOSER_SUPPORT_MIN_PER_SIDE else "NOT_EVALUABLE"}
         xvis[p] = {"row": xt["row"], "bar": xt["bar"], "side": xt["side"], "remaining": xt["remaining"], "sl_first": xt["sl_first"],
                    "censored": xt["censored"], "exit_bar": xt["exit_bar"]}
     menu = {"mask": mask, "tp": ords["tp"], "sl": ords["sl"], "tp_s": ords["tp_s"], "sl_s": ords["sl_s"], "net_usd": et["net_usd"], "exit_code": et["exit_code"],
             "exit_bar": et["exit_bar"], "stamp": ords["stamp"]}
     return Truth(fold, cells, ref, rows, np.asarray(cx.ds.period), day, et["hit"][:, :, ref].astype(np.int64), net, nop, e_time, cost, cap, lo, xvis,
                  {"entry_table": {"menu": True, "stamp": ords["stamp"], "horizons": list(M.MENU_HORIZONS), "ref_h": M.MENU_REF_H}, "refused": {k: int(v_) for k, v_ in et["refused"].items()},
-                  "explore_seed": explore_seed, "exploration_prior": list(EXPLORATION_PRIOR), "rows_replayed": int(len(rows_sel))},
+                  "explore_seed": explore_seed, "exploration_prior": list(EXPLORATION_PRIOR), "rows_replayed": int(len(rows_sel)), "closer_support": support},
                  mae=et["mae"].astype(float), mfe=et["mfe"].astype(float), menu=menu)
 
 
@@ -455,8 +472,12 @@ class BCHead:
 
     MAX_ROWS = 6000
 
-    def __init__(self, env, cx, sl_grid=BC_SL_GRID, tp_grid=BC_TP_GRID):
+    def __init__(self, env, cx, sl_grid=BC_SL_GRID, tp_grid=BC_TP_GRID, exact: bool = False):
         prof, var = env.cfg.profile, env.cfg.variant
+        # exact (full_f4, D1 ruling 2026-10-29): the first-passage curves in float64 and the head decoded at gap ticks too,
+        # so that at quality 1 the head's A equals the path's A to machine precision on EVERY positioned tick; the sigma
+        # profiles keep float32 curves and the gap-tick NaN (byte-identical)
+        self.exact = bool(exact)
         self.env, self.cx = env, cx
         o, v = env.o, env.v
         n = len(env.c)
@@ -536,7 +557,7 @@ class BCHead:
             i_t = np.searchsorted(fav, d * TPs, side="left")
             adv_x = d * (liq0 - adv) / sg
             fav_x = (fav - d * liq0) / sg
-            f32 = lambda x: np.asarray(x, np.float32)  # noqa: E731
+            f32 = (lambda x: np.asarray(x, np.float64)) if self.exact else (lambda x: np.asarray(x, np.float32))  # noqa: E731
             curves = {"adv": f32(adv_x), "fav": f32(fav_x), "pm": f32(pm), "o": f32(d * (o[ks] - liq0) / sg), "gap": f32(d * (gap_px - liq0) / sg),
                       "cs": f32((self.cost_s[ks] - cm0) / sg), "ct": f32((self.cost_t[ks] - cm0) / sg),
                       "fo": f32(rate * (self.cum_open[ks] - c0) / sg), "fc": f32(rate * (self.cum_close[ks] - c0) / sg),
@@ -677,7 +698,8 @@ class SimCloser:
     def __init__(self, cx, SCFG, truth: Truth, q: Quality, noise: Noise, cal: dict, dec_rows_mask):
         self.cx, self.SCFG, self.t, self.q, self.noise, self.cal = cx, SCFG, truth, q, noise, cal
         self.env = OC.make_env(cx, SCFG)
-        self.bc = BCHead(self.env, cx)                                # the market-only best-continuation head (shared by every quality copy)
+        absolute = getattr(getattr(SCFG, "variant", None), "level_mode", "sigma") == "absolute_pips"
+        self.bc = BCHead(self.env, cx, exact=absolute)                # the market-only best-continuation head (shared by every quality copy)
         self.cache_static = {}                                        # head moments and noise streams (shared by every quality copy)
         self.cache = {}
         self.dec = dec_rows_mask
@@ -823,8 +845,10 @@ class SimCloser:
         if not (np.isfinite(sg) and sg > 0):
             return nanr
         d_sl, d_tp = d * (liq0 - float(pos.sl)) / sg, d * (float(pos.tp) - liq0) / sg
-        if d_sl <= 0 or d_tp <= 0:
+        if (d_sl <= 0 or d_tp <= 0) and not self.bc.exact:
             return nanr                                               # the open of b + 1 is already beyond a level: the engine's gap rule acts
+        # full_f4 (exact head): beyond a level the curves decode the engine's own gap fill at the open of b + 1 (closing there
+        # pays the market cost, the barrier's gap fill the stop / take-profit cost): A is defined, as on the path
         a_hat, s_hat, y, h, mu, sd_a, sd_e, _ = self.head_core(r, b, si, d_tp, d_sl)
         if not np.isfinite(a_hat):
             return nanr

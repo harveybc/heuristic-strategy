@@ -204,6 +204,20 @@ class BarEnv:
         r = float(self.c[b])
         return r if d > 0 else r + float(self.cfg.profile.spread_at(int(self.v[b]), int(self.mo[int(self.seg_of[b])])))
 
+    def funding_reserve_to_flat(self, k: int, d: int) -> float:
+        """The known financing COST per unit of a position filled at the open of bar k and held to its segment's forced
+        flat (Musashi's DA26 rule, shared contract): every calendar rollover r with fill < r <= forced flat, the side's
+        swap per lot / lot units, x3 at the triple rollover (the same enumeration as _close); credits never reduce it."""
+        prof = self.cfg.profile
+        si = int(self.seg_of[k])
+        rate = -(float(prof.swap_long_per_lot) if d > 0 else float(prof.swap_short_per_lot)) / float(prof.lot_units)
+        rate = max(0.0, rate)
+        if rate == 0.0:
+            return 0.0
+        fill, ff = int(self.v[k]), int(self.ff[si])
+        n = sum((3 if i == prof.triple_swap_rollover_index else 1) for i, r in enumerate(self.cal.rollover_ns(si), start=1) if fill < int(r) <= ff)
+        return float(rate * n)
+
     def _levels_absolute(self, b: int, d: int, tp: float, sl: float):
         """S2 (business contract, level_mode "absolute_pips"): the policy passes SL / TP PRICES already built on the tick
         grid by horizon_levels (SL away from the entry, TP toward it). Declared in the contract: the sigma-multiplier
@@ -332,7 +346,8 @@ class BarEnv:
                     from .exec_variants import risk_budget_units
                     prof = self.cfg.profile
                     cost_per_unit = float(prof.slippage_market) + float(prof.slippage_stop) + 2.0 * float(prof.commission_per_lot_side) / float(prof.lot_units)
-                    rb = risk_budget_units(self.balance, float(self.c[b]), abs(float(self.c[b]) - lv[1]), cost_per_unit, float(var.funding_reserve_per_unit),
+                    reserve = self.funding_reserve_to_flat(k, want_entry) if var.funding_reserve_rule == "to_forced_flat" else float(var.funding_reserve_per_unit)
+                    rb = risk_budget_units(self.balance, float(self.c[b]), abs(float(self.c[b]) - lv[1]), cost_per_unit, reserve,
                                            float(var.rho), float(var.quality_c), self.cfg.sizing)
                     units = rb["units"]
                     self.last_sizing = rb

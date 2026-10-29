@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_e460e586088122b7",
+ "identity": "action_d96e8b91519183b7",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -1134,7 +1134,7 @@
  },
  "exec_variant": {
   "name": "full_f4",
-  "identity": "exec_9aa8d803d2a729d3",
+  "identity": "exec_342c820a6b4bf1c6",
   "options": {
    "reverse_counts_as_one_entry": true,
    "sizing_mode": "risk_budget",
@@ -1143,7 +1143,8 @@
    "short_trigger_on_ask": true,
    "leverage": 50.0,
    "no_daily_cap": true,
-   "level_mode": "absolute_pips"
+   "level_mode": "absolute_pips",
+   "funding_reserve_rule": "to_forced_flat"
   },
   "legacy_control": {
    "name": "legacy",
@@ -1164,7 +1165,7 @@
    },
    "legacy": "exec_5d80473b21dc61a0",
    "full_f3": "exec_709f9b1fa3512486",
-   "full_f4": "exec_9aa8d803d2a729d3"
+   "full_f4": "exec_342c820a6b4bf1c6"
   },
   "cutoff_eligibility": {
    "measured_on": "wf2022 INNER_A (2021-07..2022-01), cheat DIAGNOSTIC store, 2026-10-26 (slots.py)",
@@ -1252,7 +1253,7 @@
    "d2": "the MT confirmations pass the same quality ladder as every hierarchy head; the causal-confirmed control reads every candidate at i + backstep"
   },
   "sizing": {
-   "rule": "q = c x min(1, rho x balance / L1), L1 = units_max(q = 1) x (SL distance + cost per unit + funding reserve); units = floor(q x units_max); c = 1 (fixed until head confidence is calibrated); funding reserve 0",
+   "rule": "q = c x min(1, rho x balance / L1), L1 = units_max(q = 1) x (SL distance + cost per unit + funding reserve); units = floor(q x units_max); c = 1 (fixed until head confidence is calibrated); funding reserve = the known financing COST per unit from the fill to the forced flat (calendar rollovers x the side's swap, x3 at the triple rollover, credits never reduce it; Musashi's DA26 rule, exec option funding_reserve_rule to_forced_flat, 2026-10-29)",
    "cost_per_unit": "the engine's convention: slippage market + slippage stop + 2 x commission per lot / lot units; the spread is in the quotes; swaps by side per rollover in the P&L",
    "loss_bound_status": "a modeled stop loss, never a bound on gap losses (W9 stays)"
   },
@@ -1275,7 +1276,11 @@
    },
    "ref_slot": "h = 6 (the 3-class opener head and E[net | TIME]; unused by ev_from_net = 1)",
    "exploration": "a slot drawn uniformly among the four horizons (confirmation-free order geometry)",
-   "level_genes_guard": "the truth is stamped with a_sl / b_sl / buffer_pips / a_tp / b_tp / quantile; a policy with other level genes is refused (MENU_GENES_MISMATCH)"
+   "level_genes_guard": "the truth is stamped with a_sl / b_sl / buffer_pips / a_tp / b_tp / quantile; a policy with other level genes is refused (MENU_GENES_MISMATCH)",
+   "coarse_room_at_order_horizon": "v2.2: the coarse_room veto reads the room of the confirming MT level of the order's h (degraded like the coarse room under D2; NaN under the causal control)",
+   "burst_hold_bars": "v2.2: the causal burst gate stays on burst_window_bars bars after its last firing bar (declared, not a gene; 0 under full_f3)",
+   "closer_support": "v2.2: >= 30 uncensored calibration-block exploration visits per side; below it up to 8 extra seeded passes (seed + 1000 k), the same rule for every world; still below = NOT_EVALUABLE",
+   "head_exactness": "v2.2: float64 first-passage curves and gap-tick decoding: at quality 1 head A = path A within 1e-9 sigma on every positioned tick"
   },
   "closers": {
    "fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
@@ -1326,6 +1331,11 @@
   "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)"
  },
  "changelog": [
+  {
+   "when": "2026-10-29",
+   "change": "v2.2 (full_f4 only; tier-1 review rulings): (1) the coarse_room veto reads the room of the ORDER's horizon (the leg of the MT level that confirms the slot), not the coarsest ladder level -- tier 1 showed coarse_room removing counter-leg truth-positive slots only (LHS_46 s0: 198 counter vs 1 with); fine_counter_pivot / nop_hard unchanged (side-neutral); (2) burst_hold_bars: once the causal burst gate fires it stays on for burst_window_bars bars (declared rule, not a gene; 0 under full_f3); (3) the funding reserve of the risk-budget sizing = the known financing cost per unit to the forced flat (Musashi's DA26 rule; exec option funding_reserve_rule, new full_f4 exec identity); (4) the market-only closer head is decoded exactly (float64 curves, gap ticks included): at quality 1 its A equals the path's A within 1e-9 sigma on every positioned tick",
+   "why": "coordinator rulings on tier 1 of f439d37 (W1 27 / W8 7 / W17 1 strategy defects with the oracle passing; DA26 cross-lane finding; D1 head exactness at LHS_05 s1 bar 5964, where the head returned NaN on a gap tick and the path A was -0.0015 sigma)"
+  },
   {
    "when": "2026-10-29",
    "change": "v2.1 (full_f4 only): the DECISION MENU (menu.py; coordinator ruling ~05:50Z) -- the policy values exactly the orders it places: the candidate orders {(h, side): h in 3 / 6 / 12 / 24} built at the decision bar by horizon_levels.levels (+ NOP), a horizon without a confirming MT level out of the menu at that bar; the engine truth = the exact replay of THAT menu on the profile engine (net sigma and USD, first barrier, MAE / MFE, exit reason); heads, quality ladder, truth oracle, O*, hold oracle, forced-entry episodes and exploration visits on the same menu; EV ranks (h, side); horizon_rule = the tie-break among confirming horizons; W7 = the executed (h, side) is the best of the truth menu among the allowed slots, W2 / W10 judge the executed order; the protective TP (k_tp_protect x MFE, tp_mode) is INERT under full_f4 (a contracted TP is never inflated) and out of that profile's DEAP genome",

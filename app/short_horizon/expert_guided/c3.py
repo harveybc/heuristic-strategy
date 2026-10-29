@@ -71,9 +71,9 @@ FULL_F3_12H = dataclasses.replace(FULL_F3, entry_cutoff_hours_before_flat=12.0, 
 # rel_volume 0.10, NO strategy-imposed daily entry cap, entries from 12 h after the session open, forced flat 12 h before the
 # close and no entry at or after that cutoff (the calendar's own rule, entry_cutoff_hours_before_flat None: the 24 h rule of
 # FULL_F3 is the declared variant, default OFF); absolute levels per horizon (S2) and the risk-budget sizing (S3: rho baseline
-# 0.005, c = 1, funding reserve 0; the genes join STRATEGY_PARAMS v2 in S6)
+# 0.005, c = 1, funding reserve to the forced flat (DA26, 2026-10-29; it was 0 before); the genes join STRATEGY_PARAMS v2 in S6)
 FULL_F4 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk_budget", rho=0.005, entry_cutoff_hours_before_flat=None,
-                         short_trigger_on_ask=True, leverage=50.0, no_daily_cap=True, level_mode="absolute_pips",
+                         short_trigger_on_ask=True, leverage=50.0, no_daily_cap=True, level_mode="absolute_pips", funding_reserve_rule="to_forced_flat",
                          note="full_f4 (business contract 73f32e43: leverage 50, no daily cap, 12 h cutoff, absolute levels, risk-budget sizing rho 0.005 c 1)")
 EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3, "full_f3_12h": FULL_F3_12H, "full_f4": FULL_F4}
 
@@ -871,6 +871,15 @@ MENU_CHANGELOG = {"when": "2026-10-29", "change": "v2.1 (full_f4 only): the DECI
                   "the protective TP (k_tp_protect x MFE, tp_mode) is INERT under full_f4 (a contracted TP is never inflated) and out of that profile's DEAP genome",
                   "why": "tier 1 on fbe52e7 ranked the sides on sigma-cell predictions and executed absolute horizon orders (MENU_MISMATCH): 643 trades, 58 % SL exits, 31 % of re-opens "
                          "within one bar of the previous close on B_cal_cutoff12 s0; supersedes fbe52e7's 'truth on sigma, orders absolute' for full_f4; full_f3 / LEGACY keep the sigma grid, byte-identical"}
+MENU_CHANGELOG_V22 = {"when": "2026-10-29", "change": "v2.2 (full_f4 only; tier-1 review rulings): (1) the coarse_room veto reads the room of the ORDER's horizon (the "
+                      "leg of the MT level that confirms the slot), not the coarsest ladder level -- tier 1 showed coarse_room removing counter-leg truth-positive slots "
+                      "only (LHS_46 s0: 198 counter vs 1 with); fine_counter_pivot / nop_hard unchanged (side-neutral); (2) burst_hold_bars: once the causal burst gate "
+                      "fires it stays on for burst_window_bars bars (declared rule, not a gene; 0 under full_f3); (3) the funding reserve of the risk-budget sizing = the "
+                      "known financing cost per unit to the forced flat (Musashi's DA26 rule; exec option funding_reserve_rule, new full_f4 exec identity); (4) the "
+                      "market-only closer head is decoded exactly (float64 curves, gap ticks included): at quality 1 its A equals the path's A within 1e-9 sigma on every "
+                      "positioned tick",
+                      "why": "coordinator rulings on tier 1 of f439d37 (W1 27 / W8 7 / W17 1 strategy defects with the oracle passing; DA26 cross-lane finding; D1 head "
+                             "exactness at LHS_05 s1 bar 5964, where the head returned NaN on a gap tick and the path A was -0.0015 sigma)"}
 CONTRACT_CHANGELOG = (
     {"when": "2026-10-29", "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",
      "why": "S1-S6 of the owner's order 2026-10-29; the audited full_f3 profile stays the declared control (exec_profile full_f3 / absent): byte-identical"},
@@ -970,7 +979,7 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                                     "horizons": {"members": {k: {"depth": v[0], "backstep": v[1], "hours": v[2]} for k, v in ZZ.MT_HORIZONS.items()}, "deviation_pips": ZZ.MT_DEVIATION_PIPS,
                                                  "deviation_status": "declared constant, INERT in the replica (verified 2026-10-29)", "rule": ZZ.HORIZON_RULE, "options": list(ZZ.HORIZON_RULES),
                                                  "no_horizon": "NOP", "d2": "the MT confirmations pass the same quality ladder as every hierarchy head; the causal-confirmed control reads every candidate at i + backstep"},
-                                    "sizing": {"rule": "q = c x min(1, rho x balance / L1), L1 = units_max(q = 1) x (SL distance + cost per unit + funding reserve); units = floor(q x units_max); c = 1 (fixed until head confidence is calibrated); funding reserve 0",
+                                    "sizing": {"rule": "q = c x min(1, rho x balance / L1), L1 = units_max(q = 1) x (SL distance + cost per unit + funding reserve); units = floor(q x units_max); c = 1 (fixed until head confidence is calibrated); funding reserve = the known financing COST per unit from the fill to the forced flat (calendar rollovers x the side's swap, x3 at the triple rollover, credits never reduce it; Musashi's DA26 rule, exec option funding_reserve_rule to_forced_flat, 2026-10-29)",
                                                "cost_per_unit": "the engine's convention: slippage market + slippage stop + 2 x commission per lot / lot units; the spread is in the quotes; swaps by side per rollover in the P&L",
                                                "loss_bound_status": "a modeled stop loss, never a bound on gap losses (W9 stays)"},
                                     "decision_menu": {"module": "app/short_horizon/expert_guided/menu.py", "horizons": [3, 6, 12, 24], "slots": "(h, side) absolute orders + NOP; the world's cells are ('H', h)",
@@ -981,7 +990,11 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                                                       "inert_under_menu": {"k_tp_protect": "a contracted TP is never inflated", "tp_mode": "the protective envelope is off"},
                                                       "ref_slot": "h = 6 (the 3-class opener head and E[net | TIME]; unused by ev_from_net = 1)",
                                                       "exploration": "a slot drawn uniformly among the four horizons (confirmation-free order geometry)",
-                                                      "level_genes_guard": "the truth is stamped with a_sl / b_sl / buffer_pips / a_tp / b_tp / quantile; a policy with other level genes is refused (MENU_GENES_MISMATCH)"},
+                                                      "level_genes_guard": "the truth is stamped with a_sl / b_sl / buffer_pips / a_tp / b_tp / quantile; a policy with other level genes is refused (MENU_GENES_MISMATCH)",
+                                                      "coarse_room_at_order_horizon": "v2.2: the coarse_room veto reads the room of the confirming MT level of the order's h (degraded like the coarse room under D2; NaN under the causal control)",
+                                                      "burst_hold_bars": "v2.2: the causal burst gate stays on burst_window_bars bars after its last firing bar (declared, not a gene; 0 under full_f3)",
+                                                      "closer_support": "v2.2: >= 30 uncensored calibration-block exploration visits per side; below it up to 8 extra seeded passes (seed + 1000 k), the same rule for every world; still below = NOT_EVALUABLE",
+                                                      "head_exactness": "v2.2: float64 first-passage curves and gap-tick decoding: at quality 1 head A = path A within 1e-9 sigma on every positioned tick"},
                                     "closers": {"fixed_delay_comparator": "TRAIN-selected fixed delay (CAL block, mean cash-risk-normalized regret, passive hold included) as a named D7 comparator",
                                                 "separating_fixture": "native-engine unit test: quote 100, path 98 -> 104, A SL 99 / TP 106 -> CLOSE (A = +0.333, the next-open close is the optimum), B SL 97 / TP 104 -> HOLD; mirror; A' flips to HOLD iff market-close cost - stop cost > d_SL + EPS_CLOSE"}}
     doc["best_of_day"] = dict(BEST_OF_DAY)
@@ -1003,7 +1016,7 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
     doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256,
                                  "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"}
     doc["closer_head"] = dict(CLOSER_HEAD_CONTRACT)
-    doc["changelog"] = ([dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
+    doc["changelog"] = ([dict(MENU_CHANGELOG_V22), dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
     return ACT.seal(doc)
 
 
