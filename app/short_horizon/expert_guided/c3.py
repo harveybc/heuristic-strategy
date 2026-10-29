@@ -67,7 +67,13 @@ EARLY_CLOSE_BENEFIT = {"block": "INNER_A", "statistic": "mean daily P&L differen
 FULL_F3 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk", risk_pct=0.01, entry_cutoff_hours_before_flat=24.0,
                          short_trigger_on_ask=True, note="full_f3 (lane F3: A4-1 / A4-4 / A4-9 / A4-12)")
 FULL_F3_12H = dataclasses.replace(FULL_F3, entry_cutoff_hours_before_flat=12.0, note="full_f3 with the legacy 12 h entry cutoff (declared alternative)")
-EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3, "full_f3_12h": FULL_F3_12H}
+# FULL_F4 = the shared business contract (owner decision 2026-10-29, business_contract.py, agent-multi 82862801): leverage 50,
+# rel_volume 0.10, NO strategy-imposed daily entry cap, entries from 12 h after the session open, forced flat 12 h before the
+# close and no entry at or after that cutoff (the calendar's own rule, entry_cutoff_hours_before_flat None: the 24 h rule of
+# FULL_F3 is the declared variant, default OFF); sizing stays risk mode until the contract's risk-budget sizing (S3)
+FULL_F4 = XV.ExecVariant(reverse_counts_as_one_entry=True, sizing_mode="risk", risk_pct=0.01, entry_cutoff_hours_before_flat=None,
+                         short_trigger_on_ask=True, leverage=50.0, no_daily_cap=True, note="full_f4 (business contract 73f32e43: leverage 50, no daily cap, 12 h cutoff)")
+EXEC_VARIANTS = {"legacy": XV.LEGACY, "full_f3": FULL_F3, "full_f3_12h": FULL_F3_12H, "full_f4": FULL_F4}
 CUTOFF_ELIGIBILITY = {"measured_on": "wf2022 INNER_A (2021-07..2022-01), cheat DIAGNOSTIC store, 2026-10-26 (slots.py)",
                       "eligible_days_per_week": {"legacy_12h_cutoff": 5.02, "full_f3_24h_cutoff": 3.98},
                       "eligible_bars_per_day_p10_p50_p90": {"legacy_12h_cutoff": [11, 20, 24], "full_f3_24h_cutoff": [10.3, 13, 24]},

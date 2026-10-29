@@ -47,6 +47,8 @@ class ExecVariant:
     risk_pct: float = 0.01
     entry_cutoff_hours_before_flat: float | None = None  # A4-9
     short_trigger_on_ask: bool = False                  # A4-12
+    leverage: float | None = None                       # business contract 2026-10-29: the account leverage scenario (None = EnvConfig.sizing)
+    no_daily_cap: bool = False                          # business contract 2026-10-29: max_entries_per_day = None (no strategy-imposed cap)
     note: str = ""
 
     def __post_init__(self):
@@ -56,6 +58,8 @@ class ExecVariant:
             raise ValueError("RISK_PCT_OUT_OF_RANGE:(0, 0.05]")
         if self.entry_cutoff_hours_before_flat is not None and self.entry_cutoff_hours_before_flat < 0:
             raise ValueError("ENTRY_CUTOFF_NEGATIVE")
+        if self.leverage is not None and not 0 < self.leverage <= 100:
+            raise ValueError("LEVERAGE_OUT_OF_RANGE:(0, 100]")
 
     def is_legacy(self) -> bool:
         """True when every option equals the audited default (the engine path is then byte-identical)."""
@@ -64,6 +68,9 @@ class ExecVariant:
     def document(self) -> dict:
         d = asdict(self)
         d.pop("note")
+        for k in ("leverage", "no_daily_cap"):                      # fields added 2026-10-29: absent at their defaults, so every earlier identity is unchanged
+            if d[k] in (None, False):
+                d.pop(k)
         return d
 
     @property

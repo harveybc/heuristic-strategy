@@ -11,7 +11,9 @@ Pins (verified before use; a mismatch raises):
   13 observations at stride 2 OBSERVED rows including the current completed bar, causal rolling z-score
   over the 256 previous rows [i-256, i) per feature. DATE_TIME = availability = bar start + 1 h, verified
   by OPEN/HIGH/LOW/CLOSE equality with the admitted bar (a mismatch raises, nothing is shifted by hand);
-* expert: MetaTrader ZigZag Depth 3 / Deviation 40.7 pips / Backstep 0 (demonstrations v2 parameters),
+* expert: MetaTrader ZigZag Depth 3 / Backstep 0 (demonstrations v2 parameters; its Deviation 40.7 pips is recorded as
+  metadata but INERT in the replica: a candidate needs the Depth-window extreme, so no deviation >= 0 ever rejects,
+  verified 2026-10-29),
   recomputed on the admitted bars (the v2 seal 38125b0b... was computed on the lake label clock; the new
   demonstration digest is reported beside it, audit F08).
 

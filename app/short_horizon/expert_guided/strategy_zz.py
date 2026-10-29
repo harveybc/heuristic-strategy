@@ -65,8 +65,12 @@ def _raw_pivots(h, l, spec: str):
 
 def level_pivots(h, l, spec: str):
     """[(bar, PEAK|VALLEY, level)] of one ladder member: the PRODUCTION implementations (reversal ZigZag in pips, the
-    expert MetaTrader ZigZag Depth 3 / Deviation 40.7 / Backstep 0), both symmetric under price negation since
-    2026-10-27 (the matrix certifies the ladder the strategy will see)."""
+    expert MetaTrader ZigZag Depth 3 / Backstep 0), both symmetric under price negation since 2026-10-27 (the matrix
+    certifies the ladder the strategy will see). The expert's Deviation (40.7 pips) is INERT in this replica: zigzag.py
+    emits a candidate only where the bar's low / high equals the Depth-window extreme, so the deviation comparison can
+    never reject for any deviation >= 0 (verified 2026-10-29 by the coordinator's probe: identical maps and pivots for
+    deviation 0 / 5 / 50 / 1e6 on four Depth / Backstep pairs; 3,000 random paths dev 0 vs 1e9, 0 diffs). The value is
+    metadata of the demonstrations, never a threshold; the "revN" members use their reversal threshold only."""
     return _raw_pivots(np.asarray(h, float), np.asarray(l, float), spec)
 
 
@@ -244,7 +248,7 @@ def causal_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     hi, lo = np.asarray(bars["HIGH"], float), np.asarray(bars["LOW"], float)
 
     def confirmed(spec):
-        thr = (float(spec[3:]) if spec.startswith("rev") else EXPERT.deviation_pips) * Z.PIP
+        thr = (float(spec[3:]) if spec.startswith("rev") else EXPERT.deviation_pips) * Z.PIP   # the causal CONFIRMATION distance of this control (for "3": 40.7 pips, a declared constant of the control; the expert ZigZag itself has no active deviation)
         dirs = np.zeros(n)
         conf = []
         for (bp, kind, lvl) in piv.get(spec, []):

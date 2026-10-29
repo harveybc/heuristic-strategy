@@ -78,7 +78,7 @@ def masked_state(st, mask):
 @dataclass(frozen=True)
 class EnvConfig:
     capital: float = 10_000.0
-    max_entries_per_day: int = 4
+    max_entries_per_day: int | None = 4      # None = no strategy-imposed daily entry cap (business contract 2026-10-29)
     min_orders_per_week: float = 3.0
     tp_bounds: tuple = (0.25, 3.0)          # sigma multiples
     sl_bounds: tuple = (0.5, 3.0)
@@ -164,7 +164,7 @@ class BarEnv:
         if var is not None and var.entry_cutoff_hours_before_flat is not None \
                 and self.v[k] + var.entry_cutoff_hours_before_flat * H_NS > self.ff[si]:
             return False, "VARIANT_CUTOFF"                                            # A4-9 (declared variant)
-        if self.entries_day.get(self.business_day(k), 0) >= self.cfg.max_entries_per_day:
+        if self.cfg.max_entries_per_day is not None and self.entries_day.get(self.business_day(k), 0) >= self.cfg.max_entries_per_day:
             return False, "DAILY_CAP"
         if self.balance <= 0:
             return False, "RUIN"
@@ -185,7 +185,7 @@ class BarEnv:
         to_ff = max(0.0, (self.ff[si] - t_end) / H_NS) / 24.0
         k = min(b + 1, len(self.v) - 1)
         day = self.business_day(k) if int(self.seg_of[k]) == si else (si, -1)
-        share = self.entries_day.get(day, 0) / self.cfg.max_entries_per_day
+        share = (self.entries_day.get(day, 0) / self.cfg.max_entries_per_day) if self.cfg.max_entries_per_day else 0.0
         ok, _ = self.entry_gate(b)
         s = self.decision_sigma(b)
         s = s if np.isfinite(s) and s > 0 else 1e-4
@@ -394,7 +394,7 @@ class BarEnv:
         m["min_orders_per_week_rule"] = f"period average >= {self.cfg.min_orders_per_week:g} (not per week)"
         m["max_entries_per_day"] = max(days.values(), default=0)
         m["valid_weekly_rule"] = bool(m["orders_per_week"] >= self.cfg.min_orders_per_week)
-        m["valid"] = bool(m["valid_weekly_rule"] and m["max_entries_per_day"] <= self.cfg.max_entries_per_day
+        m["valid"] = bool(m["valid_weekly_rule"] and (self.cfg.max_entries_per_day is None or m["max_entries_per_day"] <= self.cfg.max_entries_per_day)
                           and not m["ruined"] and math.isfinite(m["sharpe_daily_sqrt365"]))
         m["equity"] = res.equity
         m["daily_equity"] = res.daily_equity

@@ -31,6 +31,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from app.short_horizon import execution as X  # noqa: E402
 from app.short_horizon.expert_guided import action_contract as ACT  # noqa: E402
 from app.short_horizon.expert_guided import c2 as C2  # noqa: E402
 from app.short_horizon.expert_guided import c3 as C3  # noqa: E402
@@ -184,7 +185,14 @@ def load_fold(fold: str, admitted: str, csv_dir: str):
 
 
 def with_variant(SCFG, xv):
-    return dataclasses.replace(SCFG, variant=None if xv.is_legacy() else xv)
+    """The EnvConfig for a declared execution variant: the variant object (None when legacy, byte-identical path) and,
+    for the business-contract fields, the account leverage (Sizing) and the daily cap (None = no cap)."""
+    cfg = dataclasses.replace(SCFG, variant=None if xv.is_legacy() else xv)
+    if getattr(xv, "leverage", None) is not None:
+        cfg = dataclasses.replace(cfg, sizing=X.Sizing(rel_volume=cfg.sizing.rel_volume, leverage=float(xv.leverage), basis=cfg.sizing.basis, min_units=cfg.sizing.min_units))
+    if getattr(xv, "no_daily_cap", False):
+        cfg = dataclasses.replace(cfg, max_entries_per_day=None)
+    return cfg
 
 
 def pos_key(pos, bar: int) -> tuple:

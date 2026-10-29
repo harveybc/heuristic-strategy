@@ -435,7 +435,7 @@ def test_both_cutoffs_are_declared_exec_variants_with_the_measured_eligibility()
     assert C3.FULL_F3_12H.entry_cutoff_hours_before_flat == 12.0 and C3.FULL_F3.entry_cutoff_hours_before_flat == 24.0
     assert d["exec_variant"]["alternatives"]["full_f3_12h"]["identity"] == C3.FULL_F3_12H.identity != C3.FULL_F3.identity
     assert d["exec_variant"]["cutoff_eligibility"]["eligible_days_per_week"] == {"legacy_12h_cutoff": 5.02, "full_f3_24h_cutoff": 3.98}
-    assert set(C3.EXEC_VARIANTS) == {"legacy", "full_f3", "full_f3_12h"}
+    assert set(C3.EXEC_VARIANTS) == {"legacy", "full_f3", "full_f3_12h", "full_f4"}   # full_f4 = the business contract (2026-10-29)
 
 
 # ----------------------------------------------------------------------------- C3-awareness of the downstream tools

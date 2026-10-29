@@ -110,7 +110,7 @@ En las corridas v1 a v4 la semilla del camino sintético salía sólo del identi
 perfectas no añaden ruido: las **tres semillas de cada celda eran el mismo mundo**, y su acuerdo entre semillas **no es
 evidencia** de robustez. Desde v5 la semilla de la corrida varía el camino. En v5 la escalera conservaba sólo los
 pivotes hallados en el camino y en su espejo, una escalera que producción nunca calcula; desde v6 los dos ZigZag de
-producción (reversión en pips y MetaTrader experto Depth 3 / Deviation 40.7 / Backstep 0) deciden el primer pivote con
+producción (reversión en pips y MetaTrader experto Depth 3 / Backstep 0; su Deviation 40.7 es INERTE en la réplica: verificado 2026-10-29 con control positivo, nunca actúa como umbral) deciden el primer pivote con
 una regla **simétrica bajo negación del precio** (`oracle.reversal_pivots`, `zigzag.select_pivots`; las reglas
 anteriores quedan como `*_legacy` sólo para medir el cambio), con la prueba `tests/test_zigzag_mirror_symmetry.py`
 (zigzag(K − camino) = espejo(zigzag(camino)) exactamente, 12 caminos × 10 umbrales y 12 caminos del experto). La misma

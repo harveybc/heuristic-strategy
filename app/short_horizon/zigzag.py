@@ -1,4 +1,8 @@
 """MetaTrader ZigZag (Depth, Deviation, Backstep) replicated from the public MetaQuotes ZigZag.mq5, the
+(NOTE 2026-10-29, verified with a positive control: in this replica the Deviation parameter is INERT for any value >= 0.
+candidate_maps emits a low / high candidate only where the bar equals the Depth-window extreme, so the deviation
+comparison below can never reject; dev = -1, out of contract, empties the maps. Depth and Backstep are the only active
+parameters; keep deviation_pips as declared metadata.)
 hindsight expert built on it, its causal-confirmed counterpart, and the pivot-reversal orders.
 
 NON-CAUSAL by construction. The indicator REPAINTS: a bar becomes a candidate extreme only when it is the
