@@ -631,16 +631,20 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
     if ex.get("cutoff_h") or ex.get("risk_pct"):
         S2 = dataclasses.replace(S2, variant=dataclasses.replace(xv, entry_cutoff_hours_before_flat=float(ex.get("cutoff_h", xv.entry_cutoff_hours_before_flat or 24.0)),
                                                                  risk_pct=float(ex.get("risk_pct", xv.risk_pct))))
-    truth = S.build_truth(cx2, S2, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
+    # the engine TRUTH (outcome heads per cell of the sigma grid), the exploration visits and the truth-based controls
+    # run on the SIGMA-LEVEL engine whatever the execution profile: the cell grid is a property of the world; the
+    # profile's level mode (absolute per-horizon levels) governs the strategy's own orders only (S6, 2026-10-29)
+    S2_truth = S.truth_config(S2)
+    truth = S.build_truth(cx2, S2_truth, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
                           mirror_exploration=bool(leaf.get("mirror")))
     q = S.quality_for(leaf["variant"], float(leaf["quality"]))
-    table, sim = S.simulate_table(cx2, S2, truth, q, seed, side_swap=bool(leaf.get("mirror")))
+    table, sim = S.simulate_table(cx2, S2_truth, truth, q, seed, side_swap=bool(leaf.get("mirror")))
     if meta is not None and meta.get("kind") == "multi_scale":
         wit = {"turning_points": {k: len(v) for k, v in meta["turning_points"].items()}, "burst_windows": len(meta["burst_windows"]), "jumps": len(meta["jump_bars"]),
                "legs": transition_witness(bars, base_sd, {**meta, "vol": "ms"})["legs"] if meta["switch_bars"] or meta["legs"] else []}
     else:
         wit = transition_witness(bars, base_sd, meta) if meta is not None else leaf_witness(bars, base_sd, leaf["regime"], leaf["vol"], leaf["fine"])
-    return {"cx": cx2, "scfg": S2, "truth": truth, "table": table, "sim": sim, "witness": wit, "period": calendar_period, "meta": meta, "bars": bars}
+    return {"cx": cx2, "scfg": S2, "scfg_truth": S2_truth, "truth": truth, "table": table, "sim": sim, "witness": wit, "period": calendar_period, "meta": meta, "bars": bars}
 
 
 def composite(c: dict, scales: dict) -> float:

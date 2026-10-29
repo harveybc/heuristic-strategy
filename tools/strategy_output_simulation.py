@@ -184,6 +184,16 @@ def load_fold(fold: str, admitted: str, csv_dir: str):
     return cx, SCFG
 
 
+def truth_config(SCFG):
+    """The engine configuration of the TRUTH and the truth-based controls: the profile with sigma-multiple levels (the
+    outcome heads live on the sigma cell grid; the execution profile's absolute levels apply to the strategy's orders
+    only). Identity when the profile already uses sigma levels."""
+    xv = SCFG.variant
+    if xv is None or getattr(xv, "level_mode", "sigma") == "sigma":
+        return SCFG
+    return dataclasses.replace(SCFG, variant=dataclasses.replace(xv, level_mode="sigma"))
+
+
 def with_variant(SCFG, xv):
     """The EnvConfig for a declared execution variant: the variant object (None when legacy, byte-identical path) and,
     for the business-contract fields, the account leverage (Sizing) and the daily cap (None = no cap)."""

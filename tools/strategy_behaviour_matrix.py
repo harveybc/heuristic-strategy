@@ -887,7 +887,7 @@ class PolicyForcedStar(ZZ.PolicyForced):
 
 
 def rollout_with(world: dict, Pol, strat, view, cells) -> dict:
-    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    cx, SCFG, truth = world["cx"], world.get("scfg_truth", world["scfg"]), world["truth"]
     pol = Pol(view, strat, cells, truth.e_time, truth.cost, observe_bars=0) if issubclass(Pol, ZZ.PolicyC3Z) else Pol(view, strat, cells, truth.e_time, truth.cost)
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
     return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": strat, "attr": getattr(pol, "attr", []), "positions": getattr(pol, "positions", {})}
@@ -1004,7 +1004,11 @@ Z1_TOL_SIGMA = 0.05
 
 
 def _envelope(pol, r, si):
-    """The strategy's TP / SL envelope for side si at row r (the cell or protective TP rule), whatever the opener says."""
+    """The strategy's TP / SL envelope for side si at row r (the cell or protective TP rule), whatever the opener says;
+    in the absolute-level profile the horizon's absolute prices (pol.absolute_envelope; None = no horizon: no episode)."""
+    if hasattr(pol, "_absolute_mode") and pol._absolute_mode():
+        lv = pol.absolute_envelope(r, si)
+        return (lv["tp"], lv["sl"]) if lv is not None else None
     net = np.asarray(pol._v("net", r, si), float)
     cap, lo = pol._cap(r)
     ok = C3.allowed_cells(net, pol.cells, 0.0, 1e9, cap, lo)
@@ -1038,7 +1042,11 @@ def build_episodes(world: dict, strat, view, cells, every: int = EPISODE_EVERY_B
                 if (bar, si) in seen:
                     continue
                 seen.add((bar, si))
-                tp, sl = _envelope(pol, r, si)
+                pol._ctx = (int(bar), env)                              # the absolute envelope reads the decision bar's quote and the profile
+                envl = _envelope(pol, r, si)
+                if envl is None:
+                    continue
+                tp, sl = envl
                 OC._clean(env)
                 info = env.step(bar, E.LONG if si == 0 else E.SHORT, tp, sl)
                 if not info["entry"] or env.pos is None:
@@ -1211,14 +1219,14 @@ def exit_loss_curves(st: list, star: list, hold: list, max_bars: int = 48) -> di
 
 
 def rollout_oracle(world: dict, view, cells) -> dict:
-    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    cx, SCFG, truth = world["cx"], world.get("scfg_truth", world["scfg"]), world["truth"]
     pol = PolicyOracle(view, ORACLE_STRATEGY, cells, truth.e_time, truth.cost)
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
     return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": ORACLE_STRATEGY, "positions": pol.positions}
 
 
 def rollout_oracle_star(world: dict, view, cells) -> dict:
-    cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
+    cx, SCFG, truth = world["cx"], world.get("scfg_truth", world["scfg"]), world["truth"]
     pol = PolicyOracleStar(view, ORACLE_STRATEGY, cells, truth.e_time, truth.cost)
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
     return {"metrics": m, "trades": trades, "log": pol.log, "closes": pol.closes, "strategy_obj": ORACLE_STRATEGY, "positions": pol.positions}

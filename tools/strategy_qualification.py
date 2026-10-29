@@ -203,7 +203,12 @@ def seeded_episodes(w, strat, view, cells, ages, every: int = 12) -> list:
             if r < 0 or not cx.obs_ok[r]:
                 continue
             for si in (0, 1):
-                tp, sl = BM._envelope(ZZ.PolicyC3Z(view, strat, cells, w["truth"].e_time, w["truth"].cost), r, si)
+                pol_ = ZZ.PolicyC3Z(view, strat, cells, w["truth"].e_time, w["truth"].cost)
+                pol_._ctx = (int(e), env)
+                envl = BM._envelope(pol_, r, si)
+                if envl is None:
+                    continue
+                tp, sl = envl
                 S.OC._clean(env)
                 info = env.step(e, E.LONG if si == 0 else E.SHORT, tp, sl)
                 if not info["entry"] or env.pos is None:
