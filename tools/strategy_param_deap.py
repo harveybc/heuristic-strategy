@@ -192,7 +192,7 @@ class CachedWorld:
         genes = SP.genes_c3(params)
         strat = C3.StrategyC3.from_genes(self.gm.to_absolute(genes), "nop_veto" in genes)
         view = dict(self.view0)
-        qh, q = ZZ.head_quantities(self.bars, self.w["cx"].ds.sigma, self.w.get("quality", 1.0), self.w.get("zz_mode"), self.w.get("seed", 0), cached=self.levels)
+        qh, q = ZZ.head_quantities(self.bars, self.w["cx"].ds.sigma, self.w.get("zz_quality", self.w.get("quality", 1.0)), self.w.get("zz_mode"), self.w.get("seed", 0), cached=self.levels)
         keep = np.isfinite(view["pn"])
         for k, v in ZZ.to_rows(qh, self.w["cx"].ds.row_bar).items():
             view[k] = np.where(keep.reshape((-1,) + (1,) * (np.ndim(v) - 1)), v, np.nan)

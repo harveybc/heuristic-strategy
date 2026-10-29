@@ -669,6 +669,7 @@ def cell_world(cx, SCFG, AC, cell: dict, seed: int) -> dict:
     w = H.leaf_world(cx, SC, AC, leaf, BLOCK, seed, periods=(CAL, BLOCK))
     H.L2.pop(key, None)
     w["quality"], w["zz_mode"], w["seed"] = float(cell.get("quality", 1.0)), cell.get("zz_mode"), int(seed)   # the hierarchy heads' quality (D2)
+    w["zz_quality"] = float(cell.get("zz_quality", w["quality"]))   # cross-quality arm (ruling 2026-10-29): the hierarchy heads at their own quality (default: the world's)
     return w
 
 
@@ -723,7 +724,7 @@ def strategy_for(world: dict, genes: dict, AC: dict):
     # 'ladder' below 1; 'causal' = the causal-confirmed control), and the causal burst flag; world["ladder"] keeps the hindsight
     # (computed before the gene map: under full_f4 the EV reference reads the menu confirmations; the gene map reads none of these keys otherwise)
     bars = world.get("bars") if world.get("bars") is not None else cx.ds.bars
-    qh, q = ZZ.head_quantities(bars, cx.ds.sigma, world.get("quality", 1.0), world.get("zz_mode"), world.get("seed", 0))
+    qh, q = ZZ.head_quantities(bars, cx.ds.sigma, world.get("zz_quality", world.get("quality", 1.0)), world.get("zz_mode"), world.get("seed", 0))
     world["ladder"], world["ladder_heads_mode"] = q, qh.get("head_mode", "perfect")
     zz = ZZ.to_rows(qh, cx.ds.row_bar)
     keep = np.isfinite(view["pn"])
@@ -2458,7 +2459,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
            "trade_summary": trade_summary(w, roll["trades"]), "horizon_mix": horizon_mix(roll, view, w),
-           "closer_support": (w["truth"].stamp or {}).get("closer_support"),
+           "closer_support": (w["truth"].stamp or {}).get("closer_support"), "zz_quality": w.get("zz_quality"),
            "veto_arm": {"arm": ("ungated" if ZZ.VETO_ARM == "ungated" else ("off" if float(ZZ.PARAMS.get("z_veto", 2.0)) <= 0 else "gated")), "z_veto": float(ZZ.PARAMS.get("z_veto", 2.0))},
            "sharpe_daily": (float(roll["metrics"].get("sharpe_daily_sqrt365", float("nan"))) if isinstance(roll["metrics"], dict) else None),
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),

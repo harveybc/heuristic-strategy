@@ -532,3 +532,12 @@ def test_control_conflict_is_typed_when_the_control_fails_the_governing_correcte
     assert BM.validity(wit, hold, None, [k])["per_witness"][k]["status"] == "DEFECT"     # full_f3: unchanged
     hold[k + "_v2"]["pass"] = True
     assert BM.validity(wit, hold, None, [k], menu=True)["per_witness"][k]["status"] == "DEFECT"   # the control passes the corrected form: a strategy failure
+
+
+def test_hierarchy_heads_can_carry_their_own_quality():
+    import inspect
+    from tools import strategy_behaviour_matrix as BM
+    from tools import strategy_param_deap as D
+    assert 'cell.get("zz_quality", w["quality"])' in inspect.getsource(BM.cell_world)          # default: the world's quality (unchanged)
+    assert 'world.get("zz_quality", world.get("quality", 1.0))' in inspect.getsource(BM.strategy_for)
+    assert 'self.w.get("zz_quality", self.w.get("quality", 1.0))' in inspect.getsource(D)
