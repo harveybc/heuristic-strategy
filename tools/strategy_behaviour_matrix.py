@@ -1018,13 +1018,14 @@ def _envelope(pol, r, si):
     return tp, sl
 
 
-def build_episodes(world: dict, strat, view, cells, every: int = EPISODE_EVERY_BARS) -> list:
-    """Initial-state episodes: at every ``every``-th observable decision bar of the block, one BUY and one SELL order
-    opened on a clean engine with the strategy's envelope; each is an independent episode. Start ticks are densified
-    (every // 2, then every // 4) until each side has >= EPISODE_MIN_SL_DESTINED SL-destined episodes."""
+def build_episodes(world: dict, strat, view, cells, every: int = EPISODE_EVERY_BARS, period: str = BLOCK) -> list:
+    """Initial-state episodes: at every ``every``-th observable decision bar of the block (``period``: BLOCK, or CAL for
+    a TRAIN-only selection), one BUY and one SELL order opened on a clean engine with the strategy's envelope; each is
+    an independent episode. Start ticks are densified (every // 2, then every // 4) until each side has >=
+    EPISODE_MIN_SL_DESTINED SL-destined episodes."""
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
     env = OC.make_env(cx, SCFG)
-    a, b = H.period_bars(cx.ds, BLOCK)
+    a, b = H.period_bars(cx.ds, period)
     pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost)
     closer = view["closer"]
     eps, seen = [], set()
@@ -2007,6 +2008,69 @@ def trade_summary_from(trades: list, sigma, capital: float) -> dict:
                 "tp_pips_p10_p50_p90": q([abs(float(t["take_profit"]) - float(t["entry_price"])) / 1e-4 for t in trades]),
                 "hold_bars_p10_p50_p90": q([int(t["exit_bar_abs"]) - int(t["entry_bar_abs"]) for t in trades])})
     return out
+
+
+# ----------------------------------------------------------------------------- S5 (a): the TRAIN-selected fixed-delay closer (Musashi finding 110)
+FIXED_DELAY_MENU = tuple(range(0, 49)) + (None,)      # executable ticks after the entry: 0 = the first tick, ..., 48; None = passive hold
+
+
+def fixed_delay_regrets(paths: list, menu=FIXED_DELAY_MENU) -> dict:
+    """Mean cash-risk-normalized regret of each fixed delay over episode paths [{P, hold_net, risk}]: the exit at delay
+    k is P[k] when the episode is still alive at its k-th executable tick, else the native terminal result (finding 110:
+    an automatic termination before the delay keeps its own result); passive hold = the native result."""
+    out = {}
+    for k in menu:
+        reg = []
+        for e in paths:
+            P, hold, risk = np.asarray(e["P"], float), float(e["hold_net"]), float(e["risk"])
+            if not (risk > 0):
+                continue
+            pstar = max(float(np.max(P)) if len(P) else -np.inf, hold)
+            exit_v = float(P[k]) if (k is not None and k < len(P)) else hold
+            reg.append((pstar - exit_v) / risk)
+        out[k] = float(np.mean(reg)) if reg else float("nan")
+    return out
+
+
+def select_fixed_delay(paths: list, menu=FIXED_DELAY_MENU) -> dict:
+    """The delay minimizing the mean normalized regret on the given (TRAIN / calibration) episodes; ties go to the
+    shorter delay, passive hold last."""
+    reg = fixed_delay_regrets(paths, menu)
+    order = [k for k in menu if k is not None] + ([None] if None in menu else [])
+    best = min((k for k in order if np.isfinite(reg[k])), key=lambda k: (reg[k], order.index(k)), default=None)
+    return {"delay": best, "mean_regret": reg.get(best, float("nan")), "regrets": {("hold" if k is None else k): v for k, v in reg.items()}, "episodes": len(paths)}
+
+
+def calibration_episode_paths(world: dict, strat, view, cells, closer, every: int = EPISODE_EVERY_BARS) -> list:
+    """The strategy's initial-state episodes on the CALIBRATION block with their exact engine paths (the TRAIN-only
+    material the fixed delay is selected on; nothing of the scored block enters)."""
+    eps = build_episodes(world, strat, view, cells, every=every, period=CAL)
+    out = []
+    for e in eps:
+        path = closer.path(e["pos"])
+        risk = abs(float(e["pos"].entry_price) - float(e["pos"].sl)) * max(int(e["pos"].units), 1)
+        out.append({"P": np.asarray(path["P"], float), "hold_net": float(path["hold_net"]), "risk": risk, "side": e["side"], "class": e["class"]})
+    return out
+
+
+def fixed_delay_policy(delay):
+    """A C3Z-family policy with the strategy's opener and the fixed-delay closer: close at the ``delay``-th executable
+    tick of the position (None = never: passive hold); the broker SL / TP / forced flat stay the backstop."""
+
+    class PolicyFixedDelay(ZZ.PolicyC3Z):
+        def close_now(self, r, si, bar, pos) -> bool:
+            self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))
+            key = (int(pos.entry_bar), int(si))
+            st = self.__dict__.setdefault("_ticks", {})
+            k = st.get(key, 0)
+            st[key] = k + 1
+            dec = bool(delay is not None and k >= int(delay))
+            rem, psl = self.t["closer"].value(r, bar, pos)
+            self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, False, False, False, float("nan"), f"fixed_delay_{delay}"))
+            return dec
+
+    PolicyFixedDelay.delay = delay
+    return PolicyFixedDelay
 
 
 HORIZON_DOMINANCE = 0.90

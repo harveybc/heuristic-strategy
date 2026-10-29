@@ -83,7 +83,8 @@ def main():
         w = BM.cell_world(cx, SCFG, AC, cells[cid], int(seed))
         strat, view0, cl = BM.strategy_for(w, genes, AC)
         exact = view0["closer"].with_quality(1.0)
-        rec = {"cell": cid, "seed": int(seed), "params_sha256": SP.sha256_of(a.params), "rows": []}
+        fd = BM.select_fixed_delay(BM.calibration_episode_paths(w, strat, view0, cl, exact))   # S5 (a): TRAIN-only selection
+        rec = {"cell": cid, "seed": int(seed), "params_sha256": SP.sha256_of(a.params), "fixed_delay": {k: v for k, v in fd.items() if k != "regrets"}, "rows": []}
         for phi in [float(x) for x in a.phis.split(",")]:
             S.CLOSER_NOISE_PHI = phi
             for q in [float(x) for x in a.qualities.split(",")]:
@@ -91,7 +92,8 @@ def main():
                     continue                                          # quality 1 carries no noise: once
                 view = dict(view0)
                 view["closer"] = view0["closer"].with_quality(q)
-                row = {"quality": q, "phi": phi, "bayes": measure(w, strat, view, cl, BM.PolicyBayes, exact), "rules": {}}
+                row = {"quality": q, "phi": phi, "bayes": measure(w, strat, view, cl, BM.PolicyBayes, exact), "rules": {},
+                       "fixed_delay": measure(w, strat, view, cl, BM.fixed_delay_policy(fd["delay"]), exact)}   # the named D7 comparator
                 if q < 0.999:
                     row["filter_models"] = filter_models(view["closer"])
                 for rule in a.rules.split(","):
@@ -104,7 +106,7 @@ def main():
                 row["strategy"] = row["rules"][a.rules.split(",")[0]]
                 if q >= 0.999:
                     row["q1_bayes_equals_strategy"] = row["strategy"]["_trades_key"] == row["bayes"]["_trades_key"]
-                for v in [row["bayes"]] + list(row["rules"].values()):
+                for v in [row["bayes"], row["fixed_delay"]] + list(row["rules"].values()):
                     v.pop("_trades_key", None)
                 rec["rows"].append(row)
                 print(json.dumps({"cell": spec, "q": q, "phi": phi, "strategy": {k: row["strategy"][k] for k in ("sharpe", "net_usd", "trades", "mean_hold_bars")},
