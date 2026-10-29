@@ -447,18 +447,23 @@ BURST_HOLD_RULE = ("burst_hold_bars (declared strategy rule, ruling 2026-10-29, 
                    "(byte-identical), burst_window_bars under full_f4")
 
 
-ADVANTAGE_CLOSE_RULE = ("full_f4 (coordinator ruling C on tier 2 of 443b7a1, 2026-10-29, matching Musashi's close/hold controller): the advantage "
-                        "closer closes only when A_hat - z_close x s_hat > 0 (a tie HOLDS); closer_adv_margin is INERT under the menu; full_f3 / LEGACY "
-                        "keep A_hat - z_close x s_hat >= -closer_adv_margin (byte-identical); EPS_CLOSE stays the witnesses' tolerance only (O*, E-series, W4 v3')")
+ADVANTAGE_CLOSE_RULE = ("O*'s tie rule for every profile: the advantage closer closes when A_hat - z_close x s_hat >= -closer_adv_margin "
+                        "(baseline 0.02 = EPS_CLOSE, O*'s band). Ruling C (strict > 0 under full_f4, ties HOLD) was WITHDRAWN by the coordinator on "
+                        "2026-10-29: it diverged from the designated control O* (tier-1 regression on 967653e: early-close share 3.06 % -> 0.32 %, "
+                        "episode gap to O* 0.114, E3 / W8 switch failures); ties-HOLD stays only as the declared variant MUSASHI_TIE_HOLD")
+TIE_RULES = ("ostar", "musashi_tie_hold")   # declared variants of the closer's tie rule; "ostar" is the default of every profile
+TIE_RULE = "ostar"                          # MUSASHI_TIE_HOLD (set to "musashi_tie_hold"): close only when A_hat - z_close x s_hat > 0 under the menu, for the shared controller later
 
 
-def advantage_close(a: float, s_hat: float, menu: bool) -> bool:
-    """The per-tick condition of the advantage closer (ADVANTAGE_CLOSE_RULE): strict > 0 under the menu (ties HOLD), the
-    margin rule otherwise."""
+def advantage_close(a: float, s_hat: float, menu: bool, tie_rule: str | None = None) -> bool:
+    """The per-tick condition of the advantage closer (ADVANTAGE_CLOSE_RULE): A_hat - z_close x s_hat >= -closer_adv_margin;
+    under the declared variant MUSASHI_TIE_HOLD and the menu, strictly > 0 (ties HOLD)."""
     if not np.isfinite(a):
         return False
     x = float(a) - PARAMS["z_close"] * (float(s_hat) if np.isfinite(s_hat) else 0.0)
-    return bool(x > 0.0) if menu else bool(x >= -PARAMS["closer_adv_margin"])
+    if menu and (tie_rule or TIE_RULE) == "musashi_tie_hold":
+        return bool(x > 0.0)
+    return bool(x >= -PARAMS["closer_adv_margin"])
 
 
 def burst_hold_bars(menu: bool) -> int:
@@ -882,7 +887,7 @@ class PolicyC3Z(C3.PolicyC3):
                         a, s_hat = filter_step(self._kf_state(), key, model, a, full[3], full[7], bar)
             else:
                 a, s_hat = cl.advantage(r, bar, pos), 0.0
-            cond = advantage_close(a, s_hat, self._menu())             # full_f4: > 0, ties HOLD (ADVANTAGE_CLOSE_RULE); full_f3: >= -closer_adv_margin
+            cond = advantage_close(a, s_hat, self._menu())             # O*'s tie rule (>= -closer_adv_margin) in every profile; MUSASHI_TIE_HOLD is a declared variant
             self._persist = getattr(self, "_persist", {})
             self._persist[key] = self._persist.get(key, 0) + 1 if cond else 0
             dec = bool(cond and self._persist[key] >= int(round(PARAMS["k_persist"])))

@@ -475,8 +475,12 @@ def test_close_rule_at_quality_one_reproduces_the_perfect_head_rule_and_persiste
         assert run(a, [0.0] * len(a)) == [False, False, False, True, False, False, True, False]
         ZZ.PARAMS.update(z_close=1.0, k_persist=1)
         assert run(a, [0.5] * len(a)) == [x - 0.5 >= -0.02 for x in a]
-        assert run(a, [0.0] * len(a), menu=True) == [x > 0 for x in a]      # full_f4 (ruling C): ties HOLD, the margin is inert
-        assert run(a, [0.1] * len(a), menu=True) == [x - 0.1 > 0 for x in a]
+        assert run(a, [0.0] * len(a), menu=True) == [x >= -0.02 for x in a]  # full_f4: O*'s tie rule as well (ruling C withdrawn, v2.3)
+        ZZ.TIE_RULE = "musashi_tie_hold"                              # the declared variant MUSASHI_TIE_HOLD: ties HOLD under the menu
+        try:
+            assert run(a, [0.0] * len(a), menu=True) == [x > 0 for x in a] and run(a, [0.0] * len(a)) == [x >= -0.02 for x in a]
+        finally:
+            ZZ.TIE_RULE = "ostar"
     finally:
         ZZ.PARAMS.clear()
         ZZ.PARAMS.update(old)

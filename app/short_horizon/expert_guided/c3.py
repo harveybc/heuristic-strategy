@@ -856,7 +856,7 @@ def head_outputs(cells) -> dict:
 
 
 STRATEGY_PARAMS_FILE = "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json"
-STRATEGY_PARAMS_SHA256 = "f46690bd84a7a880ecef0ccdfa51d4cdf97d4599bccf46a4fe1bd2f5dcc8bb57"   # v2.2 (2026-10-29, tier-2 rulings A / B); the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
+STRATEGY_PARAMS_SHA256 = "4e03fb1ae3f8b02504c69022f5e338b41d4992e11ae88739de9a308476d0b269"   # v2.3 (2026-10-29: tier-2 rulings A / B, C withdrawn); the v10 canonical point; replaced by the DEAP point once it is proven on the full matrix
 # the full_f3 / full_f3_12h / legacy contracts keep the parameter reference they were sealed with (v2.1, the committed file at
 # git 443b7a1): the v2.2 changes are full_f4-only (per-profile bounds / defaults), the full_f3 point (strategy_params.DEFAULTS)
 # is unchanged, and their identities stay byte-identical (tests/test_strategy_params_v22.py)
@@ -908,6 +908,12 @@ MENU_CHANGELOG_V24 = {"when": "2026-10-29", "change": "v2.4 (full_f4 only; coord
                       "why": "tier 2 (4 345 records): the open-margin gate was the first diverging decision against the truth oracle in 69 of the 76 W1 / W8_old / W0 failures; "
                              "W17: 26 truth-positive opens 3-10 bars into planted bursts at realized vol / sigma 0.49-1.98; W4: 3 closes inside the tie band; Z1 SELL 0.949 / 0.932 "
                              "with the oracle reading the same (evidence/tier2_full_f4_menu_443b7a1, evidence/tier2_rulings_v22)"}
+MENU_CHANGELOG_V25 = {"when": "2026-10-29", "change": "v2.5 (full_f4): C withdrawn by the coordinator: it diverged from the designated control. The advantage closer's "
+                      "tie rule is O*'s again (close when A_hat - z_close x s_hat >= -closer_adv_margin, baseline 0.02 = EPS_CLOSE), closer_adv_margin is a full_f4 gene "
+                      "again (not inert); ties-HOLD survives only as the declared variant MUSASHI_TIE_HOLD (strategy_zz.TIE_RULE, not the full_f4 default) for the "
+                      "shared controller later. A, B and D of v2.4 stay",
+                      "why": "the tier-1 regression on 967653e: early-close share 3.06 % -> 0.32 %, E-series episode early share max gap to O* 0 -> 0.114, "
+                             "E3 tick agreement 135 -> 134 / 129 per side, W8 switch 77 -> 71 PASS, q0.70 off-arm Sharpe -1.01 (evidence/tier2_rulings_v22)"}
 CONTRACT_CHANGELOG = (
     {"when": "2026-10-29", "change": "v2: the shared business contract (owner decision: Musashi's packet adopted wholesale) as the execution profile full_f4 -- leverage 50, no daily cap, the calendar's 12 h cutoff, absolute per-horizon levels from the TRAIN references, risk-budget sizing, the four MT horizon members, the fixed-delay closer comparator; STRATEGY_PARAMS v2 (a_sl, b_sl, buffer_pips, a_tp, b_tp, rho, ref_p75, horizon_rule)",
      "why": "S1-S6 of the owner's order 2026-10-29; the audited full_f3 profile stays the declared control (exec_profile full_f3 / absent): byte-identical"},
@@ -1015,9 +1021,8 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
                                                       "truth": "exact replay of every menu order on the profile engine (clean account, profile sizing and costs): net sigma / USD, first barrier, MAE / MFE, exit reason; the ideal confirmations as the truth menu",
                                                       "ranking": "EV over the allowed slots of each side (RR rule on the order's own distances, RR floor on the MAE), the higher side wins; horizon_rule (finest | coarsest) breaks ties",
                                                       "witnesses": "W7 = executed (h, side) best of the truth menu among the allowed slots (both sides); W2 / W10 judge the executed order's slot; W13 menu form = executed TP / SL equal the slot's levels (1 tick); W14 judged by its oracle control with the side-swapped-reference mirror as the corrected form",
-                                                      "inert_under_menu": {"k_tp_protect": "a contracted TP is never inflated", "tp_mode": "the protective envelope is off",
-                                                                           "closer_adv_margin": "v2.4: the advantage closer needs A_hat - z_close x s_hat > 0 (ties HOLD); the margin is not read"},
-                                                      "closer_rule": "v2.4 (ruling C): " + ZZ.ADVANTAGE_CLOSE_RULE,
+                                                      "inert_under_menu": {"k_tp_protect": "a contracted TP is never inflated", "tp_mode": "the protective envelope is off"},
+                                                      "closer_rule": "v2.5 (ruling C withdrawn): " + ZZ.ADVANTAGE_CLOSE_RULE,
                                                       "open_rate_bound": "v2.4 (ruling A): open_rate in [0.002, 1.0] (Q_BOUNDS_F4 / strategy_params.BOUNDS_F4); 1.0 = the 0 quantile (minimum) of the calibration reference, floored at 0",
                                                       "burst_vol_ratio": "v2.4 (ruling B): the causal burst gate fires at realized vol > 1.5 x sigma under full_f4 (strategy_params.DEFAULTS_F4; full_f4 bounds [1.2, 2.5]); 2.0 under full_f3",
                                                       "z1_control_conflict": "v2.4 (ruling D): Z1 on the corrected form failed by the strategy AND by its control (the truth oracle's episodes) is typed CONTROL_CONFLICT (never PASS), no ladder level added",
@@ -1050,7 +1055,7 @@ def default_contract(architecture: dict | None = None, exec_profile: str = EXEC_
     doc["strategy"]["params"] = {"file": STRATEGY_PARAMS_FILE, "sha256": STRATEGY_PARAMS_SHA256 if exec_profile == "full_f4" else STRATEGY_PARAMS_SHA256_F3,
                                  "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"}
     doc["closer_head"] = dict(CLOSER_HEAD_CONTRACT)
-    doc["changelog"] = ([dict(MENU_CHANGELOG_V24), dict(MENU_CHANGELOG_V23), dict(MENU_CHANGELOG_V22), dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
+    doc["changelog"] = ([dict(MENU_CHANGELOG_V25), dict(MENU_CHANGELOG_V24), dict(MENU_CHANGELOG_V23), dict(MENU_CHANGELOG_V22), dict(MENU_CHANGELOG)] if exec_profile == "full_f4" else []) + list(CONTRACT_CHANGELOG)   # the menu entry belongs to the full_f4 contract only
     return ACT.seal(doc)
 
 

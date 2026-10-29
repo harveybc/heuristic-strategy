@@ -1,7 +1,7 @@
 {
  "schema": "expert_guided_action_contract.c3",
  "scientific_release": false,
- "identity": "action_7e4a799cb39402ff",
+ "identity": "action_7dfafbf8e31e0741",
  "design": "docs/short_horizon/clean_round/ADVERSARIAL_AUDIT_REGISTER_2026_10_26.md + PIPELINE_CONTROLS_2026_10_26.md (C3: label / target fixes A2-1, A2-2, A2-3, A2-4, A2-5, A2-6, A2-8, A2-9, A2-10, A2-11, A2-12, A4-3, A4-5, A4-6) on C2G",
  "action_space": {
   "actions": {
@@ -975,7 +975,7 @@
   },
   "params": {
    "file": "docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json",
-   "sha256": "f46690bd84a7a880ecef0ccdfa51d4cdf97d4599bccf46a4fe1bd2f5dcc8bb57",
+   "sha256": "4e03fb1ae3f8b02504c69022f5e338b41d4992e11ae88739de9a308476d0b269",
    "rule": "every strategy coefficient lives in this file (validated against strategy_params.BOUNDS); the frozen contract embeds the sha of the point it was proven with"
   }
  },
@@ -1272,10 +1272,9 @@
    "witnesses": "W7 = executed (h, side) best of the truth menu among the allowed slots (both sides); W2 / W10 judge the executed order's slot; W13 menu form = executed TP / SL equal the slot's levels (1 tick); W14 judged by its oracle control with the side-swapped-reference mirror as the corrected form",
    "inert_under_menu": {
     "k_tp_protect": "a contracted TP is never inflated",
-    "tp_mode": "the protective envelope is off",
-    "closer_adv_margin": "v2.4: the advantage closer needs A_hat - z_close x s_hat > 0 (ties HOLD); the margin is not read"
+    "tp_mode": "the protective envelope is off"
    },
-   "closer_rule": "v2.4 (ruling C): full_f4 (coordinator ruling C on tier 2 of 443b7a1, 2026-10-29, matching Musashi's close/hold controller): the advantage closer closes only when A_hat - z_close x s_hat > 0 (a tie HOLDS); closer_adv_margin is INERT under the menu; full_f3 / LEGACY keep A_hat - z_close x s_hat >= -closer_adv_margin (byte-identical); EPS_CLOSE stays the witnesses' tolerance only (O*, E-series, W4 v3')",
+   "closer_rule": "v2.5 (ruling C withdrawn): O*'s tie rule for every profile: the advantage closer closes when A_hat - z_close x s_hat >= -closer_adv_margin (baseline 0.02 = EPS_CLOSE, O*'s band). Ruling C (strict > 0 under full_f4, ties HOLD) was WITHDRAWN by the coordinator on 2026-10-29: it diverged from the designated control O* (tier-1 regression on 967653e: early-close share 3.06 % -> 0.32 %, episode gap to O* 0.114, E3 / W8 switch failures); ties-HOLD stays only as the declared variant MUSASHI_TIE_HOLD",
    "open_rate_bound": "v2.4 (ruling A): open_rate in [0.002, 1.0] (Q_BOUNDS_F4 / strategy_params.BOUNDS_F4); 1.0 = the 0 quantile (minimum) of the calibration reference, floored at 0",
    "burst_vol_ratio": "v2.4 (ruling B): the causal burst gate fires at realized vol > 1.5 x sigma under full_f4 (strategy_params.DEFAULTS_F4; full_f4 bounds [1.2, 2.5]); 2.0 under full_f3",
    "z1_control_conflict": "v2.4 (ruling D): Z1 on the corrected form failed by the strategy AND by its control (the truth oracle's episodes) is typed CONTROL_CONFLICT (never PASS), no ladder level added",
@@ -1337,6 +1336,11 @@
   "proof_market_only": "BCHead.row(b, s) takes no position argument; SimCloser.advantage reads the position only to compute (d_sl, d_tp) and never the trade's own path (tests/test_strategy_behaviour_matrix.py)"
  },
  "changelog": [
+  {
+   "when": "2026-10-29",
+   "change": "v2.5 (full_f4): C withdrawn by the coordinator: it diverged from the designated control. The advantage closer's tie rule is O*'s again (close when A_hat - z_close x s_hat >= -closer_adv_margin, baseline 0.02 = EPS_CLOSE), closer_adv_margin is a full_f4 gene again (not inert); ties-HOLD survives only as the declared variant MUSASHI_TIE_HOLD (strategy_zz.TIE_RULE, not the full_f4 default) for the shared controller later. A, B and D of v2.4 stay",
+   "why": "the tier-1 regression on 967653e: early-close share 3.06 % -> 0.32 %, E-series episode early share max gap to O* 0 -> 0.114, E3 tick agreement 135 -> 134 / 129 per side, W8 switch 77 -> 71 PASS, q0.70 off-arm Sharpe -1.01 (evidence/tier2_rulings_v22)"
+  },
   {
    "when": "2026-10-29",
    "change": "v2.4 (full_f4 only; coordinator rulings A-D on tier 2 of 443b7a1): (A) open_rate's upper bound 1.0 in the full_f4 gene table (Q_BOUNDS_F4; the full_f3 table Q_BOUNDS unchanged); (B) burst_vol_ratio 1.5 x sigma (STRATEGY_PARAMS v2.2 per-profile defaults, full_f4 bounds [1.2, 2.5]); (C) the advantage closer closes only when A_hat - z_close x s_hat > 0, ties HOLD, closer_adv_margin inert (matching Musashi's controller; EPS_CLOSE stays the witnesses' tolerance); (D) Z1 failed on the corrected form by the strategy and by the truth oracle = CONTROL_CONFLICT",

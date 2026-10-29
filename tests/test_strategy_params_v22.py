@@ -1,7 +1,8 @@
 """STRATEGY_PARAMS v2.2 / C3 contract v2.4 (coordinator rulings A-D on tier 2 of 443b7a1, 2026-10-29): per-profile bounds
 and defaults; the full_f3 tables, defaults and contract identities stay byte-identical (pinned below with the values
 measured at 30b9b47, before the change); full_f4 widens open_rate to [0.002, 1.0], sets burst_vol_ratio 1.5 in [1.2, 2.5];
-the advantage closer under the menu needs A - z s > 0 (ties HOLD) and is unchanged under full_f3."""
+the advantage closer keeps O*'s tie rule in every profile (ruling C withdrawn, v2.3); ties-HOLD is only the declared
+variant MUSASHI_TIE_HOLD."""
 import hashlib
 import json
 
@@ -53,7 +54,7 @@ def test_full_f4_open_rate_bound_is_widened_for_that_profile_only():
     f3 = json.loads(json.dumps(C3.default_contract(C3.ARCH_TCN)))
     f3["strategy"]["genes"] = dict(C3.Q_BOUNDS_F4)
     assert any(e.startswith("C3_CONTRACT_GENES") for e in C3.validate(f3))
-    assert d["changelog"][0]["change"].startswith("v2.4") and "v2.4" not in json.dumps(C3.default_contract(C3.ARCH_TCN)["changelog"])
+    assert d["changelog"][0]["change"].startswith("v2.5") and d["changelog"][1]["change"].startswith("v2.4") and "v2.4" not in json.dumps(C3.default_contract(C3.ARCH_TCN)["changelog"])
 
 
 def test_full_f4_burst_ratio_default_and_bounds():
@@ -80,18 +81,20 @@ def test_deap_genomes_encode_on_their_profile_table():
     assert D.decode(xf, SP.default_doc("full_f3"))["open_rate_l"] == 0.50
 
 
-def test_closer_rule_ties_hold_under_the_menu_and_the_margin_rule_stays_under_full_f3():
+def test_closer_keeps_the_ostar_tie_rule_in_every_profile_and_tie_hold_is_only_a_declared_variant():
     keep = dict(ZZ.PARAMS)
     try:
         ZZ.PARAMS.update(z_close=1.0, closer_adv_margin=0.02)
-        for a, s_hat, want in ((0.0, 0.0, False), (1e-12, 0.0, True), (-0.01, 0.0, False), (0.5, 0.4, True), (0.5, 0.5, False), (float("nan"), 0.0, False)):
-            assert ZZ.advantage_close(a, s_hat, True) is want, (a, s_hat)
-        for a, s_hat, want in ((0.0, 0.0, True), (-0.01, 0.0, True), (-0.02, 0.0, True), (-0.03, 0.0, False), (0.5, 0.51, True), (float("nan"), 0.0, False)):
-            assert ZZ.advantage_close(a, s_hat, False) is want, (a, s_hat)
-        ZZ.PARAMS.update(closer_adv_margin=1.0)                       # inert under the menu
-        assert ZZ.advantage_close(-0.5, 0.0, True) is False and ZZ.advantage_close(-0.5, 0.0, False) is True
+        assert ZZ.TIE_RULE == "ostar" and ZZ.TIE_RULES == ("ostar", "musashi_tie_hold")
+        for menu in (True, False):                                    # the default: O*'s rule, A - z s >= -closer_adv_margin
+            for a, s_hat, want in ((0.0, 0.0, True), (-0.01, 0.0, True), (-0.02, 0.0, True), (-0.03, 0.0, False), (0.5, 0.51, True), (float("nan"), 0.0, False)):
+                assert ZZ.advantage_close(a, s_hat, menu) is want, (menu, a, s_hat)
+        for a, s_hat, want in ((0.0, 0.0, False), (1e-12, 0.0, True), (-0.01, 0.0, False), (0.5, 0.4, True), (0.5, 0.5, False)):
+            assert ZZ.advantage_close(a, s_hat, True, tie_rule="musashi_tie_hold") is want, (a, s_hat)   # MUSASHI_TIE_HOLD (declared variant)
+        assert ZZ.advantage_close(-0.01, 0.0, False, tie_rule="musashi_tie_hold") is True   # the variant acts under the menu only
+        ZZ.PARAMS.update(closer_adv_margin=0.05)                      # the margin is read again (a full_f4 gene)
+        assert ZZ.advantage_close(-0.04, 0.0, True) is True
     finally:
         ZZ.PARAMS.clear()
         ZZ.PARAMS.update(keep)
-    assert set(M.INERT_UNDER_MENU) == {"k_tp_protect", "tp_mode", "closer_adv_margin"} and "closer_adv_margin" not in D.GENOME_F4
-    assert np.isfinite(ZZ.PARAMS["closer_adv_margin"])
+    assert set(M.INERT_UNDER_MENU) == {"k_tp_protect", "tp_mode"} and "closer_adv_margin" in D.GENOME_F4
