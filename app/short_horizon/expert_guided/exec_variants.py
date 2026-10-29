@@ -38,6 +38,7 @@ from dataclasses import asdict, dataclass
 import numpy as np
 
 SIZING_MODES = ("notional_share", "risk")
+LEVEL_MODES = ("sigma", "absolute_pips")
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ class ExecVariant:
     short_trigger_on_ask: bool = False                  # A4-12
     leverage: float | None = None                       # business contract 2026-10-29: the account leverage scenario (None = EnvConfig.sizing)
     no_daily_cap: bool = False                          # business contract 2026-10-29: max_entries_per_day = None (no strategy-imposed cap)
+    level_mode: str = "sigma"                           # S2: "absolute_pips" = the policy passes SL / TP PRICES built by horizon_levels (no sigma bounds, no band)
     note: str = ""
 
     def __post_init__(self):
@@ -60,6 +62,8 @@ class ExecVariant:
             raise ValueError("ENTRY_CUTOFF_NEGATIVE")
         if self.leverage is not None and not 0 < self.leverage <= 100:
             raise ValueError("LEVERAGE_OUT_OF_RANGE:(0, 100]")
+        if self.level_mode not in LEVEL_MODES:
+            raise ValueError(f"LEVEL_MODE_UNKNOWN:{self.level_mode}")
 
     def is_legacy(self) -> bool:
         """True when every option equals the audited default (the engine path is then byte-identical)."""
@@ -68,8 +72,8 @@ class ExecVariant:
     def document(self) -> dict:
         d = asdict(self)
         d.pop("note")
-        for k in ("leverage", "no_daily_cap"):                      # fields added 2026-10-29: absent at their defaults, so every earlier identity is unchanged
-            if d[k] in (None, False):
+        for k, default in (("leverage", None), ("no_daily_cap", False), ("level_mode", "sigma")):   # fields added 2026-10-29: absent at their defaults, so every earlier identity is unchanged
+            if d[k] == default:
                 d.pop(k)
         return d
 

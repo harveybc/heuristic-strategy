@@ -198,9 +198,33 @@ class BarEnv:
                          abs(p.tp - self.c[b]) / s, min(since, 5.0), min(to_ff, 5.0), share, float(ok)], np.float32)
 
     # ------------------------------------------------------------------ levels and costs
+    def liquidation_quote(self, b: int, d: int) -> float:
+        """The liquidation-side quote known at the decision: bars are BID, so a long liquidates at the bid (close[b])
+        and a short at the ask = bid + the hour's spread (profile.spread_at)."""
+        r = float(self.c[b])
+        return r if d > 0 else r + float(self.cfg.profile.spread_at(int(self.v[b]), int(self.mo[int(self.seg_of[b])])))
+
+    def _levels_absolute(self, b: int, d: int, tp: float, sl: float):
+        """S2 (business contract, level_mode "absolute_pips"): the policy passes SL / TP PRICES already built on the tick
+        grid by horizon_levels (SL away from the entry, TP toward it). Declared in the contract: the sigma-multiplier
+        bounds and the effectiveness_c x sigma_rule band do NOT apply; the broker minimum distance applies against the
+        reference close[b] and the liquidation-side quote; a contracted TP is never inflated; nothing is clipped."""
+        cfg, r = self.cfg, float(self.c[b])
+        liq = self.liquidation_quote(b, d)
+        lo = cfg.rules.min_distance * (1 - 1e-9)
+        if not (np.isfinite(tp) and np.isfinite(sl) and tp > 0 and sl > 0):
+            return None
+        for p in (r, liq):
+            if d * (tp - p) < lo or d * (p - sl) < lo:
+                return None
+        return float(tp), float(sl), False
+
     def _levels(self, b: int, d: int, tp_mult: float, sl_mult: float):
         """(tp, sl, clipped) from the reference close[b], or None when refused."""
         cfg, r = self.cfg, float(self.c[b])
+        var = cfg.variant
+        if var is not None and getattr(var, "level_mode", "sigma") == "absolute_pips":
+            return self._levels_absolute(b, d, float(tp_mult), float(sl_mult))
         s, sr = self.decision_sigma(b), float(self.sigma_rule[b + 1])
         tp_m = float(np.clip(tp_mult, *cfg.tp_bounds))
         sl_m = float(np.clip(sl_mult, *cfg.sl_bounds))
