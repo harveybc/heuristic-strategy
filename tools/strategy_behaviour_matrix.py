@@ -826,7 +826,8 @@ def closer_d7_stats(world: dict, roll: dict, exact) -> dict:
     st = exit_stats(world, roll, exact)
     blk_end = H.period_bars(cx.ds, BLOCK)[1]
     out = {"sharpe": float(m.get("sharpe_daily_sqrt365", float("nan"))), "net_usd": float(m.get("net_profit_usd", float("nan"))), "trades": len(trades),
-           "mean_hold_bars": float(np.mean([int(t["exit_bar_abs"]) - int(t["entry_bar_abs"]) for t in trades])) if trades else float("nan")}
+           "mean_hold_bars": float(np.mean([int(t["exit_bar_abs"]) - int(t["entry_bar_abs"]) for t in trades])) if trades else float("nan"),
+           "trade_summary": trade_summary(world, trades)}
     for si, side in ((0, "BUY"), (1, "SELL")):
         reg, ecv = [], 0.0
         for t in trades:
@@ -1985,6 +1986,33 @@ def annotate_sigma(w: dict, trades: list) -> list:
     return trades
 
 
+def trade_summary_from(trades: list, sigma, capital: float) -> dict:
+    """RECORD SCHEMA (coordinator standing rule 2026-10-29): every ladder, probe and qualification record carries the
+    scale-free trade statistics -- net per trade in sigma of the entry bar (mean AND median), the win rate, the
+    per-world starting balance -- plus the executed SL / TP distances in pips and the holding time (p10 / p50 / p90).
+    Reports show net as the MEDIAN per family and sigma per trade, never the compounded USD mean."""
+    out = {"n": len(trades), "starting_balance_usd": float(capital)}
+    if not trades:
+        return out
+    sig = np.asarray(sigma, float)
+    ns = []
+    for t in trades:
+        s_ = float(sig[int(t["entry_bar_abs"])])
+        ns.append(float(t["net_usd"]) / max(int(t["units"]), 1) / s_ if np.isfinite(s_) and s_ > 0 else float("nan"))
+    ns = np.asarray(ns, float)
+    q = lambda v: [float(np.quantile(v, x)) for x in (0.1, 0.5, 0.9)]  # noqa: E731
+    out.update({"net_sigma_per_trade_mean": float(np.nanmean(ns)), "net_sigma_per_trade_median": float(np.nanmedian(ns)),
+                "win_rate": float(np.mean([float(t["net_usd"]) > 0 for t in trades])), "net_usd_per_trade_mean": float(np.mean([float(t["net_usd"]) for t in trades])),
+                "sl_pips_p10_p50_p90": q([abs(float(t["entry_price"]) - float(t["stop_loss"])) / 1e-4 for t in trades]),
+                "tp_pips_p10_p50_p90": q([abs(float(t["take_profit"]) - float(t["entry_price"])) / 1e-4 for t in trades]),
+                "hold_bars_p10_p50_p90": q([int(t["exit_bar_abs"]) - int(t["entry_bar_abs"]) for t in trades])})
+    return out
+
+
+def trade_summary(world: dict, trades: list) -> dict:
+    return trade_summary_from(trades, world["cx"].ds.sigma, float(world["scfg"].capital))
+
+
 def mirror_check(trades_a: list, trades_b: list) -> dict:
     """The mirrored twin's ledger must mirror: same entry / exit bars, sides flipped, net equal up to the financing
     asymmetry (long and short swap rates differ) plus a relative tolerance."""
@@ -2047,6 +2075,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
                          "engine_refused": {k: v for k, v in (roll["metrics"].items() if isinstance(roll["metrics"], dict) else []) if "refused" in str(k)}},
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
+           "trade_summary": trade_summary(w, roll["trades"]),
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
            "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))
                                               and exit_layer["PASS_effective"]),

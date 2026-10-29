@@ -1,18 +1,18 @@
 # Closer ladder vs the information-limited Bayes oracle (rule z_close:k_persist = 1:3:1)
 
-q1.00: strategy trades identical to the Bayes closer's in 0 / 24 families. Monotone in quality: 282 / 288 checks.
+q1.00: strategy trades identical to the Bayes closer's in 0 / 24 families. Monotone in quality (DIAGNOSTIC column, GM12, not a witness): 282 / 288 checks.
 
-| quality, phi | E4 strategy | E4 Bayes | regret strategy | regret Bayes | early share strategy | early share Bayes | Sharpe strategy | Sharpe Bayes | net strategy | net Bayes | trades | hold bars | pass E4 | pass regret | early-close value pass / fail / vacuous |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| q0.70_phi0 | 0.083 | 0.131 | 14.165 | 1.324 | 0.207 | 0.557 | 7.71 | 11.33 | 182,969 | 6,565,429 | 111 | 59.7 | 42/48 | 0/48 | 47/0/1 |
-| q0.70_phi0.587 | 0.087 | 0.176 | 11.607 | 1.458 | 0.201 | 0.552 | 7.79 | 11.21 | 216,583 | 4,160,340 | 112 | 59.5 | 46/48 | 0/48 | 47/0/1 |
-| q0.70_phi0.98 | 0.105 | 0.808 | 9.778 | 0.874 | 0.240 | 0.894 | 8.20 | 12.05 | 265,045 | 11,058,512 | 114 | 58.1 | 48/48 | 0/48 | 47/0/1 |
-| q0.85_phi0 | 0.017 | 0.066 | 7.179 | 0.448 | 0.330 | 0.621 | 8.93 | 11.88 | 370,922 | 14,116,252 | 115 | 57.5 | 46/48 | 0/48 | 48/0/0 |
-| q0.85_phi0.587 | 0.020 | 0.071 | 6.801 | 0.507 | 0.331 | 0.624 | 8.96 | 11.83 | 377,287 | 13,627,883 | 115 | 57.3 | 47/48 | 0/48 | 48/0/0 |
-| q0.85_phi0.98 | 0.016 | 0.473 | 7.895 | 0.102 | 0.312 | 0.771 | 8.82 | 12.21 | 325,217 | 27,108,652 | 114 | 57.6 | 48/48 | 0/48 | 48/0/0 |
-| q1.00_phi0 | 0.000 | 0.000 | 3.730 | 0.001 | 0.436 | 0.661 | 10.03 | 12.17 | 847,271 | 29,797,808 | 120 | 54.2 | 0/0 | 0/0 | 0/0/0 |
+| quality, phi | E4 strategy | E4 Bayes | regret strategy | regret Bayes | early share strategy | early share Bayes | Sharpe strategy | Sharpe Bayes | median net USD per family: strategy | Bayes | net sigma / trade (mean) | win rate | trades | hold bars | pass E4 | pass regret | early-close value pass / fail / vacuous |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| q0.70_phi0 | 0.083 | 0.131 | 14.165 | 1.324 | 0.207 | 0.557 | 7.71 | 11.33 | 92,717 | 413,865 | 0.000 | 0.000 | 111 | 59.7 | 42/48 | 0/48 | 47/0/1 |
+| q0.70_phi0.587 | 0.087 | 0.176 | 11.607 | 1.458 | 0.201 | 0.552 | 7.79 | 11.21 | 99,089 | 370,211 | 0.000 | 0.000 | 112 | 59.5 | 46/48 | 0/48 | 47/0/1 |
+| q0.70_phi0.98 | 0.105 | 0.808 | 9.778 | 0.874 | 0.240 | 0.894 | 8.20 | 12.05 | 125,147 | 523,510 | 0.000 | 0.000 | 114 | 58.1 | 48/48 | 0/48 | 47/0/1 |
+| q0.85_phi0 | 0.017 | 0.066 | 7.179 | 0.448 | 0.330 | 0.621 | 8.93 | 11.88 | 152,086 | 570,061 | 0.000 | 0.000 | 115 | 57.5 | 46/48 | 0/48 | 48/0/0 |
+| q0.85_phi0.587 | 0.020 | 0.071 | 6.801 | 0.507 | 0.331 | 0.624 | 8.96 | 11.83 | 153,156 | 553,836 | 0.000 | 0.000 | 115 | 57.3 | 47/48 | 0/48 | 48/0/0 |
+| q0.85_phi0.98 | 0.016 | 0.473 | 7.895 | 0.102 | 0.312 | 0.771 | 8.82 | 12.21 | 135,338 | 753,559 | 0.000 | 0.000 | 114 | 57.6 | 48/48 | 0/48 | 48/0/0 |
+| q1.00_phi0 | 0.000 | 0.000 | 3.730 | 0.001 | 0.436 | 0.661 | 10.03 | 12.17 | 204,961 | 680,381 | 0.000 | 0.000 | 120 | 54.2 | 0/0 | 0/0 | 0/0/0 |
 
-Means over the 24 families (E4, regret and early share also over both sides). Regret: (P* - P(exit)) / initial cash risk at the SL.
+Means over the families (E4, regret and early share also over both sides), except net USD = the MEDIAN per family (the USD net is compounded from the per-world starting balance; the compounded mean is never reported); net sigma / trade = per unit, sigma of the entry bar (nan on records written before the schema rule of 2026-10-29). Regret: (P* - P(exit)) / initial cash risk at the SL.
 
 ## Per family and side (E4 strategy / Bayes, regret strategy / Bayes)
 

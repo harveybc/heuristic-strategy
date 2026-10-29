@@ -119,7 +119,8 @@ def run_policy(w, strat, view, cells):
     roll = BM.rollout_cell(w, strat, view, cells)
     m = roll["metrics"]
     costs = sum(float(t.get("spread_usd", 0)) + float(t.get("commission_usd", 0)) + float(t.get("slippage_usd", 0)) - float(t.get("financing_usd", 0)) for t in roll["trades"])
-    return {"sharpe": float(m.get("sharpe_daily_sqrt365", float("nan"))), "net_usd": float(m.get("net_profit_usd", float("nan"))), "trades": len(roll["trades"]), "costs_usd": costs}
+    return {"sharpe": float(m.get("sharpe_daily_sqrt365", float("nan"))), "net_usd": float(m.get("net_profit_usd", float("nan"))), "trades": len(roll["trades"]), "costs_usd": costs,
+            "trade_summary": BM.trade_summary(w, roll["trades"])}
 
 
 def oracle_construction(w, view, cells, kind: str, k: int = 0, seed: int = SEED) -> dict:

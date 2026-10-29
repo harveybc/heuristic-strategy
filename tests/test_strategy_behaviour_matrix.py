@@ -606,3 +606,28 @@ def test_warm_start_reuses_genomes_only_and_reevaluates_every_point(tmp_path):
     assert FakePool.calls == 3 and len(recs) == 3 and all(r["generation"] == 0 for r in recs)
     assert sorted(r["n_failing_witnesses"] for r in recs) == [1, 2, 3] and all(r["fitness_sharpe"] < 2.0 for r in recs)
     assert res["best"]["n_failing_witnesses"] == 1 and not (out / "FAILED_DEGENERATE_GEN0").exists()
+
+
+def test_trade_summary_record_schema_carries_sigma_per_trade_win_rate_and_starting_balance():
+    """Standing rule 2026-10-29: every record stores net sigma per trade (mean and median), the win rate and the
+    per-world starting balance, plus the executed SL / TP pips and holding bars (p10 / p50 / p90); reports show the
+    median net per family, never the compounded mean."""
+    sig = np.full(100, 0.002)
+
+    def t(eb, xb, net):
+        return {"entry_bar_abs": eb, "exit_bar_abs": xb, "net_usd": net, "units": 1000, "entry_price": 1.1, "stop_loss": 1.095, "take_profit": 1.11}
+
+    s = BM.trade_summary_from([t(10, 22, 4.0), t(30, 36, -2.0), t(50, 80, 10.0)], sig, 10_000.0)
+    assert s["n"] == 3 and s["starting_balance_usd"] == 10_000.0
+    assert abs(s["net_sigma_per_trade_mean"] - 2.0) < 1e-12 and abs(s["net_sigma_per_trade_median"] - 2.0) < 1e-12   # (4 - 2 + 10) / 3 / 1000 / 0.002
+    assert abs(s["win_rate"] - 2 / 3) < 1e-12 and abs(s["sl_pips_p10_p50_p90"][1] - 50.0) < 1e-9 and abs(s["tp_pips_p10_p50_p90"][1] - 100.0) < 1e-9
+    assert s["hold_bars_p10_p50_p90"][1] == 12.0
+    assert BM.trade_summary_from([], sig, 10_000.0) == {"n": 0, "starting_balance_usd": 10_000.0}
+    from tools import strategy_closer_ladder_report as CLR
+    side = {"E4": 0.0, "regret_norm": 0.0, "mix": {"early": 0.0}, "early_close_value_norm": 0.0, "sl_destined_closed_early": 0, "closes": 0}
+    run = {"sharpe": 1.0, "net_usd": 7.0, "trades": 3, "mean_hold_bars": 2.0, "trade_summary": s, "BUY": dict(side), "SELL": dict(side)}
+    bayes = {"sharpe": 1.0, "net_usd": 5.0, "BUY": dict(side), "SELL": dict(side)}
+    v = CLR.verdicts([{"cell": "x", "seed": 0, "rows": [{"quality": 1.0, "phi": 0.0, "bayes": bayes, "rules": {"1.0:1": run}, "strategy": run}]}], "1.0:1")
+    m = v["summary"]["q1.00_phi0"]["mean"]
+    assert m["net_usd_median"] == 7.0 and m["bayes_net_usd_median"] == 5.0 and abs(m["net_sigma_per_trade"] - 2.0) < 1e-12
+    assert "median net USD per family" in CLR.markdown(v)

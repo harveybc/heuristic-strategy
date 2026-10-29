@@ -83,18 +83,10 @@ def build_subset(cells: list, per_level: int = 1, seed: int = SEED, mirror_at_qu
     return out
 
 
-def trade_stats(trades: list) -> dict:
-    """Executed-trade distributions (p10 / p50 / p90): SL and TP distances from the entry fill in pips (1e-4), holding
-    time in bars, net per trade in sigma of the trade; for the business-contract comparison (never a witness)."""
-    if not trades:
-        return {"n": 0}
-    q = lambda v: [float(np.quantile(v, x)) for x in (0.1, 0.5, 0.9)]  # noqa: E731
-    sl = [abs(float(t["entry_price"]) - float(t["stop_loss"])) / 1e-4 for t in trades]
-    tp = [abs(float(t["take_profit"]) - float(t["entry_price"])) / 1e-4 for t in trades]
-    hb = [int(t["exit_bar_abs"]) - int(t["entry_bar_abs"]) for t in trades]
-    ns = [float(t["net_sigma"]) for t in trades if np.isfinite(float(t.get("net_sigma", np.nan)))]   # per unit, sigma of the entry bar (BM.annotate_sigma)
-    return {"n": len(trades), "sl_pips_p10_p50_p90": q(sl), "tp_pips_p10_p50_p90": q(tp), "hold_bars_p10_p50_p90": q(hb),
-            "net_sigma_per_trade_mean": float(np.mean(ns)) if ns else float("nan"), "net_usd_per_trade_mean": float(np.mean([float(t["net_usd"]) for t in trades]))}
+def trade_stats(world: dict, trades: list) -> dict:
+    """The record-schema trade summary (BM.trade_summary): net sigma per trade mean / median, win rate, starting balance,
+    SL / TP pips and holding bars p10 / p50 / p90; for the business-contract comparison and the reports (never a witness)."""
+    return BM.trade_summary(world, trades)
 
 
 def _malloc_trim():
@@ -196,7 +188,7 @@ class CachedWorld:
                "validity_v2": {k: vres[k] for k in ("not_evaluable", "unvalidated", "defects", "replay_conflicts", "evaluated")}, "fails_v1_retired": fails_v1 + exit_fails,
                "trades": len(roll["trades"]), "early_closes": sum(1 for t in roll["trades"] if t.get("exit_reason") == "EARLY"),
                "levels_clipped": int(roll["metrics"].get("n_levels_clipped", 0)) if isinstance(roll["metrics"], dict) else None,
-               "trade_stats": trade_stats(BM.annotate_sigma(self.w, roll["trades"]))}
+               "trade_stats": trade_stats(self.w, roll["trades"])}
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
             out["_trades"], out["_episodes"], out["_pair"], out["_role"] = BM.annotate_sigma(self.w, roll["trades"]), ep_summary, self.cell["pair"], self.cell["role"]
         self._release()

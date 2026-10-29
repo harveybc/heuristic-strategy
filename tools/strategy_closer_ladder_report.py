@@ -40,7 +40,9 @@ def verdicts(recs: list, rule: str) -> dict:
         for r in rows:
             st = r["rules"].get(rule, r["strategy"])
             key = f"q{r['quality']:.2f}_phi{r['phi']:g}"
+            ts = st.get("trade_summary") or {}
             cell = {"sharpe": st["sharpe"], "net_usd": st["net_usd"], "trades": st["trades"], "mean_hold_bars": st["mean_hold_bars"],
+                    "net_sigma_per_trade": ts.get("net_sigma_per_trade_mean", float("nan")), "win_rate": ts.get("win_rate", float("nan")),
                     "bayes_sharpe": r["bayes"]["sharpe"], "bayes_net_usd": r["bayes"]["net_usd"], "sides": {}}
             for s in SIDES:
                 a, b = st[s], r["bayes"][s]
@@ -63,14 +65,14 @@ def verdicts(recs: list, rule: str) -> dict:
     keys = sorted({k for f in out["families"].values() for k in f["cells"]})
     for k in keys:
         agg = {"E4": [], "E4_bayes": [], "regret": [], "regret_bayes": [], "early": [], "early_bayes": [], "sharpe": [], "bayes_sharpe": [], "net_usd": [], "bayes_net_usd": [],
-               "trades": [], "mean_hold_bars": []}
+               "trades": [], "mean_hold_bars": [], "net_sigma_per_trade": [], "win_rate": []}
         cnt = {"pass_E4": [0, 0], "pass_regret": [0, 0], "pass_early_close_value": [0, 0, 0]}
         for f in out["families"].values():
             c = f["cells"].get(k)
             if c is None:
                 continue
-            for m in ("sharpe", "bayes_sharpe", "net_usd", "bayes_net_usd", "trades", "mean_hold_bars"):
-                agg[m].append(_f(c[m]))
+            for m in ("sharpe", "bayes_sharpe", "net_usd", "bayes_net_usd", "trades", "mean_hold_bars", "net_sigma_per_trade", "win_rate"):
+                agg[m].append(_f(c.get(m)))
             for s in SIDES:
                 sv = c["sides"][s]
                 for m in ("E4", "E4_bayes", "regret", "regret_bayes", "early", "early_bayes"):
@@ -83,6 +85,8 @@ def verdicts(recs: list, rule: str) -> dict:
                     v = sv["pass_early_close_value"]
                     cnt["pass_early_close_value"][0 if v is True else (1 if v is False else 2)] += 1
         mean = {m: (sum(x for x in v if not math.isnan(x)) / max(sum(1 for x in v if not math.isnan(x)), 1)) for m, v in agg.items()}
+        med = lambda v: (sorted(x for x in v if not math.isnan(x)) or [float("nan")])[len([x for x in v if not math.isnan(x)]) // 2]  # noqa: E731
+        mean["net_usd_median"], mean["bayes_net_usd_median"] = med(agg["net_usd"]), med(agg["bayes_net_usd"])   # the reportable net: MEDIAN per family (standing rule 2026-10-29)
         out["summary"][k] = {"mean": mean, "counts": cnt}
     mono = [v for f in out["families"].values() for v in f.get("monotone", {}).values()]
     out["monotone_pass"] = [sum(mono), len(mono)]
@@ -93,14 +97,14 @@ def verdicts(recs: list, rule: str) -> dict:
 def markdown(v: dict) -> str:
     L = [f"# Closer ladder vs the information-limited Bayes oracle (rule z_close:k_persist = {v['rule']})", "",
          f"q1.00: strategy trades identical to the Bayes closer's in {v['q1_equal'][0]} / {v['q1_equal'][1]} families. Monotone in quality (DIAGNOSTIC column, GM12, not a witness): {v['monotone_pass'][0]} / {v['monotone_pass'][1]} checks.", "",
-         "| quality, phi | E4 strategy | E4 Bayes | regret strategy | regret Bayes | early share strategy | early share Bayes | Sharpe strategy | Sharpe Bayes | net strategy | net Bayes | trades | hold bars | pass E4 | pass regret | early-close value pass / fail / vacuous |",
-         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+         "| quality, phi | E4 strategy | E4 Bayes | regret strategy | regret Bayes | early share strategy | early share Bayes | Sharpe strategy | Sharpe Bayes | median net USD per family: strategy | Bayes | net sigma / trade (mean) | win rate | trades | hold bars | pass E4 | pass regret | early-close value pass / fail / vacuous |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for k, s in v["summary"].items():
         m, c = s["mean"], s["counts"]
         L.append(f"| {k} | {m['E4']:.3f} | {m['E4_bayes']:.3f} | {m['regret']:.3f} | {m['regret_bayes']:.3f} | {m['early']:.3f} | {m['early_bayes']:.3f} | {m['sharpe']:.2f} | {m['bayes_sharpe']:.2f} | "
-                 f"{m['net_usd']:,.0f} | {m['bayes_net_usd']:,.0f} | {m['trades']:.0f} | {m['mean_hold_bars']:.1f} | {c['pass_E4'][0]}/{c['pass_E4'][1]} | {c['pass_regret'][0]}/{c['pass_regret'][1]} | "
+                 f"{m['net_usd_median']:,.0f} | {m['bayes_net_usd_median']:,.0f} | {m['net_sigma_per_trade']:.3f} | {m['win_rate']:.3f} | {m['trades']:.0f} | {m['mean_hold_bars']:.1f} | {c['pass_E4'][0]}/{c['pass_E4'][1]} | {c['pass_regret'][0]}/{c['pass_regret'][1]} | "
                  f"{c['pass_early_close_value'][0]}/{c['pass_early_close_value'][1]}/{c['pass_early_close_value'][2]} |")
-    L += ["", "Means over the 24 families (E4, regret and early share also over both sides). Regret: (P* - P(exit)) / initial cash risk at the SL.", "",
+    L += ["", "Means over the families (E4, regret and early share also over both sides), except net USD = the MEDIAN per family (the USD net is compounded from the per-world starting balance; the compounded mean is never reported); net sigma / trade = per unit, sigma of the entry bar (nan on records written before the schema rule of 2026-10-29). Regret: (P* - P(exit)) / initial cash risk at the SL.", "",
           "## Per family and side (E4 strategy / Bayes, regret strategy / Bayes)", ""]
     keys = list(v["summary"])
     L.append("| family | side | " + " | ".join(keys) + " |")

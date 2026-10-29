@@ -237,6 +237,31 @@ def params_table(canon: dict, opt: dict | None) -> list:
 SM = ROOT / "docs/short_horizon/clean_round/strategy_matrix"
 
 
+def sigma_per_trade(recs: list) -> float:
+    """Mean over records of the net sigma per trade (the record's trade_summary, else from its trades' net_sigma)."""
+    v = []
+    for r in recs:
+        ts = r.get("trade_summary")
+        if ts and ts.get("n"):
+            v.append(float(ts["net_sigma_per_trade_mean"]))
+        elif r.get("trades"):
+            ns = [float(t["net_sigma"]) for t in r["trades"] if t.get("net_sigma") is not None and math.isfinite(float(t["net_sigma"]))]
+            if ns:
+                v.append(float(np.mean(ns)))
+    return float(np.mean(v)) if v else float("nan")
+
+
+def win_rate(recs: list) -> float:
+    v = []
+    for r in recs:
+        ts = r.get("trade_summary")
+        if ts and ts.get("n"):
+            v.append(float(ts["win_rate"]))
+        elif r.get("trades"):
+            v.append(float(np.mean([float(t["net_usd"]) > 0 for t in r["trades"]])))
+    return float(np.mean(v)) if v else float("nan")
+
+
 def d7_table(ladder_dir: Path, rule: str) -> list:
     """The 24-family closer ladder against the information-limited Bayes closer (QUALIFICATION_SPEC D7), one rule."""
     recs = [json.loads(p.read_text()) for p in sorted(ladder_dir.glob("LADDER_*.json"))]
@@ -244,12 +269,12 @@ def d7_table(ladder_dir: Path, rule: str) -> list:
         return ["(sin archivos de la escalera)"]
     v = CLR.verdicts(recs, rule)
     L = [f"Regla z_close:k_persist[:filtro] = `{rule}`; {len(recs)} familias; en q1.00 la regla reproduce exactamente las corridas de cabezas perfectas; monotonía en la calidad {v['monotone_pass'][0]} / {v['monotone_pass'][1]}.", "",
-         "| calidad, φ | E4 estrategia / Bayes | regret estrategia / Bayes | cierre temprano estrategia / Bayes | Sharpe estrategia / Bayes | neto estrategia / Bayes | pasa E4 | pasa regret | valor del cierre temprano pasa / falla / vacío |",
+         "| calidad, φ | E4 estrategia / Bayes | regret estrategia / Bayes | cierre temprano estrategia / Bayes | Sharpe estrategia / Bayes | neto USD MEDIANO por familia estrategia / Bayes | pasa E4 | pasa regret | valor del cierre temprano pasa / falla / vacío |",
          "| --- | --- | --- | --- | --- | --- | ---: | ---: | --- |"]
     for k, x in v["summary"].items():
         m, c = x["mean"], x["counts"]
         L.append(f"| {k} | {m['E4']:.3f} / {m['E4_bayes']:.3f} | {m['regret']:.3f} / {m['regret_bayes']:.3f} | {m['early']:.3f} / {m['early_bayes']:.3f} | {m['sharpe']:.2f} / {m['bayes_sharpe']:.2f} | "
-                 f"{m['net_usd']:,.0f} / {m['bayes_net_usd']:,.0f} | {c['pass_E4'][0]}/{c['pass_E4'][1]} | {c['pass_regret'][0]}/{c['pass_regret'][1]} | {c['pass_early_close_value'][0]}/{c['pass_early_close_value'][1]}/{c['pass_early_close_value'][2]} |")
+                 f"{m['net_usd_median']:,.0f} / {m['bayes_net_usd_median']:,.0f} | {c['pass_E4'][0]}/{c['pass_E4'][1]} | {c['pass_regret'][0]}/{c['pass_regret'][1]} | {c['pass_early_close_value'][0]}/{c['pass_early_close_value'][1]}/{c['pass_early_close_value'][2]} |")
     return L
 
 
@@ -385,9 +410,10 @@ def main():
          "Eventos del registro de la etapa:", "", "```"] + loglines[-40:] + ["```", "", "Progreso por generación (corrida 2):", "",
          "| generación | mejor Sharpe | testigos que fallan del mejor | factibles en la población |", "| ---: | ---: | ---: | ---: |"] + [
          f"| {p['generation']} | {p['best_sharpe']:.3f} | {p['best_failing']} | {p['feasible_in_pop']} |" for p in prog if "generation" in p] + [
-         "", "| matriz completa | registros | PASS efectivo | Sharpe diario medio | neto medio USD |", "| --- | ---: | ---: | ---: | ---: |",
-         f"| canónico (v10) | {len(rc)} | {pct(eff_c, len(rc))} | {np.mean(sh_c):.2f} | {np.mean([r['results']['summary']['net_usd'] for r in rc if r.get('results', {}).get('summary')]):.0f} |",
-         f"| punto DEAP | {len(ro)} | {pct(eff_o, len(ro))} | {np.mean(sh_o):.2f} | {np.mean([r['results']['summary']['net_usd'] for r in ro if r.get('results', {}).get('summary')]):.0f} |", "",
+         "", "| matriz completa | registros | PASS efectivo | Sharpe diario medio | neto USD mediano por registro | neto σ por operación (media) | tasa de acierto |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+         f"| canónico (v10) | {len(rc)} | {pct(eff_c, len(rc))} | {np.mean(sh_c):.2f} | {np.median([r['results']['summary']['net_usd'] for r in rc if r.get('results', {}).get('summary')]):.0f} | {sigma_per_trade(rc):.3f} | {win_rate(rc):.3f} |",
+         f"| punto DEAP | {len(ro)} | {pct(eff_o, len(ro))} | {np.mean(sh_o):.2f} | {np.median([r['results']['summary']['net_usd'] for r in ro if r.get('results', {}).get('summary')]):.0f} | {sigma_per_trade(ro):.3f} | {win_rate(ro):.3f} |", "",
+         "El neto en USD está compuesto desde el saldo inicial de cada mundo (10 000 USD; dimensionamiento al 1 % de riesgo con tope de apalancamiento 100): se reporta la MEDIANA por registro y nunca la media compuesta (regla del coordinador 2026-10-29); las magnitudes libres de escala son el Sharpe y el neto en σ por operación.", "",
          "La comparación canónico vs optimizado usa registros distintos: el canónico cubre la parte de la cola que corrió el host secundario y lo que el principal hizo antes de ceder sus ranuras.", "",
          "## 7. Defectos conocidos y límites", "",
          "- allow_reverse = 0 en el punto canónico ELIMINÓ reversos rentables: neto −18 %, Sharpe sin cambio (comprobación de 23 mundos); sigue siendo un gen del DEAP.",

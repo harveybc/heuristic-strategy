@@ -9,6 +9,8 @@
      "net_usd": 387572.3749625258,
      "trades": 146,
      "mean_hold_bars": 44.26712328767123,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.219175666946663,
      "bayes_net_usd": 418413.3966566737,
      "sides": {
@@ -41,6 +43,8 @@
      "net_usd": 300012.1257537146,
      "trades": 137,
      "mean_hold_bars": 47.88321167883212,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.658217910268778,
      "bayes_net_usd": 293932.1486581031,
      "sides": {
@@ -79,6 +83,8 @@
      "net_usd": 180195.477192365,
      "trades": 124,
      "mean_hold_bars": 53.83870967741935,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.13429488106108,
      "bayes_net_usd": 185400.1358128181,
      "sides": {
@@ -117,6 +123,8 @@
      "net_usd": 299161.74564453436,
      "trades": 135,
      "mean_hold_bars": 48.8,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.955954758410565,
      "bayes_net_usd": 323655.2835512496,
      "sides": {
@@ -155,6 +163,8 @@
      "net_usd": 164128.8384742446,
      "trades": 121,
      "mean_hold_bars": 55.396694214876035,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 9.983497507559354,
      "bayes_net_usd": 189687.00860934393,
      "sides": {
@@ -193,6 +203,8 @@
      "net_usd": 281612.58139107685,
      "trades": 135,
      "mean_hold_bars": 49.17037037037037,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.565467056510787,
      "bayes_net_usd": 455201.77457153896,
      "sides": {
@@ -231,6 +243,8 @@
      "net_usd": 152217.99222757603,
      "trades": 121,
      "mean_hold_bars": 55.85123966942149,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.505714191967462,
      "bayes_net_usd": 284636.56658180425,
      "sides": {
@@ -288,6 +302,8 @@
      "net_usd": 985427.4058494744,
      "trades": 137,
      "mean_hold_bars": 44.2992700729927,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.492345680457762,
      "bayes_net_usd": 1023994.399810572,
      "sides": {
@@ -320,6 +336,8 @@
      "net_usd": 705109.0315108,
      "trades": 127,
      "mean_hold_bars": 48.69291338582677,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.0169258940608,
      "bayes_net_usd": 731775.6110344729,
      "sides": {
@@ -358,6 +376,8 @@
      "net_usd": 473460.5364050745,
      "trades": 117,
      "mean_hold_bars": 53.666666666666664,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.306264341085528,
      "bayes_net_usd": 525156.1358167275,
      "sides": {
@@ -396,6 +416,8 @@
      "net_usd": 712010.8631856665,
      "trades": 127,
      "mean_hold_bars": 49.031496062992126,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.890145603640866,
      "bayes_net_usd": 688561.5885108132,
      "sides": {
@@ -434,6 +456,8 @@
      "net_usd": 448273.60373897915,
      "trades": 117,
      "mean_hold_bars": 53.794871794871796,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.424154384459909,
      "bayes_net_usd": 544110.1476410327,
      "sides": {
@@ -472,6 +496,8 @@
      "net_usd": 688929.7457253,
      "trades": 126,
      "mean_hold_bars": 49.43650793650794,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.119535964528131,
      "bayes_net_usd": 821929.7428331651,
      "sides": {
@@ -510,6 +536,8 @@
      "net_usd": 479897.1390568488,
      "trades": 120,
      "mean_hold_bars": 52.8,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.847844798310364,
      "bayes_net_usd": 520596.4361141408,
      "sides": {
@@ -567,6 +595,8 @@
      "net_usd": 563430.4529148598,
      "trades": 142,
      "mean_hold_bars": 43.16901408450704,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.156109661773337,
      "bayes_net_usd": 562874.9183906248,
      "sides": {
@@ -599,6 +629,8 @@
      "net_usd": 470584.14249983995,
      "trades": 136,
      "mean_hold_bars": 46.27205882352941,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.016282208655868,
      "bayes_net_usd": 489997.0493309188,
      "sides": {
@@ -637,6 +669,8 @@
      "net_usd": 291616.89015486557,
      "trades": 130,
      "mean_hold_bars": 49.66153846153846,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.518989929236541,
      "bayes_net_usd": 344107.2558964394,
      "sides": {
@@ -675,6 +709,8 @@
      "net_usd": 459407.79332645965,
      "trades": 135,
      "mean_hold_bars": 46.41481481481482,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.084624827425555,
      "bayes_net_usd": 503186.6296766061,
      "sides": {
@@ -713,6 +749,8 @@
      "net_usd": 318247.3207338056,
      "trades": 132,
      "mean_hold_bars": 49.06060606060606,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.406568727756667,
      "bayes_net_usd": 344600.21288902854,
      "sides": {
@@ -751,6 +789,8 @@
      "net_usd": 461830.03762697935,
      "trades": 136,
      "mean_hold_bars": 46.286764705882355,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.388899067620779,
      "bayes_net_usd": 704910.8571801796,
      "sides": {
@@ -789,6 +829,8 @@
      "net_usd": 272016.73589524213,
      "trades": 128,
      "mean_hold_bars": 50.84375,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.08559693425569,
      "bayes_net_usd": 491777.22138226207,
      "sides": {
@@ -846,6 +888,8 @@
      "net_usd": 688170.0817837305,
      "trades": 140,
      "mean_hold_bars": 43.43571428571428,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.672070552430466,
      "bayes_net_usd": 689751.7934511229,
      "sides": {
@@ -878,6 +922,8 @@
      "net_usd": 511806.445583393,
      "trades": 130,
      "mean_hold_bars": 47.69230769230769,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.174493400918761,
      "bayes_net_usd": 530253.6232502995,
      "sides": {
@@ -916,6 +962,8 @@
      "net_usd": 381068.8538031765,
      "trades": 126,
      "mean_hold_bars": 50.86507936507937,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.764475855964422,
      "bayes_net_usd": 407663.77218243404,
      "sides": {
@@ -954,6 +1002,8 @@
      "net_usd": 511534.31561089685,
      "trades": 131,
      "mean_hold_bars": 47.19083969465649,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.91688964128123,
      "bayes_net_usd": 491799.253289925,
      "sides": {
@@ -992,6 +1042,8 @@
      "net_usd": 337242.6119790216,
      "trades": 123,
      "mean_hold_bars": 52.073170731707314,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.367840359865289,
      "bayes_net_usd": 360575.33686087764,
      "sides": {
@@ -1030,6 +1082,8 @@
      "net_usd": 472367.1635809882,
      "trades": 128,
      "mean_hold_bars": 48.578125,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.37523789756111,
      "bayes_net_usd": 734578.410556433,
      "sides": {
@@ -1068,6 +1122,8 @@
      "net_usd": 281846.1673639787,
      "trades": 123,
      "mean_hold_bars": 52.146341463414636,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.239063715076407,
      "bayes_net_usd": 513880.7175633763,
      "sides": {
@@ -1125,6 +1181,8 @@
      "net_usd": 504530.14320483,
      "trades": 134,
      "mean_hold_bars": 46.17910447761194,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.881124623771807,
      "bayes_net_usd": 525867.4694271676,
      "sides": {
@@ -1157,6 +1215,8 @@
      "net_usd": 461787.04492170806,
      "trades": 133,
      "mean_hold_bars": 47.48872180451128,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.901550268555852,
      "bayes_net_usd": 455762.5082264738,
      "sides": {
@@ -1195,6 +1255,8 @@
      "net_usd": 257423.8680712065,
      "trades": 121,
      "mean_hold_bars": 53.429752066115704,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.63656888723433,
      "bayes_net_usd": 302732.0098331975,
      "sides": {
@@ -1233,6 +1295,8 @@
      "net_usd": 465682.5379665232,
      "trades": 132,
      "mean_hold_bars": 48.10606060606061,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.061402540557522,
      "bayes_net_usd": 474965.1648258043,
      "sides": {
@@ -1271,6 +1335,8 @@
      "net_usd": 236343.37725957952,
      "trades": 120,
      "mean_hold_bars": 53.925,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.661248956571635,
      "bayes_net_usd": 299056.17464932136,
      "sides": {
@@ -1309,6 +1375,8 @@
      "net_usd": 439919.35373077565,
      "trades": 130,
      "mean_hold_bars": 49.03846153846154,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.247905050324595,
      "bayes_net_usd": 607934.4157495212,
      "sides": {
@@ -1347,6 +1415,8 @@
      "net_usd": 198878.0684233918,
      "trades": 116,
      "mean_hold_bars": 55.81896551724138,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.810705500805899,
      "bayes_net_usd": 392470.320464105,
      "sides": {
@@ -1404,6 +1474,8 @@
      "net_usd": 432391.3133255136,
      "trades": 141,
      "mean_hold_bars": 43.50354609929078,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.554466465231245,
      "bayes_net_usd": 432253.2662159577,
      "sides": {
@@ -1436,6 +1508,8 @@
      "net_usd": 301827.3842221816,
      "trades": 127,
      "mean_hold_bars": 49.37007874015748,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.16025451661228,
      "bayes_net_usd": 324850.4717860646,
      "sides": {
@@ -1474,6 +1548,8 @@
      "net_usd": 183144.4658421961,
      "trades": 117,
      "mean_hold_bars": 55.7008547008547,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.356097275565196,
      "bayes_net_usd": 196661.56605484366,
      "sides": {
@@ -1512,6 +1588,8 @@
      "net_usd": 286967.2528592768,
      "trades": 125,
      "mean_hold_bars": 50.256,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.071265507731834,
      "bayes_net_usd": 289942.9938648018,
      "sides": {
@@ -1550,6 +1628,8 @@
      "net_usd": 177334.78600892876,
      "trades": 117,
      "mean_hold_bars": 55.76923076923077,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.439455846399351,
      "bayes_net_usd": 204072.86736421895,
      "sides": {
@@ -1588,6 +1668,8 @@
      "net_usd": 249514.87811482584,
      "trades": 122,
      "mean_hold_bars": 51.78688524590164,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.321779337619528,
      "bayes_net_usd": 436754.7520646789,
      "sides": {
@@ -1626,6 +1708,8 @@
      "net_usd": 155145.69227303733,
      "trades": 115,
      "mean_hold_bars": 57.23478260869565,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.19699056733911,
      "bayes_net_usd": 363490.03078556765,
      "sides": {
@@ -1683,6 +1767,8 @@
      "net_usd": 633031.8937319331,
      "trades": 138,
      "mean_hold_bars": 44.46376811594203,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.618218411643902,
      "bayes_net_usd": 657896.3945771641,
      "sides": {
@@ -1715,6 +1801,8 @@
      "net_usd": 556374.732608608,
      "trades": 133,
      "mean_hold_bars": 47.24812030075188,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.53033416074453,
      "bayes_net_usd": 586769.6570110664,
      "sides": {
@@ -1753,6 +1841,8 @@
      "net_usd": 423686.8218825448,
      "trades": 128,
      "mean_hold_bars": 50.2890625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.259692381050575,
      "bayes_net_usd": 470773.47294557665,
      "sides": {
@@ -1791,6 +1881,8 @@
      "net_usd": 566402.3605418074,
      "trades": 133,
      "mean_hold_bars": 46.92481203007519,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.535731371296901,
      "bayes_net_usd": 594433.674826513,
      "sides": {
@@ -1829,6 +1921,8 @@
      "net_usd": 420930.23729241744,
      "trades": 127,
      "mean_hold_bars": 50.92125984251968,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.977082932992518,
      "bayes_net_usd": 437979.1984885953,
      "sides": {
@@ -1867,6 +1961,8 @@
      "net_usd": 514135.34150438587,
      "trades": 131,
      "mean_hold_bars": 48.13740458015267,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.899910636911144,
      "bayes_net_usd": 725566.8418249412,
      "sides": {
@@ -1905,6 +2001,8 @@
      "net_usd": 358032.8864810211,
      "trades": 127,
      "mean_hold_bars": 50.732283464566926,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.63396591455515,
      "bayes_net_usd": 541553.0717533411,
      "sides": {
@@ -1962,6 +2060,8 @@
      "net_usd": 439607.880275391,
      "trades": 127,
      "mean_hold_bars": 48.811023622047244,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.480127408414791,
      "bayes_net_usd": 439261.6329599537,
      "sides": {
@@ -1994,6 +2094,8 @@
      "net_usd": 348082.40962772054,
      "trades": 117,
      "mean_hold_bars": 53.427350427350426,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.208737285614648,
      "bayes_net_usd": 367144.1313242297,
      "sides": {
@@ -2032,6 +2134,8 @@
      "net_usd": 224243.05943633313,
      "trades": 109,
      "mean_hold_bars": 58.357798165137616,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.2315722786325,
      "bayes_net_usd": 225552.2387965748,
      "sides": {
@@ -2070,6 +2174,8 @@
      "net_usd": 363233.54154286877,
      "trades": 119,
      "mean_hold_bars": 52.72268907563025,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.037265938077855,
      "bayes_net_usd": 355730.0294474795,
      "sides": {
@@ -2108,6 +2214,8 @@
      "net_usd": 202197.6106792977,
      "trades": 110,
      "mean_hold_bars": 58.554545454545455,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.311452733043726,
      "bayes_net_usd": 242240.94308017375,
      "sides": {
@@ -2146,6 +2254,8 @@
      "net_usd": 348847.67914558324,
      "trades": 118,
      "mean_hold_bars": 53.3728813559322,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.582699536275953,
      "bayes_net_usd": 431308.2696586039,
      "sides": {
@@ -2184,6 +2294,8 @@
      "net_usd": 173895.1917781628,
      "trades": 107,
      "mean_hold_bars": 60.05607476635514,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.559634532527292,
      "bayes_net_usd": 330729.4672504032,
      "sides": {
@@ -2241,6 +2353,8 @@
      "net_usd": 1033159.9979027688,
      "trades": 140,
      "mean_hold_bars": 43.93571428571428,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.246000152715396,
      "bayes_net_usd": 1009945.5072485387,
      "sides": {
@@ -2273,6 +2387,8 @@
      "net_usd": 905995.3363161419,
      "trades": 138,
      "mean_hold_bars": 45.45652173913044,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.331171741727827,
      "bayes_net_usd": 947781.096436243,
      "sides": {
@@ -2311,6 +2427,8 @@
      "net_usd": 645286.0192860495,
      "trades": 134,
      "mean_hold_bars": 47.8134328358209,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.88915576773611,
      "bayes_net_usd": 672201.6728257084,
      "sides": {
@@ -2349,6 +2467,8 @@
      "net_usd": 911266.8237543412,
      "trades": 137,
      "mean_hold_bars": 45.832116788321166,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.458544609220546,
      "bayes_net_usd": 956964.6547998455,
      "sides": {
@@ -2387,6 +2507,8 @@
      "net_usd": 594491.6808944469,
      "trades": 133,
      "mean_hold_bars": 48.255639097744364,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.652791301995086,
      "bayes_net_usd": 670471.0713708036,
      "sides": {
@@ -2425,6 +2547,8 @@
      "net_usd": 910365.6896548296,
      "trades": 137,
      "mean_hold_bars": 45.8978102189781,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.225229458851103,
      "bayes_net_usd": 932467.6688426976,
      "sides": {
@@ -2463,6 +2587,8 @@
      "net_usd": 495540.2136320089,
      "trades": 129,
      "mean_hold_bars": 49.4031007751938,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.147314043043425,
      "bayes_net_usd": 678297.4512336995,
      "sides": {
@@ -2520,6 +2646,8 @@
      "net_usd": 583892.1278557519,
      "trades": 130,
      "mean_hold_bars": 46.323076923076925,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.395198002927915,
      "bayes_net_usd": 617683.141458175,
      "sides": {
@@ -2552,6 +2680,8 @@
      "net_usd": 573655.6661572937,
      "trades": 130,
      "mean_hold_bars": 46.93076923076923,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.350113554913909,
      "bayes_net_usd": 559997.0224333225,
      "sides": {
@@ -2590,6 +2720,8 @@
      "net_usd": 441157.11577790335,
      "trades": 125,
      "mean_hold_bars": 49.904,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.311562903812359,
      "bayes_net_usd": 452059.8544808936,
      "sides": {
@@ -2628,6 +2760,8 @@
      "net_usd": 549676.3245185002,
      "trades": 130,
      "mean_hold_bars": 46.88461538461539,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.323736653038926,
      "bayes_net_usd": 553836.1802133399,
      "sides": {
@@ -2666,6 +2800,8 @@
      "net_usd": 363237.59809581866,
      "trades": 121,
      "mean_hold_bars": 51.90909090909091,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.209689546094,
      "bayes_net_usd": 427047.2134905084,
      "sides": {
@@ -2704,6 +2840,8 @@
      "net_usd": 563357.196932663,
      "trades": 128,
      "mean_hold_bars": 47.9765625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.245414954813443,
      "bayes_net_usd": 648185.6777166261,
      "sides": {
@@ -2742,6 +2880,8 @@
      "net_usd": 363394.47418033215,
      "trades": 122,
      "mean_hold_bars": 51.47540983606557,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.201585584607516,
      "bayes_net_usd": 484216.84119369235,
      "sides": {
@@ -2799,6 +2939,8 @@
      "net_usd": 961146.469353082,
      "trades": 147,
      "mean_hold_bars": 41.76190476190476,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.166969152905837,
      "bayes_net_usd": 971270.3501108064,
      "sides": {
@@ -2831,6 +2973,8 @@
      "net_usd": 610523.3223832328,
      "trades": 133,
      "mean_hold_bars": 46.48872180451128,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.599020752691986,
      "bayes_net_usd": 637944.096233841,
      "sides": {
@@ -2869,6 +3013,8 @@
      "net_usd": 475638.9024394603,
      "trades": 129,
      "mean_hold_bars": 48.92248062015504,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.218783575126626,
      "bayes_net_usd": 449937.1939113124,
      "sides": {
@@ -2907,6 +3053,8 @@
      "net_usd": 604575.2425235162,
      "trades": 133,
      "mean_hold_bars": 46.38345864661654,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.607949076719272,
      "bayes_net_usd": 621384.6008697576,
      "sides": {
@@ -2945,6 +3093,8 @@
      "net_usd": 429938.9493342974,
      "trades": 127,
      "mean_hold_bars": 49.51968503937008,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.284060777730572,
      "bayes_net_usd": 462687.40588110534,
      "sides": {
@@ -2983,6 +3133,8 @@
      "net_usd": 658860.5320715433,
      "trades": 137,
      "mean_hold_bars": 45.386861313868614,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.893787113360338,
      "bayes_net_usd": 823652.7899896125,
      "sides": {
@@ -3021,6 +3173,8 @@
      "net_usd": 385157.34236070054,
      "trades": 128,
      "mean_hold_bars": 50.2265625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.697726131346279,
      "bayes_net_usd": 619984.8235240456,
      "sides": {
@@ -3078,6 +3232,8 @@
      "net_usd": 640665.4618907953,
      "trades": 143,
      "mean_hold_bars": 43.09090909090909,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.99725295526961,
      "bayes_net_usd": 634091.8876135834,
      "sides": {
@@ -3110,6 +3266,8 @@
      "net_usd": 459476.96295067924,
      "trades": 132,
      "mean_hold_bars": 48.10606060606061,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.567313709029388,
      "bayes_net_usd": 467723.54790038895,
      "sides": {
@@ -3148,6 +3306,8 @@
      "net_usd": 290389.9594921992,
      "trades": 128,
      "mean_hold_bars": 50.5859375,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.822476371016192,
      "bayes_net_usd": 290200.1265149656,
      "sides": {
@@ -3186,6 +3346,8 @@
      "net_usd": 455576.96243573417,
      "trades": 132,
      "mean_hold_bars": 48.06060606060606,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.567536165288526,
      "bayes_net_usd": 462105.1968745829,
      "sides": {
@@ -3224,6 +3386,8 @@
      "net_usd": 311082.9080860967,
      "trades": 128,
      "mean_hold_bars": 50.90625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.506156623590577,
      "bayes_net_usd": 296763.81774369185,
      "sides": {
@@ -3262,6 +3426,8 @@
      "net_usd": 392193.5292104146,
      "trades": 129,
      "mean_hold_bars": 49.2093023255814,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.446545620394735,
      "bayes_net_usd": 830101.2627919555,
      "sides": {
@@ -3300,6 +3466,8 @@
      "net_usd": 198439.45966589684,
      "trades": 119,
      "mean_hold_bars": 55.075630252100844,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.256257114450813,
      "bayes_net_usd": 625074.8278316574,
      "sides": {
@@ -3357,6 +3525,8 @@
      "net_usd": 835404.6593086395,
      "trades": 140,
      "mean_hold_bars": 43.47857142857143,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.297822339742119,
      "bayes_net_usd": 810842.7158738773,
      "sides": {
@@ -3389,6 +3559,8 @@
      "net_usd": 698329.466184745,
      "trades": 134,
      "mean_hold_bars": 46.19402985074627,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.081116114717164,
      "bayes_net_usd": 762570.0308337733,
      "sides": {
@@ -3427,6 +3599,8 @@
      "net_usd": 459630.0596740224,
      "trades": 128,
      "mean_hold_bars": 49.9140625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.51649002769845,
      "bayes_net_usd": 450278.46365288843,
      "sides": {
@@ -3465,6 +3639,8 @@
      "net_usd": 652474.7133083544,
      "trades": 132,
      "mean_hold_bars": 46.81818181818182,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.908931611781233,
      "bayes_net_usd": 718907.2340962852,
      "sides": {
@@ -3503,6 +3679,8 @@
      "net_usd": 375695.8475696934,
      "trades": 123,
      "mean_hold_bars": 52.15447154471545,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.430157753258136,
      "bayes_net_usd": 453990.2252027604,
      "sides": {
@@ -3541,6 +3719,8 @@
      "net_usd": 711967.3287805343,
      "trades": 136,
      "mean_hold_bars": 45.875,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.745144752135207,
      "bayes_net_usd": 755025.994901675,
      "sides": {
@@ -3579,6 +3759,8 @@
      "net_usd": 304505.0163268732,
      "trades": 123,
      "mean_hold_bars": 52.22764227642276,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.433943945357212,
      "bayes_net_usd": 523510.2247629113,
      "sides": {
@@ -3636,6 +3818,8 @@
      "net_usd": 722055.0464784852,
      "trades": 128,
      "mean_hold_bars": 48.265625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.326262285742711,
      "bayes_net_usd": 729449.165452223,
      "sides": {
@@ -3668,6 +3852,8 @@
      "net_usd": 636850.7944042099,
      "trades": 125,
      "mean_hold_bars": 50.28,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.12874721189735,
      "bayes_net_usd": 630330.6263137101,
      "sides": {
@@ -3706,6 +3892,8 @@
      "net_usd": 447520.30765510566,
      "trades": 119,
      "mean_hold_bars": 53.714285714285715,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.817134827151511,
      "bayes_net_usd": 519857.13261986035,
      "sides": {
@@ -3744,6 +3932,8 @@
      "net_usd": 633399.7736417191,
      "trades": 125,
      "mean_hold_bars": 50.48,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.968224330219158,
      "bayes_net_usd": 588999.4762853482,
      "sides": {
@@ -3782,6 +3972,8 @@
      "net_usd": 382182.5142518082,
      "trades": 116,
      "mean_hold_bars": 55.21551724137931,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.464218592479385,
      "bayes_net_usd": 454482.04482150706,
      "sides": {
@@ -3820,6 +4012,8 @@
      "net_usd": 610364.7422013151,
      "trades": 124,
      "mean_hold_bars": 50.524193548387096,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.498296144862929,
      "bayes_net_usd": 753559.0700824462,
      "sides": {
@@ -3858,6 +4052,8 @@
      "net_usd": 354539.0698668146,
      "trades": 115,
      "mean_hold_bars": 55.85217391304348,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.862367964846317,
      "bayes_net_usd": 503756.7600172727,
      "sides": {
@@ -3915,6 +4111,8 @@
      "net_usd": 673365.1153471066,
      "trades": 132,
      "mean_hold_bars": 46.666666666666664,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.416773209121724,
      "bayes_net_usd": 680381.2960418706,
      "sides": {
@@ -3947,6 +4145,8 @@
      "net_usd": 533623.1654078541,
      "trades": 125,
      "mean_hold_bars": 49.84,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.166474344671114,
      "bayes_net_usd": 583698.8780652399,
      "sides": {
@@ -3985,6 +4185,8 @@
      "net_usd": 357958.2738381164,
      "trades": 120,
      "mean_hold_bars": 52.575,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.531863647238694,
      "bayes_net_usd": 413864.62433520483,
      "sides": {
@@ -4023,6 +4225,8 @@
      "net_usd": 531250.0670128413,
      "trades": 125,
      "mean_hold_bars": 49.736,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.148747894754212,
      "bayes_net_usd": 611738.8576481949,
      "sides": {
@@ -4061,6 +4265,8 @@
      "net_usd": 351784.23540443805,
      "trades": 121,
      "mean_hold_bars": 52.68595041322314,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.157180828236791,
      "bayes_net_usd": 370211.3483631529,
      "sides": {
@@ -4099,6 +4305,8 @@
      "net_usd": 494935.0002238741,
      "trades": 124,
      "mean_hold_bars": 50.024193548387096,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.690977361969981,
      "bayes_net_usd": 815210.287285995,
      "sides": {
@@ -4137,6 +4345,8 @@
      "net_usd": 334155.00885910477,
      "trades": 120,
      "mean_hold_bars": 53.05833333333333,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.50507209988183,
      "bayes_net_usd": 521888.51804613124,
      "sides": {
@@ -4194,6 +4404,8 @@
      "net_usd": 1232130.4923704625,
      "trades": 147,
      "mean_hold_bars": 42.265306122448976,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.434161943336344,
      "bayes_net_usd": 1225046.825563795,
      "sides": {
@@ -4226,6 +4438,8 @@
      "net_usd": 796897.4919861862,
      "trades": 134,
      "mean_hold_bars": 47.19402985074627,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.853109171743807,
      "bayes_net_usd": 924905.0450706093,
      "sides": {
@@ -4264,6 +4478,8 @@
      "net_usd": 564349.8921628954,
      "trades": 131,
      "mean_hold_bars": 49.900763358778626,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.506520196441642,
      "bayes_net_usd": 627582.5933539256,
      "sides": {
@@ -4302,6 +4518,8 @@
      "net_usd": 812766.4997203756,
      "trades": 135,
      "mean_hold_bars": 46.84444444444444,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.792703589356814,
      "bayes_net_usd": 877421.5117783194,
      "sides": {
@@ -4340,6 +4558,8 @@
      "net_usd": 517634.9079801525,
      "trades": 131,
      "mean_hold_bars": 50.458015267175576,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.317297920702474,
      "bayes_net_usd": 558257.3736847886,
      "sides": {
@@ -4378,6 +4598,8 @@
      "net_usd": 906445.6053425091,
      "trades": 138,
      "mean_hold_bars": 46.094202898550726,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.217992219028153,
      "bayes_net_usd": 1120810.1199078315,
      "sides": {
@@ -4416,6 +4638,8 @@
      "net_usd": 466541.0620706202,
      "trades": 130,
      "mean_hold_bars": 50.26923076923077,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.252938608931505,
      "bayes_net_usd": 773700.4854740192,
      "sides": {
@@ -4473,6 +4697,8 @@
      "net_usd": 658164.2544599012,
      "trades": 141,
      "mean_hold_bars": 44.262411347517734,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.560270586521405,
      "bayes_net_usd": 658806.4320104733,
      "sides": {
@@ -4505,6 +4731,8 @@
      "net_usd": 481429.55604541436,
      "trades": 131,
      "mean_hold_bars": 48.541984732824424,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.249853286119993,
      "bayes_net_usd": 481607.3779816495,
      "sides": {
@@ -4543,6 +4771,8 @@
      "net_usd": 270869.80107469566,
      "trades": 120,
      "mean_hold_bars": 53.541666666666664,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.377221442674474,
      "bayes_net_usd": 311730.7159593945,
      "sides": {
@@ -4581,6 +4811,8 @@
      "net_usd": 448190.2618583113,
      "trades": 128,
      "mean_hold_bars": 49.453125,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.23034515409728,
      "bayes_net_usd": 481447.55307901825,
      "sides": {
@@ -4619,6 +4851,8 @@
      "net_usd": 284579.39463549363,
      "trades": 122,
      "mean_hold_bars": 52.50819672131148,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.65482935292381,
      "bayes_net_usd": 312235.4464712135,
      "sides": {
@@ -4657,6 +4891,8 @@
      "net_usd": 445712.6140448831,
      "trades": 128,
      "mean_hold_bars": 49.578125,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.37764209024502,
      "bayes_net_usd": 673193.4484076003,
      "sides": {
@@ -4695,6 +4931,8 @@
      "net_usd": 233699.53255759474,
      "trades": 119,
      "mean_hold_bars": 54.78151260504202,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.335585844253233,
      "bayes_net_usd": 554930.100797367,
      "sides": {
@@ -4752,6 +4990,8 @@
      "net_usd": 721808.875103126,
      "trades": 142,
      "mean_hold_bars": 44.11267605633803,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.322412395672483,
      "bayes_net_usd": 761607.4589329435,
      "sides": {
@@ -4784,6 +5024,8 @@
      "net_usd": 547339.5914197856,
      "trades": 134,
      "mean_hold_bars": 47.708955223880594,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.176077496266835,
      "bayes_net_usd": 602745.9703873605,
      "sides": {
@@ -4822,6 +5064,8 @@
      "net_usd": 375723.34148571186,
      "trades": 129,
      "mean_hold_bars": 50.5968992248062,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.523240993728413,
      "bayes_net_usd": 434772.9878109803,
      "sides": {
@@ -4860,6 +5104,8 @@
      "net_usd": 578235.5644195611,
      "trades": 136,
      "mean_hold_bars": 46.72794117647059,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.035431818950169,
      "bayes_net_usd": 587588.1370500964,
      "sides": {
@@ -4898,6 +5144,8 @@
      "net_usd": 354053.8951058973,
      "trades": 127,
      "mean_hold_bars": 51.511811023622045,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.445228224331903,
      "bayes_net_usd": 415901.82439648075,
      "sides": {
@@ -4936,6 +5184,8 @@
      "net_usd": 572154.5151505517,
      "trades": 136,
      "mean_hold_bars": 46.98529411764706,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.403718988186306,
      "bayes_net_usd": 800533.8044998378,
      "sides": {
@@ -4974,6 +5224,8 @@
      "net_usd": 292619.417751777,
      "trades": 125,
      "mean_hold_bars": 52.432,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.494028563396276,
      "bayes_net_usd": 576703.937707004,
      "sides": {
@@ -5031,6 +5283,8 @@
      "net_usd": 1998636.301445166,
      "trades": 147,
      "mean_hold_bars": 41.8843537414966,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 13.12974684028896,
      "bayes_net_usd": 2044151.637561879,
      "sides": {
@@ -5063,6 +5317,8 @@
      "net_usd": 1789798.7782372357,
      "trades": 143,
      "mean_hold_bars": 43.56643356643357,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.910698141725423,
      "bayes_net_usd": 1783846.3029537173,
      "sides": {
@@ -5101,6 +5357,8 @@
      "net_usd": 1326180.1255136994,
      "trades": 137,
      "mean_hold_bars": 45.86131386861314,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.61683547450542,
      "bayes_net_usd": 1396081.103308783,
      "sides": {
@@ -5139,6 +5397,8 @@
      "net_usd": 1771125.0829682862,
      "trades": 143,
      "mean_hold_bars": 43.16783216783217,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.878285298199103,
      "bayes_net_usd": 1760485.2229751984,
      "sides": {
@@ -5177,6 +5437,8 @@
      "net_usd": 1420061.5951751026,
      "trades": 139,
      "mean_hold_bars": 45.60431654676259,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.522348944110231,
      "bayes_net_usd": 1380730.6087042529,
      "sides": {
@@ -5215,6 +5477,8 @@
      "net_usd": 1732325.9499679024,
      "trades": 142,
      "mean_hold_bars": 43.95070422535211,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 13.399709189823698,
      "bayes_net_usd": 2092259.0627733897,
      "sides": {
@@ -5253,6 +5517,8 @@
      "net_usd": 1061379.9365509506,
      "trades": 137,
      "mean_hold_bars": 46.715328467153284,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.914020242863081,
      "bayes_net_usd": 1338274.765769062,
      "sides": {
@@ -5310,6 +5576,8 @@
      "net_usd": 744798.6871186317,
      "trades": 150,
      "mean_hold_bars": 40.86,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.46110041053844,
      "bayes_net_usd": 774914.3002820696,
      "sides": {
@@ -5342,6 +5610,8 @@
      "net_usd": 530864.8994553199,
      "trades": 135,
      "mean_hold_bars": 46.74814814814815,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.156373498952469,
      "bayes_net_usd": 570060.5124701299,
      "sides": {
@@ -5380,6 +5650,8 @@
      "net_usd": 317450.36520865926,
      "trades": 122,
      "mean_hold_bars": 52.18852459016394,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.274766731321181,
      "bayes_net_usd": 325846.4579338002,
      "sides": {
@@ -5418,6 +5690,8 @@
      "net_usd": 531590.1604820854,
      "trades": 136,
      "mean_hold_bars": 46.61029411764706,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.73516892964269,
      "bayes_net_usd": 499025.738844787,
      "sides": {
@@ -5456,6 +5730,8 @@
      "net_usd": 336589.4831565376,
      "trades": 123,
      "mean_hold_bars": 51.552845528455286,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.26374538259784,
      "bayes_net_usd": 340699.1239214303,
      "sides": {
@@ -5494,6 +5770,8 @@
      "net_usd": 465481.9280599137,
      "trades": 131,
      "mean_hold_bars": 48.083969465648856,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.603681800292497,
      "bayes_net_usd": 837879.1448062933,
      "sides": {
@@ -5532,6 +5810,8 @@
      "net_usd": 275282.9081623854,
      "trades": 123,
      "mean_hold_bars": 52.65040650406504,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.524693230941633,
      "bayes_net_usd": 651495.0699474679,
      "sides": {
@@ -5589,6 +5869,8 @@
      "net_usd": 318498.05459347303,
      "trades": 128,
      "mean_hold_bars": 47.9140625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.8212180049097,
      "bayes_net_usd": 318177.53843944386,
      "sides": {
@@ -5621,6 +5903,8 @@
      "net_usd": 214942.0229333546,
      "trades": 116,
      "mean_hold_bars": 53.91379310344828,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.981140321182203,
      "bayes_net_usd": 213623.51019549312,
      "sides": {
@@ -5659,6 +5943,8 @@
      "net_usd": 150256.94094906293,
      "trades": 109,
      "mean_hold_bars": 58.85321100917431,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.275964037337507,
      "bayes_net_usd": 158059.94780764997,
      "sides": {
@@ -5697,6 +5983,8 @@
      "net_usd": 212829.20407659558,
      "trades": 115,
      "mean_hold_bars": 54.356521739130436,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.030625705409834,
      "bayes_net_usd": 220599.03566335223,
      "sides": {
@@ -5735,6 +6023,8 @@
      "net_usd": 137495.32688072987,
      "trades": 107,
      "mean_hold_bars": 60.02803738317757,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.487303542905842,
      "bayes_net_usd": 165580.04722345842,
      "sides": {
@@ -5773,6 +6063,8 @@
      "net_usd": 224559.5170612065,
      "trades": 115,
      "mean_hold_bars": 54.582608695652176,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.800310221026542,
      "bayes_net_usd": 300736.3968043383,
      "sides": {
@@ -5811,6 +6103,8 @@
      "net_usd": 141625.38036089257,
      "trades": 107,
      "mean_hold_bars": 60.38317757009346,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.847118088367665,
      "bayes_net_usd": 318960.82287732646,
      "sides": {
@@ -5868,6 +6162,8 @@
      "net_usd": 414589.95881317277,
      "trades": 138,
      "mean_hold_bars": 43.971014492753625,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.289802168940088,
      "bayes_net_usd": 415341.4078456517,
      "sides": {
@@ -5900,6 +6196,8 @@
      "net_usd": 353980.34808264335,
      "trades": 135,
      "mean_hold_bars": 46.32592592592592,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.255962007779333,
      "bayes_net_usd": 383913.1136710013,
      "sides": {
@@ -5938,6 +6236,8 @@
      "net_usd": 207116.46427662545,
      "trades": 124,
      "mean_hold_bars": 52.07258064516129,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.483753129169768,
      "bayes_net_usd": 248980.07343742225,
      "sides": {
@@ -5976,6 +6276,8 @@
      "net_usd": 324806.0626403517,
      "trades": 132,
      "mean_hold_bars": 47.166666666666664,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.13565568186882,
      "bayes_net_usd": 344793.1005375343,
      "sides": {
@@ -6014,6 +6316,8 @@
      "net_usd": 166975.84447402594,
      "trades": 120,
      "mean_hold_bars": 54.075,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 9.897953800147961,
      "bayes_net_usd": 203014.5464217659,
      "sides": {
@@ -6052,6 +6356,8 @@
      "net_usd": 286471.6149319343,
      "trades": 129,
      "mean_hold_bars": 48.44186046511628,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.435259025817352,
      "bayes_net_usd": 505835.82358005666,
      "sides": {
@@ -6090,6 +6396,8 @@
      "net_usd": 176825.06962501578,
      "trades": 122,
      "mean_hold_bars": 52.39344262295082,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.128296903701854,
      "bayes_net_usd": 343947.4294733779,
      "sides": {
@@ -6147,6 +6455,8 @@
      "net_usd": 493078.5920964284,
      "trades": 133,
      "mean_hold_bars": 46.54135338345865,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.248651917937288,
      "bayes_net_usd": 503051.3597437477,
      "sides": {
@@ -6179,6 +6489,8 @@
      "net_usd": 404427.23116316705,
      "trades": 126,
      "mean_hold_bars": 50.26190476190476,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.950302946736862,
      "bayes_net_usd": 401105.6383704676,
      "sides": {
@@ -6217,6 +6529,8 @@
      "net_usd": 258217.964785514,
      "trades": 119,
      "mean_hold_bars": 54.38655462184874,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.164144203716102,
      "bayes_net_usd": 238435.5382811931,
      "sides": {
@@ -6255,6 +6569,8 @@
      "net_usd": 409006.40273163444,
      "trades": 127,
      "mean_hold_bars": 49.83464566929134,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.888503159176961,
      "bayes_net_usd": 384147.14835623297,
      "sides": {
@@ -6293,6 +6609,8 @@
      "net_usd": 249764.07705807054,
      "trades": 118,
      "mean_hold_bars": 55.47457627118644,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.26732043447432,
      "bayes_net_usd": 254754.9930469896,
      "sides": {
@@ -6331,6 +6649,8 @@
      "net_usd": 392953.4889760926,
      "trades": 127,
      "mean_hold_bars": 49.724409448818896,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.442361697867879,
      "bayes_net_usd": 698030.573050163,
      "sides": {
@@ -6369,6 +6689,8 @@
      "net_usd": 180056.7056655658,
      "trades": 115,
      "mean_hold_bars": 56.85217391304348,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.395306924839232,
      "bayes_net_usd": 598983.7259164884,
      "sides": {
@@ -6426,6 +6748,8 @@
      "net_usd": 701133153.3106071,
      "trades": 171,
      "mean_hold_bars": 36.15204678362573,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.917873501956496,
      "bayes_net_usd": 698242310.416626,
      "sides": {
@@ -6458,6 +6782,8 @@
      "net_usd": 327401841.5167627,
      "trades": 162,
      "mean_hold_bars": 39.41975308641975,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.613013675156845,
      "bayes_net_usd": 325057710.12327325,
      "sides": {
@@ -6496,6 +6822,8 @@
      "net_usd": 78215763.00796998,
      "trades": 150,
      "mean_hold_bars": 42.70666666666666,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.347352576944285,
      "bayes_net_usd": 147922366.75666246,
      "sides": {
@@ -6534,6 +6862,8 @@
      "net_usd": 328710958.6314761,
      "trades": 163,
      "mean_hold_bars": 39.08588957055215,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.578660489551844,
      "bayes_net_usd": 313677462.98410183,
      "sides": {
@@ -6572,6 +6902,8 @@
      "net_usd": 94809714.42424904,
      "trades": 152,
      "mean_hold_bars": 42.32236842105263,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 10.939579828723046,
      "bayes_net_usd": 90459001.11932307,
      "sides": {
@@ -6610,6 +6942,8 @@
      "net_usd": 197962135.28729415,
      "trades": 156,
      "mean_hold_bars": 40.77564102564103,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 11.997145825613234,
      "bayes_net_usd": 633101986.6011242,
      "sides": {
@@ -6648,6 +6982,8 @@
      "net_usd": 54863782.64235952,
      "trades": 146,
      "mean_hold_bars": 44.37671232876713,
+     "net_sigma_per_trade": NaN,
+     "win_rate": NaN,
      "bayes_sharpe": 12.419159129070232,
      "bayes_net_usd": 252851438.87342513,
      "sides": {
@@ -6712,7 +7048,11 @@
     "net_usd": 3634097.8547657277,
     "bayes_net_usd": 6565429.242926461,
     "trades": 124.83333333333333,
-    "mean_hold_bars": 51.63945172603971
+    "mean_hold_bars": 51.63945172603971,
+    "net_sigma_per_trade": 0.0,
+    "win_rate": 0.0,
+    "net_usd_median": 375723.34148571186,
+    "bayes_net_usd_median": 413864.62433520483
    },
    "counts": {
     "pass_E4": [
@@ -6743,7 +7083,11 @@
     "net_usd": 4307915.8778549135,
     "bayes_net_usd": 4160339.587485399,
     "trades": 123.95833333333333,
-    "mean_hold_bars": 52.236547928192664
+    "mean_hold_bars": 52.236547928192664,
+    "net_sigma_per_trade": 0.0,
+    "win_rate": 0.0,
+    "net_usd_median": 351784.23540443805,
+    "bayes_net_usd_median": 370211.3483631529
    },
    "counts": {
     "pass_E4": [
@@ -6774,7 +7118,11 @@
     "net_usd": 2591644.7130623045,
     "bayes_net_usd": 11058512.437078819,
     "trades": 122.375,
-    "mean_hold_bars": 53.06901146484171
+    "mean_hold_bars": 53.06901146484171,
+    "net_sigma_per_trade": 0.0,
+    "win_rate": 0.0,
+    "net_usd_median": 292619.417751777,
+    "bayes_net_usd_median": 523510.2247629113
    },
    "counts": {
     "pass_E4": [
@@ -6805,7 +7153,11 @@
     "net_usd": 14191481.644442411,
     "bayes_net_usd": 14116252.003883826,
     "trades": 132.20833333333334,
-    "mean_hold_bars": 47.710491436842354
+    "mean_hold_bars": 47.710491436842354,
+    "net_sigma_per_trade": 0.0,
+    "win_rate": 0.0,
+    "net_usd_median": 533623.1654078541,
+    "bayes_net_usd_median": 570060.5124701299
    },
    "counts": {
     "pass_E4": [
@@ -6836,7 +7188,11 @@
     "net_usd": 14241755.341176933,
     "bayes_net_usd": 13627882.552131956,
     "trades": 131.91666666666666,
-    "mean_hold_bars": 47.787043813941885
+    "mean_hold_bars": 47.787043813941885,
+    "net_sigma_per_trade": 0.0,
+    "win_rate": 0.0,
+    "net_usd_median": 531590.1604820854,
+    "bayes_net_usd_median": 553836.1802133399
    },
    "counts": {
     "pass_E4": [
@@ -6867,7 +7223,11 @@
     "net_usd": 8782810.055030176,
     "bayes_net_usd": 27108652.199625153,
     "trades": 130.95833333333334,
-    "mean_hold_bars": 48.28825581378492
+    "mean_hold_bars": 48.28825581378492,
+    "net_sigma_per_trade": 0.0,
+    "win_rate": 0.0,
+    "net_usd_median": 494935.0002238741,
+    "bayes_net_usd_median": 753559.0700824462
    },
    "counts": {
     "pass_E4": [
@@ -6898,7 +7258,11 @@
     "net_usd": 29908279.539616346,
     "bayes_net_usd": 29797807.696345598,
     "trades": 140.08333333333334,
-    "mean_hold_bars": 44.15059402626082
+    "mean_hold_bars": 44.15059402626082,
+    "net_sigma_per_trade": 0.0,
+    "win_rate": 0.0,
+    "net_usd_median": 673365.1153471066,
+    "bayes_net_usd_median": 680381.2960418706
    },
    "counts": {
     "pass_E4": [
