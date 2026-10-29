@@ -1,37 +1,38 @@
 {
- "decisions": 152,
- "entry_decisions": 130,
+ "decisions": 153,
+ "entry_decisions": 131,
  "by_model": {
   "baseline_momentum24": {
-   "resolved_hits": 4,
-   "up_rate": 0.0,
-   "log_loss": 0.6981723484866962,
-   "brier": 0.25250000000000006,
-   "accuracy": 0.5
+   "resolved_hits": 6,
+   "up_rate": 0.3333333333333333,
+   "log_loss": 0.7316174643970547,
+   "brier": 0.2691666666666667,
+   "accuracy": 0.3333333333333333
   },
   "baseline_prior": {
-   "resolved_hits": 4,
-   "up_rate": 0.0,
+   "resolved_hits": 6,
+   "up_rate": 0.3333333333333333,
    "log_loss": 0.6931471805599453,
    "brier": 0.25,
    "accuracy": null
   },
   "llama3.2:3b": {
-   "resolved_hits": 4,
-   "up_rate": 0.0,
-   "log_loss": 2.0898959995836948,
-   "brier": 0.76790169,
-   "accuracy": 0.0
+   "resolved_hits": 6,
+   "up_rate": 0.3333333333333333,
+   "log_loss": 1.4372795933625737,
+   "brier": 0.5170350233333333,
+   "accuracy": 0.3333333333333333
   }
  },
  "status_counts": {
-  "PENDING": 72,
-  "FINAL": 58
+  "PENDING": 70,
+  "FINAL": 61
  },
  "outcome_counts": {
-  "NaN": 72,
-  "TIMEOUT": 54,
-  "LOWER": 4
+  "NaN": 70,
+  "TIMEOUT": 55,
+  "LOWER": 4,
+  "UPPER": 2
  },
- "scored_utc": "2026-10-29 22:13:04.986973+00:00"
+ "scored_utc": "2026-10-29 23:13:06.983762+00:00"
 }
