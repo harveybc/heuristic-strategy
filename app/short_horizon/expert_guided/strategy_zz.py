@@ -40,9 +40,23 @@ DEFAULT_LEVELS = ("rev800", "rev400", "rev200", "rev100", "rev60", "rev20", "rev
 # against the planted short oscillation). The per-cell ladder-to-horizon capture is measured and reported.
 ROLES = {"coarse": ("rev800", "rev400", "rev200", "rev100"), "middle": ("rev60", "rev20", "rev15"), "fine": ("3", "rev10", "rev8", "rev5")}
 EXPERT = Z.Params(depth=3, deviation_pips=40.7, backstep=0)
+# S4 (business contract, Musashi's TRAIN champions, PROFILES.json): the four MetaTrader levels that name a decision's horizon.
+# Kept OUT of DEFAULT_LEVELS so the legacy ladder quantities (votes, f*, NOP) stay byte-identical; deviation 5 is a declared
+# constant and INERT (verified 2026-10-29); the members are symmetric under price negation (Z.select_pivots, 2026-10-27).
+MT_HORIZONS = {"mt3h": (3, 1, 3), "mt6h": (4, 2, 6), "mt12h": (7, 6, 12), "mt24h": (12, 11, 24)}   # name: (depth, backstep, horizon hours)
+MT_DEVIATION_PIPS = 5.0
+HORIZON_CONFIRM_WINDOW = 2.0          # a level confirms a side only when its latest confirmation is within this x horizon bars (declared)
+HORIZON_RULE = ("a level confirms side s at bar b when its most recent pivot whose confirmation bar (zigzag.confirmation_bars_fast) is <= b "
+                "is a VALLEY for a buy / a PEAK for a sell (the new leg runs in the trade's direction) and that confirmation lies within "
+                "HORIZON_CONFIRM_WINDOW x h bars; the decision's horizon is the FINEST confirming level; no level confirming = no horizon (NOP "
+                "in the absolute-level profile)")
 
 PARAMS = {"closer_mode": 1.0, "closer_adv_margin": 0.02, "tp_mode": 1.0, "k_tp_protect": 1.5, "forced_every_bars": 24.0, "zz_post_flip_bars": 240.0, "zz_counter_net_frac": 1.2, "observe_bars": 0.0, "ev_from_net": 1.0, "close_margin_floor": 0.0, "risk_reward_floor": 0.5, "burst_window_bars": 6, "burst_vol_ratio": 2.0, "zz_room_tp_mult": 1.75, "zz_fine_h": 6,
-          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1, "closer_filter": 1.0}
+          "zz_timing_gate": 1.0, "zz_nop_gate": 1.0, "zz_close_room": 0.5, "close_p_requires_rem_below": 0.0, "zz_theta_f": 0.5, "zz_reverse_flip_bars": 960, "z_close": 1.0, "k_persist": 1, "closer_filter": 1.0,
+          "a_sl": 1.0, "b_sl": 0.0, "buffer_pips": 1.0, "a_tp": 1.0, "b_tp": 0.0, "ref_p75": 0.0,   # S2/S4 absolute-level genes (STRATEGY_PARAMS v2 in S6); ref_p75 = the declared reference option
+          "horizon_rule": 0.0}                                       # S4: 0 = finest confirming MT level names the horizon, 1 = coarsest (declared options; a gene in S6)
+HORIZON_RULES = ("finest", "coarsest")
+LEVEL_TICK = 1e-5                     # the price grid of the absolute levels (declared)
 
 
 def configure(doc: dict):
@@ -115,13 +129,59 @@ def _level_arrays(o, h, l, c, sigma, piv):
     return out
 
 
+def mt_levels(bars) -> dict:
+    """The MT horizon members: per member the final pivots and each pivot's knowable confirmation bar."""
+    hi, lo = np.asarray(bars["HIGH"], float), np.asarray(bars["LOW"], float)
+    out = {}
+    for name, (depth, back, h) in MT_HORIZONS.items():
+        p = Z.Params(depth=depth, deviation_pips=MT_DEVIATION_PIPS, backstep=back)
+        lowmap, highmap = Z.candidate_maps(hi, lo, p)
+        piv = Z.select_pivots(lowmap, highmap)
+        conf = Z.confirmation_bars_fast(hi, lo, piv, p)
+        cand = sorted([(int(i) + back, Z.VALLEY) for i in np.flatnonzero(lowmap != 0)] + [(int(i) + back, Z.PEAK) for i in np.flatnonzero(highmap != 0)])
+        out[name] = {"pivots": piv, "conf": [int(x) for x in conf], "h": h, "params": (depth, back),
+                     "causal_events": [(c, k) for c, k in cand if c < len(hi)]}   # every candidate as a causal observer sees it at i + backstep (some are later erased)
+    return out
+
+
+def _rule_name(rule) -> str:
+    if isinstance(rule, str):
+        return rule
+    return HORIZON_RULES[1] if float(rule) >= 0.5 else HORIZON_RULES[0]
+
+
+def horizon_of_decision(n: int, mt: dict, rule="finest", causal: bool = False) -> np.ndarray:
+    """(n, 2) float: the horizon (hours) of the confirming MT level named by ``rule`` (finest | coarsest) per bar and
+    side (0 BUY, 1 SELL), NaN when no level confirms (HORIZON_RULE). ``causal``: the causal-confirmed control reads
+    every candidate at i + backstep (final or later erased); the ideal reads the final pivots at their knowable lock."""
+    out = np.full((n, 2), np.nan)
+    finest = _rule_name(rule) == "finest"
+    for name in sorted(MT_HORIZONS, key=lambda k: MT_HORIZONS[k][2], reverse=finest):   # the named rule's level overwrites the others
+        m = mt[name]
+        h = float(m["h"])
+        win = int(round(HORIZON_CONFIRM_WINDOW * h))
+        events = sorted(m["causal_events"]) if causal else sorted((c, kind) for (_, kind, _), c in zip(m["pivots"], m["conf"]) if c >= 0)
+        if not events:
+            continue
+        conf_bars = np.array([c for c, _ in events], np.int64)
+        kinds = np.array([k for _, k in events], np.int64)
+        idx = np.searchsorted(conf_bars, np.arange(n), side="right") - 1      # the latest confirmation <= b
+        has = idx >= 0
+        latest_conf = np.where(has, conf_bars[np.clip(idx, 0, len(conf_bars) - 1)], -1)
+        latest_kind = np.where(has, kinds[np.clip(idx, 0, len(kinds) - 1)], 0)
+        recent = has & (np.arange(n) - latest_conf <= win)
+        out[recent & (latest_kind == Z.VALLEY), 0] = h                      # a confirmed valley: the leg up runs with a BUY
+        out[recent & (latest_kind == Z.PEAK), 1] = h                        # a confirmed peak: the leg down runs with a SELL
+    return out
+
+
 def ladder_levels(bars, sigma, levels=DEFAULT_LEVELS) -> dict:
     """The per-level part of the ladder (pivots and per-bar leg arrays): independent of every strategy coefficient,
-    computed once per world and cached by the parameter optimiser."""
+    computed once per world and cached by the parameter optimiser. Carries the MT horizon members ('mt', S4)."""
     o, hi, lo, c = (np.asarray(bars[k], float) for k in ("OPEN", "HIGH", "LOW", "CLOSE"))
     sig = np.asarray(sigma, float)
     piv = {r: level_pivots(hi, lo, r) for r in levels}
-    return {"pivots": piv, "arr": {r: _level_arrays(o, hi, lo, c, sig, piv[r]) for r in levels}, "levels": tuple(levels), "n": len(c)}
+    return {"pivots": piv, "arr": {r: _level_arrays(o, hi, lo, c, sig, piv[r]) for r in levels}, "levels": tuple(levels), "n": len(c), "mt": mt_levels(bars)}
 
 
 def compact_levels(lv: dict, roles=ROLES) -> dict:
@@ -185,8 +245,12 @@ def ladder_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     flip_age = np.zeros(n)                                         # bars since the coarse direction last changed
     for t in range(1, n):
         flip_age[t] = 0.0 if direction[t] != direction[t - 1] else flip_age[t - 1] + 1.0
+    mt = lv.get("mt") if lv.get("mt") is not None else mt_levels(bars)
+    rule = _rule_name(PARAMS.get("horizon_rule", 0.0))
+    alt = HORIZON_RULES[1] if rule == HORIZON_RULES[0] else HORIZON_RULES[0]
     return {"room": room, "direction": direction, "tau_coarse": tau_coarse, "flip_age": flip_age, "counter": counter, "fresh": fresh, "tau_fine": tau_fine,
-            "fstar": fstar, "votes": votes, "nop_hard": nop_hard, "nop_graded": nop_graded, "pivots": piv, "levels": tuple(levels), "h": h}
+            "fstar": fstar, "votes": votes, "nop_hard": nop_hard, "nop_graded": nop_graded, "pivots": piv, "levels": tuple(levels), "h": h,
+            "horizon": horizon_of_decision(n, mt, rule), "horizon_alt": horizon_of_decision(n, mt, alt), "horizon_rule": rule, "sigma": np.asarray(sigma, float)}
 
 
 # ----------------------------------------------------------------------------- the hierarchy heads below perfect quality (README:
@@ -232,6 +296,20 @@ def degrade_quantities(q: dict, rho: float, seed: int) -> dict:
         mu, sd = float(np.mean(room[fin])), float(np.std(room[fin]))
         u = np.stack([_ar1(rng, n, 0.99), _ar1(rng, n, 0.99)], axis=1)
         out["room"] = np.where(fin, mu + rho * rho * (room - mu) + rho * k * sd * u, np.nan)
+    if "horizon" in q:                                               # S4: the MT confirmations pass the SAME ladder: the confirm flag per bar and side
+        hz = np.asarray(q["horizon"], float)                         # misclassified through the latent z = rho (+-1) + k u (AR(1)), errors in runs
+        y = np.isfinite(hz).astype(float)
+        z = rho * (2 * y - 1) + k * np.stack([_ar1(rng, n, 0.9), _ar1(rng, n, 0.9)], axis=1)
+        conf = z > 0
+        filled = hz.copy()
+        for j in (0, 1):                                             # a false confirmation names the last horizon that side carried (else the coarsest)
+            last = float(max(MT_HORIZONS.values(), key=lambda t: t[2])[2])
+            for t in range(n):
+                if np.isfinite(hz[t, j]):
+                    last = hz[t, j]
+                elif conf[t, j]:
+                    filled[t, j] = last
+        out["horizon"] = np.where(conf, filled, np.nan)
     out["head_mode"] = f"ladder rho={rho:.3f}"
     return out
 
@@ -287,7 +365,10 @@ def causal_quantities(bars, sigma, levels=DEFAULT_LEVELS, roles=ROLES, h: int | 
     for t in range(1, n):
         fa[t] = 0.0 if direction[t] != direction[t - 1] else fa[t - 1] + 1.0
     nan2 = np.full((n, 2), np.nan)
+    mt = lv.get("mt") if lv.get("mt") is not None else mt_levels(bars)
+    rule = _rule_name(PARAMS.get("horizon_rule", 0.0))
     return {"room": nan2.copy(), "direction": direction, "tau_coarse": np.full(n, np.nan), "flip_age": fa, "counter": counter, "fresh": fresh,
+            "horizon": horizon_of_decision(n, mt, rule, causal=True), "horizon_rule": rule, "sigma": np.asarray(sigma, float),
             "tau_fine": np.full(n, np.nan), "fstar": nan2.copy(), "votes": np.zeros((n, 2)), "nop_hard": np.zeros(n, bool), "nop_graded": np.zeros((n, 2), bool),
             "pivots": piv, "levels": tuple(levels), "h": h, "head_mode": "causal-confirmed"}
 
@@ -315,7 +396,10 @@ def to_rows(q: dict, row_bar) -> dict:
     return {"zz_room": nan2(q["room"]), "zz_dir": np.where(ok, q["direction"][b], 0.0), "zz_counter": nan2(q["counter"].astype(float)),
             "zz_fresh": nan2(q["fresh"].astype(float)), "zz_tau_fine": np.where(ok, q["tau_fine"][b], np.nan),
             "zz_nop_hard": np.where(ok, q["nop_hard"][b].astype(float), np.nan), "zz_fstar": nan2(q["fstar"]),
-            "zz_flip_age": np.where(ok, q["flip_age"][b], np.nan) if "flip_age" in q else np.full(len(rb), np.inf)}
+            "zz_flip_age": np.where(ok, q["flip_age"][b], np.nan) if "flip_age" in q else np.full(len(rb), np.inf),
+            "zz_h": nan2(q["horizon"]) if "horizon" in q else np.full((len(rb), 2), np.nan),
+            "zz_h_alt": nan2(q["horizon_alt"]) if "horizon_alt" in q else np.full((len(rb), 2), np.nan),
+            "zz_sigma": np.where(ok, q["sigma"][b], np.nan) if "sigma" in q else np.full(len(rb), np.nan)}
 
 
 def burst_rows(bars, sigma, row_bar, window: int | None = None, ratio: float | None = None) -> np.ndarray:
@@ -539,8 +623,60 @@ class PolicyC3Z(C3.PolicyC3):
         if chosen < 0:
             return None
         d = E.LONG if chosen == 0 else E.SHORT
+        if self._absolute_mode():
+            lv = self.absolute_envelope(r, chosen)
+            if lv is None:                                           # no horizon confirms, or the levels are not executable: NOP (declared)
+                self.attr[-1]["blocked"] = "no_horizon"
+                self.attr[-1]["chosen"] = -1
+                self.log[-1] = self.log[-1][:5] + (-1,) + self.log[-1][6:]
+                return None
+            self.attr[-1]["h"] = lv["h"]
+            out = (d, lv["tp"], lv["sl"])
+            return out + (evs[chosen],) if with_score else out
         out = (d, tps[chosen] if np.isfinite(tps[chosen]) else self.cells[cis[chosen]][0], self.cells[cis[chosen]][1])
         return out + (evs[chosen],) if with_score else out
+
+    # ---- S4: the horizon profile of the decision (absolute-level mode of the business contract)
+    def _absolute_mode(self) -> bool:
+        env = (getattr(self, "_ctx", None) or (None, None))[1]
+        var = getattr(getattr(env, "cfg", None), "variant", None)
+        return bool(var is not None and getattr(var, "level_mode", "sigma") == "absolute_pips")
+
+    def _references(self, h: int, side: int) -> dict:
+        from . import horizon_levels as HL
+        cache = getattr(self, "_refs", None)
+        if cache is None:
+            cache = self._refs = {"profiles": HL.load_profiles()}
+        q = "p75" if PARAMS.get("ref_p75", 0.0) >= 0.5 else "median"
+        key = (int(h), int(side), q)
+        if key not in cache:
+            cache[key] = HL.references(int(h), int(side), q, cache["profiles"])
+        return cache[key]
+
+    def absolute_envelope(self, r, chosen: int):
+        """(tp, sl) PRICES of the decision at row r for side ``chosen`` (0 BUY / 1 SELL): the finest confirming MT
+        level's horizon h (zz_h), the TRAIN references of (h, side), sigma_h = sigma(24 h) x sqrt(h / 24), the contract
+        genes, the quote = the decision bar's close (the env's reference), on the tick grid; None when no horizon
+        confirms or a level is not executable (the engine's own minimum-distance rule decides the rest)."""
+        from . import horizon_levels as HL
+        bar, env = self._ctx
+        zh = self.t.get("zz_h")
+        if zh is None or not np.isfinite(zh[r, chosen]):
+            return None
+        h = int(round(float(zh[r, chosen])))
+        d = 1 if chosen == 0 else -1
+        ref = self._references(h, d)
+        sig = self.t.get("zz_sigma")
+        s24 = float(sig[r]) if sig is not None and np.isfinite(sig[r]) else float("nan")
+        quote = float(env.c[int(bar)])
+        genes = {k: float(PARAMS[k]) for k in ("a_sl", "b_sl", "buffer_pips", "a_tp", "b_tp")}
+        try:
+            lv = HL.levels(d, quote, ref["tp_reference"], ref["mae_reference"], HL.sigma_h(s24, h), genes, LEVEL_TICK)
+        except HL.LevelInputError:
+            return None
+        if lv["raw_tp_distance"] <= 0 or lv["raw_sl_distance"] <= 0:
+            return None
+        return {"tp": float(lv["tp"]), "sl": float(lv["sl"]), "h": h, "quantile": ref["quantile"]}
 
     def reverse_ok(self, r) -> bool:
         """A reversal (close + open of the other side on the same decision) only within zz_reverse_flip_bars of a coarse

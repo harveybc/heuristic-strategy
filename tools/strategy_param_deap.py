@@ -188,7 +188,7 @@ class CachedWorld:
                "validity_v2": {k: vres[k] for k in ("not_evaluable", "unvalidated", "defects", "replay_conflicts", "evaluated")}, "fails_v1_retired": fails_v1 + exit_fails,
                "trades": len(roll["trades"]), "early_closes": sum(1 for t in roll["trades"] if t.get("exit_reason") == "EARLY"),
                "levels_clipped": int(roll["metrics"].get("n_levels_clipped", 0)) if isinstance(roll["metrics"], dict) else None,
-               "trade_stats": trade_stats(self.w, roll["trades"])}
+               "trade_stats": trade_stats(self.w, roll["trades"]), "horizon_mix": BM.horizon_mix(roll, view)}
         if self.cell.get("pair"):                                     # a zero-cost twin / exact-mirror pair: W14 and E6 are judged in the worker
             out["_trades"], out["_episodes"], out["_pair"], out["_role"] = BM.annotate_sigma(self.w, roll["trades"]), ep_summary, self.cell["pair"], self.cell["role"]
         self._release()

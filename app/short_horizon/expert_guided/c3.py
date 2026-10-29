@@ -326,6 +326,7 @@ class PolicyC3:
         NEG = float("-inf")
 
         def f(bar, r, st, env):
+            self._ctx = (int(bar), env)                              # S4: the decision bar and the engine (the absolute-level envelope reads the quote and the variant)
             pos = int(st[0])
             if pos != 0:
                 si = 0 if pos > 0 else 1

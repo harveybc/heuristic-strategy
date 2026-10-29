@@ -2009,6 +2009,33 @@ def trade_summary_from(trades: list, sigma, capital: float) -> dict:
     return out
 
 
+HORIZON_DOMINANCE = 0.90
+
+
+def horizon_mix(roll: dict, view: dict) -> dict:
+    """RECORD SCHEMA (coordinator condition 2026-10-29): the horizon mix of the EXECUTED entries (the policy's attr: the
+    h of every open it placed) and the availability mix under BOTH rules (zz_h / zz_h_alt over the decision rows); the
+    flag fires when one horizon takes more than HORIZON_DOMINANCE of the executed entries AND of the available
+    decisions under the other rule as well."""
+    hs = [int(a["h"]) for a in (roll.get("attr") or []) if a.get("chosen", -1) >= 0 and a.get("h") is not None]
+    ex = {f"h{h}": (sum(1 for x in hs if x == h) / len(hs) if hs else float("nan")) for h in (3, 6, 12, 24)}
+    out = {"executed": ex, "n_executed": len(hs)}
+    rule = None
+    for key, name in (("zz_h", "active_rule"), ("zz_h_alt", "other_rule")):
+        z = view.get(key)
+        if z is None:
+            out[name] = None
+            continue
+        v = np.asarray(z, float).ravel()
+        v = v[np.isfinite(v)]
+        out[name] = {f"h{h}": (float(np.mean(v == h)) if len(v) else float("nan")) for h in (3, 6, 12, 24)} | {"n": int(len(v))}
+    dom = max(ex, key=lambda k: (ex[k] if np.isfinite(ex[k]) else -1)) if hs else None
+    other = out.get("other_rule") or {}
+    out["dominant"] = dom
+    out["flag_one_horizon_dominates_both_rules"] = bool(dom and ex[dom] > HORIZON_DOMINANCE and other and other.get(dom, 0.0) > HORIZON_DOMINANCE)
+    return out
+
+
 def trade_summary(world: dict, trades: list) -> dict:
     return trade_summary_from(trades, world["cx"].ds.sigma, float(world["scfg"].capital))
 
@@ -2075,7 +2102,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
                          "engine_refused": {k: v for k, v in (roll["metrics"].items() if isinstance(roll["metrics"], dict) else []) if "refused" in str(k)}},
            "exit": exit_layer, "exit_spec_sha256": EXIT_SPEC_SHA, "spec_v3_sha256": SPEC_V3_SHA, "strategy_code_sha256": STRATEGY_CODE_SHA,
            "ostar": {k: v for k, v in swit.items() if k != "summary"} | {"summary": swit["summary"]}, "validity": vres, "expected_witnesses": expected_ids,
-           "trade_summary": trade_summary(w, roll["trades"]),
+           "trade_summary": trade_summary(w, roll["trades"]), "horizon_mix": horizon_mix(roll, view),
            "PASS_effective": bool(vres["PASS"] and exit_layer["PASS_effective"]),
            "PASS_effective_pre_v3_rule": bool(all((wit[k + "_v2"]["pass"] if (k in defects_sealed and (k + "_v2") in wit) else v["pass"]) for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k))
                                               and exit_layer["PASS_effective"]),
