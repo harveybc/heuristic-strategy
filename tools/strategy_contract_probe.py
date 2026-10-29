@@ -74,7 +74,7 @@ def main():
             res = {}
             for name, doc in pts:
                 r = w.evaluate(doc)
-                res[name] = {k: r.get(k) for k in ("sharpe", "net_usd", "trades", "early_closes", "levels_clipped", "fails")}
+                res[name] = {k: r.get(k) for k in ("sharpe", "net_usd", "trades", "early_closes", "levels_clipped", "fails", "trade_stats")}
             rec["settings"][sname] = {"leverage": SETTINGS[sname]["leverage"], "max_entries_per_day": SETTINGS[sname]["cap"] or sc.max_entries_per_day, "points": res}
             del w
         rec["sec"] = round(time.time() - t0)
