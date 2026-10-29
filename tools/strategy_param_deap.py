@@ -372,7 +372,8 @@ class DegenerateGen0(RuntimeError):
 
 
 DEGENERACY_RULE = ("generation-0 degeneracy (coordinator order 2026-10-28, standing for every DEAP launch): the search stops "
-                   "on its own after generation 0 when (a) every candidate has the same failing count, or (b) one witness fails "
+                   "on its own after generation 0 when (a) every candidate has the same failing count > 0 AND the identical failing "
+                   "(world, witness) set, or (b) one witness fails "
                    "in 100 % of the candidates in EVERY world where it was evaluated (a constraint no parameter vector can "
                    "move: the W14 verifier defect of run 4b failed 9 / 9 pairs in 16 / 16 candidates), or (c) a "
                    "NOT_EVALUABLE verdict appears in every candidate; (b') a witness failing in 100 % of the candidates in "
@@ -399,9 +400,13 @@ def degenerate_gen0(recs: list) -> dict:
         out["reasons"].append("fewer than 2 candidates: not judged")
         return out
     counts = sorted({int(r["n_failing_witnesses"]) for r in recs})
-    if len(counts) == 1:
-        out["degenerate"] = True
-        out["reasons"].append(f"(a) every candidate has the same failing count {counts[0]}")
+    sets = {frozenset((w["key"], f) for w in r["per_world"] for f in w["fails"]) for r in recs}
+    if len(counts) == 1:                                              # (a) only with failures AND one identical failing set (a near-identical
+        if counts[0] > 0 and len(sets) == 1:                          # warm start can share a count by chance: then logged, never a stop)
+            out["degenerate"] = True
+            out["reasons"].append(f"(a) every candidate has the same failing count {counts[0]} and the identical failing set")
+        else:
+            out["same_count_logged_only"] = {"count": counts[0], "distinct_failing_sets": len(sets)}
     hits = {}
     for i, r in enumerate(recs):
         for w in r["per_world"]:

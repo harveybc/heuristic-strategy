@@ -559,8 +559,14 @@ def test_generation0_degeneracy_gate():
     w14 = [rec(10 + i, {"M_X@q1.00": ["W14_mirror"], "M_Y@q1.00": ["W14_mirror"], "A@q1.00": ["W7_best_cell"] if i % 2 else []}) for i in range(4)]
     d = D.degenerate_gen0(w14)
     assert d["degenerate"] and any(r.startswith("(b) W14_mirror") for r in d["reasons"])
-    same = [rec(7, {"A@q1.00": ["W7_best_cell"] if i else ["W5_reverse"]}) for i in range(4)]
-    assert D.degenerate_gen0(same)["degenerate"] and D.degenerate_gen0(same)["reasons"][0].startswith("(a)")
+    same_count_other_sets = [rec(7, {"A@q1.00": ["W7_best_cell"] if i else ["W5_reverse"]}) for i in range(4)]
+    d = D.degenerate_gen0(same_count_other_sets)
+    assert not d["degenerate"] and d["same_count_logged_only"] == {"count": 7, "distinct_failing_sets": 2}
+    same = [rec(7, {"A@q1.00": ["W7_best_cell"], "B@q0.70": ["D7_E4_BUY"]}) for i in range(4)]
+    d = D.degenerate_gen0(same)
+    assert d["degenerate"] and d["reasons"][0].startswith("(a)")
+    zero = [rec(0, {}) for i in range(4)]
+    assert not D.degenerate_gen0(zero)["degenerate"]                    # every candidate feasible: never a stop
     shared = [rec(10 + i, {"B@q0.70": ["D7_regret_BUY"], "C@q0.70": ["D7_regret_BUY"] if i % 2 else []}) for i in range(4)]
     d = D.degenerate_gen0(shared)
     assert not d["degenerate"] and d["every_candidate_some_worlds"] == [{"witness": "D7_regret_BUY", "worlds_failing_in_every_candidate": 1, "worlds_evaluated": 2}]
@@ -569,3 +575,34 @@ def test_generation0_degeneracy_gate():
     healthy = [rec(i, {"A@q1.00": ["W7_best_cell"]} if i % 2 else {}) for i in range(5)]
     assert not D.degenerate_gen0(healthy)["degenerate"]
     assert not D.degenerate_gen0(healthy[:1])["degenerate"]
+
+
+def test_warm_start_reuses_genomes_only_and_reevaluates_every_point(tmp_path):
+    """Run 4b's restart (coordinator order 2026-10-28): an earlier ARCHIVE seeds generation 0 with GENOMES only; every
+    warm point is evaluated afresh by the pool, no cached fitness or violation count is carried over."""
+    from tools import strategy_param_deap as D
+    from app.short_horizon.expert_guided import strategy_params as SP
+    base = SP.default_doc()
+    old = tmp_path / "OLD_ARCHIVE.jsonl"
+    with open(old, "w") as fh:
+        for i, v in enumerate((0.45, 0.30, 0.20)):
+            fh.write(json.dumps({"generation": 0, "params": {k: base[k] for k in D.GENOME} | {"open_rate_l": v}, "fitness_sharpe": 99.0 + i, "n_failing_witnesses": 1000}) + "\n")
+    init = D.warm_population(old, base, 3)
+    assert all(isinstance(x, list) and len(x) == len(D.GENOME) and all(isinstance(u, float) for u in x) for x in init)
+
+    class FakePool:
+        calls = 0
+
+        def evaluate(self, doc):
+            FakePool.calls += 1
+            nf = FakePool.calls                                       # fresh, distinct values: never the archive's 1000 / 99+
+            return {"fitness_sharpe": 1.0 + nf / 10, "n_failing_witnesses": nf, "feasible": False, "per_world": [{"key": "A@q1.00", "quality": 1.0, "fails": ["W7_best_cell"] * nf}, {"key": "B@q1.00", "quality": 1.0, "fails": []}],
+                    "wall_sec": 0.0, "worker_maxrss_mb": []}
+
+    out = tmp_path / "deap"
+    out.mkdir()
+    res = D.run_search(FakePool(), base, out, population=3, generations=0, seed=1, log=lambda *_: None, init=init)
+    recs = [json.loads(x) for x in (out / "ARCHIVE.jsonl").read_text().splitlines()]
+    assert FakePool.calls == 3 and len(recs) == 3 and all(r["generation"] == 0 for r in recs)
+    assert sorted(r["n_failing_witnesses"] for r in recs) == [1, 2, 3] and all(r["fitness_sharpe"] < 2.0 for r in recs)
+    assert res["best"]["n_failing_witnesses"] == 1 and not (out / "FAILED_DEGENERATE_GEN0").exists()
