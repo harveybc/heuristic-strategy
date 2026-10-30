@@ -169,3 +169,51 @@ mayor que 0.02 σ, y 5 985 de esos los disparó solo la regla urgente.
   el TP de v1.0 en la misma barra nunca se llena.
 - Secuencia: nivel 1 de nuevo con v1.1 (informe b′), luego PZ4 y PZ5 sobre v1.1.
 - La corrida de PZ4 sobre v1.0 (180 mundos en el host, 36 locales, detenida con su bandera STOP) se rotula como historia v1.0.
+
+### v1.2 (2026-10-30): segunda corrección de diseño DECLARADA (fallo del coordinador tras el nivel 1 de v1.1)
+
+**Evidencia de v1.1.** Nivel 1 con 0 de 135 PASS (`evidence/pz_20261030/tier1_v11_a217215/`). Las correcciones de v1.1 funcionaron: las
+salidas por TP pasaron de 0.000 a 0.659 y el neto por operación de 0.50 σ a 0.92 σ. Quedan dos mecanismos, y ambos son errores de
+diseño de este documento.
+
+1. **Evento equivocado.** La p de §3 y §4 era la dirección del PRÓXIMO pivote, no P(TP antes que SL) de la orden de cada lado. Una compra
+   apunta a su propio pico y su SL cubre la MAE del valle intermedio; con salidas perfectas llega con certeza, pero recibía p = 0. Eso
+   explica W2 lado equivocado (mediana 0.214), W7 (0.59) y W1. La regla HOLD, que usaba la misma p', cerraba posiciones cuyo pivote propio
+   todavía llegaba. Eso explica W4 y E4.
+2. **SL de cortos sin spread.** El stop de un corto se dispara en el ASK y adv se mide sobre los máximos BID. Resultado: 0 SL de compra y
+   11.6 % de SL de venta. Con salidas perfectas ningún episodio de compra está destinado a SL (EP_counts de compra 0 de 30).
+
+**Corrección v1.2 (`strategy_pz.V12_RULES`, `DESIGN_VERSION = "1.2"`)**
+
+1. **El evento propio de la orden.** p_s = P(el objetivo propio de ESTA orden antes que SU stop).
+   - El SL está en el cuantil declarado q_SL de la excursión adversa antes del pivote propio del lado. Con cuantiles calibrados,
+     P(SL primero) ≈ 1 − q_SL, así que p_s = q_SL. El canónico es q_SL = 0.75, el adv_q75 de antes.
+   - Con salidas perfectas los cuantiles colapsan y p_s = 1.
+   - En PZ5, q_SL es un gen categórico en {0.5, 0.75, 0.9}.
+   - p_up queda como etiqueta de diagnóstico y como desempate de un empate exacto entre lados: se usa el p_up del slot óptimo más fino
+     (> 0.5 compra, < 0.5 venta, = 0.5 NOP). El score ya no lo usa.
+   - La cobertura por (h, lado) en cada peldaño (`head_report` → adv `below_by_h_side`) es la que valida este mapeo.
+2. **HOLD con la trayectoria propia de la orden.** En cada tick se recalculan las salidas de (h_p, s) desde el precio actual P:
+   - **SL primero.** Si adv_q{q_SL}(ahora) ≥ la distancia que queda al SL, se predice SL primero. Se cierra cuando cerrar le gana a
+     mantener dentro de la banda de O\* (A = dist_SL − costo_cierre ≥ −banda). Esta es la regla urgente y no lleva persistencia.
+   - **TP inalcanzable.** Si no, y fav_q50(ahora) < la distancia que queda al TP − tolerancia (el offset de salida de la orden en la fila
+     actual), se predice TP inalcanzable. Entonces HOLD = p_s · min(fav_q50, dist_TP) − (1 − p_s) · dist_SL, y se cierra si
+     HOLD < −costo_cierre durante k ticks.
+   - **En otro caso, se mantiene.**
+   - p_urg queda **inerte**: sigue en el documento y fuera del genoma.
+3. **SL de cortos.** Distancia del SL = a_sl · adv_q{q_SL} + colchón + spread del lado de salida (el spread de la hora para un corto
+   cuando el motor dispara los cortos en el ask; 0 para un largo). Es el gemelo del lado SL de la corrección de TP de v1.1.
+
+**Qué no cambia.** Los demás valores canónicos (se agrega q_sl = 0.75, el valor que v1.0 y v1.1 ya usaban), la regla de decisión y los
+testigos. Las historias v1.0 y v1.1 se conservan y se reproducen con `--pz-design 1.0` y `--pz-design 1.1`.
+
+**Pruebas nuevas**
+
+- Con salidas perfectas, una venta cuya excursión adversa queda bajo el SL nunca toca el stop (la prueba del motor en el ask) y su TP se
+  llena.
+- Una compra y una venta son espejo exacto con spread cero.
+- p_s vale 1 con salidas perfectas y q_SL por debajo.
+- La regla de cierre sobre la trayectoria propia (SL primero, TP inalcanzable con persistencia, mantener).
+
+**Si v1.2 tampoco pasa la matriz**, se informan los mecanismos y el coordinador decide si PZ continúa. No se itera el diseño
+indefinidamente.

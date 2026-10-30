@@ -123,8 +123,8 @@ def run_world(cx, SCFG, AC, cell: dict, seed: int, q: float, genes_c3: dict, pz_
     sobj = PZ.strategy_object(pz_genes)
     for arm, hz, Pol in (("PZ", PZ.HORIZONS, PZ.PolicyPZ), ("PZ6", (6,), PZ.PolicyPZ), ("TRIVIAL", PZ.HORIZONS, PZ.PolicyTrivial)):
         v = dict(view)
-        xo = PZ.exit_offsets(OC.make_env(w["cx"], w["scfg"]), rb) if PZ.DESIGN_VERSION != "1.0" else None
-        v.update(PZ.view_entries(bars, w["cx"].ds.sigma, rb, w["table"]["cost_row"], hd, pz_genes, horizons=hz, exit_offset=xo))
+        off = PZ.offsets_for(OC.make_env(w["cx"], w["scfg"]), rb)
+        v.update(PZ.view_entries(bars, w["cx"].ds.sigma, rb, w["table"]["cost_row"], hd, pz_genes, horizons=hz, **off))
         v["menu_stamp"] = None
         if arm == "TRIVIAL":
             v.update(PZ.trivial_orders(bars, w["cx"].ds.sigma, rb))

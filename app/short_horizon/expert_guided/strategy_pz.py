@@ -38,8 +38,8 @@ from . import horizon_levels as HL
 from . import menu as M
 from . import strategy_zz as ZZ
 
-DESIGN_VERSIONS = ("1.0", "1.1")
-DESIGN_VERSION = "1.1"                                       # coordinator ruling 2026-10-30 (after PZ3): a DECLARED DESIGN CORRECTION (document section 7);
+DESIGN_VERSIONS = ("1.0", "1.1", "1.2")
+DESIGN_VERSION = "1.2"                                       # coordinator ruling 2026-10-30 (after PZ3): a DECLARED DESIGN CORRECTION (document section 7);
                                                              # "1.0" reproduces the pre-registered history byte for byte (the v1.0 tier-1 evidence)
 V11_RULES = {"tp": "TP distance = a_tp x fav_q50 - (limit_through + the exit-side spread at the decision hour), rounded inward: a TP at a "
                    "predicted extreme is unexecutable by construction (the engine fills a TP limit only when the price trades THROUGH it by "
@@ -48,19 +48,30 @@ V11_RULES = {"tp": "TP distance = a_tp x fav_q50 - (limit_through + the exit-sid
              "urgent": "close at once only when the fine level turns against the position (p'_f < p_urg) AND its reversal is predicted to "
                        "reach the SL: the fine level's opposite-side fav_q50 >= the remaining distance to the SL; p_urg = 0 switches the "
                        "urgent close off"}
+V12_RULES = {"event": "the open and the hold use p_s = P(THIS order's own target before ITS stop): the SL is set at the declared quantile "
+                      "q_SL of the adverse excursion before the side's own pivot, so with calibrated quantiles P(SL first) ~ 1 - q_SL and "
+                      "p_s = q_SL (canonical 0.75 = adv_q75); with perfect outputs the quantiles collapse and p_s = 1; p_up stays a diagnostic "
+                      "label and the exact-side-tie break (the finer best slot's p_up: > 0.5 buy, < 0.5 sell, = 0.5 NOP)",
+             "hold": "per tick, the position's own (h_p, s) outputs from the current price P: SL-first predicted when adv_q{q_SL}(now) >= "
+                     "the distance left to the SL -> close when closing beats holding within O*'s tie band (A = dist_SL - cost_close >= -band; "
+                     "no persistence: this is the urgent rule); else TP-unreachable predicted when fav_q50(now) < the distance left to the TP "
+                     "- tolerance (the order's exit offset at the current row) -> HOLD = p_s min(fav_q50, dist_TP) - (1 - p_s) dist_SL, close "
+                     "when HOLD < -cost_close on k_persist consecutive ticks; otherwise HOLD; p_urg is INERT (kept in the document, out of the genome)",
+             "sl": "SL distance = a_sl x adv_q{q_SL} + buffer + the exit-side spread: shorts stop at the ASK (the hour's spread when the engine "
+                   "triggers shorts on the ask), longs at the BID (no spread); the SL twin of the v1.1 TP offset"}
 HORIZONS = tuple(int(h) for h in M.MENU_HORIZONS)            # (3, 6, 12, 24): the four MT ZigZag levels
 PHI = 0.587                                                  # AR(1) lag-1 of the head error (strategy_output_simulation.CLOSER_NOISE_PHI)
 EPS_CLOSE = 0.02                                             # O*'s band, sigma of the trade (strategy_behaviour_matrix.EPS_CLOSE)
 QUANTS = (0.05, 0.25, 0.5, 0.75, 0.9, 0.95)
 MIN_OUTPUTS = ("p_up", "fav_q50", "adv_q75", "tau_q50")       # per horizon: p_up 1 + fav 2 + adv 2 + tau 1 = 6; x 4 = 24
 N_MIN_OUTPUTS = len(HORIZONS) * (1 + 2 + 2 + 1)
-GENES = ("a_sl", "a_tp", "buffer_pips", "kappa", "theta", "alpha", "tau0", "rho", "k_persist", "p_urg")
+GENES = ("a_sl", "a_tp", "buffer_pips", "kappa", "theta", "alpha", "tau0", "rho", "k_persist", "p_urg", "q_sl")   # q_sl: v1.2
 BOUNDS = {"a_sl": [0.5, 2.0], "a_tp": [0.5, 2.0], "buffer_pips": [0.0, 5.0], "kappa": [0.0, 1.0], "theta": [-0.2, 1.0], "alpha": [0.0, 1.0],
-          "tau0": [0.5, 6.0], "rho": [0.001, 0.01], "k_persist": [1, 3], "p_urg": [0.0, 0.5]}   # p_urg [0, 0.5], 0 = off (v1.1; v1.0 [0.05, 0.5])
-DISCRETE = {"alpha": (0.0, 0.5, 1.0), "k_persist": (1, 2, 3)}
+          "tau0": [0.5, 6.0], "rho": [0.001, 0.01], "k_persist": [1, 3], "p_urg": [0.0, 0.5], "q_sl": [0.5, 0.9]}   # p_urg [0, 0.5], 0 = off (v1.1; v1.0 [0.05, 0.5])
+DISCRETE = {"alpha": (0.0, 0.5, 1.0), "k_persist": (1, 2, 3), "q_sl": (0.5, 0.75, 0.9)}
 CANONICAL = {"a_sl": 1.0, "a_tp": 1.0, "buffer_pips": 1.0, "rho": 0.005,      # the shared contract's baseline (horizon_levels.GENE_BASELINE)
              "kappa": 0.0, "theta": 0.0, "alpha": 0.0, "tau0": 1.0,        # break-even open, pure profit / risk (the predictions strategy)
-             "k_persist": 1, "p_urg": 0.25}                                 # declared before any run (plan to the coordinator, 2026-10-30)
+             "k_persist": 1, "p_urg": 0.25, "q_sl": 0.75}                  # q_sl 0.75 = adv_q75, the value v1.0 / v1.1 used (v1.2 names it)                                 # declared before any run (plan to the coordinator, 2026-10-30)
 COST_CLOSE_SHARE = 0.5
 NOISE_SEED_MULT, NOISE_SEED_ADD = 104729, 31
 DECLARED = {
@@ -257,7 +268,12 @@ def head_report(labels: dict, hd: dict, eval_bars, cal_bars) -> dict:
         if key == "fav":
             g = sel & np.isfinite(q[0.25]) & np.isfinite(q[0.75])
             r["coverage_50_q25_q75"] = float(np.mean((y[g] >= q[0.25][g]) & (y[g] <= q[0.75][g]))) if g.any() else float("nan")
-        if key == "adv":
+        if key == "adv":                                                 # v1.2: P(SL not first) ~ q_SL is validated per (h, side) at each quantile
+            r["below_by_h_side"] = {f"h{h}_{side}": {f"q{int(round(qq * 100))}": (float(np.mean(y[:, j, si][sel[:, j, si] & np.isfinite(q[qq][:, j, si])]
+                                                                                                 <= q[qq][:, j, si][sel[:, j, si] & np.isfinite(q[qq][:, j, si])]))
+                                                                                    if (sel[:, j, si] & np.isfinite(q[qq][:, j, si])).any() else float("nan"))
+                                                     for qq in (0.5, 0.75, 0.9)}
+                                    for j, h in enumerate(HORIZONS) for si, side in ((0, "BUY"), (1, "SELL"))}
             g = sel & np.isfinite(q[0.75])
             r["share_below_q75"] = float(np.mean(y[g] <= q[0.75][g])) if g.any() else float("nan")
             g = sel & np.isfinite(q[0.9])
@@ -296,7 +312,27 @@ def exit_offsets(env, row_bar) -> np.ndarray:
     return out
 
 
-def orders(bars, sigma, row_bar, hd: dict, genes: dict, tick: float | None = None, horizons=HORIZONS, exit_offset=None) -> dict:
+def sl_offsets(env, row_bar) -> np.ndarray:
+    """(n_rows, 2) price: the SL's exit-side spread (V12_RULES['sl']): 0 for a long (BID bars), the hour's spread for a short
+    when the engine triggers shorts on the ask; NaN without a bar."""
+    rb = np.asarray(row_bar, np.int64)
+    out = np.full((len(rb), 2), np.nan)
+    prof = env.cfg.profile
+    ask = bool(getattr(env.cfg.variant, "short_trigger_on_ask", False)) if env.cfg.variant is not None else False
+    for r in np.flatnonzero((rb >= 0) & (rb < len(env.v))):
+        b = int(rb[r])
+        out[r] = (0.0, float(prof.spread_at(int(env.v[b]), int(env.mo[int(env.seg_of[b])]))) if ask else 0.0)
+    return out
+
+
+def offsets_for(env, row_bar) -> dict:
+    """The order offsets of the active design version (None where the version has none)."""
+    if DESIGN_VERSION == "1.0":
+        return {"exit_offset": None, "sl_offset": None}
+    return {"exit_offset": exit_offsets(env, row_bar), "sl_offset": sl_offsets(env, row_bar) if DESIGN_VERSION != "1.1" else None}
+
+
+def orders(bars, sigma, row_bar, hd: dict, genes: dict, tick: float | None = None, horizons=HORIZONS, exit_offset=None, sl_offset=None) -> dict:
     """Per row (decision bar b = row_bar[r]), side, slot: the PZ order's TP / SL prices and their distances in sigma of
     the decision; NaN when the inputs are censored or a distance is <= 0. ``mask`` = a finite order. v1.1: the TP
     distance gives up ``exit_offset`` (n_rows, 2) (exit_offsets; required), rounded inward with the TP."""
@@ -310,8 +346,15 @@ def orders(bars, sigma, row_bar, hd: dict, genes: dict, tick: float | None = Non
     if v11 and exit_offset is None:
         raise PZError("PZ_V11_NEEDS_EXIT_OFFSET")
     xo = None if exit_offset is None else np.asarray(exit_offset, float)
+    v12 = DESIGN_VERSION not in ("1.0", "1.1")
+    if v12 and sl_offset is None:
+        raise PZError("PZ_V12_NEEDS_SL_OFFSET")
+    so = None if sl_offset is None else np.asarray(sl_offset, float)
+    if v12:                                                          # v1.2: offsets folded into the references, unit coefficients
+        lg12 = {"a_sl": 1.0, "b_sl": 0.0, "buffer_pips": g["buffer_pips"], "a_tp": 1.0, "b_tp": 0.0}
+        advq = hd["adv"][float(g["q_sl"])]
     lg = {"a_sl": g["a_sl"], "b_sl": 0.0, "buffer_pips": g["buffer_pips"], "a_tp": g["a_tp"], "b_tp": 1.0 if v11 else 0.0}   # v1.1: d_tp = a_tp fav - 1 x offset
-    fav50, adv75 = hd["fav"][0.5], hd["adv"][0.75]
+    fav50, adv75 = hd["fav"][0.5], (advq if v12 else hd["adv"][0.75])
     hset = {int(h) for h in horizons}
     for r in np.flatnonzero((rb >= 0) & (rb < len(close))):
         b = int(rb[r])
@@ -329,7 +372,14 @@ def orders(bars, sigma, row_bar, hd: dict, genes: dict, tick: float | None = Non
                 if not np.isfinite(off):
                     continue
                 try:
-                    lv = HL.levels(d, quote, f, a, off, lg, tick)
+                    if v12:
+                        soff = float(so[r, si])
+                        tpr, maer = g["a_tp"] * f - off, g["a_sl"] * a + soff
+                        if not (np.isfinite(soff) and tpr > 0):
+                            continue
+                        lv = HL.levels(d, quote, tpr, maer, 0.0, lg12, tick)
+                    else:
+                        lv = HL.levels(d, quote, f, a, off, lg, tick)
                 except HL.LevelInputError:
                     continue
                 if lv["raw_tp_distance"] <= 0 or lv["raw_sl_distance"] <= 0:
@@ -347,12 +397,12 @@ def truth_orders_fn(genes: dict):
     (the exact replay of the orders the strategy places with ideal outputs; the full_f4 ruling's principle)."""
     def f(bars, sigma, row_bar, params, swap_refs=False, env=None):  # swap_refs: PZ reads no TRAIN reference (inert); env: the truth's engine (v1.1 offsets)
         lab = expert_labels(bars)
-        xo = exit_offsets(env, row_bar) if (env is not None and DESIGN_VERSION != "1.0") else None
-        return orders(bars, sigma, row_bar, heads(lab, 1.0, 0, np.zeros(len(lab["p_up"]), bool)), genes, exit_offset=xo)
+        off = offsets_for(env, row_bar) if env is not None else {"exit_offset": None, "sl_offset": None}
+        return orders(bars, sigma, row_bar, heads(lab, 1.0, 0, np.zeros(len(lab["p_up"]), bool)), genes, **off)
     return f
 
 
-def view_entries(bars, sigma, row_bar, cost_row, hd: dict, genes: dict, horizons=HORIZONS, exit_offset=None) -> dict:
+def view_entries(bars, sigma, row_bar, cost_row, hd: dict, genes: dict, horizons=HORIZONS, exit_offset=None, sl_offset=None) -> dict:
     """The per-row table entries PolicyPZ reads."""
     rb = np.asarray(row_bar, np.int64)
     n = len(rb)
@@ -361,9 +411,14 @@ def view_entries(bars, sigma, row_bar, cost_row, hd: dict, genes: dict, horizons
     b = np.where(ok, rb, 0)
     k1 = np.clip(b + 1, 0, len(close) - 1)
     rows = lambda x: np.where(ok.reshape((-1,) + (1,) * (np.ndim(x) - 1)), np.asarray(x)[b], np.nan)  # noqa: E731
-    ords = orders(bars, sigma, rb, hd, genes, horizons=horizons, exit_offset=exit_offset)
+    ords = orders(bars, sigma, rb, hd, genes, horizons=horizons, exit_offset=exit_offset, sl_offset=sl_offset)
     cr = np.asarray(cost_row, float)
-    return {"pz_genes": validate_genes(genes), "pz_horizons": tuple(int(h) for h in horizons), "pz_p_up": rows(hd["p_up"]),
+    g = validate_genes(genes)
+    v12 = {}
+    if DESIGN_VERSION not in ("1.0", "1.1"):                         # v1.2: the event probability, the own-path quantiles, the tolerance
+        v12 = {"pz_p_side": 1.0 if float(hd.get("rho", 0.0)) >= 1.0 - 1e-12 else float(g["q_sl"]), "pz_adv_q": rows(hd["adv"][float(g["q_sl"])]),
+               "pz_tp_off": np.asarray(exit_offset, float)}
+    return {**v12, "pz_design": DESIGN_VERSION, "pz_genes": g, "pz_horizons": tuple(int(h) for h in horizons), "pz_p_up": rows(hd["p_up"]),
             "pz_fav25": rows(hd["fav"][0.25]), "pz_fav50": rows(hd["fav"][0.5]), "pz_fav75": rows(hd["fav"][0.75]), "pz_tau50": rows(hd["tau"][0.5]),
             "pz_tp": ords["tp"], "pz_sl": ords["sl"], "pz_tp_s": ords["tp_s"], "pz_sl_s": ords["sl_s"], "pz_stamp": ords["stamp"],
             "pz_quote": np.where(ok, close[b], np.nan), "pz_cost": np.where(ok, cr * sg[k1], np.nan)}
@@ -410,11 +465,12 @@ class PolicyPZ(ZZ.PolicyC3Z):
                     continue
                 tp, sl = float(t["pz_tp"][r, si, j]), float(t["pz_sl"][r, si, j])
                 pu = float(t["pz_p_up"][r, j])
-                if not (np.isfinite(tp) and np.isfinite(sl) and np.isfinite(pu)):
+                v12 = "pz_p_side" in t
+                if not (np.isfinite(tp) and np.isfinite(sl) and (v12 or np.isfinite(pu))):
                     continue
                 if env is not None and bar is not None and env._levels_absolute(int(bar), d, tp, sl) is None:
                     continue
-                p = pu if d > 0 else 1.0 - pu
+                p = float(t["pz_p_side"]) if v12 else (pu if d > 0 else 1.0 - pu)   # v1.2: the order's own event (V12_RULES['event'])
                 tpd, sld = abs(tp - quote), abs(quote - sl)
                 if sld <= 0:
                     continue
@@ -438,6 +494,9 @@ class PolicyPZ(ZZ.PolicyC3Z):
         chosen = -1
         if cleared[0] and cleared[1]:
             chosen = -1 if abs(val[0] - val[1]) <= C3.TIE_EPS else (0 if val[0] > val[1] else 1)
+            if chosen < 0 and "pz_p_side" in self.t:                  # v1.2: the exact side tie broken by p_up at the finer best slot
+                pu = float(self.t["pz_p_up"][r, min(best[0], best[1])])
+                chosen = 0 if (np.isfinite(pu) and pu > 0.5) else (1 if (np.isfinite(pu) and pu < 0.5) else -1)
         elif cleared[0] or cleared[1]:
             chosen = 0 if cleared[0] else 1
         self.log.append((int(r), val[0], val[1], cleared[0], cleared[1], chosen, False, best[0], best[1]))
@@ -463,6 +522,40 @@ class PolicyPZ(ZZ.PolicyC3Z):
         self.open_h[(1 if si == 0 else -1, round(tp, 7), round(sl, 7))] = ci
         return ci, tp, sl
 
+    def _close_v12(self, r, si, bar, pos, jp) -> bool:
+        """V12_RULES['hold']: the position's own (h_p, s) outputs from the current price."""
+        t, g = self.t, self.g
+        d = int(pos.direction)
+        P, cost = float(t["pz_quote"][r]), float(t["pz_cost"][r])
+        ps = float(t["pz_p_side"])
+        dist_sl, dist_tp = d * (P - float(pos.sl)), d * (float(pos.tp) - P)
+        adv, fav = float(t["pz_adv_q"][r, jp, si]), float(t["pz_fav50"][r, jp, si])
+        tol = float(t["pz_tp_off"][r, si]) if np.isfinite(t["pz_tp_off"][r, si]) else 0.0
+        cost_close = COST_CLOSE_SHARE * cost if np.isfinite(cost) else 0.0
+        band = EPS_CLOSE * float(pos.sigma) if np.isfinite(pos.sigma) else 0.0
+        key = (int(pos.entry_bar), int(si))
+        sl_first = bool(np.isfinite(adv) and np.isfinite(P) and adv >= dist_sl)
+        hold, a, cond = float("nan"), float("nan"), False
+        if sl_first:                                                     # holding = the predicted SL: A = dist_SL - cost_close (O*'s tie rule)
+            hold = -dist_sl
+            a = dist_sl - cost_close
+            dec = bool(a >= -band)
+            self.persist[key] = 0
+        elif np.isfinite(fav) and np.isfinite(P) and fav < dist_tp - tol:  # TP unreachable: the expected remaining value of holding
+            hold = ps * min(fav, dist_tp) - (1.0 - ps) * dist_sl
+            a = -cost_close - hold
+            cond = bool(hold < -cost_close)
+            self.persist[key] = self.persist.get(key, 0) + 1 if cond else 0
+            dec = bool(cond and self.persist[key] >= int(g["k_persist"]))
+        else:
+            self.persist[key] = 0
+            dec = False
+        cl = t.get("closer")
+        rem, psl = cl.value(r, bar, pos) if cl is not None else (float("nan"), float("nan"))
+        a_s = a / float(pos.sigma) if (np.isfinite(a) and pos.sigma > 0) else float("nan")
+        self.closes.append((int(r), int(bar), int(si), float(rem), float(psl), dec, cond, sl_first, False, float(a_s), "pz"))
+        return dec
+
     def close_now(self, r, si, bar, pos) -> bool:
         self.positions.setdefault((int(pos.entry_bar), int(si)), dataclasses.replace(pos))
         if not self.s.early_close:
@@ -470,6 +563,8 @@ class PolicyPZ(ZZ.PolicyC3Z):
         t, g = self.t, self.g
         d = int(pos.direction)
         jp = self.open_h.get((d, round(float(pos.tp), 7), round(float(pos.sl), 7)), HORIZONS.index(6))
+        if "pz_p_side" in t:
+            return self._close_v12(r, si, bar, pos, jp)
         jf = max(jp - 1, 0)
         P, cost = float(t["pz_quote"][r]), float(t["pz_cost"][r])
         pu, pf = float(t["pz_p_up"][r, jp]), float(t["pz_p_up"][r, jf])

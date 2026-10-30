@@ -143,3 +143,11 @@ se informa el nivel 1 de C3Z sobre el mismo código, pero no forma parte de la r
   - **No cambian** el punto canónico, la regla de decisión del §4, las entradas ni los instrumentos.
   - El nivel 1 de v1.0 (0 / 135) queda como historia.
   - Las secciones 3 a 5 se aplican ahora a v1.1. Cada registro lleva `design_version`.
+- 2026-10-30 (después del nivel 1 de v1.1, por fallo del coordinador): **PZ v1.2**, segunda corrección de diseño declarada (§7 del
+  documento de diseño).
+  - p_s = q_SL (1 con salidas perfectas).
+  - HOLD sobre la trayectoria propia de la orden.
+  - SL de cortos con el spread del lado de salida.
+  - q_sl entra como gen categórico de PZ5 en lugar de p_urg, que queda inerte.
+  - **No cambian** la regla de decisión, las entradas ni los instrumentos. v1.0 (0/135) y v1.1 (0/135) quedan como historia.
+  - Si v1.2 no pasa la matriz, el coordinador decide si PZ continúa.

@@ -54,7 +54,7 @@ SEED = 20261030
 POPULATION, GENERATIONS, ELITE = 16, 30, 2
 LEVEL = ("a_sl", "a_tp", "buffer_pips")
 LEVEL_GRID = {"a_sl": (0.75, 1.0, 1.5), "a_tp": (0.75, 1.0, 1.5), "buffer_pips": (1.0, 3.0)}
-GENOME2 = ("kappa", "theta", "alpha", "tau0", "rho", "k_persist", "p_urg")
+GENOME2 = ("kappa", "theta", "alpha", "tau0", "rho", "k_persist", "q_sl")   # v1.2: q_sl categorical {0.5, 0.75, 0.9}; p_urg inert, out of the genome
 _BASE = {}
 
 
@@ -63,10 +63,9 @@ def decode(x: list, base: dict) -> dict:
     d = dict(PZ.validate_genes(base))
     for k, u in zip(GENOME2, x):
         u = min(max(float(u), 0.0), 1.0)
-        if k == "alpha":
-            d[k] = PZ.DISCRETE["alpha"][min(int(u * 3), 2)]
-        elif k == "k_persist":
-            d[k] = PZ.DISCRETE["k_persist"][min(int(u * 3), 2)]
+        if k in PZ.DISCRETE:
+            opts = PZ.DISCRETE[k]
+            d[k] = opts[min(int(u * len(opts)), len(opts) - 1)]
         else:
             lo, hi = PZ.BOUNDS[k]
             d[k] = min(max(lo + (hi - lo) * u, lo), hi)
@@ -79,7 +78,7 @@ def encode(g: dict) -> list:
     for k in GENOME2:
         if k in PZ.DISCRETE:
             opts = PZ.DISCRETE[k]
-            out.append((opts.index(min(opts, key=lambda o: abs(o - g[k]))) + 0.5) / 3.0)
+            out.append((opts.index(min(opts, key=lambda o: abs(o - g[k]))) + 0.5) / len(opts))
         else:
             lo, hi = PZ.BOUNDS[k]
             out.append((float(g[k]) - lo) / (hi - lo))
@@ -145,6 +144,11 @@ class PZWorld:
         self._reset()
         view = dict(self.view0)
         view["pz_genes"] = g
+        if float(self.cell["quality"]) < 0.999 and abs(float(g["q_sl"]) - float(self.view0["pz_genes"]["q_sl"])) > 1e-12:
+            w_, cx_ = self.w, self.w["cx"]                               # q_sl shapes the orders and p_s below perfect outputs: the view is re-derived
+            bars = w_["bars"] if w_.get("bars") is not None else cx_.ds.bars
+            view.update(PZ.view_entries(bars, cx_.ds.sigma, cx_.ds.row_bar, w_["table"]["cost_row"], w_["pz_hd"], g, **w_["pz_offsets"]))
+            view["menu_stamp"] = None
         strat = PZ.strategy_object(g)
         xv = self.w["scfg"].variant
         if xv is not None and getattr(xv, "sizing_mode", "") == "risk_budget":

@@ -757,8 +757,9 @@ def pz_attach(world: dict, view: dict, table: dict) -> dict:
     lab = PZ.expert_labels(bars)
     q = float(world.get("quality", 1.0))
     hd = PZ.heads(lab, q, int(world.get("seed", 0)), cal_b)
-    xo = PZ.exit_offsets(OC.make_env(cx, world["scfg"]), rb) if PZ.DESIGN_VERSION != "1.0" else None   # v1.1: the fillable-TP offset (the truth's own engine)
-    ent = PZ.view_entries(bars, cx.ds.sigma, rb, table["cost_row"], hd, PZ_GENES, horizons=MENU_ABLATION_H or PZ.HORIZONS, exit_offset=xo)
+    off = PZ.offsets_for(OC.make_env(cx, world["scfg"]), rb)          # v1.1 / v1.2: the fillable-TP and exit-side SL offsets (the truth's own engine)
+    ent = PZ.view_entries(bars, cx.ds.sigma, rb, table["cost_row"], hd, PZ_GENES, horizons=MENU_ABLATION_H or PZ.HORIZONS, **off)
+    world["pz_hd"], world["pz_offsets"] = hd, off                    # the PZ DEAP re-derives the view when a gene that shapes it (q_sl) changes
     if q >= 0.999 and truth.menu is not None and not MENU_ABLATION_H:
         for k in ("tp", "sl"):
             a_, b_ = np.asarray(ent["pz_" + k], float), np.asarray(truth.menu[k], float)
