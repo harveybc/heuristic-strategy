@@ -136,3 +136,10 @@ se informa el nivel 1 de C3Z sobre el mismo código, pero no forma parte de la r
 ## Registro de cambios
 
 - 2026-10-30: versión inicial, antes de PZ3.
+- 2026-10-30 (después de PZ3, por fallo del coordinador): **PZ v1.1**, una corrección de diseño declarada en
+  `ESTRATEGIA_PRAGMATICA_PZ_2026_10_30.md` §7.
+  - Cambia la orden: el TP ejecutable resta limit_through y el spread del lado de salida.
+  - Cambia el cierre urgente: solo dispara si la reversión fina alcanza el SL. El rango de p_urg pasa a [0, 0.5], con 0 = apagado.
+  - **No cambian** el punto canónico, la regla de decisión del §4, las entradas ni los instrumentos.
+  - El nivel 1 de v1.0 (0 / 135) queda como historia.
+  - Las secciones 3 a 5 se aplican ahora a v1.1. Cada registro lleva `design_version`.

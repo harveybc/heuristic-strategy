@@ -757,7 +757,8 @@ def pz_attach(world: dict, view: dict, table: dict) -> dict:
     lab = PZ.expert_labels(bars)
     q = float(world.get("quality", 1.0))
     hd = PZ.heads(lab, q, int(world.get("seed", 0)), cal_b)
-    ent = PZ.view_entries(bars, cx.ds.sigma, rb, table["cost_row"], hd, PZ_GENES, horizons=MENU_ABLATION_H or PZ.HORIZONS)
+    xo = PZ.exit_offsets(OC.make_env(cx, world["scfg"]), rb) if PZ.DESIGN_VERSION != "1.0" else None   # v1.1: the fillable-TP offset (the truth's own engine)
+    ent = PZ.view_entries(bars, cx.ds.sigma, rb, table["cost_row"], hd, PZ_GENES, horizons=MENU_ABLATION_H or PZ.HORIZONS, exit_offset=xo)
     if q >= 0.999 and truth.menu is not None and not MENU_ABLATION_H:
         for k in ("tp", "sl"):
             a_, b_ = np.asarray(ent["pz_" + k], float), np.asarray(truth.menu[k], float)
@@ -2613,7 +2614,7 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
         rec["d9_run"] = {"size_one": bool(getattr(w["scfg"].variant, "sizing_mode", "") == "unit"), "menu_ablation_h": (list(MENU_ABLATION_H) if MENU_ABLATION_H else None)}
     if STRATEGY == "pz":                                              # the strategy under test and its heads' report (coverage, MAE / naive)
         rec["strategy_family"] = "pz"
-        rec["pz"] = {"genes": PZ_GENES, "genes_sha256": PZ.genes_sha(PZ_GENES), "code_sha256": PZ.code_sha(), "heads": w.get("pz_report")}
+        rec["pz"] = {"design_version": PZ.DESIGN_VERSION, "genes": PZ_GENES, "genes_sha256": PZ.genes_sha(PZ_GENES), "code_sha256": PZ.code_sha(), "heads": w.get("pz_report")}
     if any((v or {}).get("status") == "NOT_EVALUABLE" for v in (rec.get("closer_support") or {}).values()):
         rec["validity"]["not_evaluable"] = sorted(set(rec["validity"]["not_evaluable"]) | {"closer_reference_support"})   # typed, never silently fitted
         rec["validity"]["PASS"] = False
@@ -2683,7 +2684,8 @@ def cmd_run(a):
     if STRATEGY == "pz":
         PZ_GENES = PZ.load_genes(a.pz_params) if getattr(a, "pz_params", None) else PZ.validate_genes({})
         H.MENU_ORDERS_FN = PZ.truth_orders_fn(PZ_GENES)
-        (out / "PZ_GENES.json").write_text(json.dumps({"genes": PZ_GENES, "sha256": PZ.genes_sha(PZ_GENES), "code_sha256": PZ.code_sha()}, indent=1))
+        PZ.DESIGN_VERSION = getattr(a, "pz_design", None) or PZ.DESIGN_VERSION
+        (out / "PZ_GENES.json").write_text(json.dumps({"design_version": PZ.DESIGN_VERSION, "genes": PZ_GENES, "sha256": PZ.genes_sha(PZ_GENES), "code_sha256": PZ.code_sha()}, indent=1))
     arm = getattr(a, "veto_arm", "gated") or "gated"
     if arm == "off":
         ZZ.PARAMS["z_veto"] = 0.0
@@ -3031,6 +3033,7 @@ def main():
                    help="full_f4 experiment arm (ruling 2026-10-29): gated = the rule (z_veto of the parameter file), off = z_veto 0, ungated = the pre-ruling vetoes")
     r.add_argument("--size-one", action="store_true", help="QUALIFICATION_SPEC v2.6 D9: one unit per order (trace-equality re-run)")
     r.add_argument("--strategy", default="c3z", choices=("c3z", "pz"), help="the strategy under test (pz: ESTRATEGIA_PRAGMATICA_PZ_2026_10_30; its truth menu = its own orders)")
+    r.add_argument("--pz-design", default=None, choices=PZ.DESIGN_VERSIONS, help="--strategy pz: the PZ design version (default strategy_pz.DESIGN_VERSION; 1.0 = the v1.0 history)")
     r.add_argument("--pz-params", default=None, help="--strategy pz: a JSON with the PZ genes (default strategy_pz.CANONICAL)")
     r.add_argument("--menu-horizons", default=None, help="QUALIFICATION_SPEC v2.6 D9: same-genes ablation, the strategy's menu restricted to these horizons (e.g. 6)")
     r.add_argument("--out", required=True)

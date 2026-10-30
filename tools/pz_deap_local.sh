@@ -13,7 +13,7 @@ PAR=$CODE/docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json
 export CUDA_VISIBLE_DEVICES=""
 mkdir -p $ROOT
 cd $CODE
-SHA=$(git rev-parse --short HEAD)
+SHA=$(git log -1 --format=%h -- app tools)                 # the launch sha = the last commit touching the code (docs-only commits keep it)
 [ -n "$(git status --porcelain -- app tools)" ] && { echo "DIRTY_TREE: the launch sha must be a committed tree" | tee -a $ROOT/LAUNCH.log; exit 2; }
 run(){ $CR -q -W 7200 -m $MEM -t 345600s -n pz-deap-$1 -- $PY tools/strategy_pz_deap.py "$@" --subset $SUB --admitted $DATA/admitted --csv-dir $DATA/sel15 --params $PAR --jobs $JOBS --out $ROOT; }
 step(){ echo "$(date -u +%FT%TZ) $*" >> $ROOT/LAUNCH.log; }

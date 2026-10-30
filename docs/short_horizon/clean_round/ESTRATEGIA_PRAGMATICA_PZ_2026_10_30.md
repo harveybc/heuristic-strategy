@@ -122,3 +122,50 @@ selección de características fase 2.
 Lo que PZ necesita de los datos reales (para la fase 2, no ahora): soporte por horizonte de las etiquetas de §2 (los conteos de
 orígenes completos y censurados de Musashi, plan 126, ya lo dan: 24 h tiene 7 340 censurados de 19 879), tasas base de `p_up` por
 horizonte y la cobertura de los cuantiles en calibración.
+
+## 7. Registro de cambios
+
+### v1.1 (2026-10-30): corrección de diseño DECLARADA, por fallo del coordinador tras PZ3
+
+**Evidencia de v1.0.** El nivel 1 de la matriz con salidas perfectas, en el punto canónico y con full_f4, dio **0 de 135 registros
+PASS** (`evidence/pz_20261030/tier1_e6091ae/`, código e6091ae; pre-registro en `PZ_PREREGISTRO_2026_10_30.md`). Sobre 32 231
+operaciones (39 celdas base, semilla 0) las salidas fueron:
+
+| EARLY | SL | TIME | TP |
+|---|---|---|---|
+| 0.860 | 0.104 | 0.036 | **0.000** |
+
+Fallaron en todos los registros W2, W3, W7, W15 y E2/E3/E4. Además, el 25 % de los cierres tempranos tenía todavía valor de mantener
+mayor que 0.02 σ, y 5 985 de esos los disparó solo la regla urgente.
+
+**Mecanismo: dos defectos de DISEÑO de este documento, no de parámetros**
+
+1. **TP en el extremo predicho.** Con salidas perfectas, el TP de §3 queda en el extremo del próximo pivote. El motor llena un TP límite
+   solo cuando el precio lo atraviesa por `limit_through` (1 pip), y un pivote retrospectivo solo lo toca. Por construcción el TP no es
+   ejecutable: la orden mantenida termina en SL o en TIME, y la verdad de su propio menú es negativa.
+2. **Regla urgente sin umbral de alcance.** La regla urgente de §4 cerraba en cada contra-pivote fino, aunque el tramo propio de la
+   posición siguiera su curso.
+
+**Corrección v1.1**
+
+- **Construcción de la orden (§3).** Distancia del TP = a_tp · fav_q50 − (limit_through + spread del lado de salida a la hora de la
+  decisión), redondeada hacia adentro. Una distancia ≤ 0 deja al horizonte sin orden. Lado de salida: un largo sale al BID (las barras
+  son BID, sin spread); un corto sale al ASK (el spread de la hora cuando el motor dispara los cortos en el ask, `short_trigger_on_ask`).
+- **Cierre urgente (§4).** Solo se cierra de inmediato cuando el nivel fino se vuelve en contra (p'_f < p_urg) **y** se predice que esa
+  reversión alcanza el SL: el fav_q50 del lado opuesto en el nivel fino ≥ la distancia que queda hasta el SL.
+- **Rango de p_urg.** Pasa a [0, 0.5], donde 0 = cierre urgente apagado.
+
+**Qué no cambia**
+
+- Los valores del punto canónico siguen como se pre-registraron (a_tp 1, p_urg 0.25, el resto igual; sha de genes `36e3e235…`).
+- La regla de decisión de §5 no cambia.
+- Ningún testigo cambia.
+- El resultado de nivel 1 de v1.0 se conserva como historia. En el informe final del contraste figura como "PZ v1.0 falló por una razón
+  de geometría de ejecución". El código lo reproduce byte a byte con `strategy_pz.DESIGN_VERSION = "1.0"` (`--pz-design 1.0`).
+
+**Pruebas y plan**
+
+- Prueba unitaria nueva: una orden con salidas perfectas en un pivote es ejecutable, y su TP se llena cuando el precio lo atraviesa;
+  el TP de v1.0 en la misma barra nunca se llena.
+- Secuencia: nivel 1 de nuevo con v1.1 (informe b′), luego PZ4 y PZ5 sobre v1.1.
+- La corrida de PZ4 sobre v1.0 (180 mundos en el host, 36 locales, detenida con su bandera STOP) se rotula como historia v1.0.

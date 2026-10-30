@@ -326,7 +326,7 @@ def build_truth_menu(cx, SCFG, fold: str, contract: dict, bars, params: dict, ex
         ords = M.orders(close, cx.ds.sigma, rb, params, swap_refs=swap_refs)
         mask = M.rows_of_bars(M.confirmations(len(close), ZZ.mt_levels(bars)), rb)
     else:                                                           # another strategy's own order menu (PZ, strategy_pz.truth_orders_fn): its executable orders
-        ords = orders_fn(bars, cx.ds.sigma, rb, params, swap_refs=swap_refs)
+        ords = orders_fn(bars, cx.ds.sigma, rb, params, swap_refs=swap_refs, env=env)
         mask = np.asarray(ords["mask"], bool)
     et = M.entry_table(env, rows_sel, rb, ords)
     rows = np.flatnonzero(cx.obs_ok)

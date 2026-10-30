@@ -33,6 +33,7 @@ from app.short_horizon.expert_guided import env as E  # noqa: E402
 from app.short_horizon.expert_guided import strategy_params as SP  # noqa: E402
 from app.short_horizon.expert_guided import strategy_pz as PZ  # noqa: E402
 from app.short_horizon.expert_guided import strategy_zz as ZZ  # noqa: E402
+from app.short_horizon.expert_guided import outcomes as OC  # noqa: E402
 from tools import strategy_behaviour_matrix as BM  # noqa: E402
 from tools import strategy_hierarchy as H  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
@@ -122,7 +123,8 @@ def run_world(cx, SCFG, AC, cell: dict, seed: int, q: float, genes_c3: dict, pz_
     sobj = PZ.strategy_object(pz_genes)
     for arm, hz, Pol in (("PZ", PZ.HORIZONS, PZ.PolicyPZ), ("PZ6", (6,), PZ.PolicyPZ), ("TRIVIAL", PZ.HORIZONS, PZ.PolicyTrivial)):
         v = dict(view)
-        v.update(PZ.view_entries(bars, w["cx"].ds.sigma, rb, w["table"]["cost_row"], hd, pz_genes, horizons=hz))
+        xo = PZ.exit_offsets(OC.make_env(w["cx"], w["scfg"]), rb) if PZ.DESIGN_VERSION != "1.0" else None
+        v.update(PZ.view_entries(bars, w["cx"].ds.sigma, rb, w["table"]["cost_row"], hd, pz_genes, horizons=hz, exit_offset=xo))
         v["menu_stamp"] = None
         if arm == "TRIVIAL":
             v.update(PZ.trivial_orders(bars, w["cx"].ds.sigma, rb))
@@ -147,7 +149,8 @@ def cmd_run(a):
     ZZ.configure(doc)
     genes = SP.genes_c3(doc)
     pz_genes = PZ.load_genes(a.pz_params) if a.pz_params else PZ.validate_genes({})
-    meta = {"params": str(a.params), "params_sha256": SP.sha256_of(a.params), "pz_genes": pz_genes, "pz_genes_sha256": PZ.genes_sha(pz_genes),
+    PZ.DESIGN_VERSION = a.pz_design or PZ.DESIGN_VERSION
+    meta = {"pz_design_version": PZ.DESIGN_VERSION, "params": str(a.params), "params_sha256": SP.sha256_of(a.params), "pz_genes": pz_genes, "pz_genes_sha256": PZ.genes_sha(pz_genes),
             "pz_code_sha256": PZ.code_sha(), "strategy_code_sha256": BM.STRATEGY_CODE_SHA, "cells": a.cells, "label": a.label}
     (out / "RUN_META.json").write_text(json.dumps(meta, indent=1))
     for c, s, q in mine:
@@ -161,7 +164,7 @@ def cmd_run(a):
             rec = run_world(cx, SCFG, AC, c, s, q, genes, pz_genes)
         except SystemExit as e:
             rec = {"id": c["id"], "seed": s, "quality": q, "error": str(e)}
-        rec["meta"] = {k_: meta[k_] for k_ in ("params_sha256", "pz_genes_sha256", "label")}
+        rec["meta"] = {k_: meta[k_] for k_ in ("params_sha256", "pz_genes_sha256", "label", "pz_design_version")}
         p.write_text(json.dumps(rec, indent=1, default=float))
         print(json.dumps({"world": p.name, "sec": rec.get("sec"), "sharpe": {k_: v["sharpe"] for k_, v in (rec.get("arms") or {}).items()}}), flush=True)
 
@@ -339,6 +342,7 @@ def main():
     r.add_argument("--contract", default=str(S.CONTRACT))
     r.add_argument("--params", required=True)
     r.add_argument("--pz-params", default=None)
+    r.add_argument("--pz-design", default=None, choices=PZ.DESIGN_VERSIONS)
     r.add_argument("--label", default="canonical")
     r.add_argument("--out", required=True)
     p = sub.add_parser("report")

@@ -264,7 +264,7 @@ def evaluate_batch(subset: list, cands: list, level: dict, out_dir: Path, jobs: 
     for i, g in enumerate(cands):
         res = per[i]
         n_fail = sum(len(r["fails"]) for r in res)
-        out.append({"params": {**g, **level}, "fitness_sharpe": float(np.mean([r["sharpe"] for r in res])), "n_failing_witnesses": n_fail, "feasible": n_fail == 0,
+        out.append({"pz_design_version": PZ.DESIGN_VERSION, "params": {**g, **level}, "fitness_sharpe": float(np.mean([r["sharpe"] for r in res])), "n_failing_witnesses": n_fail, "feasible": n_fail == 0,
                     "activity": {"trades_per_week_mean": float(np.mean([r["activity"]["trades_per_week"] for r in res])),
                                  "reopen_1bar_share_median": float(np.nanmedian([r["activity"]["reopen_1bar_share"] for r in res])),
                                  "net_sigma_per_trade_median": float(np.nanmedian([r["trade_stats"].get("net_sigma_per_trade_median", np.nan) for r in res]))},

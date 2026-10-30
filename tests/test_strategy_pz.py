@@ -141,7 +141,8 @@ def test_ar1_error_persistence():
     assert abs(ac - PZ.PHI) < 0.03
 
 
-def test_orders_rounding_and_validity():
+def test_orders_rounding_and_validity(monkeypatch):
+    monkeypatch.setattr(PZ, "DESIGN_VERSION", "1.0")                       # the v1.0 history (offset-free TP), pinned
     bars, piv = _toy()
     n = len(bars)
     hd = {"fav": {0.5: np.full((n, 4, 2), 0.00123)}, "adv": {0.75: np.full((n, 4, 2), 0.00051)}}
@@ -218,7 +219,8 @@ def _pos(d=1, tp=1.1030, sl=1.0990, sigma=0.005):
     return E.Position(d, 1000, 0, 1.1, sl, tp, sigma, 0, {})
 
 
-def test_close_rule_hold_urgent_and_persistence():
+def test_close_rule_hold_urgent_and_persistence(monkeypatch):
+    monkeypatch.setattr(PZ, "DESIGN_VERSION", "1.0")                       # the v1.0 urgent rule, pinned
     t = _table()
     t["pz_tp"][0, 0, 1], t["pz_sl"][0, 0, 1] = 1.1030, 1.0990
     t["pz_p_up"][0] = [0.5, 0.9, 0.5, 0.5]
@@ -285,7 +287,8 @@ def test_hooks_default_to_c3z():
     assert inspect.signature(BM.build_episodes).parameters["Pol"].default is None
 
 
-def test_truth_orders_fn_matches_view_orders():
+def test_truth_orders_fn_matches_view_orders(monkeypatch):
+    monkeypatch.setattr(PZ, "DESIGN_VERSION", "1.0")
     bars, piv = _toy()
     lab = PZ.expert_labels(bars)
     n = len(bars)
@@ -316,3 +319,87 @@ def test_pz_deap_genome_and_staging():
     sub = [{"subset_key": "A"}, {"subset_key": "S_X@q1", "pair": "X"}, {"subset_key": "M_X@q1", "pair": "X"}]
     gs = PD.groups_of(sub)
     assert len(gs) == 2 and any(len(g_) == 2 for g_ in gs)                   # a pair is evaluated by one worker
+
+
+class _Prof:
+    limit_through = 1e-4
+
+    def spread_at(self, t, o):
+        return 2e-5
+
+
+class _Var:
+    short_trigger_on_ask = True
+
+
+class _Cfg:
+    profile = _Prof()
+    variant = _Var()
+
+
+class _Env:
+    def __init__(self, n):
+        self.cfg = _Cfg()
+        self.v = np.arange(n, dtype=np.int64) * 3600 * 10 ** 9
+        self.mo = np.zeros(1, np.int64)
+        self.seg_of = np.zeros(n, np.int64)
+
+
+def test_v11_offsets_and_tp_distance():
+    assert PZ.DESIGN_VERSION == "1.1"
+    env = _Env(10)
+    xo = PZ.exit_offsets(env, np.arange(10))
+    assert np.allclose(xo[:, 0], 1e-4) and np.allclose(xo[:, 1], 1.2e-4)    # long exits at the bid; short at the ask (spread)
+    bars, piv = _toy()
+    n = len(bars)
+    hd = {"fav": {0.5: np.full((n, 4, 2), 0.00123)}, "adv": {0.75: np.full((n, 4, 2), 0.00051)}}
+    with pytest.raises(PZ.PZError):
+        PZ.orders(bars, np.full(n, 0.005), np.arange(n), hd, PZ.CANONICAL)  # v1.1 refuses an order without its exit offset
+    o = PZ.orders(bars, np.full(n, 0.005), np.arange(n), hd, PZ.CANONICAL, exit_offset=xo)
+    q = bars["CLOSE"].to_numpy()
+    assert o["tp"][0, 0, 1] <= q[0] + 0.00123 - 1e-4 + 1e-12 and o["tp"][0, 0, 1] >= q[0] + 0.00123 - 1e-4 - ZZ.LEVEL_TICK - 1e-12
+    assert o["tp"][0, 1, 1] >= q[0] - 0.00123 + 1.2e-4 - 1e-12                    # a sell's TP sits above the predicted valley by through + spread
+    hd["fav"][0.5][2] = 0.00005                                                   # a predicted excursion smaller than the offset: no order
+    o2 = PZ.orders(bars, np.full(n, 0.005), np.arange(n), hd, PZ.CANONICAL, exit_offset=xo)
+    assert not o2["mask"][2].any()
+
+
+def test_v11_perfect_order_at_a_pivot_is_fillable():
+    """The ruling's test: with perfect outputs the TP of the order whose leg ends at a pivot fills when the price goes
+    through it (v1.0's TP sat at the extreme and never filled: 0 TP exits in 32 231)."""
+    from app.short_horizon import execution as X
+    bars, piv = _toy()
+    n = len(bars)
+    o_, h_, l_ = (bars[k].to_numpy() for k in ("OPEN", "HIGH", "LOW"))
+    c_ = bars["CLOSE"].to_numpy()
+    assert np.allclose(o_[1:], c_[:-1])                                             # the toy's next open = the close (fav anchor = quote)
+    lab = PZ.expert_labels(bars, _mt({h: piv for h in PZ.HORIZONS}))
+    hd = PZ.heads(lab, 1.0, 0, np.zeros(n, bool))
+    env = _Env(n)
+    xo = PZ.exit_offsets(env, np.arange(n))
+    g = dict(PZ.CANONICAL, buffer_pips=0.0, a_sl=2.0)
+    o = PZ.orders(bars, np.full(n, 0.005), np.arange(n), hd, g, exit_offset=xo)
+    b, j = 2, 1                                                                     # after the valley at 2: buy, next peak at 6 (high 1.30)
+    tp, sl = o["tp"][b, 0, j], o["sl"][b, 0, j]
+    assert np.isfinite(tp)
+    hits = [X._protect(1, tp, sl, o_[k], h_[k], l_[k], env.cfg.profile.limit_through) for k in range(b + 1, 7)]
+    assert any(x is not None and x[0] == "TP" for x in hits)
+    o10 = dict(o)                                                                   # the v1.0 TP (at the extreme) on the same bar never fills
+    tp10 = c_[b] + lab["fav"][b, j, 0]
+    assert all(X._protect(1, tp10, sl, o_[k], h_[k], l_[k], env.cfg.profile.limit_through) is None or X._protect(1, tp10, sl, o_[k], h_[k], l_[k], env.cfg.profile.limit_through)[0] != "TP"
+               for k in range(b + 1, 7))
+
+
+def test_v11_urgent_close_needs_the_reach_to_sl():
+    t = _table()
+    t["pz_fav50"] = np.zeros((4, 4, 2))
+    pol = _pol(t)
+    pos = _pos()                                                                    # long, P = 1.1, SL 1.0990: 10 pips to the SL
+    t["pz_p_up"][1] = [0.1, 0.9, 0.5, 0.5]                                         # the 3 h level against, the 6 h level in favour (HOLD > 0)
+    t["pz_fav50"][1, 0, 1] = 0.0005                                                 # the fine reversal reaches 5 pips: not the SL
+    assert pol.close_now(1, 0, 1, pos) is False
+    t["pz_fav50"][2, 0, 1] = 0.0011                                                 # 11 pips >= the 10 pips left to the SL
+    t["pz_p_up"][2] = [0.1, 0.9, 0.5, 0.5]
+    assert pol.close_now(2, 0, 2, pos) is True and pol.closes[-1][7]               # reaches the SL: urgent
+    t0 = dict(t, pz_genes=PZ.validate_genes({"p_urg": 0.0}))
+    assert _pol(t0).close_now(2, 0, 2, pos) is False                              # p_urg = 0: the urgent close is off
