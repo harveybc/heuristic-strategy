@@ -171,3 +171,28 @@ def test_a_grid_task_raising_systemexit_leaves_the_pool_alive_and_records_the_er
     assert [x["point"] for x in res["infeasible_points"]] == [1] and res["infeasible_points"][0]["status"] == "INFEASIBLE"
     assert "STRATEGY_SPACE_INFEASIBLE" in res["infeasible_points"][0]["reasons"][0]
     assert [r["point"] for r in res["ranking"]] == [0, 2] and all(r["status"] == "FEASIBLE" for r in res["ranking"])
+
+
+def test_mirror_property_genomes_keep_a_non_canonical_launch_points_level_genes():
+    point = {"a_sl": 0.75, "a_tp": 0.75, "ref_p75": 1.0}
+    gs = MP.genomes(3, 20261028, point)
+    assert gs[0][0] == "point" and all(d["a_sl"] == 0.75 and d["a_tp"] == 0.75 and d["ref_p75"] == 1.0 for _, d in gs)
+
+
+def test_deap_pool_configures_the_level_genes_before_building_worlds(monkeypatch):
+    seen = {}
+
+    class Ctx:
+        def Pipe(self):
+            raise RuntimeError("stop after configure")
+    monkeypatch.setattr(D.mp, "get_context", lambda k: Ctx())
+    D._BASE.update({"AC": 1, "cx": 1, "SCFG": 1})
+    doc = SP.validate({**SP.default_doc(), "a_sl": 1.5})
+    try:
+        D.Pool([{"subset_key": "A@q1.00"}], 1, "wf2022", "", "", "", doc)
+    except RuntimeError:
+        pass
+    finally:
+        D._BASE.clear()
+    assert D.ZZ.PARAMS["a_sl"] == 1.5
+    D.ZZ.configure(SP.default_doc())

@@ -428,6 +428,8 @@ def _safe_evaluate(w, params: dict) -> dict:
 class Pool:
     def __init__(self, subset: list, jobs: int, fold: str, admitted: str, csv_dir: str, contract: str, params_doc: dict | None = None):
         ctx = mp.get_context("fork")
+        if params_doc is not None:                                    # the worlds' menu truth is built with THESE level genes (MENU_GENES_MISMATCH guard;
+            ZZ.configure(params_doc)                                  # the chain's dry run showed a frozen non-canonical point refused otherwise)
         if not _BASE:
             _BASE["AC"] = S.contract_for_sim(contract)
             cx, SCFG = S.load_fold(fold, admitted, csv_dir)
