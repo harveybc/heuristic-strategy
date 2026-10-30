@@ -1,0 +1,4749 @@
+[
+ {
+  "id": "F1_trend_up_medium_low_low",
+  "level": "F1_trend_x_fine",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "low_low",
+  "fine_amp": 1.5,
+  "fine_dens": 0.5,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F1_trend_up_medium_low_low@q1.00"
+ },
+ {
+  "id": "F1_trend_up_medium_low_low",
+  "level": "F1_trend_x_fine",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "low_low",
+  "fine_amp": 1.5,
+  "fine_dens": 0.5,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F1_trend_up_medium_low_low@q0.70"
+ },
+ {
+  "id": "F2_trend_up_weak_mid_ramp_up",
+  "level": "F2_trend_x_vol",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "weak",
+  "switch_fracs": [],
+  "vol": "ramp_up",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F2_trend_up_weak_mid_ramp_up@q1.00"
+ },
+ {
+  "id": "F2_trend_up_weak_mid_ramp_up",
+  "level": "F2_trend_x_vol",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "weak",
+  "switch_fracs": [],
+  "vol": "ramp_up",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F2_trend_up_weak_mid_ramp_up@q0.70"
+ },
+ {
+  "id": "F3_down_up_late_medium",
+  "level": "F3_transition_x_fine",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.75
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium_medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F3_down_up_late_medium@q1.00"
+ },
+ {
+  "id": "F3_down_up_late_medium",
+  "level": "F3_transition_x_fine",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.75
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium_medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F3_down_up_late_medium@q0.70"
+ },
+ {
+  "id": "F4_trend_up_strong_g2_against",
+  "level": "F4_trend_x_gap",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": {
+   "sigma": 2.0,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F4_trend_up_strong_g2_against@q1.00"
+ },
+ {
+  "id": "F4_trend_up_strong_g2_against",
+  "level": "F4_trend_x_gap",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": {
+   "sigma": 2.0,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F4_trend_up_strong_g2_against@q0.70"
+ },
+ {
+  "id": "F5_trend_down_medium_normal_missing",
+  "level": "F5_trend_x_spread_x_calendar",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "missing_runs": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "no decision on an unobservable row (HOLD)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F5_trend_down_medium_normal_missing@q1.00"
+ },
+ {
+  "id": "F5_trend_down_medium_normal_missing",
+  "level": "F5_trend_x_spread_x_calendar",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "missing_runs": true
+  },
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "no decision on an unobservable row (HOLD)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F5_trend_down_medium_normal_missing@q0.70"
+ },
+ {
+  "id": "H1_medium_fast",
+  "level": "H1_active_horizons",
+  "family": "c3",
+  "legs": [
+   "range"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "volatility horizon fast: sizing and the per-bar cost gate follow sigma; no open inside bursts"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "one-sided trading (> 0.75 on one side)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "medium": {
+    "amp": "mid",
+    "align": "neutral",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "vol": {
+    "horizon": "fast",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "medium",
+   "vol": "fast"
+  },
+  "subset_key": "H1_medium_fast@q1.00"
+ },
+ {
+  "id": "H1_medium_fast",
+  "level": "H1_active_horizons",
+  "family": "c3",
+  "legs": [
+   "range"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "range",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "volatility horizon fast: sizing and the per-bar cost gate follow sigma; no open inside bursts"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "one-sided trading (> 0.75 on one side)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "medium": {
+    "amp": "mid",
+    "align": "neutral",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "vol": {
+    "horizon": "fast",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "medium",
+   "vol": "fast"
+  },
+  "subset_key": "H1_medium_fast@q0.70"
+ },
+ {
+  "id": "H2_long+medium+short_slow_reversal",
+  "level": "H2_active_horizons_long_reversal",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "after the long-horizon switch the old direction fades within the confirmation lag (W8); reversals truth-justified (W5)",
+   "medium swings (mid, neutral the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close",
+   "volatility horizon slow: sizing and the per-bar cost gate follow sigma; no open inside bursts",
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_up",
+     "trend_down"
+    ],
+    "strengths": [
+     "medium",
+     "medium"
+    ],
+    "switch_fracs": [
+     0.5
+    ]
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "neutral",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 0,
+    "burst_mult": 3.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": []
+   },
+   "vol": {
+    "horizon": "slow",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "slow"
+  },
+  "subset_key": "H2_long+medium+short_slow_reversal@q1.00"
+ },
+ {
+  "id": "H2_long+medium+short_slow_reversal",
+  "level": "H2_active_horizons_long_reversal",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "after the long-horizon switch the old direction fades within the confirmation lag (W8); reversals truth-justified (W5)",
+   "medium swings (mid, neutral the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close",
+   "volatility horizon slow: sizing and the per-bar cost gate follow sigma; no open inside bursts",
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_up",
+     "trend_down"
+    ],
+    "strengths": [
+     "medium",
+     "medium"
+    ],
+    "switch_fracs": [
+     0.5
+    ]
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "neutral",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 0,
+    "burst_mult": 3.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": []
+   },
+   "vol": {
+    "horizon": "slow",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "slow"
+  },
+  "subset_key": "H2_long+medium+short_slow_reversal@q0.70"
+ },
+ {
+  "id": "H3_Lweak_Mmid_Slow_with",
+  "level": "H3_intensity_per_horizon",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "medium swings (mid, with the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_down"
+    ],
+    "strengths": [
+     "weak"
+    ],
+    "switch_fracs": []
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "with",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "low",
+    "bursts": 0,
+    "burst_mult": 3.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": []
+   },
+   "vol": {
+    "horizon": "none",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "none"
+  },
+  "subset_key": "H3_Lweak_Mmid_Slow_with@q1.00"
+ },
+ {
+  "id": "H3_Lweak_Mmid_Slow_with",
+  "level": "H3_intensity_per_horizon",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "medium swings (mid, with the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_down"
+    ],
+    "strengths": [
+     "weak"
+    ],
+    "switch_fracs": []
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "with",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "low",
+    "bursts": 0,
+    "burst_mult": 3.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": []
+   },
+   "vol": {
+    "horizon": "none",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "none"
+  },
+  "subset_key": "H3_Lweak_Mmid_Slow_with@q0.70"
+ },
+ {
+  "id": "H4_spike_at_reversal_with_x5_fast",
+  "level": "H4_vol_spike_at_long_reversal",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "NO NEW OPENS inside the 2 volatility burst(s) after the detection lag (W17)",
+   "after the long-horizon switch the old direction fades within the confirmation lag (W8); reversals truth-justified (W5)",
+   "medium swings (mid, with the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close",
+   "volatility horizon fast: sizing and the per-bar cost gate follow sigma; no open inside bursts",
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_up",
+     "trend_down"
+    ],
+    "strengths": [
+     "medium",
+     "medium"
+    ],
+    "switch_fracs": [
+     0.5
+    ]
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "with",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 2,
+    "burst_mult": 5.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": true,
+    "jumps": []
+   },
+   "vol": {
+    "horizon": "fast",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "fast"
+  },
+  "subset_key": "H4_spike_at_reversal_with_x5_fast@q1.00"
+ },
+ {
+  "id": "H4_spike_at_reversal_with_x5_fast",
+  "level": "H4_vol_spike_at_long_reversal",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "NO NEW OPENS inside the 2 volatility burst(s) after the detection lag (W17)",
+   "after the long-horizon switch the old direction fades within the confirmation lag (W8); reversals truth-justified (W5)",
+   "medium swings (mid, with the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close",
+   "volatility horizon fast: sizing and the per-bar cost gate follow sigma; no open inside bursts",
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_up",
+     "trend_down"
+    ],
+    "strengths": [
+     "medium",
+     "medium"
+    ],
+    "switch_fracs": [
+     0.5
+    ]
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "with",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 2,
+    "burst_mult": 5.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": true,
+    "jumps": []
+   },
+   "vol": {
+    "horizon": "fast",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "fast"
+  },
+  "subset_key": "H4_spike_at_reversal_with_x5_fast@q0.70"
+ },
+ {
+  "id": "H5_gap2_with_medium_0.3",
+  "level": "H5_gap_vs_medium_swing",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "medium swings (mid, neutral the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_down"
+    ],
+    "strengths": [
+     "medium"
+    ],
+    "switch_fracs": []
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "neutral",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 0,
+    "burst_mult": 3.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": [
+     {
+      "sigma": 2.0,
+      "frac": 0.3,
+      "against_medium": false
+     }
+    ]
+   },
+   "vol": {
+    "horizon": "none",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "none"
+  },
+  "subset_key": "H5_gap2_with_medium_0.3@q1.00"
+ },
+ {
+  "id": "H5_gap2_with_medium_0.3",
+  "level": "H5_gap_vs_medium_swing",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "medium swings (mid, neutral the long leg): counter-swings are traded only where the truth pays them against the long horizon's adverse move",
+   "short counter-moves inside a medium swing: fine timing gates the entry, the fine alarm with a weak coarse room arms the early close"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "trend_down"
+    ],
+    "strengths": [
+     "medium"
+    ],
+    "switch_fracs": []
+   },
+   "medium": {
+    "amp": "mid",
+    "align": "neutral",
+    "leg_bars": [
+     48,
+     144
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 0,
+    "burst_mult": 3.0,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": [
+     {
+      "sigma": 2.0,
+      "frac": 0.3,
+      "against_medium": false
+     }
+    ]
+   },
+   "vol": {
+    "horizon": "none",
+    "slow_ratio": 2.0,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.97
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+medium+short",
+   "vol": "none"
+  },
+  "subset_key": "H5_gap2_with_medium_0.3@q0.70"
+ },
+ {
+  "id": "H6_LHS_01",
+  "level": "H6_LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.48636218961640265
+  ],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "NO NEW OPENS inside the 2 volatility burst(s) after the detection lag (W17)",
+   "after the long-horizon switch the old direction fades within the confirmation lag (W8); reversals truth-justified (W5)",
+   "volatility horizon slow: sizing and the per-bar cost gate follow sigma; no open inside bursts",
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "range",
+     "trend_down"
+    ],
+    "strengths": [
+     "medium",
+     "strong"
+    ],
+    "switch_fracs": [
+     0.48636218961640265
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 2,
+    "burst_mult": 3.4,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": [
+     {
+      "sigma": 1.3,
+      "frac": 0.5,
+      "against_medium": false
+     }
+    ]
+   },
+   "vol": {
+    "horizon": "slow",
+    "slow_ratio": 1.78,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.961
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+short",
+   "vol": "slow"
+  },
+  "subset_key": "H6_LHS_01@q1.00"
+ },
+ {
+  "id": "H6_LHS_01",
+  "level": "H6_LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.48636218961640265
+  ],
+  "vol": "ms",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": null,
+  "fine_dens": null,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPENS: every order carries broker-side SL and TP (W16); every open is truth-positive at the truth-best cell (W2, W7); side shares follow the dominant opportunity (W1)",
+   "EARLY CLOSE when it pays: SL-destined positions closed before the stop (W4 SL exits <= 0.10) and every early close has remaining hold value <= 0 (W4)",
+   "NO NEW OPENS when risk is high relative to the gain: no open where no cell offers truth net >= floor x truth MAE (W15)",
+   "NO NEW OPENS inside the 2 volatility burst(s) after the detection lag (W17)",
+   "after the long-horizon switch the old direction fades within the confirmation lag (W8); reversals truth-justified (W5)",
+   "volatility horizon slow: sizing and the per-bar cost gate follow sigma; no open inside bursts",
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)"
+  ],
+  "forbidden": [
+   "an order without SL or TP; an open on a high-risk tick; an early close that destroys value (remaining > 0); an open inside a burst after the lag",
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "ms": {
+   "long": {
+    "legs": [
+     "range",
+     "trend_down"
+    ],
+    "strengths": [
+     "medium",
+     "strong"
+    ],
+    "switch_fracs": [
+     0.48636218961640265
+    ]
+   },
+   "short": {
+    "fine": "medium",
+    "bursts": 2,
+    "burst_mult": 3.4,
+    "burst_bars": [
+     6,
+     12
+    ],
+    "burst_at_switch": false,
+    "jumps": [
+     {
+      "sigma": 1.3,
+      "frac": 0.5,
+      "against_medium": false
+     }
+    ]
+   },
+   "vol": {
+    "horizon": "slow",
+    "slow_ratio": 1.78,
+    "slow_mean_bars": 360,
+    "fast_persistence": 0.961
+   }
+  },
+  "intensity": {
+   "kind": "multi_horizon",
+   "active": "long+short",
+   "vol": "slow"
+  },
+  "subset_key": "H6_LHS_01@q0.70"
+ },
+ {
+  "id": "I1_upmedium_upstrong_early",
+  "level": "I1_trend_change_intensity",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.25
+  ],
+  "vol": "garch09",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium",
+   "strong"
+  ],
+  "vol_frac": null,
+  "intensity": {
+   "kind": "trend_change",
+   "pair": "trend_up->trend_up",
+   "from": "medium",
+   "to": "strong",
+   "switch": "early"
+  },
+  "subset_key": "I1_upmedium_upstrong_early@q1.00"
+ },
+ {
+  "id": "I1_upmedium_upstrong_early",
+  "level": "I1_trend_change_intensity",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.25
+  ],
+  "vol": "garch09",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium",
+   "strong"
+  ],
+  "vol_frac": null,
+  "intensity": {
+   "kind": "trend_change",
+   "pair": "trend_up->trend_up",
+   "from": "medium",
+   "to": "strong",
+   "switch": "early"
+  },
+  "subset_key": "I1_upmedium_upstrong_early@q0.70"
+ },
+ {
+  "id": "I2_vstep_down_2_trend_down",
+  "level": "I2_vol_change_intensity",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "vstep_down_2",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (after / before the volatility change follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium"
+  ],
+  "vol_frac": 0.5,
+  "intensity": {
+   "kind": "vol_only",
+   "vol": "vstep_down_2",
+   "trend": "trend_down",
+   "vol_at": 0.5
+  },
+  "subset_key": "I2_vstep_down_2_trend_down@q1.00"
+ },
+ {
+  "id": "I2_vstep_down_2_trend_down",
+  "level": "I2_vol_change_intensity",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "vstep_down_2",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (after / before the volatility change follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium"
+  ],
+  "vol_frac": 0.5,
+  "intensity": {
+   "kind": "vol_only",
+   "vol": "vstep_down_2",
+   "trend": "trend_down",
+   "vol_at": 0.5
+  },
+  "subset_key": "I2_vstep_down_2_trend_down@q0.70"
+ },
+ {
+  "id": "I3_vstep_down_2_up_down_same_bar",
+  "level": "I3_vol_x_trend_change",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "vstep_down_2",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (after / before the volatility change follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium",
+   "medium"
+  ],
+  "vol_frac": 0.5,
+  "intensity": {
+   "kind": "vol_x_trend",
+   "vol": "vstep_down_2",
+   "pair": "trend_up->trend_down",
+   "timing": "same_bar",
+   "vol_at": 0.5,
+   "trend_at": 0.5
+  },
+  "subset_key": "I3_vstep_down_2_up_down_same_bar@q1.00"
+ },
+ {
+  "id": "I3_vstep_down_2_up_down_same_bar",
+  "level": "I3_vol_x_trend_change",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "vstep_down_2",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (after / before the volatility change follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium",
+   "medium"
+  ],
+  "vol_frac": 0.5,
+  "intensity": {
+   "kind": "vol_x_trend",
+   "vol": "vstep_down_2",
+   "pair": "trend_up->trend_down",
+   "timing": "same_bar",
+   "vol_at": 0.5,
+   "trend_at": 0.5
+  },
+  "subset_key": "I3_vstep_down_2_up_down_same_bar@q0.70"
+ },
+ {
+  "id": "I4_garch097_down_up_middle",
+  "level": "I4_garch_x_trend_change",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "garch097",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium",
+   "medium"
+  ],
+  "vol_frac": null,
+  "intensity": {
+   "kind": "garch_x_trend",
+   "persistence": 0.97,
+   "pair": "trend_down->trend_up",
+   "switch": "middle"
+  },
+  "subset_key": "I4_garch097_down_up_middle@q1.00"
+ },
+ {
+  "id": "I4_garch097_down_up_middle",
+  "level": "I4_garch_x_trend_change",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "garch097",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "strengths": [
+   "medium",
+   "medium"
+  ],
+  "vol_frac": null,
+  "intensity": {
+   "kind": "garch_x_trend",
+   "persistence": 0.97,
+   "pair": "trend_down->trend_up",
+   "switch": "middle"
+  },
+  "subset_key": "I4_garch097_down_up_middle@q0.70"
+ },
+ {
+  "id": "LHS_05",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_down",
+   "range",
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.10876241759777838,
+   0.3695874725325928,
+   0.6304125274674072
+  ],
+  "vol": "ramp_up",
+  "persistence": 0.85,
+  "fine": "lhs",
+  "fine_amp": 3.66,
+  "fine_dens": 1.2,
+  "jump": null,
+  "exec": {
+   "spread": "x5",
+   "cutoff_h": 12.0,
+   "cost_mult": 2.35,
+   "cap": 2,
+   "risk_pct": 0.0081
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_05@q1.00"
+ },
+ {
+  "id": "LHS_05",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_down",
+   "range",
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.10876241759777838,
+   0.3695874725325928,
+   0.6304125274674072
+  ],
+  "vol": "ramp_up",
+  "persistence": 0.85,
+  "fine": "lhs",
+  "fine_amp": 3.66,
+  "fine_dens": 1.2,
+  "jump": null,
+  "exec": {
+   "spread": "x5",
+   "cutoff_h": 12.0,
+   "cost_mult": 2.35,
+   "cap": 2,
+   "risk_pct": 0.0081
+  },
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_05@q0.70"
+ },
+ {
+  "id": "B_cal_cutoff12",
+  "level": "backbone_calendar",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "cutoff_h": 12.0
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "no entry inside the Friday cutoff window (engine refusal honoured)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_cal_cutoff12@q1.00"
+ },
+ {
+  "id": "B_cal_cutoff12",
+  "level": "backbone_calendar",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "cutoff_h": 12.0
+  },
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "no entry inside the Friday cutoff window (engine refusal honoured)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_cal_cutoff12@q0.70"
+ },
+ {
+  "id": "B_fine_high_low",
+  "level": "backbone_fine",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "high_low",
+  "fine_amp": 4.0,
+  "fine_dens": 0.5,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_fine_high_low@q1.00"
+ },
+ {
+  "id": "B_fine_high_low",
+  "level": "backbone_fine",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "high_low",
+  "fine_amp": 4.0,
+  "fine_dens": 0.5,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_fine_high_low@q0.70"
+ },
+ {
+  "id": "B_gap_g2_against",
+  "level": "backbone_gap",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": {
+   "sigma": 2.0,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_gap_g2_against@q1.00"
+ },
+ {
+  "id": "B_gap_g2_against",
+  "level": "backbone_gap",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": {
+   "sigma": 2.0,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_gap_g2_against@q0.70"
+ },
+ {
+  "id": "B_spread_x5",
+  "level": "backbone_spread",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "spread": "x5"
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_spread_x5@q1.00"
+ },
+ {
+  "id": "B_spread_x5",
+  "level": "backbone_spread",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "spread": "x5"
+  },
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_spread_x5@q0.70"
+ },
+ {
+  "id": "B_trans_down_pause_down_late",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "range",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.63,
+   0.87
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_down_pause_down_late@q1.00"
+ },
+ {
+  "id": "B_trans_down_pause_down_late",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "range",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.63,
+   0.87
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_down_pause_down_late@q0.70"
+ },
+ {
+  "id": "B_trend_trend_down_strong",
+  "level": "backbone_trend",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trend_trend_down_strong@q1.00"
+ },
+ {
+  "id": "B_trend_trend_down_strong",
+  "level": "backbone_trend",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trend_trend_down_strong@q0.70"
+ },
+ {
+  "id": "B_voldyn_step_hl",
+  "level": "backbone_vol_dynamics",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "step_hl",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_voldyn_step_hl@q1.00"
+ },
+ {
+  "id": "B_voldyn_step_hl",
+  "level": "backbone_vol_dynamics",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "step_hl",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_voldyn_step_hl@q0.70"
+ },
+ {
+  "id": "B_vol_mid",
+  "level": "backbone_vol_level",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_vol_mid@q1.00"
+ },
+ {
+  "id": "B_vol_mid",
+  "level": "backbone_vol_level",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 0.7,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_vol_mid@q0.70"
+ },
+ {
+  "id": "B_trans_down_range_early",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "range"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.25
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_down_range_early@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_down_range_late",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "range"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.75
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_down_range_late@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_down_range_middle",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "range"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_down_range_middle@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_down_up_late",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.75
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_down_up_late@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_down_up_middle",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_down_up_middle@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_range_up_middle",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_range_up_middle@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_up_down_late",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.75
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_up_down_late@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_up_down_middle",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_up_down_middle@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_trans_up_range_middle",
+  "level": "backbone_transition",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "range"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.5
+  ],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_trans_up_range_middle@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "B_voldyn_ramp_up",
+  "level": "backbone_vol_dynamics",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ramp_up",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {},
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "B_voldyn_ramp_up@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_46",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.3463525045729995,
+   0.5
+  ],
+  "vol": "step_lh",
+  "persistence": 0.96,
+  "fine": "lhs",
+  "fine_amp": 2.6,
+  "fine_dens": 2.04,
+  "jump": {
+   "sigma": 2.21,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "cost_mult": 1.04,
+   "cap": 3,
+   "risk_pct": 0.012,
+   "cutoff_h": 22.2
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_46@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_48",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ramp_up",
+  "persistence": 0.876,
+  "fine": "lhs",
+  "fine_amp": 3.57,
+  "fine_dens": 1.37,
+  "jump": {
+   "sigma": 1.79,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "missing_runs": true,
+   "cost_mult": 1.99,
+   "cap": 3,
+   "risk_pct": 0.0065,
+   "cutoff_h": 23.5
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_48@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_50",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.3538547494543211,
+   0.5
+  ],
+  "vol": "ramp_down",
+  "persistence": 0.889,
+  "fine": "lhs",
+  "fine_amp": 4.26,
+  "fine_dens": 1.6,
+  "jump": {
+   "sigma": 1.63,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "cost_mult": 2.77,
+   "cap": 2,
+   "risk_pct": 0.0058,
+   "cutoff_h": 22.3
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_50@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_52",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "weak",
+  "switch_fracs": [
+   0.21068350637967936
+  ],
+  "vol": "garch097",
+  "persistence": 0.979,
+  "fine": "lhs",
+  "fine_amp": 1.95,
+  "fine_dens": 1.74,
+  "jump": {
+   "sigma": 1.18,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "spike",
+   "missing_runs": true,
+   "cost_mult": 1.7,
+   "cap": 2,
+   "risk_pct": 0.0102,
+   "cutoff_h": 23.3
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_52@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_53",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_up",
+   "trend_down",
+   "range"
+  ],
+  "strength": "weak",
+  "switch_fracs": [
+   0.1443061151487529,
+   0.38143537171625097,
+   0.618564628283749
+  ],
+  "vol": "step_hl",
+  "persistence": 0.909,
+  "fine": "lhs",
+  "fine_amp": 1.25,
+  "fine_dens": 0.85,
+  "jump": {
+   "sigma": 2.51,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {
+   "cost_mult": 1.42,
+   "cap": 3,
+   "risk_pct": 0.0085,
+   "cutoff_h": 19.4
+  },
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_53@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_56",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "range",
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.30235637184338127,
+   0.5
+  ],
+  "vol": "step_lh",
+  "persistence": 0.896,
+  "fine": "lhs",
+  "fine_amp": 1.86,
+  "fine_dens": 0.58,
+  "jump": null,
+  "exec": {
+   "spread": "spike",
+   "cutoff_h": 12.0,
+   "cost_mult": 2.15,
+   "cap": 1,
+   "risk_pct": 0.0055
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_56@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_57",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "ramp_down",
+  "persistence": 0.882,
+  "fine": "lhs",
+  "fine_amp": 3.74,
+  "fine_dens": 1.36,
+  "jump": {
+   "sigma": 4.25,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "spike",
+   "missing_runs": true,
+   "cost_mult": 2.69,
+   "cap": 3,
+   "risk_pct": 0.0161,
+   "cutoff_h": 15.9
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_57@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_61",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.32503305222461587
+  ],
+  "vol": "step_lh",
+  "persistence": 0.906,
+  "fine": "lhs",
+  "fine_amp": 3.09,
+  "fine_dens": 2.08,
+  "jump": null,
+  "exec": {
+   "spread": "x5",
+   "cutoff_h": 12.0,
+   "cost_mult": 1.93,
+   "cap": 2,
+   "risk_pct": 0.0096
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_61@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "LHS_62",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.3149313055526778,
+   0.5
+  ],
+  "vol": "ramp_up",
+  "persistence": 0.858,
+  "fine": "lhs",
+  "fine_amp": 4.01,
+  "fine_dens": 1.47,
+  "jump": {
+   "sigma": 1.74,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "cost_mult": 1.96,
+   "cap": 4,
+   "risk_pct": 0.0186,
+   "cutoff_h": 13.4
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "LHS_62@q1.00",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_46",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.3463525045729995,
+   0.5
+  ],
+  "vol": "step_lh",
+  "persistence": 0.96,
+  "fine": "lhs",
+  "fine_amp": 2.6,
+  "fine_dens": 2.04,
+  "jump": {
+   "sigma": 2.21,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "cap": 3,
+   "risk_pct": 0.012,
+   "cutoff_h": 22.2,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_46 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_46 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_46",
+  "subset_key": "S_LHS_46@q1.00",
+  "pair": "LHS_46",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_46",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.3463525045729995,
+   0.5
+  ],
+  "vol": "step_lh",
+  "persistence": 0.96,
+  "fine": "lhs",
+  "fine_amp": 2.6,
+  "fine_dens": 2.04,
+  "jump": {
+   "sigma": 2.21,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "cap": 3,
+   "risk_pct": 0.012,
+   "cutoff_h": 22.2,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_46 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_46",
+  "legs_gen": [
+   "trend_up",
+   "trend_down",
+   "trend_up"
+  ],
+  "subset_key": "M_LHS_46@q1.00",
+  "pair": "LHS_46",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_48",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ramp_up",
+  "persistence": 0.876,
+  "fine": "lhs",
+  "fine_amp": 3.57,
+  "fine_dens": 1.37,
+  "jump": {
+   "sigma": 1.79,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "missing_runs": true,
+   "cap": 3,
+   "risk_pct": 0.0065,
+   "cutoff_h": 23.5,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_48 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_48 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_48",
+  "subset_key": "S_LHS_48@q1.00",
+  "pair": "LHS_48",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_48",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "ramp_up",
+  "persistence": 0.876,
+  "fine": "lhs",
+  "fine_amp": 3.57,
+  "fine_dens": 1.37,
+  "jump": {
+   "sigma": 1.79,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "missing_runs": true,
+   "cap": 3,
+   "risk_pct": 0.0065,
+   "cutoff_h": 23.5,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_48 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_48",
+  "legs_gen": [
+   "trend_up"
+  ],
+  "subset_key": "M_LHS_48@q1.00",
+  "pair": "LHS_48",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_50",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.3538547494543211,
+   0.5
+  ],
+  "vol": "ramp_down",
+  "persistence": 0.889,
+  "fine": "lhs",
+  "fine_amp": 4.26,
+  "fine_dens": 1.6,
+  "jump": {
+   "sigma": 1.63,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "cap": 2,
+   "risk_pct": 0.0058,
+   "cutoff_h": 22.3,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_50 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_50 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_50",
+  "subset_key": "S_LHS_50@q1.00",
+  "pair": "LHS_50",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_50",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "medium",
+  "switch_fracs": [
+   0.3538547494543211,
+   0.5
+  ],
+  "vol": "ramp_down",
+  "persistence": 0.889,
+  "fine": "lhs",
+  "fine_amp": 4.26,
+  "fine_dens": 1.6,
+  "jump": {
+   "sigma": 1.63,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "x5",
+   "cap": 2,
+   "risk_pct": 0.0058,
+   "cutoff_h": 22.3,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_50 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_50",
+  "legs_gen": [
+   "trend_up",
+   "trend_down",
+   "trend_up"
+  ],
+  "subset_key": "M_LHS_50@q1.00",
+  "pair": "LHS_50",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_52",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "weak",
+  "switch_fracs": [
+   0.21068350637967936
+  ],
+  "vol": "garch097",
+  "persistence": 0.979,
+  "fine": "lhs",
+  "fine_amp": 1.95,
+  "fine_dens": 1.74,
+  "jump": {
+   "sigma": 1.18,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "spike",
+   "missing_runs": true,
+   "cap": 2,
+   "risk_pct": 0.0102,
+   "cutoff_h": 23.3,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "same behaviours as LHS_52 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_52 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_52",
+  "subset_key": "S_LHS_52@q1.00",
+  "pair": "LHS_52",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_52",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "weak",
+  "switch_fracs": [
+   0.21068350637967936
+  ],
+  "vol": "garch097",
+  "persistence": 0.979,
+  "fine": "lhs",
+  "fine_amp": 1.95,
+  "fine_dens": 1.74,
+  "jump": {
+   "sigma": 1.18,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "spike",
+   "missing_runs": true,
+   "cap": 2,
+   "risk_pct": 0.0102,
+   "cutoff_h": 23.3,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "EXACT MIRROR of S_LHS_52 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_52",
+  "legs_gen": [
+   "trend_up",
+   "trend_down"
+  ],
+  "subset_key": "M_LHS_52@q1.00",
+  "pair": "LHS_52",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_53",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_up",
+   "trend_down",
+   "range"
+  ],
+  "strength": "weak",
+  "switch_fracs": [
+   0.1443061151487529,
+   0.38143537171625097,
+   0.618564628283749
+  ],
+  "vol": "step_hl",
+  "persistence": 0.909,
+  "fine": "lhs",
+  "fine_amp": 1.25,
+  "fine_dens": 0.85,
+  "jump": {
+   "sigma": 2.51,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {
+   "cap": 3,
+   "risk_pct": 0.0085,
+   "cutoff_h": 19.4,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_53 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_53 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_53",
+  "subset_key": "S_LHS_53@q1.00",
+  "pair": "LHS_53",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_53",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_down",
+   "trend_up",
+   "range"
+  ],
+  "strength": "weak",
+  "switch_fracs": [
+   0.1443061151487529,
+   0.38143537171625097,
+   0.618564628283749
+  ],
+  "vol": "step_hl",
+  "persistence": 0.909,
+  "fine": "lhs",
+  "fine_amp": 1.25,
+  "fine_dens": 0.85,
+  "jump": {
+   "sigma": 2.51,
+   "against": true,
+   "frac": 0.5
+  },
+  "exec": {
+   "cap": 3,
+   "risk_pct": 0.0085,
+   "cutoff_h": 19.4,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "range",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_53 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_53",
+  "legs_gen": [
+   "range",
+   "trend_up",
+   "trend_down",
+   "range"
+  ],
+  "subset_key": "M_LHS_53@q1.00",
+  "pair": "LHS_53",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_56",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "range",
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.30235637184338127,
+   0.5
+  ],
+  "vol": "step_lh",
+  "persistence": 0.896,
+  "fine": "lhs",
+  "fine_amp": 1.86,
+  "fine_dens": 0.58,
+  "jump": null,
+  "exec": {
+   "spread": "spike",
+   "cutoff_h": 12.0,
+   "cap": 1,
+   "risk_pct": 0.0055,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_56 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_56 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_56",
+  "subset_key": "S_LHS_56@q1.00",
+  "pair": "LHS_56",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_56",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "range",
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.30235637184338127,
+   0.5
+  ],
+  "vol": "step_lh",
+  "persistence": 0.896,
+  "fine": "lhs",
+  "fine_amp": 1.86,
+  "fine_dens": 0.58,
+  "jump": null,
+  "exec": {
+   "spread": "spike",
+   "cutoff_h": 12.0,
+   "cap": 1,
+   "risk_pct": 0.0055,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_56 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_56",
+  "legs_gen": [
+   "trend_down",
+   "range",
+   "trend_up"
+  ],
+  "subset_key": "M_LHS_56@q1.00",
+  "pair": "LHS_56",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_57",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "ramp_down",
+  "persistence": 0.882,
+  "fine": "lhs",
+  "fine_amp": 3.74,
+  "fine_dens": 1.36,
+  "jump": {
+   "sigma": 4.25,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "spike",
+   "missing_runs": true,
+   "cap": 3,
+   "risk_pct": 0.0161,
+   "cutoff_h": 15.9,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_57 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_57 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_57",
+  "subset_key": "S_LHS_57@q1.00",
+  "pair": "LHS_57",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_57",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "ramp_down",
+  "persistence": 0.882,
+  "fine": "lhs",
+  "fine_amp": 3.74,
+  "fine_dens": 1.36,
+  "jump": {
+   "sigma": 4.25,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "spread": "spike",
+   "missing_runs": true,
+   "cap": 3,
+   "risk_pct": 0.0161,
+   "cutoff_h": 15.9,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "no decision on an unobservable row (HOLD)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_57 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_57",
+  "legs_gen": [
+   "trend_up"
+  ],
+  "subset_key": "M_LHS_57@q1.00",
+  "pair": "LHS_57",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_61",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.32503305222461587
+  ],
+  "vol": "step_lh",
+  "persistence": 0.906,
+  "fine": "lhs",
+  "fine_amp": 3.09,
+  "fine_dens": 2.08,
+  "jump": null,
+  "exec": {
+   "spread": "x5",
+   "cutoff_h": 12.0,
+   "cap": 2,
+   "risk_pct": 0.0096,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_61 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_61 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_61",
+  "subset_key": "S_LHS_61@q1.00",
+  "pair": "LHS_61",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_61",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "range",
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.32503305222461587
+  ],
+  "vol": "step_lh",
+  "persistence": 0.906,
+  "fine": "lhs",
+  "fine_amp": 3.09,
+  "fine_dens": 2.08,
+  "jump": null,
+  "exec": {
+   "spread": "x5",
+   "cutoff_h": 12.0,
+   "cap": 2,
+   "risk_pct": 0.0096,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_61 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_61",
+  "legs_gen": [
+   "range",
+   "trend_down"
+  ],
+  "subset_key": "M_LHS_61@q1.00",
+  "pair": "LHS_61",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "S_LHS_62",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_down",
+   "trend_up",
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.3149313055526778,
+   0.5
+  ],
+  "vol": "ramp_up",
+  "persistence": 0.858,
+  "fine": "lhs",
+  "fine_amp": 4.01,
+  "fine_dens": 1.47,
+  "jump": {
+   "sigma": 1.74,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "cap": 4,
+   "risk_pct": 0.0186,
+   "cutoff_h": 13.4,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "same behaviours as LHS_62 at ZERO cost (bid bars and ask-triggered shorts make the real engine side-asymmetric by the spread); its mirror M_LHS_62 must mirror it EXACTLY"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "sym_of": "LHS_62",
+  "subset_key": "S_LHS_62@q1.00",
+  "pair": "LHS_62",
+  "role": "S",
+  "hard_example": true
+ },
+ {
+  "id": "M_LHS_62",
+  "level": "LHS",
+  "family": "c3",
+  "legs": [
+   "trend_up",
+   "trend_down",
+   "trend_up"
+  ],
+  "strength": "strong",
+  "switch_fracs": [
+   0.3149313055526778,
+   0.5
+  ],
+  "vol": "ramp_up",
+  "persistence": 0.858,
+  "fine": "lhs",
+  "fine_amp": 4.01,
+  "fine_dens": 1.47,
+  "jump": {
+   "sigma": 1.74,
+   "against": false,
+   "frac": 0.5
+  },
+  "exec": {
+   "cap": 4,
+   "risk_pct": 0.0186,
+   "cutoff_h": 13.4,
+   "financing_symmetric": true,
+   "costs_zero": true
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "after each coarse switch the old-direction opens fall to <= 0.40 within 120 bars",
+   "side shares follow the new leg (>= 0.60 in its direction)",
+   "early-close rate in [switch, switch + lag] >= rate before the switch",
+   "REVERSE only inside the switch windows (>= 0.50 of reversals)",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "the trade crossing the gap loses at most SL + gap + slippage (+0.5 sigma)",
+   "no entry inside the Friday cutoff window (engine refusal honoured)",
+   "TP/SL price distances track sigma (second-half / first-half ratio follows the vol ratio)",
+   "EXACT MIRROR of S_LHS_62 (zero cost): same entry / exit bars, sides flipped, net equal in sigma units"
+  ],
+  "forbidden": [
+   "keeping the old direction after the lag",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": true,
+  "mirror_of": "S_LHS_62",
+  "legs_gen": [
+   "trend_down",
+   "trend_up",
+   "trend_down"
+  ],
+  "subset_key": "M_LHS_62@q1.00",
+  "pair": "LHS_62",
+  "role": "M",
+  "hard_example": true
+ },
+ {
+  "id": "F5_trend_up_medium_x5_normal",
+  "level": "F5_trend_x_spread_x_calendar",
+  "family": "c3",
+  "legs": [
+   "trend_up"
+  ],
+  "strength": "medium",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "spread": "x5"
+  },
+  "regime": "trend_up",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_LONG dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost"
+  ],
+  "forbidden": [
+   "OPEN_SHORT except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F5_trend_up_medium_x5_normal@q1.00",
+  "x5_spread": true
+ },
+ {
+  "id": "F5_trend_down_strong_x5_missing",
+  "level": "F5_trend_x_spread_x_calendar",
+  "family": "c3",
+  "legs": [
+   "trend_down"
+  ],
+  "strength": "strong",
+  "switch_fracs": [],
+  "vol": "mid",
+  "persistence": null,
+  "fine": "medium",
+  "fine_amp": 2.5,
+  "fine_dens": 1.0,
+  "jump": null,
+  "exec": {
+   "spread": "x5",
+   "missing_runs": true
+  },
+  "regime": "trend_down",
+  "quality": 1.0,
+  "variant": "base",
+  "expected": [
+   "OPEN_SHORT dominant (share >= 0.60)",
+   "HOLD through fine counter-swings while the coarse room is positive",
+   "EARLY_CLOSE on SL-destined positions",
+   "every opened trade has truth net > 0 at the chosen cell (>= 0.90)",
+   "chosen cell = the truth's best cell (>= 0.70)",
+   "SL exits <= 0.10 (perfect closers close early)",
+   "VOLUME: risk-sized units exact",
+   "activity >= 1 open per week",
+   "inside the x5 spread window: no open unless truth net > the window's cost",
+   "no decision on an unobservable row (HOLD)"
+  ],
+  "forbidden": [
+   "OPEN_LONG except truth-positive counter-moves (share <= 0.40, each with truth net > 0)",
+   "REVERSE outside a coarse switch (<= 1 per week)",
+   "opens on truth-NOP ticks",
+   "opening the worse side when the other side's truth net is higher by > 0.10 sigma (<= 0.10)"
+  ],
+  "witness": "strategy_behaviour_matrix.witnesses (decision log + ledger + truth)",
+  "mirror": false,
+  "subset_key": "F5_trend_down_strong_x5_missing@q1.00",
+  "x5_spread": true
+ }
+]

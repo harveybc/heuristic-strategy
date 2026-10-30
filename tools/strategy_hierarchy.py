@@ -585,6 +585,9 @@ def period_bars(ds, period) -> tuple:
     return int(idx.searchsorted(pd.Timestamp(a, tz="UTC"))), int(idx.searchsorted(pd.Timestamp(b, tz="UTC")))
 
 
+MENU_ORDERS_FN = None      # full_f4: None = the C3Z decision menu (byte-identical); a strategy's own menu hook (strategy_pz.truth_orders_fn under --strategy pz)
+
+
 def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, periods: tuple | None = None) -> dict:
     """A synthetic world for one leaf: synthetic bars on the real calendar of ``calendar_period`` (and the bars around
     it), its own engine truth and simulated heads at the leaf's quality; the strategy is scored on ``calendar_period``."""
@@ -645,7 +648,7 @@ def leaf_world(cx_real, SCFG, AC, leaf: dict, calendar_period, seed: int, period
         from app.short_horizon.expert_guided import strategy_zz as ZZ
         S2_truth = S2
         truth = S.build_truth_menu(cx2, S2, "synthetic", AC, bars, ZZ.PARAMS, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),
-                                   mirror_exploration=bool(leaf.get("mirror")), swap_refs=bool(leaf.get("swap_refs")))
+                                   mirror_exploration=bool(leaf.get("mirror")), swap_refs=bool(leaf.get("swap_refs")), orders_fn=MENU_ORDERS_FN)
     else:
         S2_truth = S.truth_config(S2)
         truth = S.build_truth(cx2, S2_truth, "synthetic", AC["outcomes"]["cells"], AC, only_periods=periods if periods is not None else (S.CAL_BLOCK, S.SEL_BLOCK),

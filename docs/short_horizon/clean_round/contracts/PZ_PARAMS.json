@@ -1,0 +1,14 @@
+{
+ "schema": "pz_params.v1",
+ "note": "PZ canonical point declared before any run (2026-10-30); bounds and options in app/short_horizon/expert_guided/strategy_pz.py (BOUNDS, DISCRETE)",
+ "a_sl": 1.0,
+ "a_tp": 1.0,
+ "buffer_pips": 1.0,
+ "rho": 0.005,
+ "kappa": 0.0,
+ "theta": 0.0,
+ "alpha": 0.0,
+ "tau0": 1.0,
+ "k_persist": 1,
+ "p_urg": 0.25
+}

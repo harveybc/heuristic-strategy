@@ -308,7 +308,7 @@ def menu_exploration(cx, prior, seed, ords: dict, mirror: bool = False):
 
 
 def build_truth_menu(cx, SCFG, fold: str, contract: dict, bars, params: dict, explore_seed: int = 0, only_periods=None, mirror_exploration: bool = False,
-                     swap_refs: bool = False) -> Truth:
+                     swap_refs: bool = False, orders_fn=None) -> Truth:
     """The full_f4 engine truth (coordinator ruling 2026-10-29): the exact replay of the decision MENU (menu.py) on the
     PROFILE engine: per (row, side, h) the net in sigma and USD, the first barrier, MAE / MFE, exit reason; the ideal
     confirmations as the menu mask; the reality-based NOP over the menu; the exploration visits with menu orders. The
@@ -322,8 +322,12 @@ def build_truth_menu(cx, SCFG, fold: str, contract: dict, bars, params: dict, ex
     rows_sel = np.flatnonzero(cx.obs_ok & np.isin(cx.ds.period, list(only_periods))) if only_periods else OC.entry_rows(cx, env)
     rows_sel = rows_sel[(rb[rows_sel] >= env.first) & (rb[rows_sel] < env.last)] if len(rows_sel) else rows_sel
     close = np.asarray(bars["CLOSE"], float)
-    ords = M.orders(close, cx.ds.sigma, rb, params, swap_refs=swap_refs)
-    mask = M.rows_of_bars(M.confirmations(len(close), ZZ.mt_levels(bars)), rb)
+    if orders_fn is None:                                           # the C3Z menu (default: byte-identical)
+        ords = M.orders(close, cx.ds.sigma, rb, params, swap_refs=swap_refs)
+        mask = M.rows_of_bars(M.confirmations(len(close), ZZ.mt_levels(bars)), rb)
+    else:                                                           # another strategy's own order menu (PZ, strategy_pz.truth_orders_fn): its executable orders
+        ords = orders_fn(bars, cx.ds.sigma, rb, params, swap_refs=swap_refs)
+        mask = np.asarray(ords["mask"], bool)
     et = M.entry_table(env, rows_sel, rb, ords)
     rows = np.flatnonzero(cx.obs_ok)
     ref = M.ref_slot()

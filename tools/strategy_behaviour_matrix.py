@@ -45,6 +45,7 @@ from app.short_horizon.expert_guided import strategy_zz as ZZ  # noqa: E402
 from tools import strategy_hierarchy as H  # noqa: E402
 from tools import strategy_output_simulation as S  # noqa: E402
 from app.short_horizon.expert_guided import menu as M  # noqa: E402
+from app.short_horizon.expert_guided import strategy_pz as PZ  # noqa: E402
 
 BLOCK = "TRAIN"                     # the sustained span every cell is simulated and witnessed on (18 months for wf2022)
 CAL = S.CAL_BLOCK                   # the gene map's calibration block (INNER_A); synthetic as well
@@ -732,6 +733,43 @@ class PolicyC3Audit(S.PolicyC3PerBar):
         return dec
 
 
+STRATEGY = "c3z"                    # the strategy under test: "c3z" (default, byte-identical) | "pz" (ESTRATEGIA_PRAGMATICA_PZ_2026_10_30, --strategy pz)
+PZ_GENES = None                     # the PZ genes under --strategy pz (strategy_pz.validate_genes)
+
+
+def policy_class():
+    """The policy class of the strategy under test (the oracle / O* / hold controls never go through here)."""
+    return PZ.PolicyPZ if STRATEGY == "pz" else ZZ.PolicyC3Z
+
+
+def pz_attach(world: dict, view: dict, table: dict) -> dict:
+    """--strategy pz: the PZ heads at the world's quality on the view (strategy_pz.view_entries) and their report; at
+    quality 1 the view's orders must be the truth menu's orders exactly (PZ_MENU_MISMATCH otherwise)."""
+    cx, truth = world["cx"], world["truth"]
+    bars = world.get("bars") if world.get("bars") is not None else cx.ds.bars
+    rb = np.asarray(cx.ds.row_bar, np.int64)
+    per = np.asarray(cx.ds.period)
+    nb = len(bars)
+    cal_b, ev_b = np.zeros(nb, bool), np.zeros(nb, bool)
+    for mask, rows in ((cal_b, np.flatnonzero(cx.obs_ok & (per == CAL))), (ev_b, np.flatnonzero(cx.obs_ok & (per == BLOCK)))):
+        bb = rb[rows]
+        mask[bb[(bb >= 0) & (bb < nb)]] = True
+    lab = PZ.expert_labels(bars)
+    q = float(world.get("quality", 1.0))
+    hd = PZ.heads(lab, q, int(world.get("seed", 0)), cal_b)
+    ent = PZ.view_entries(bars, cx.ds.sigma, rb, table["cost_row"], hd, PZ_GENES, horizons=MENU_ABLATION_H or PZ.HORIZONS)
+    if q >= 0.999 and truth.menu is not None and not MENU_ABLATION_H:
+        for k in ("tp", "sl"):
+            a_, b_ = np.asarray(ent["pz_" + k], float), np.asarray(truth.menu[k], float)
+            if not np.array_equal(np.isfinite(a_), np.isfinite(b_)) or not np.array_equal(a_[np.isfinite(a_)], b_[np.isfinite(b_)]):
+                raise SystemExit(f"PZ_MENU_MISMATCH:{k}")
+    view.update(ent)
+    view["menu_stamp"] = None                                     # the C3Z level-gene guard does not apply to the PZ menu: the truth-acting controls read the
+                                                                  # truth's own orders; the PZ policy's orders are checked against the truth above
+    world["pz_report"] = PZ.head_report(lab, hd, ev_b, cal_b)
+    return view
+
+
 MENU_ABLATION_H = None              # D9 (QUALIFICATION_SPEC v2.6): same-genes single-horizon ablation, e.g. (6,): the other horizons' slots
                                     # leave the strategy's menu (the opener, the open margin's reference); the truth, the oracle and O* keep the full menu
 
@@ -821,6 +859,9 @@ def strategy_for(world: dict, genes: dict, AC: dict):
         view["mae"] = np.where(keep.reshape(-1, 1, 1), table["mae"], np.nan)
     if ZZ.PARAMS["ev_from_net"] >= 0.5:                          # the pooled margin on the net reference (same quantile rule as C3)
         strat = dataclasses.replace(strat, open_margin=ZZ.net_open_margin(view, cal_rows, cells, float(genes["open_rate"])))
+    if STRATEGY == "pz":                                         # PZ: its own heads and orders; the C3 record keeps theta as the open margin
+        pz_attach(world, view, table)
+        strat = PZ.strategy_object(PZ_GENES)
     return strat, view, cells
 
 
@@ -1156,7 +1197,7 @@ def _envelope(pol, r, si):
     return tp, sl
 
 
-def build_episodes(world: dict, strat, view, cells, every: int = EPISODE_EVERY_BARS, period: str = BLOCK) -> list:
+def build_episodes(world: dict, strat, view, cells, every: int = EPISODE_EVERY_BARS, period: str = BLOCK, Pol=None) -> list:
     """Initial-state episodes: at every ``every``-th observable decision bar of the block (``period``: BLOCK, or CAL for
     a TRAIN-only selection), one BUY and one SELL order opened on a clean engine with the strategy's envelope; each is
     an independent episode. Start ticks are densified (every // 2, then every // 4) until each side has >=
@@ -1164,7 +1205,7 @@ def build_episodes(world: dict, strat, view, cells, every: int = EPISODE_EVERY_B
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
     env = OC.make_env(cx, SCFG)
     a, b = H.period_bars(cx.ds, period)
-    pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost)
+    pol = (Pol or policy_class())(view, strat, cells, truth.e_time, truth.cost)
     closer = view["closer"]
     eps, seen = [], set()
     for step in (every, max(every // 2, 1), max(every // 4, 1)):
@@ -1413,7 +1454,7 @@ def oracle_view(world: dict, view: dict) -> dict:
 
 def rollout_cell(world: dict, strat, view, cells) -> dict:
     cx, SCFG, truth = world["cx"], world["scfg"], world["truth"]
-    pol = ZZ.PolicyC3Z(view, strat, cells, truth.e_time, truth.cost, observe_bars=int(round(ZZ.PARAMS.get("observe_bars", 0))))
+    pol = policy_class()(view, strat, cells, truth.e_time, truth.cost, observe_bars=int(round(ZZ.PARAMS.get("observe_bars", 0))))
     m, trades = ACT.rollout_with_trades(cx, BLOCK, pol(cx), SCFG)
     gate = getattr(pol, "last_gate", None)
     if gate is not None and isinstance(m, dict):                  # every open the policy proposed and the gate deferred is COUNTED (no silent drops)
@@ -2203,7 +2244,7 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
     for q in ((1.0,) if light else CLOSER_QUALITIES):
         vq = dict(view)
         vq["closer"] = closer.with_quality(q)
-        polq = ZZ.PolicyC3Z(vq, strat, cells, w["truth"].e_time, w["truth"].cost)
+        polq = policy_class()(vq, strat, cells, w["truth"].e_time, w["truth"].cost)
         lad[q] = run_episodes(w, eps, polq.close_now, closer)
     hold_ep = run_episodes(w, eps, lambda r, si, bar, pos: bool(closer.value(r, bar, pos)[0] < 0.0), closer)
     star_ep = run_episodes(w, eps, lambda r, si, bar, pos: bool(S.path_advantage(closer.path(pos), bar) >= -EPS_CLOSE), closer)
@@ -2211,7 +2252,7 @@ def exit_layer_of(cell, w, strat, view, cells, roll, oroll, ov, light: bool = Fa
     epw = episode_witnesses(lad[1.0], star_ep, hold_ep, z1, lad)
     z1_control = None
     if w["truth"].menu is not None:                                   # full_f4 (ruling 2026-10-29): Z1 judged by its control, the truth oracle's episodes
-        eps_o = build_episodes(w, ORACLE_STRATEGY, ov, cells, every=EPISODE_EVERY_BARS * (2 if light else 1))
+        eps_o = build_episodes(w, ORACLE_STRATEGY, ov, cells, every=EPISODE_EVERY_BARS * (2 if light else 1), Pol=ZZ.PolicyC3Z)
         z1_o, z1_os = zigzag_exit_check(w, eps_o, closer), zigzag_exit_check(w, eps_o, closer, Z1_SL_FRACTIONS)
         z1_s = zigzag_exit_check(w, eps, closer, Z1_SL_FRACTIONS)
         ow = episode_witnesses(star_ep, star_ep, hold_ep, z1_o, {1.0: star_ep})
@@ -2570,6 +2611,9 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
         rec["exit_counterfactual"] = exit_counterfactual(w, roll, cl1)
         rec["head_mae"] = head_mae(w, view)
         rec["d9_run"] = {"size_one": bool(getattr(w["scfg"].variant, "sizing_mode", "") == "unit"), "menu_ablation_h": (list(MENU_ABLATION_H) if MENU_ABLATION_H else None)}
+    if STRATEGY == "pz":                                              # the strategy under test and its heads' report (coverage, MAE / naive)
+        rec["strategy_family"] = "pz"
+        rec["pz"] = {"genes": PZ_GENES, "genes_sha256": PZ.genes_sha(PZ_GENES), "code_sha256": PZ.code_sha(), "heads": w.get("pz_report")}
     if any((v or {}).get("status") == "NOT_EVALUABLE" for v in (rec.get("closer_support") or {}).values()):
         rec["validity"]["not_evaluable"] = sorted(set(rec["validity"]["not_evaluable"]) | {"closer_reference_support"})   # typed, never silently fitted
         rec["validity"]["PASS"] = False
@@ -2634,6 +2678,12 @@ def cmd_run(a):
     global MENU_ABLATION_H
     MENU_ABLATION_H = tuple(int(x) for x in a.menu_horizons.split(",")) if getattr(a, "menu_horizons", None) else None
     ZZ.configure(params_doc)
+    global STRATEGY, PZ_GENES
+    STRATEGY = getattr(a, "strategy", "c3z") or "c3z"
+    if STRATEGY == "pz":
+        PZ_GENES = PZ.load_genes(a.pz_params) if getattr(a, "pz_params", None) else PZ.validate_genes({})
+        H.MENU_ORDERS_FN = PZ.truth_orders_fn(PZ_GENES)
+        (out / "PZ_GENES.json").write_text(json.dumps({"genes": PZ_GENES, "sha256": PZ.genes_sha(PZ_GENES), "code_sha256": PZ.code_sha()}, indent=1))
     arm = getattr(a, "veto_arm", "gated") or "gated"
     if arm == "off":
         ZZ.PARAMS["z_veto"] = 0.0
@@ -2980,6 +3030,8 @@ def main():
     r.add_argument("--veto-arm", default="gated", choices=("gated", "off", "ungated"),
                    help="full_f4 experiment arm (ruling 2026-10-29): gated = the rule (z_veto of the parameter file), off = z_veto 0, ungated = the pre-ruling vetoes")
     r.add_argument("--size-one", action="store_true", help="QUALIFICATION_SPEC v2.6 D9: one unit per order (trace-equality re-run)")
+    r.add_argument("--strategy", default="c3z", choices=("c3z", "pz"), help="the strategy under test (pz: ESTRATEGIA_PRAGMATICA_PZ_2026_10_30; its truth menu = its own orders)")
+    r.add_argument("--pz-params", default=None, help="--strategy pz: a JSON with the PZ genes (default strategy_pz.CANONICAL)")
     r.add_argument("--menu-horizons", default=None, help="QUALIFICATION_SPEC v2.6 D9: same-genes ablation, the strategy's menu restricted to these horizons (e.g. 6)")
     r.add_argument("--out", required=True)
     rp = sub.add_parser("report")
