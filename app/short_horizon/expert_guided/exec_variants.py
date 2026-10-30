@@ -37,7 +37,8 @@ from dataclasses import asdict, dataclass
 
 import numpy as np
 
-SIZING_MODES = ("notional_share", "risk", "risk_budget")   # risk_budget = the business contract's q = min(1, rho x balance / L1) (S3)
+SIZING_MODES = ("notional_share", "risk", "risk_budget", "unit")   # risk_budget = the business contract's q = min(1, rho x balance / L1) (S3);
+                                                                    # unit = one unit per order (QUALIFICATION_SPEC v2.6 D9 size = 1 trace-equality re-runs; never a trading mode)
 LEVEL_MODES = ("sigma", "absolute_pips")
 FUNDING_RESERVE_RULES = ("constant", "to_forced_flat")
 

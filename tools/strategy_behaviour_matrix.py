@@ -732,6 +732,60 @@ class PolicyC3Audit(S.PolicyC3PerBar):
         return dec
 
 
+MENU_ABLATION_H = None              # D9 (QUALIFICATION_SPEC v2.6): same-genes single-horizon ablation, e.g. (6,): the other horizons' slots
+                                    # leave the strategy's menu (the opener, the open margin's reference); the truth, the oracle and O* keep the full menu
+
+
+def exit_counterfactual(world: dict, roll: dict, exact) -> dict:
+    """D9 (v2.6): the native fixed-position counterfactual on EVERY strategy early close: the same position held to its
+    natural exit on the engine (exact.path(pos), the engine replay); per side: the share of destructive closes (holding
+    beats the close by more than EPS_CLOSE sigma of the trade), of closes inside the +-EPS_CLOSE band, of beneficial ones,
+    and the regret against O* (P* = the best executable close or the natural exit) in units of the initial cash risk."""
+    pp = roll.get("positions") or {}
+    out = {}
+    for si, side in ((0, "BUY"), (1, "SELL")):
+        d_sig, reg = [], []
+        for t in roll["trades"]:
+            if _side(t) != si or t.get("exit_reason") != "EARLY":
+                continue
+            pos = pp.get((int(t["entry_bar_abs"]), si))
+            if pos is None:
+                continue
+            path = exact.path(pos)
+            u, s_ = max(int(pos.units), 1), float(pos.sigma)
+            risk = abs(float(pos.entry_price) - float(pos.sl)) * u
+            if not (np.isfinite(s_) and s_ > 0 and risk > 0):
+                continue
+            d_sig.append((float(path["hold_net"]) - float(t["net_usd"])) / u / s_)
+            pstar = max(float(np.max(path["P"])) if len(path["P"]) else -np.inf, float(path["hold_net"]))
+            reg.append((pstar - float(t["net_usd"])) / risk)
+        d = np.asarray(d_sig, float)
+        out[side] = {"early_closes": int(len(d)), "destructive_share": float(np.mean(d > EPS_CLOSE)) if len(d) else float("nan"),
+                     "band_share": float(np.mean(np.abs(d) <= EPS_CLOSE)) if len(d) else float("nan"), "beneficial_share": float(np.mean(d < -EPS_CLOSE)) if len(d) else float("nan"),
+                     "hold_minus_close_sigma_mean": float(d.mean()) if len(d) else float("nan"),
+                     "regret_vs_Ostar_cash_risk_mean": float(np.mean(reg)) if reg else float("nan"), "regret_vs_Ostar_cash_risk_p90": float(np.quantile(reg, 0.9)) if reg else float("nan")}
+    out["eps_close_sigma"] = EPS_CLOSE
+    return out
+
+
+def head_mae(world: dict, view: dict) -> dict:
+    """The q-ladder's error axis (owner plot rule): MAE of the net head (sigma) against the engine truth over the block's
+    menu / cell slots, and the naive MAE of predicting each slot's calibration-block truth mean; MAE / naive."""
+    truth, cx = world["truth"], world["cx"]
+    per = np.asarray(cx.ds.period)
+    rb = np.flatnonzero(per == BLOCK)
+    rc = np.flatnonzero(per == CAL)
+    tn, pn = np.asarray(truth.net, float), np.asarray(view["net"], float)
+    a, b = tn[rb], pn[rb]
+    ok = np.isfinite(a) & np.isfinite(b)
+    mu = np.nanmean(tn[rc], axis=0) if len(rc) else np.zeros(a.shape[1:])
+    nv = np.broadcast_to(mu, a.shape)
+    okn = ok & np.isfinite(nv)
+    mae = float(np.mean(np.abs(a[ok] - b[ok]))) if ok.any() else float("nan")
+    naive = float(np.mean(np.abs(a[okn] - nv[okn]))) if okn.any() else float("nan")
+    return {"net_mae_sigma": mae, "naive_mae_sigma": naive, "mae_over_naive": (mae / naive) if naive and np.isfinite(naive) and naive > 0 else float("nan"), "n": int(ok.sum())}
+
+
 def strategy_for(world: dict, genes: dict, AC: dict):
     cx, table, truth = world["cx"], world["table"], world["truth"]
     cells = [tuple(c) for c in truth.cells]
@@ -753,6 +807,13 @@ def strategy_for(world: dict, genes: dict, AC: dict):
         for k in ("tp", "sl", "tp_s", "sl_s"):
             view["menu_" + k] = truth.menu[k]
         view["menu_stamp"] = truth.menu["stamp"]
+        if MENU_ABLATION_H and "zz_menu" in view:                     # D9 single-horizon ablation: the other horizons are out of the strategy's menu
+            from app.short_horizon.expert_guided import menu as _M
+            zm = np.array(view["zz_menu"], float, copy=True)
+            for j, h in enumerate(_M.MENU_HORIZONS):
+                if int(h) not in {int(x) for x in MENU_ABLATION_H}:
+                    zm[..., j] = np.where(np.isfinite(zm[..., j]), 0.0, zm[..., j])
+            view["zz_menu"] = zm
     gm = C3.gene_map(view, cal_rows, ref, cells, truth.e_time, truth.cost)
     strat = C3.StrategyC3.from_genes(gm.to_absolute(genes), "nop_veto" in genes)
     view["risk_burst"] = ZZ.burst_rows(bars, cx.ds.sigma, cx.ds.row_bar, hold=ZZ.burst_hold_bars(truth.menu is not None))   # full_f4: BURST_HOLD_RULE
@@ -2504,6 +2565,11 @@ def run_cell(cx, SCFG, AC, cell: dict, seed: int, genes: dict, out_dir: Path, tw
            "PASS_sealed_excluding_defective_witnesses": bool(all(v["pass"] for k, v in wit.items() if isinstance(v, dict) and "pass" in v and not re.search(r"_v[23]$", k) and k not in defects_sealed)),
            "sec": round(time.time() - t0, 1),
            "trades": [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in t.items()} for t in roll["trades"]]}
+    if w["truth"].menu is not None:                                   # full_f4 / QUALIFICATION_SPEC v2.6 D9: the counterfactual on every early close, the q-ladder axis
+        cl1 = view["closer"].with_quality(1.0)
+        rec["exit_counterfactual"] = exit_counterfactual(w, roll, cl1)
+        rec["head_mae"] = head_mae(w, view)
+        rec["d9_run"] = {"size_one": bool(getattr(w["scfg"].variant, "sizing_mode", "") == "unit"), "menu_ablation_h": (list(MENU_ABLATION_H) if MENU_ABLATION_H else None)}
     if any((v or {}).get("status") == "NOT_EVALUABLE" for v in (rec.get("closer_support") or {}).values()):
         rec["validity"]["not_evaluable"] = sorted(set(rec["validity"]["not_evaluable"]) | {"closer_reference_support"})   # typed, never silently fitted
         rec["validity"]["PASS"] = False
@@ -2561,7 +2627,12 @@ def cmd_run(a):
     cx, SCFG = S.load_fold(a.fold, a.admitted, a.csv_dir)
     from app.short_horizon.expert_guided import strategy_params as SP
     params_doc = SP.load(a.params)
-    SCFG = S.with_variant(SCFG, C3.exec_variant_of(params_doc))     # the parameter file's execution profile (absent = full_f3, byte-identical)
+    xv_ = C3.exec_variant_of(params_doc)
+    if getattr(a, "size_one", False):                                # D9 (v2.6): one unit per order (trace-equality re-runs)
+        xv_ = dataclasses.replace(xv_, sizing_mode="unit")
+    SCFG = S.with_variant(SCFG, xv_)                                 # the parameter file's execution profile (absent = full_f3, byte-identical)
+    global MENU_ABLATION_H
+    MENU_ABLATION_H = tuple(int(x) for x in a.menu_horizons.split(",")) if getattr(a, "menu_horizons", None) else None
     ZZ.configure(params_doc)
     arm = getattr(a, "veto_arm", "gated") or "gated"
     if arm == "off":
@@ -2908,6 +2979,8 @@ def main():
     r.add_argument("--force", action="store_true")
     r.add_argument("--veto-arm", default="gated", choices=("gated", "off", "ungated"),
                    help="full_f4 experiment arm (ruling 2026-10-29): gated = the rule (z_veto of the parameter file), off = z_veto 0, ungated = the pre-ruling vetoes")
+    r.add_argument("--size-one", action="store_true", help="QUALIFICATION_SPEC v2.6 D9: one unit per order (trace-equality re-run)")
+    r.add_argument("--menu-horizons", default=None, help="QUALIFICATION_SPEC v2.6 D9: same-genes ablation, the strategy's menu restricted to these horizons (e.g. 6)")
     r.add_argument("--out", required=True)
     rp = sub.add_parser("report")
     rp.add_argument("--cells", required=True)

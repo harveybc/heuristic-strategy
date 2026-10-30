@@ -354,6 +354,8 @@ class BarEnv:
                                            float(var.rho), float(var.quality_c), self.cfg.sizing)
                     units = rb["units"]
                     self.last_sizing = rb
+                elif var is not None and var.sizing_mode == "unit":                 # D9 (v2.6): size = 1 re-runs separate exposure from decisions
+                    units = 1
                 elif var is not None and var.sizing_mode == "risk":                 # A4-4 (declared variant)
                     from .exec_variants import risk_units
                     units = risk_units(self.balance, float(self.c[b]), abs(float(self.c[b]) - lv[1]), var.risk_pct,

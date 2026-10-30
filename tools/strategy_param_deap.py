@@ -499,6 +499,10 @@ class DegenerateGen0(RuntimeError):
     pass
 
 
+class StopRequested(RuntimeError):
+    pass
+
+
 DEGENERACY_RULE = ("generation-0 degeneracy (coordinator order 2026-10-28, standing for every DEAP launch): the search stops "
                    "on its own after generation 0 when (a) every candidate has the same failing count > 0 AND the identical failing "
                    "(world, witness) set, or (b) one witness fails "
@@ -583,6 +587,9 @@ def run_search(pool: Pool, base: dict, out: Path, population: int, generations: 
             raise DegenerateGen0(dg["reasons"])
     nb = len(G)
     for g in range(gen0, generations + 1):
+        if (out / "STOP").exists():                                    # the chain's soft stop (owner order 2026-10-29): between generations, checkpoint kept
+            log(json.dumps({"STOP": True, "before_generation": g}))
+            raise StopRequested(g)
         pop.sort(key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"]))
         elite = [dict(r) for r in pop[:ELITE]]
         kids = []
@@ -677,6 +684,9 @@ def cmd_run(a):
         log(json.dumps({"FAILED_DEGENERATE_GEN0": list(e.args[0])}))
         pool.close()
         sys.exit(3)
+    except StopRequested:                                             # resumable: the next run starts from CHECKPOINT.pkl
+        pool.close()
+        sys.exit(75)
     pool.close()
     (out / "RESULT.json").write_text(json.dumps({"best": res["best"], "population": res["population"], "best_params": {k: v for k, v in zip(genome_of(base), res["best"]["x"])},
                                                  "wall_sec": time.time() - t0}, indent=1, default=float))

@@ -1,0 +1,7 @@
+[Unit]
+Description=Strategy chain F4 status writer (STATUS.md / STATUS.json from files only)
+
+[Service]
+Type=oneshot
+Environment=CHAIN_ROOT=@CHAIN_ROOT@
+ExecStart=/bin/bash @CHAIN_ROOT@/status.sh

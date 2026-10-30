@@ -1,0 +1,13 @@
+[Unit]
+Description=Strategy chain F4 (S1 -> S1R -> G2 -> S2 -> S3 -> Q -> R), unattended and resumable
+After=default.target
+
+[Service]
+Type=simple
+Environment=CHAIN_ROOT=@CHAIN_ROOT@
+ExecStart=/bin/bash @CHAIN_ROOT@/run_chain.sh
+Restart=on-failure
+RestartSec=300
+
+[Install]
+WantedBy=default.target

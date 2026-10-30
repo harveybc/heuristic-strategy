@@ -63,12 +63,12 @@ PYEOF
   while read -r cid && [ $n -lt $slots ]; do
     [ -z "$cid" ] && continue
     touch $ROOT/claims/$cid
-    ( $CR -q -W 43200 -m ${MEM:-1500M} -t 7200s -n bm-$cid -- $PY tools/strategy_behaviour_matrix.py run --cells $ROOT/QUEUE.json --fold wf2022 --admitted $ADM --csv-dir $CSV \
-         --ids $cid --seeds $SEEDS --params ${PARAMS:-$CODE/docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json} --out $RES > $ROOT/logs/cell_$cid.log 2>&1 && log "cell $cid DONE: $(verdict $cid)" \
+    ( $CR -q -W 43200 -m ${MEM:-1500M} -t 7200s -n ${NAME_PREFIX:-bm}-$cid -- $PY tools/strategy_behaviour_matrix.py run --cells $ROOT/QUEUE.json --fold wf2022 --admitted $ADM --csv-dir $CSV \
+         --ids $cid --seeds $SEEDS --params ${PARAMS:-$CODE/docs/short_horizon/clean_round/contracts/STRATEGY_PARAMS.json} ${EXTRA:-} --out $RES > $ROOT/logs/cell_$cid.log 2>&1 && log "cell $cid DONE: $(verdict $cid)" \
          || log "cell $cid FAILED_JOB (see logs/cell_$cid.log): $(verdict $cid)"; rm -f $ROOT/claims/$cid ) &
     n=$((n+1))
   done < $ROOT/PENDING.txt
-  $PY tools/strategy_behaviour_matrix.py report --cells $ROOT/QUEUE.json --results $RES --out ${REPORT:-$ROOT/report} > $ROOT/logs/report${REPORT_TAG:-}.log 2>&1
+  [ -n "${NO_LOOP_REPORT:-}" ] || $PY tools/strategy_behaviour_matrix.py report --cells $ROOT/QUEUE.json --results $RES --out ${REPORT:-$ROOT/report} > $ROOT/logs/report${REPORT_TAG:-}.log 2>&1   # NO_LOOP_REPORT: the chain reports once, under crispdm
   pend=$(grep -c . $ROOT/PENDING.txt)                            # non-empty lines only: an empty queue prints one blank line (F10 2026-10-29:
                                                                  # grep -c "" counted it, so a drained ONESHOT driver never exited)
   if [ "$pend" -eq 0 ] && [ "$running" -eq 0 ] && [ "$n" -eq 0 ]; then
