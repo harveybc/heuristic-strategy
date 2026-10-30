@@ -404,9 +404,25 @@ def _worker(conn, share: list, fold: str, admitted: str, csv_dir: str, contract:
         if msg is None:
             break
         t1 = time.time()
-        res = [w.evaluate(msg) for w in worlds]
+        res = [_safe_evaluate(w, msg) for w in worlds]
         judge_pairs(res)
         conn.send({"results": res, "sec": time.time() - t1, "maxrss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0})
+
+
+def _safe_evaluate(w, params: dict) -> dict:
+    """A candidate whose genes leave the strategy space infeasible on a world (the gene map's SystemExit
+    STRATEGY_SPACE_INFEASIBLE) is a failing world for that candidate (Sharpe -10, one failing constraint), never a dead
+    worker (an uncaught SystemExit would end the worker and stop the search)."""
+    try:
+        return w.evaluate(params)
+    except KeyboardInterrupt:
+        raise
+    except SystemExit as e:
+        w._release()
+        return {"key": w.cell["subset_key"], "sharpe": -10.0, "fails": ["STRATEGY_SPACE_INFEASIBLE"], "opens": 0, "net_usd": 0.0, "quality": float(w.cell["quality"]), "d7": None,
+                "validity_v2": None, "fails_v1_retired": ["STRATEGY_SPACE_INFEASIBLE"], "trades": 0, "early_closes": 0, "levels_clipped": None, "trade_stats": {},
+                "activity": {"trades_per_week": 0.0, "reopen_1bar_share": float("nan")}, "horizon_mix": None, "burst_gate": None, "w17": None, "error": str(e)[:300],
+                **({"_trades": [], "_episodes": None, "_pair": w.cell["pair"], "_role": w.cell["role"]} if w.cell.get("pair") else {})}
 
 
 class Pool:

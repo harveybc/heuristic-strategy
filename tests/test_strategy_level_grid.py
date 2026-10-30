@@ -96,3 +96,30 @@ def test_stage2_genome_freezes_the_level_genes():
     finally:
         D.STAGE["freeze_level_genes"] = False
     assert D.genome_of(base) == D.GENOME_F4
+
+
+def test_an_infeasible_point_is_a_recorded_error_not_a_dead_worker(monkeypatch):
+    class Boom:
+        def __init__(self, *a, **k):
+            raise SystemExit("STRATEGY_SPACE_INFEASIBLE:no calibration-block reference rows for ['open_score']")
+    monkeypatch.setattr(G.D, "CachedWorld", Boom)
+    G._BASE.update({"AC": None, "cx": None, "SCFG0": None})
+    monkeypatch.setattr(G.S, "with_variant", lambda s, v: s)
+    r = G._task((4, "A@q1.00", [{"subset_key": "A@q1.00", "quality": 1.0}], SP.default_doc()))
+    assert r["per_world"] == [] and r["error"].startswith("SystemExit: STRATEGY_SPACE_INFEASIBLE")
+    agg = G.aggregate([r], 1)
+    assert agg[4]["n_failing_witnesses"] == 1 and not agg[4]["feasible"]
+
+
+def test_deap_worker_turns_an_infeasible_candidate_into_a_failing_world():
+    class W:
+        cell = {"subset_key": "S_X@q1.00", "quality": 1.0, "pair": "X", "role": "S"}
+        released = False
+
+        def evaluate(self, p):
+            raise SystemExit("STRATEGY_SPACE_INFEASIBLE:x")
+
+        def _release(self):
+            W.released = True
+    r = D._safe_evaluate(W(), {})
+    assert r["fails"] == ["STRATEGY_SPACE_INFEASIBLE"] and r["sharpe"] == -10.0 and r["_role"] == "S" and W.released

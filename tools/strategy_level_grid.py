@@ -80,8 +80,12 @@ def _task(arg):
             gc.collect()
         D.judge_pairs(res)                                           # W14 / E6 under the full_f4 rule; drops the swapped-reference control world
         err = None
-    except Exception as e:                                           # recorded, never a silent pass: the point counts the group as failing
-        res, err = [], f"{type(e).__name__}: {str(e)[:300]}"
+    except KeyboardInterrupt:
+        raise
+    except BaseException as e:                                       # recorded, never a silent pass: the point counts the group as failing. BaseException:
+        res, err = [], f"{type(e).__name__}: {str(e)[:300]}"         # the gene map raises SystemExit(STRATEGY_SPACE_INFEASIBLE) when a level point leaves no
+                                                                     # calibration reference rows (b_tp 0.5 at a_tp 0.75); an uncaught SystemExit killed the pool
+                                                                     # worker and the ordered imap waited forever (stage 1 on bf499e7, batch 3)
     D._malloc_trim()
     slim = [{k: r.get(k) for k in ("key", "sharpe", "fails", "quality", "opens", "trades", "early_closes", "levels_clipped", "activity", "burst_gate", "w17", "w14_control_status")} |
             {"net_sigma_per_trade_median": (r.get("trade_stats") or {}).get("net_sigma_per_trade_median")} for r in res]
