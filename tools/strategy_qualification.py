@@ -69,6 +69,11 @@ class MappedHead:
         self.bc, self.bar_map, self.swap = bc, bar_map, swap
         self.S, self.T, self.rows = bc.S, bc.T, {}
 
+    def __getattr__(self, k):                                       # every other attribute of the wrapped head (exact, n, ...): the chain's dry run
+        if k == "bc":                                               # failed on 'exact' (the v2.2 head-exactness flag) before this delegation
+            raise AttributeError(k)
+        return getattr(self.bc, k)
+
     def row(self, b, si):
         bb = int(self.bar_map(b)) if self.bar_map is not None else int(b)
         bb = min(max(bb, 0), self.bc.n - 2)

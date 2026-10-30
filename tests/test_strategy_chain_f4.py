@@ -128,3 +128,12 @@ def test_level_cells_are_the_quality_below_one_worlds_without_pairs():
            {"subset_key": "S_X@q1.00", "id": "S_X", "quality": 1.0, "pair": "X"}]
     cs = CH.level_cells(sub)
     assert [c["id"] for c in cs] == ["A"] and "subset_key" not in cs[0]
+
+
+def test_mapped_head_delegates_the_wrapped_heads_attributes():
+    from tools import strategy_qualification as Q
+    bc = types.SimpleNamespace(S=1, T=2, n=10, exact=True, row=lambda b, si: (b, si))
+    m = Q.MappedHead(bc, bar_map=lambda b: b + 1, swap=True)
+    assert m.exact is True and m.n == 10 and m.row(3, 0) == (4, 1)
+    with pytest.raises(AttributeError):
+        _ = Q.MappedHead.__new__(Q.MappedHead).bc
