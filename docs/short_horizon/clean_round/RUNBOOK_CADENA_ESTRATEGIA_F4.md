@@ -157,6 +157,27 @@ Cada paso tiene su marca `$C/work/Q/<paso>.done` y se reanuda desde sus archivos
 
 ---
 
+## (b0) Activación del servicio (una sola vez, la hace el dueño)
+
+La cadena ya está instalada en `$C`: código, etapas, `chain.env` y este runbook. Crear y habilitar un servicio
+systemd persistente es una acción que la política de permisos reserva al dueño. El dueño la ejecuta una sola vez en
+`<host-trabajo>`:
+
+```bash
+R=/var/tmp/behaviour-matrix-20261027; C=$R/chain_f4
+bash $C/code/tools/clean_round_chain/chain_f4/install.sh $C $R/f10_dev/code_$(cat $C/CODE_SHA).tar $(cat $C/CODE_SHA) $C/chain.env.src
+systemctl --user start strategy-chain-f4.service strategy-chain-f4-status.timer
+bash $C/status.sh
+```
+
+- Qué hace el instalador: vuelve a dejar los mismos archivos (idempotente), escribe las tres unidades en
+  `~/.config/systemd/user/`, recarga systemd y habilita el servicio y el temporizador. `Linger=yes` ya está activo en
+  `<host-trabajo>`.
+- Qué pasa al arrancar el servicio: la etapa S1 adopta la ejecución de la etapa 1 que ya está en marcha y espera a que
+  termine.
+- Si el servicio se activa después de que la etapa 1 haya terminado, no se pierde nada: S1 encuentra su línea `done` y
+  la cadena continúa.
+
 ## (b) Comandos exactos
 
 ```bash
