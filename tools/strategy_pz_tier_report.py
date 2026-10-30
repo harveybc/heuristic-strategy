@@ -119,6 +119,9 @@ def cmd_diverge(a):
         done = {json.loads(x)["record"] for x in Path(a.out).read_text().splitlines() if x.strip()}
     for p in sorted(glob.glob(f"{a.results}/CELL_*.json")):
         d = json.loads(Path(p).read_text())
+        if Path(a.out).with_name("STOP").exists():                    # soft stop between records
+            print("STOP", flush=True)
+            break
         if int(d["seed"]) not in seeds or record_verdict(d) == "PASS" or f"{d['id']}_s{d['seed']}" in done or d["id"] not in cells:
             continue
         fails = list((d.get("validity") or {}).get("failing") or []) + list((d.get("exit") or {}).get("failing_effective") or [])
@@ -138,12 +141,13 @@ def cmd_diverge(a):
                 lo_bar = int(meta["switch_bars"][0]) + BM.LAG
             if wid.startswith("W17") and meta.get("burst_windows"):
                 lo_bar = int(meta["burst_windows"][0][0])
-            key = (wid.split("_")[0], lo_bar)
+            key = f"from_bar_{lo_bar}"
             if key in out["first_divergence"]:
+                out["first_divergence"][key]["witnesses"].append(wid)
                 continue
             first = None
             for r in sorted(set(sl) & set(ol)):
-                if rb[r] < lo_bar:
+                if rb[r] < lo_bar or not np.isfinite(w["truth"].net[r]).any():   # only rows with an engine truth (the witnesses' own rows)
                     continue
                 x, y = sl[r], ol[r]
                 sa, sb = (x[5], x[7 + x[5]] if x[5] >= 0 else -1), (y[5], y[7 + y[5]] if y[5] >= 0 else -1)
@@ -153,7 +157,7 @@ def cmd_diverge(a):
                              "oracle": {"side": int(sb[0]), "h": (M.slot_h(sb[1]) if sb[1] >= 0 else None), "net": [y[1], y[2]]}, "truth_net_by_side_slot": tn,
                              "pz_p_up": [float(v) for v in view["pz_p_up"][r]]}
                     break
-            out["first_divergence"][f"{wid}@{lo_bar}"] = first
+            out["first_divergence"][key] = {"witnesses": [wid], "divergence": first}
         # the first early close the hold oracle disagrees with (W4 / E family): remaining hold value > 0 at a PZ close
         ec = [c for c in roll["closes"] if c[5] and float(c[3]) > BM.EPS_CLOSE]
         out["first_unjustified_close"] = ({"row": int(ec[0][0]), "bar": int(ec[0][1]), "side": int(ec[0][2]), "remaining_sigma": float(ec[0][3]), "hold_rule": bool(ec[0][6]), "urgent_rule": bool(ec[0][7])}
