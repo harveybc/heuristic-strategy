@@ -294,3 +294,25 @@ def test_truth_orders_fn_matches_view_orders():
     a = f(bars, sig, np.arange(n), {})
     b = PZ.orders(bars, sig, np.arange(n), PZ.heads(lab, 1.0, 0, np.zeros(n, bool)), PZ.CANONICAL)
     assert np.array_equal(a["tp"], b["tp"], equal_nan=True) and np.array_equal(a["mask"], b["mask"])
+
+
+def test_pz_deap_genome_and_staging():
+    from tools import strategy_pz_deap as PD
+    g = PZ.validate_genes({})
+    x = PD.encode(g)
+    assert len(x) == len(PD.GENOME2) == 7 and all(0.0 <= u <= 1.0 for u in x)
+    d = PD.decode(x, g)
+    assert all(abs(d[k] - g[k]) < 1e-9 for k in PZ.GENES)                  # the canonical point round-trips (it is in generation 0)
+    lo = PD.decode([0.0] * 7, g)
+    hi = PD.decode([1.0] * 7, g)
+    assert lo["alpha"] == 0.0 and hi["alpha"] == 1.0 and lo["k_persist"] == 1 and hi["k_persist"] == 3
+    assert hi["theta"] == PZ.BOUNDS["theta"][1] and lo["rho"] == PZ.BOUNDS["rho"][0]
+    assert all(d_[k] == g[k] for d_ in (lo, hi) for k in PD.LEVEL)           # stage 2 never moves the level genes
+    pts = PD.level_points()
+    assert len(pts) == 18 and {"a_sl": 1.0, "a_tp": 1.0, "buffer_pips": 1.0} in pts
+    ext = PD.edge_extensions({"a_sl": 0.75, "a_tp": 1.0, "buffer_pips": 3.0})
+    assert {"a_sl": 0.5, "a_tp": 1.0, "buffer_pips": 3.0} in ext and {"a_sl": 0.75, "a_tp": 1.0, "buffer_pips": 5.0} in ext and len(ext) == 2
+    assert PD.edge_extensions({"a_sl": 1.0, "a_tp": 1.0, "buffer_pips": 1.0}) == [{"a_sl": 1.0, "a_tp": 1.0, "buffer_pips": 0.0}]
+    sub = [{"subset_key": "A"}, {"subset_key": "S_X@q1", "pair": "X"}, {"subset_key": "M_X@q1", "pair": "X"}]
+    gs = PD.groups_of(sub)
+    assert len(gs) == 2 and any(len(g_) == 2 for g_ in gs)                   # a pair is evaluated by one worker
