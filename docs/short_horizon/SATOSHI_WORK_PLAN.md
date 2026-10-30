@@ -410,3 +410,24 @@ Idea del propietario para después: una wiki (posiblemente en GitHub) con estos 
 | S5 | Cerrador de retardo fijo elegido en TRAIN (hallazgo 110) como comparador; fixture separador como prueba | ordenada |
 | S6 | Re-sellado, matriz bajo el nuevo perfil, DEAP desde cero, calificación, informe + solicitud de auditoría | tras S1–S5 |
 | A | Auditoría independiente del paquete @82862801 (reproducción de sus verificaciones) y paquete de mis avances para Musashi (`AVANCES_SATOSHI_PARA_MUSASHI_2026_10_28.md`) | en curso |
+
+## 2026-10-30 — Cadena F4 desatendida y estrategia pragmática PZ como contraste
+
+- Orden del propietario "cero babysitting": la cadena F4 (S1 rejilla de niveles → S1R → puertas → S2 DEAP → S3 → Q calificación →
+  R informe) corre como servicio de usuario en el host de trabajo; estado con `bash $R/chain_f4/status.sh`; manual en español
+  `RUNBOOK_CADENA_ESTRATEGIA_F4.md` (heuristic-strategy). Activación del servicio pendiente del propietario (comando en el manual §b0).
+- Auditorías entregadas a Musashi el 10-29: riesgo compartido, controlador de cierre, Pareto de cuenta, re-revisión de reparaciones,
+  cuenta cruzada v2 (interfaz REVISE). Ramas `satoshi/audit-musashi-*` y `satoshi/rereview-musashi-repairs-20261029` en agent-multi.
+- Pedido del propietario: estrategia pragmática para contrastar con la formal. Propuesta `ESTRATEGIA_PRAGMATICA_PZ_2026_10_30.md`:
+  contrato de 24–56 salidas del experto ZigZag por horizonte (dirección, excursión favorable/adversa en cuantiles, tiempo al pivote),
+  apertura por ganancia/riesgo/tiempo, cierre por mantener-vs-salir con el nivel fino, 10 genes. Regla fijada: si PZ no es peor que
+  C3Z dentro del intervalo pareado (Sharpe y regret de cierre a q 0.70) y pasa la matriz, PZ pasa a ser la estrategia del carril.
+
+| # | tarea | estado |
+| --- | --- | --- |
+| PZ1 | etiquetas del experto §2 + cabeza ideal + escalera por salida | ordenada |
+| PZ2 | `strategy_pz.py` sobre `full_f4`, pruebas primero | ordenada |
+| PZ3 | nivel 1 de la matriz con salidas perfectas | tras PZ2 |
+| PZ4 | escalera de calidad y contraste contra C3Z | tras PZ3 |
+| PZ5 | DEAP de PZ (10 genes) | cuando la cadena F4 libere el host |
+| PZ6 | informe del contraste dentro del informe final | — |
