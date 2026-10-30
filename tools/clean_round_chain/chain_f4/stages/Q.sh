@@ -21,7 +21,7 @@ $PY tools/strategy_chain_f4.py noreverse --params "$CH" --out "$Q/NOREVERSE.json
 # 1. the full matrix with twins (seeds 0-2) and its tier report
 run_matrix m012 "$Q_QUEUE" "$CH" "$Q_SEEDS_DEV" "" || exit $?
 if ! step m012_report; then
-  crun f4chain-Q-report 3G 7200s -- $PY tools/strategy_tier_report.py --results "$Q/m012/results" --out "$Q/m012/report_tier" --expect-profile full_f4 > "$Q/m012_report.log" 2>&1 || { reason "tier report failed"; exit 1; }
+  must crun f4chain-Q-report "${REPORT_MEM:-3G}" 7200s -- $PY tools/strategy_tier_report.py --results "$Q/m012/results" --out "$Q/m012/report_tier" --expect-profile full_f4 > "$Q/m012_report.log" 2>&1 || { reason "tier report failed"; exit 1; }
   mark m012_report
 fi
 # 2. D3 unseen confirmation seeds
@@ -43,15 +43,15 @@ for h in 6 12 24; do run_matrix "ablation_h$h" "$Q/cells_q1.00.json" "$CH" "$Q_S
 IDS=$(python3 -c "import json; print(','.join(c['id'] for c in json.load(open('$Q/cells_q1.00.json'))))")
 # 4. D4 panels and D7 closer ladder on the level worlds
 if ! step d4_controls; then stopped && exit 75
-  crun f4chain-Q-D4c "$PANEL_MEM" 172800s -- $PY tools/strategy_qualification.py controls --cells "$Q/cells_q1.00.json" --ids "$IDS" --params "$CH" --admitted "$DATA/admitted" --csv-dir "$DATA/sel15" --out "$Q/D4_controls" > "$Q/d4c.log" 2>&1 || { reason "D4 controls failed"; exit 1; }
+  must crun f4chain-Q-D4c "$PANEL_MEM" 172800s -- $PY tools/strategy_qualification.py controls --cells "$Q/cells_q1.00.json" --ids "$IDS" --params "$CH" --admitted "$DATA/admitted" --csv-dir "$DATA/sel15" --out "$Q/D4_controls" > "$Q/d4c.log" 2>&1 || { reason "D4 controls failed"; exit 1; }
   mark d4_controls; fi
 if ! step d4_seeded; then stopped && exit 75
-  crun f4chain-Q-D4s "$PANEL_MEM" 172800s -- $PY tools/strategy_qualification.py seeded --cells "$Q/cells_q1.00.json" --ids "$IDS" --params "$CH" --admitted "$DATA/admitted" --csv-dir "$DATA/sel15" --out "$Q/D4_seeded" > "$Q/d4s.log" 2>&1 || { reason "D4 seeded failed"; exit 1; }
+  must crun f4chain-Q-D4s "$PANEL_MEM" 172800s -- $PY tools/strategy_qualification.py seeded --cells "$Q/cells_q1.00.json" --ids "$IDS" --params "$CH" --admitted "$DATA/admitted" --csv-dir "$DATA/sel15" --out "$Q/D4_seeded" > "$Q/d4s.log" 2>&1 || { reason "D4 seeded failed"; exit 1; }
   mark d4_seeded; fi
 if ! step d7; then stopped && exit 75
   RULE=$(python3 -c "import json; d=json.load(open('$CH')); print('%s:%d:%s' % (d['z_close'], int(round(d['k_persist'])), d['closer_filter']))")
   D7IDS=$(python3 -c "print(','.join(x + ':0' for x in '$IDS'.split(',')))")
-  crun f4chain-Q-D7 "$PANEL_MEM" 172800s -- $PY tools/strategy_closer_ladder.py --cells "$Q/cells_q1.00.json" --ids "$D7IDS" --params "$CH" --admitted "$DATA/admitted" --csv-dir "$DATA/sel15" --qualities 0.85,0.70 --phis 0.587 --rules "$RULE" --out "$Q/D7" > "$Q/d7.log" 2>&1 || { reason "D7 closer ladder failed"; exit 1; }
+  must crun f4chain-Q-D7 "$PANEL_MEM" 172800s -- $PY tools/strategy_closer_ladder.py --cells "$Q/cells_q1.00.json" --ids "$D7IDS" --params "$CH" --admitted "$DATA/admitted" --csv-dir "$DATA/sel15" --qualities 0.85,0.70 --phis 0.587 --rules "$RULE" --out "$Q/D7" > "$Q/d7.log" 2>&1 || { reason "D7 closer ladder failed"; exit 1; }
   mark d7; fi
 # 5. D9 analysis
 $PY tools/strategy_chain_f4.py d9 --qroot "$Q" --out "$Q/D9.json" > "$Q/d9.log" 2>&1 || { reason "D9 analysis failed"; exit 1; }

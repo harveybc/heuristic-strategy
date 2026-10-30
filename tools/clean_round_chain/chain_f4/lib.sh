@@ -44,6 +44,12 @@ bg_stop(){ # stopfile -- cmd... : run cmd in the background, propagate the chain
   wait $pid
 }
 reason(){ echo "$*" > "$C/state/$STAGE.reason"; log "reason: $*"; }
+must(){ # cmd... : a STOP while the command waited (memory admission) or ran is a stop (exit 75), never a failed attempt
+  "$@"; local rc=$?
+  [ $rc -eq 0 ] && return 0
+  stopped && exit 75
+  return $rc
+}
 matrix_root(){ # dir queue_json params seeds jobs extra_args name_prefix : one ONESHOT driver root (resumable: result files)
   local root=$1 queue=$2 params=$3 seeds=$4 jobs=$5 extra=$6 pfx=$7
   mkdir -p "$root/queue" "$root/logs" "$root/claims"

@@ -3,7 +3,7 @@
 # twin pairs, full_f4 swapped-reference symmetry form) -> $R/qual/PROPERTY_PASSED_<sha>. Pairs are claimed, so up to
 # PROP_PARALLEL instances run (each memory-admitted).
 STAGE=G2; source "$CHAIN_ROOT/lib.sh"
-PF=$R/qual/PROPERTY_PASSED_$CODE_SHA; O=$W/G2; mkdir -p "$O/claims" "$R/qual"
+QD=${QUAL_DIR:-$R/qual}; PF=$QD/PROPERTY_PASSED_$CODE_SHA; O=$W/G2; mkdir -p "$O/claims" "$QD"
 [ -f "$PF" ] && { state done "" "$PF"; exit 0; }
 one(){ for p in $PROP_PAIRS; do
          [ -f "$C/STOP" ] && return 75

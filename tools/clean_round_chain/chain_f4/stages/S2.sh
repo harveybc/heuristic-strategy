@@ -3,7 +3,7 @@
 # closer genes ...) at the frozen level point: Sharpe only with Deb constraints, POP x GEN, from scratch (the canonical
 # genome in generation 0), gen-0 degeneracy gate, resumable from CHECKPOINT.pkl, STOP between generations.
 STAGE=S2; source "$CHAIN_ROOT/lib.sh"
-[ -f "$R/qual/PROPERTY_PASSED_$CODE_SHA" ] || { reason "gate missing: PROPERTY_PASSED_$CODE_SHA"; exit 11; }
+[ -f "${QUAL_DIR:-$R/qual}/PROPERTY_PASSED_$CODE_SHA" ] || { reason "gate missing: PROPERTY_PASSED_$CODE_SHA"; exit 11; }
 deap(){ # out params [warm]
   local O=$1 P=$2 WA=${3:-}
   if [ ! -f "$O/RESULT.json" ]; then
