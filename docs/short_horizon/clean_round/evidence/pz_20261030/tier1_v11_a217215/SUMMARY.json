@@ -1,0 +1,3568 @@
+{
+ "records": 135,
+ "record_verdicts": {
+  "FAIL": 135
+ },
+ "matrix_pass_preregistered": false,
+ "witness_table": {
+  "E1_sl_destined_closed_early_BUY": {
+   "PASS": 135
+  },
+  "E1_sl_destined_closed_early_SELL": {
+   "PASS": 38,
+   "FAIL": 97
+  },
+  "E1p_closed_before_SL_BUY": {
+   "FAIL": 135
+  },
+  "E1p_closed_before_SL_SELL": {
+   "PASS": 73,
+   "FAIL": 62
+  },
+  "E2_exit_regret_BUY": {
+   "PASS": 135
+  },
+  "E2_exit_regret_SELL": {
+   "PASS": 91,
+   "FAIL": 44
+  },
+  "E2p_regret_SL_destined_BUY": {
+   "DEFECT_OF_CONTROL": 135
+  },
+  "E2p_regret_SL_destined_SELL": {
+   "FAIL": 116,
+   "DEFECT_OF_CONTROL": 19
+  },
+  "E3_tick_agreement_BUY": {
+   "PASS": 135
+  },
+  "E3_tick_agreement_SELL": {
+   "PASS": 113,
+   "FAIL": 22
+  },
+  "E4_no_destructive_close_BUY": {
+   "FAIL": 106,
+   "PASS": 29
+  },
+  "E4_no_destructive_close_SELL": {
+   "FAIL": 123,
+   "PASS": 12
+  },
+  "E5_early_close_vs_Ostar_BUY": {
+   "PASS": 128,
+   "FAIL": 7
+  },
+  "E5_early_close_vs_Ostar_SELL": {
+   "PASS": 130,
+   "FAIL": 5
+  },
+  "E6_exit_mirror": {
+   "PASS": 9
+  },
+  "E7_lateness_vs_Pstar_BUY": {
+   "PASS": 135
+  },
+  "E7_lateness_vs_Pstar_SELL": {
+   "PASS": 135
+  },
+  "E8_closer_quality_ladder_BUY": {
+   "FAIL": 135
+  },
+  "E8_closer_quality_ladder_SELL": {
+   "PASS": 117,
+   "FAIL": 18
+  },
+  "EP_counts_BUY": {
+   "FAIL": 135
+  },
+  "EP_counts_SELL": {
+   "PASS": 117,
+   "FAIL": 18
+  },
+  "W0_activity": {
+   "PASS": 135
+  },
+  "W10_spread_window": {
+   "PASS": 12,
+   "FAIL": 14
+  },
+  "W11_cutoff": {
+   "PASS": 54
+  },
+  "W12_missing": {
+   "PASS": 18
+  },
+  "W13_tpsl_track_sigma": {
+   "PASS": 58
+  },
+  "W14_mirror": {
+   "PASS": 9
+  },
+  "W15_no_open_high_risk": {
+   "FAIL": 117,
+   "PASS": 18
+  },
+  "W16_sl_tp_every_order": {
+   "PASS": 135
+  },
+  "W17_no_open_in_burst": {
+   "FAIL": 5,
+   "PASS": 4
+  },
+  "W1_side": {
+   "PASS": 74,
+   "CONTROL_CONFLICT": 9,
+   "FAIL": 52
+  },
+  "W2_truth_positive_open": {
+   "FAIL": 117,
+   "PASS": 18
+  },
+  "W2_wrong_side": {
+   "FAIL": 135
+  },
+  "W3_nop": {
+   "PASS": 93,
+   "FAIL": 42
+  },
+  "W4_early_close_justified": {
+   "FAIL": 125,
+   "PASS": 10
+  },
+  "W4_sl_exits": {
+   "PASS": 104,
+   "FAIL": 31
+  },
+  "W5_reverse": {
+   "PASS": 135
+  },
+  "W6_volume": {
+   "PASS": 135
+  },
+  "W7_best_cell": {
+   "FAIL": 132,
+   "PASS": 3
+  },
+  "W8_early_close_at_switch": {
+   "PASS": 43,
+   "FAIL": 34
+  },
+  "W8_old_direction_after_lag": {
+   "PASS": 63,
+   "FAIL": 11,
+   "CONTROL_CONFLICT": 3
+  },
+  "W9_gap_loss_bounded": {
+   "PASS": 47
+  },
+  "WA_side_comparison": {
+   "PASS": 135
+  },
+  "Z1_zigzag_exit_label_BUY": {
+   "FAIL": 135
+  },
+  "Z1_zigzag_exit_label_SELL": {
+   "PASS": 117,
+   "FAIL": 18
+  }
+ },
+ "failing_counts": {
+  "W2_wrong_side": 135,
+  "E1p_closed_before_SL_BUY": 135,
+  "E8_closer_quality_ladder_BUY": 135,
+  "EP_counts_BUY": 135,
+  "Z1_zigzag_exit_label_BUY": 135,
+  "W7_best_cell": 132,
+  "W4_early_close_justified": 125,
+  "E4_no_destructive_close_SELL": 123,
+  "W2_truth_positive_open": 117,
+  "W15_no_open_high_risk": 117,
+  "E2p_regret_SL_destined_SELL": 116,
+  "E4_no_destructive_close_BUY": 106,
+  "E1_sl_destined_closed_early_SELL": 97,
+  "E1p_closed_before_SL_SELL": 62,
+  "W1_side": 61,
+  "E2_exit_regret_SELL": 44,
+  "W3_nop": 42,
+  "W8_early_close_at_switch": 34,
+  "W4_sl_exits": 31,
+  "E3_tick_agreement_SELL": 22,
+  "E8_closer_quality_ladder_SELL": 18,
+  "EP_counts_SELL": 18,
+  "Z1_zigzag_exit_label_SELL": 18,
+  "W10_spread_window": 14,
+  "W8_old_direction_after_lag": 14,
+  "E5_early_close_vs_Ostar_BUY": 7,
+  "W17_no_open_in_burst": 5,
+  "E5_early_close_vs_Ostar_SELL": 5
+ },
+ "trades_per_week_median": 6.56280219189857,
+ "net_sigma_per_trade_median_of_records": 0.9232926651995659,
+ "horizon_mix_median": {
+  "h3": 0.526032315978456,
+  "h6": 0.07705779334500876,
+  "h12": 0.13774597495527727,
+  "h24": 0.25307125307125306
+ },
+ "levels_clipped_total": 0,
+ "early_close_share_median": 0.13095238095238096,
+ "sl_share_median": 0.06707317073170732,
+ "pz_genes_sha256": [
+  "36e3e235d851cb3edb97590ec6b13e2d228ff20fd77e94f1b28c8535a293a3d5"
+ ],
+ "per_record": [
+  {
+   "id": "B_cal_cutoff12",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.79009944615305
+  },
+  {
+   "id": "B_cal_cutoff12",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.345967773113028
+  },
+  {
+   "id": "B_cal_cutoff12",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.82214590388524
+  },
+  {
+   "id": "B_fine_high_low",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 20.238487665510906
+  },
+  {
+   "id": "B_fine_high_low",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 20.41876154430292
+  },
+  {
+   "id": "B_fine_high_low",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.96676488735395
+  },
+  {
+   "id": "B_gap_g2_against",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.66470109140914
+  },
+  {
+   "id": "B_gap_g2_against",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.497285032464145
+  },
+  {
+   "id": "B_gap_g2_against",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.628742203279977
+  },
+  {
+   "id": "B_spread_x5",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.77404675628613
+  },
+  {
+   "id": "B_spread_x5",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.610352229457995
+  },
+  {
+   "id": "B_spread_x5",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.424196823519218
+  },
+  {
+   "id": "B_trans_down_pause_down_late",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.87735198323457
+  },
+  {
+   "id": "B_trans_down_pause_down_late",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.972424326872627
+  },
+  {
+   "id": "B_trans_down_pause_down_late",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.877719278805927
+  },
+  {
+   "id": "B_trend_trend_down_strong",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.576360676866315
+  },
+  {
+   "id": "B_trend_trend_down_strong",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.390273273236854
+  },
+  {
+   "id": "B_trend_trend_down_strong",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.587704165488077
+  },
+  {
+   "id": "B_vol_mid",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.131034947715424
+  },
+  {
+   "id": "B_vol_mid",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.479442398708507
+  },
+  {
+   "id": "B_vol_mid",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.7521879386139
+  },
+  {
+   "id": "B_voldyn_step_hl",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.73381721428285
+  },
+  {
+   "id": "B_voldyn_step_hl",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.470211344554105
+  },
+  {
+   "id": "B_voldyn_step_hl",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.531170582948395
+  },
+  {
+   "id": "F1_trend_up_medium_low_low",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.63554894810956
+  },
+  {
+   "id": "F1_trend_up_medium_low_low",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.793864138009816
+  },
+  {
+   "id": "F1_trend_up_medium_low_low",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.167816515299535
+  },
+  {
+   "id": "F2_trend_up_weak_mid_ramp_up",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.73135414529736
+  },
+  {
+   "id": "F2_trend_up_weak_mid_ramp_up",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.12785098061265
+  },
+  {
+   "id": "F2_trend_up_weak_mid_ramp_up",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.340046448316553
+  },
+  {
+   "id": "F3_down_up_late_medium",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.839749193705764
+  },
+  {
+   "id": "F3_down_up_late_medium",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.42578348823403
+  },
+  {
+   "id": "F3_down_up_late_medium",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.993479529697428
+  },
+  {
+   "id": "F3_up_down_early_low",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.79157366243369
+  },
+  {
+   "id": "F3_up_down_early_low",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.30293227071761
+  },
+  {
+   "id": "F3_up_down_early_low",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.419438124267543
+  },
+  {
+   "id": "F4_trend_up_strong_g2_against",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.5509242941421
+  },
+  {
+   "id": "F4_trend_up_strong_g2_against",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.9402241634132
+  },
+  {
+   "id": "F4_trend_up_strong_g2_against",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.355015630463644
+  },
+  {
+   "id": "F5_trend_down_medium_normal_missing",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.12948467367194
+  },
+  {
+   "id": "F5_trend_down_medium_normal_missing",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.647925672361534
+  },
+  {
+   "id": "F5_trend_down_medium_normal_missing",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.795561828457416
+  },
+  {
+   "id": "H1_long_none",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.929986426849556
+  },
+  {
+   "id": "H1_long_none",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.22181199437665
+  },
+  {
+   "id": "H1_long_none",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.392565868956204
+  },
+  {
+   "id": "H1_medium_fast",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.046278369283
+  },
+  {
+   "id": "H1_medium_fast",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.57440866192065
+  },
+  {
+   "id": "H1_medium_fast",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.60684387896054
+  },
+  {
+   "id": "H2_long+medium+short_slow_reversal",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.614165983656584
+  },
+  {
+   "id": "H2_long+medium+short_slow_reversal",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.334373344529237
+  },
+  {
+   "id": "H2_long+medium+short_slow_reversal",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.916459067603448
+  },
+  {
+   "id": "H2_long_none_reversal",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.24090130461315
+  },
+  {
+   "id": "H2_long_none_reversal",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.52237347538658
+  },
+  {
+   "id": "H2_long_none_reversal",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.800978326302097
+  },
+  {
+   "id": "H3_Lweak_Mmid_Slow_with",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.01404893067743
+  },
+  {
+   "id": "H3_Lweak_Mmid_Slow_with",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.280262101815623
+  },
+  {
+   "id": "H3_Lweak_Mmid_Slow_with",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.00627671209382
+  },
+  {
+   "id": "H4_spike_at_reversal_with_x3_none",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch",
+    "W17_no_open_in_burst"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.727352483625822
+  },
+  {
+   "id": "H4_spike_at_reversal_with_x3_none",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W17_no_open_in_burst"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.901363019590704
+  },
+  {
+   "id": "H4_spike_at_reversal_with_x3_none",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.309165891768767
+  },
+  {
+   "id": "H4_spike_at_reversal_with_x5_fast",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.52077467134956
+  },
+  {
+   "id": "H4_spike_at_reversal_with_x5_fast",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch",
+    "W17_no_open_in_burst"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.082369184039788
+  },
+  {
+   "id": "H4_spike_at_reversal_with_x5_fast",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch",
+    "W17_no_open_in_burst"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.897995047170166
+  },
+  {
+   "id": "H5_gap2_with_medium_0.3",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.021176888990045
+  },
+  {
+   "id": "H5_gap2_with_medium_0.3",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.93398263666969
+  },
+  {
+   "id": "H5_gap2_with_medium_0.3",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.69998276630906
+  },
+  {
+   "id": "H6_LHS_01",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.21889213999722
+  },
+  {
+   "id": "H6_LHS_01",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W17_no_open_in_burst"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.80991527990417
+  },
+  {
+   "id": "H6_LHS_01",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.768402426302934
+  },
+  {
+   "id": "I1_upmedium_upstrong_early",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.359928037334235
+  },
+  {
+   "id": "I1_upmedium_upstrong_early",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.972210454913746
+  },
+  {
+   "id": "I1_upmedium_upstrong_early",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.015960279943922
+  },
+  {
+   "id": "I1_upweak_downweak_early",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.50973580260242
+  },
+  {
+   "id": "I1_upweak_downweak_early",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.783872218993938
+  },
+  {
+   "id": "I1_upweak_downweak_early",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.212014224170133
+  },
+  {
+   "id": "I2_vstep_down_2_trend_down",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.4983912323479
+  },
+  {
+   "id": "I2_vstep_down_2_trend_down",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.90395077126411
+  },
+  {
+   "id": "I2_vstep_down_2_trend_down",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.034879500725385
+  },
+  {
+   "id": "I3_vstep_down_2_up_down_same_bar",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 15.597330891856561
+  },
+  {
+   "id": "I3_vstep_down_2_up_down_same_bar",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.622341734490806
+  },
+  {
+   "id": "I3_vstep_down_2_up_down_same_bar",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 16.76450889028907
+  },
+  {
+   "id": "I4_garch097_down_up_middle",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 19.112130421730757
+  },
+  {
+   "id": "I4_garch097_down_up_middle",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 18.200589946276796
+  },
+  {
+   "id": "I4_garch097_down_up_middle",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 17.96947607770642
+  },
+  {
+   "id": "LHS_00",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 10.165622433894805
+  },
+  {
+   "id": "LHS_00",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 11.118900237366871
+  },
+  {
+   "id": "LHS_00",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 11.614507964827736
+  },
+  {
+   "id": "LHS_05",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 12.60548248252021
+  },
+  {
+   "id": "LHS_05",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 12.740466771397452
+  },
+  {
+   "id": "LHS_05",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 12.562460265988216
+  },
+  {
+   "id": "LHS_46",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.428428465387508
+  },
+  {
+   "id": "LHS_46",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.843534713060537
+  },
+  {
+   "id": "LHS_46",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.842932378642871
+  },
+  {
+   "id": "LHS_48",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 13.548909177804868
+  },
+  {
+   "id": "LHS_48",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 13.846651450040742
+  },
+  {
+   "id": "LHS_48",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 13.1324240130085
+  },
+  {
+   "id": "LHS_50",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E5_early_close_vs_Ostar_BUY",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 12.319385563912851
+  },
+  {
+   "id": "LHS_50",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E5_early_close_vs_Ostar_BUY",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 12.199639006747516
+  },
+  {
+   "id": "LHS_50",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 12.548804210629783
+  },
+  {
+   "id": "LHS_52",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.25940423630389
+  },
+  {
+   "id": "LHS_52",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.359390388307544
+  },
+  {
+   "id": "LHS_52",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.259795878875932
+  },
+  {
+   "id": "LHS_53",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 15.2311078055587
+  },
+  {
+   "id": "LHS_53",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 15.679443362563969
+  },
+  {
+   "id": "LHS_53",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 15.09467009345631
+  },
+  {
+   "id": "LHS_56",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 9.342752088060829
+  },
+  {
+   "id": "LHS_56",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 9.420186151342525
+  },
+  {
+   "id": "LHS_56",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 7.419399789402834
+  },
+  {
+   "id": "LHS_57",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.069585087899721
+  },
+  {
+   "id": "LHS_57",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.233356021760112
+  },
+  {
+   "id": "LHS_57",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.374853040920536
+  },
+  {
+   "id": "LHS_61",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 12.020752115857128
+  },
+  {
+   "id": "LHS_61",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W10_spread_window"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 11.77582564602457
+  },
+  {
+   "id": "LHS_61",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 11.826968181106261
+  },
+  {
+   "id": "LHS_62",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.33889520251269
+  },
+  {
+   "id": "LHS_62",
+   "seed": 1,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 14.168843289972585
+  },
+  {
+   "id": "LHS_62",
+   "seed": 2,
+   "verdict": "FAIL",
+   "failing": [
+    "W1_side",
+    "W2_truth_positive_open",
+    "W2_wrong_side",
+    "W3_nop",
+    "W4_sl_exits",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W15_no_open_high_risk",
+    "W8_old_direction_after_lag",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1_sl_destined_closed_early_SELL",
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E2_exit_regret_SELL",
+    "E2p_regret_SL_destined_SELL",
+    "E3_tick_agreement_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "EP_counts_BUY",
+    "Z1_zigzag_exit_label_BUY"
+   ],
+   "sharpe": 15.10458506429043
+  },
+  {
+   "id": "M_LHS_46",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E5_early_close_vs_Ostar_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.492939831604259
+  },
+  {
+   "id": "M_LHS_48",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E5_early_close_vs_Ostar_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 14.80261144994782
+  },
+  {
+   "id": "M_LHS_50",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E5_early_close_vs_Ostar_BUY",
+    "E5_early_close_vs_Ostar_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.51720047909821
+  },
+  {
+   "id": "M_LHS_52",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 16.206067163991634
+  },
+  {
+   "id": "M_LHS_53",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W8_old_direction_after_lag"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 16.058769279987295
+  },
+  {
+   "id": "M_LHS_56",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 16.103451477305832
+  },
+  {
+   "id": "M_LHS_57",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 17.336103629266095
+  },
+  {
+   "id": "M_LHS_61",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 13.957668839021405
+  },
+  {
+   "id": "M_LHS_62",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_BUY",
+    "E5_early_close_vs_Ostar_BUY",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.25246409478517
+  },
+  {
+   "id": "S_LHS_46",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E5_early_close_vs_Ostar_BUY",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 14.740665009603212
+  },
+  {
+   "id": "S_LHS_48",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E5_early_close_vs_Ostar_BUY",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.72138212886552
+  },
+  {
+   "id": "S_LHS_50",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E5_early_close_vs_Ostar_BUY",
+    "E5_early_close_vs_Ostar_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.674525735126103
+  },
+  {
+   "id": "S_LHS_52",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 16.420314330611447
+  },
+  {
+   "id": "S_LHS_53",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W8_old_direction_after_lag"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 16.036919613563786
+  },
+  {
+   "id": "S_LHS_56",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell",
+    "W8_early_close_at_switch"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_BUY",
+    "E4_no_destructive_close_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.642136160684887
+  },
+  {
+   "id": "S_LHS_57",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_BUY",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.728754602210877
+  },
+  {
+   "id": "S_LHS_61",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 15.384563128456874
+  },
+  {
+   "id": "S_LHS_62",
+   "seed": 0,
+   "verdict": "FAIL",
+   "failing": [
+    "W2_wrong_side",
+    "W4_early_close_justified",
+    "W7_best_cell"
+   ],
+   "exit_failing": [
+    "E1p_closed_before_SL_BUY",
+    "E1p_closed_before_SL_SELL",
+    "E4_no_destructive_close_SELL",
+    "E5_early_close_vs_Ostar_SELL",
+    "E8_closer_quality_ladder_BUY",
+    "E8_closer_quality_ladder_SELL",
+    "EP_counts_BUY",
+    "EP_counts_SELL",
+    "Z1_zigzag_exit_label_BUY",
+    "Z1_zigzag_exit_label_SELL"
+   ],
+   "sharpe": 16.056752227739803
+  }
+ ]
+}
