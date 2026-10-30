@@ -201,18 +201,24 @@ def cmd_report(a):
     allt = [json.loads(x) for x in (out / "TASKS.jsonl").read_text().splitlines() if x.strip()]
     agg = aggregate(allt, meta["groups"])
     pts = meta.get("point_list") or grid_points()[: meta["points"]]
-    ranked = sorted(agg.values(), key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"]))
+    # a point with an errored group (the gene map's STRATEGY_SPACE_INFEASIBLE: no calibration reference rows) is INFEASIBLE
+    # with its reason, listed apart and never ranked (coordinator ruling 2026-10-30)
+    infeasible = [{"point": r["point"], "params": pts[r["point"]], "status": "INFEASIBLE", "groups_errored": len(r["errors"]),
+                   "reasons": sorted(set(r["errors"]))} for r in agg.values() if r["errors"]]
+    ranked = sorted((r for r in agg.values() if not r["errors"]), key=lambda r: (r["n_failing_witnesses"], -r["fitness_sharpe"]))
     for k, r in enumerate(ranked):
         r["rank"] = k + 1
         r["params"] = pts[r["point"]]
+        r["status"] = "FEASIBLE" if r["feasible"] else "CONSTRAINED"
     best = next((r for r in ranked if r["feasible"]), None)
     res = {"points_complete": len(agg), "points_total": len(pts), "feasible_points": sum(1 for r in ranked if r["feasible"]),
+           "infeasible_points": sorted(infeasible, key=lambda x: x["point"]),
            "best_feasible": None if best is None else {"point": best["point"], "rank": best["rank"], "params": best["params"], "fitness_sharpe": best["fitness_sharpe"],
                                                       "activity": best["activity"], "grid_edges": edge_report(best["params"])},
            "best_by_constraint_then_sharpe": None if not ranked else {"point": ranked[0]["point"], "params": ranked[0]["params"], "n_failing_witnesses": ranked[0]["n_failing_witnesses"], "fitness_sharpe": ranked[0]["fitness_sharpe"]},
-           "ranking": [{k: r[k] for k in ("rank", "point", "params", "fitness_sharpe", "n_failing_witnesses", "feasible", "activity", "errors")} for r in ranked]}
+           "ranking": [{k: r[k] for k in ("rank", "point", "params", "status", "fitness_sharpe", "n_failing_witnesses", "feasible", "activity")} for r in ranked]}
     (out / "STAGE1_RESULT.json").write_text(json.dumps(res, indent=1, default=float))
-    print(json.dumps({k: res[k] for k in ("points_complete", "points_total", "feasible_points", "best_feasible")}, default=float))
+    print(json.dumps({k: res[k] for k in ("points_complete", "points_total", "feasible_points", "best_feasible")} | {"infeasible": [x["point"] for x in res["infeasible_points"]]}, default=float))
 
 
 def cmd_compare(a):

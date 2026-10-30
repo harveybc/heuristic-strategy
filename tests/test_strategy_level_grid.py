@@ -123,3 +123,51 @@ def test_deap_worker_turns_an_infeasible_candidate_into_a_failing_world():
             W.released = True
     r = D._safe_evaluate(W(), {})
     assert r["fails"] == ["STRATEGY_SPACE_INFEASIBLE"] and r["sharpe"] == -10.0 and r["_role"] == "S" and W.released
+
+
+def _boom_world(*a, **k):
+    raise SystemExit("STRATEGY_SPACE_INFEASIBLE:no calibration-block reference rows for ['open_score']")
+
+
+class _OkWorld:
+    def __init__(self, cx, SCFG, AC, cell, seed):
+        self.cell = cell
+
+    def evaluate(self, doc):
+        return {"key": self.cell["subset_key"], "sharpe": 1.0, "fails": [], "quality": 1.0, "opens": 3, "trades": 3, "early_closes": 0, "levels_clipped": 0,
+                "activity": {"trades_per_week": 1.0, "reopen_1bar_share": 0.0}, "burst_gate": None, "w17": None, "trade_stats": {"net_sigma_per_trade_median": 0.3}}
+
+
+def _dispatch_world(cx, SCFG, AC, cell, seed):
+    return _boom_world() if cell.get("boom") else _OkWorld(cx, SCFG, AC, cell, seed)
+
+
+def test_a_grid_task_raising_systemexit_leaves_the_pool_alive_and_records_the_error(monkeypatch, tmp_path):
+    """A real fork pool (the stage-1 executor): one task's world raises SystemExit; every task returns, the pool survives,
+    the error is recorded, and the report lists the point as INFEASIBLE with its reason, never ranked."""
+    import multiprocessing as mp
+    monkeypatch.setattr(G.D, "CachedWorld", _dispatch_world)
+    monkeypatch.setattr(G.S, "with_variant", lambda s, v: s)
+    G._BASE.update({"AC": None, "cx": None, "SCFG0": None})
+    doc = SP.default_doc()
+    tasks = [(0, "A@q1.00", [{"subset_key": "A@q1.00", "quality": 1.0}], doc),
+             (1, "A@q1.00", [{"subset_key": "A@q1.00", "quality": 1.0, "boom": True}], doc),
+             (2, "A@q1.00", [{"subset_key": "A@q1.00", "quality": 1.0}], doc)]
+    pool = mp.get_context("fork").Pool(2, maxtasksperchild=8)
+    try:
+        out = list(pool.imap(G._task, tasks, chunksize=1))
+        again = list(pool.imap(G._task, tasks[:1], chunksize=1))    # the pool still serves tasks afterwards
+    finally:
+        pool.close()
+        pool.join()
+    assert [r["point"] for r in out] == [0, 1, 2] and out[1]["error"].startswith("SystemExit: STRATEGY_SPACE_INFEASIBLE") and out[0]["error"] is None and again[0]["error"] is None
+    d = tmp_path / "out"
+    d.mkdir()
+    pts = [G.grid_points()[i] for i in range(3)]
+    (d / "RUN_META.json").write_text(json.dumps({"groups": 1, "points": 3, "point_list": pts}))
+    (d / "TASKS.jsonl").write_text("".join(json.dumps(r) + "\n" for r in out))
+    G.cmd_report(type("A", (), {"out": str(d)})())
+    res = json.loads((d / "STAGE1_RESULT.json").read_text())
+    assert [x["point"] for x in res["infeasible_points"]] == [1] and res["infeasible_points"][0]["status"] == "INFEASIBLE"
+    assert "STRATEGY_SPACE_INFEASIBLE" in res["infeasible_points"][0]["reasons"][0]
+    assert [r["point"] for r in res["ranking"]] == [0, 2] and all(r["status"] == "FEASIBLE" for r in res["ranking"])
