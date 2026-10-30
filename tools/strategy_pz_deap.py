@@ -369,7 +369,9 @@ def cmd_stage2(a):
     if ck.exists():
         st = pickle.loads(ck.read_bytes())
     else:
-        base = PZ.validate_genes({**(json.loads(Path(a.init).read_text()) if a.init else {}), **level})
+        ini = json.loads(Path(a.init).read_text()) if a.init else {}
+        ini = {k: v for k, v in ini.get("champion", ini).items() if k in PZ.GENES}       # a stage-2 RESULT.json or a plain genes document
+        base = PZ.validate_genes({**ini, **level})
         st = {"gen": 0, "pending": [encode(base)] + [[rnd.random() for _ in range(nb)] for _ in range(a.population - 1)], "pop": None, "rng": rnd.getstate()}
         ck.write_bytes(pickle.dumps(st))
     rnd.setstate(st["rng"])
@@ -419,6 +421,42 @@ def cmd_stage2(a):
     log(json.dumps({"stage2_done": tag, "champion": champ, "sharpe": best["fitness_sharpe"], "failing": best["n_failing_witnesses"]}))
 
 
+def cmd_stage3(a):
+    """The formal S3 rule on PZ: the top 5 stage-1 level points (the frozen one first) re-evaluated with the stage-2
+    champion's open / close genes; another point no worse on the constraint whose paired mean Sharpe gain over the frozen
+    point exceeds 1 SE (over the subset worlds) -> one more stage 2 from it (tag stage2b); then stop iterating."""
+    root = Path(a.out)
+    if _stop(root):
+        print("STOP flag present"); sys.exit(75)
+    _load_base(a)
+    sub = json.loads(Path(a.subset).read_text())
+    log = lambda m: (print(m, flush=True), open(root / "PROGRESS.log", "a").write(m + "\n"))  # noqa: E731
+    st1 = json.loads((root / "STAGE1_RESULT.json").read_text())
+    champ = json.loads((root / "stage2" / "RESULT.json").read_text())["champion"]
+    top = [{k: x["params"][k] for k in LEVEL} for x in st1["ranking"][:5]]
+    rows = []
+    for i, lv in enumerate(top):
+        r = evaluate_batch(sub, [{k: v for k, v in champ.items() if k not in LEVEL}], lv, root / "stage3" / f"T{i}", a.jobs, log, root / "STOP")
+        if r is None:
+            sys.exit(75)
+        rows.append({"index": i, "params": lv, "fitness_sharpe": r[0]["fitness_sharpe"], "n_failing_witnesses": r[0]["n_failing_witnesses"],
+                     "per_world_sharpe": {w["key"]: w["sharpe"] for w in r[0]["per_world"]}})
+    f0 = rows[0]
+    for r in rows[1:]:
+        keys = sorted(set(r["per_world_sharpe"]) & set(f0["per_world_sharpe"]))
+        d = np.array([r["per_world_sharpe"][k] - f0["per_world_sharpe"][k] for k in keys], float)
+        se = float(d.std(ddof=1) / math.sqrt(len(d))) if len(d) > 1 else float("inf")
+        r.update({"paired_mean_dsharpe_vs_frozen": float(d.mean()), "se": se,
+                  "wins_by_more_than_1se": bool(r["n_failing_witnesses"] <= f0["n_failing_witnesses"] and d.mean() > se)})
+    import tools.strategy_chain_f4 as CF
+    dec = CF.s3_decision({"rows": rows[1:]})
+    out = {"rows": rows, "decision": dec, "champion_stage2": champ}
+    if dec["rerun_stage2"]:
+        (root / "STAGE1_RESULT_S3.json").write_text(json.dumps({**st1, "frozen_level": dec["winner"]["params"]}, indent=1, default=float))
+    (root / "STAGE3_RESULT.json").write_text(json.dumps(out, indent=1, default=float))
+    log(json.dumps({"stage3_done": True, "rerun_stage2": dec["rerun_stage2"]}))
+
+
 def cmd_gate_mirror(a):
     """The pre-launch mirror property test (coordinator order 2026-10-28) for PZ: on every hard pair's zero-cost twin
     (S_) and exact mirror (M_) at perfect heads, the canonical point and ``n`` random genomes (the frozen level genes)
@@ -465,7 +503,7 @@ def cmd_gate_mirror(a):
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("measure", "stage1", "stage2", "gate-mirror"):
+    for name in ("measure", "stage1", "stage2", "stage3", "gate-mirror"):
         p = sub.add_parser(name)
         p.add_argument("--subset", required=True)
         p.add_argument("--admitted", required=True)
@@ -490,7 +528,7 @@ def main():
             p.add_argument("--init", default=None)
             p.add_argument("--tag", default=None)
     a = ap.parse_args()
-    {"measure": cmd_measure, "stage1": cmd_stage1, "stage2": cmd_stage2, "gate-mirror": cmd_gate_mirror}[a.cmd](a)
+    {"measure": cmd_measure, "stage1": cmd_stage1, "stage2": cmd_stage2, "stage3": cmd_stage3, "gate-mirror": cmd_gate_mirror}[a.cmd](a)
 
 
 if __name__ == "__main__":

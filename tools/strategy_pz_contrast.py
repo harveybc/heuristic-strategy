@@ -255,6 +255,60 @@ def summarize(recs: list) -> list:
     return rows
 
 
+ARM_COLORS = {"C3Z": "#2a78d6", "PZ": "#eb6834", "PZ6": "#1baf7a", "TRIVIAL": "#eda100"}   # the dataviz reference categorical slots 1-4 (adjacent pairs validated)
+ARM_LABELS = {"C3Z": "C3Z formal", "PZ": "PZ pragmatic", "PZ6": "PZ-6h", "TRIVIAL": "trivial base"}
+
+
+def x_axis(row_q: dict, arm: str, heads: dict | None, kind: str) -> float:
+    """The owner's plot rule: the arm's OWN outputs' error. C3Z: its net head's MAE / naive; PZ arms: the mean MAE / naive
+    of the fav / adv / tau families (declared); kind 'mae_over_naive' only (MAE in different units is not comparable)."""
+    if arm == "C3Z":
+        return row_q.get("head_mae_over_naive_median", float("nan"))
+    if heads is None:
+        return float("nan")
+    return float(np.nanmean([heads["fav_mae_over_naive"], heads["adv_mae_over_naive"], heads["tau_mae_over_naive"]]))
+
+
+def plots(rep: dict, out: Path) -> list:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    rows = rep["summary"]
+    heads = {r["quality"]: r for r in rows if r["arm"] == "PZ_HEADS"}
+    files = []
+    for met, ylab, fname in (("sharpe_median", "daily Sharpe (median over worlds)", "pz4_sharpe_vs_mae_naive.png"),
+                             ("profit_sigma_unit_median", "unit-size profit, sum of net sigma per trade (median over worlds)", "pz4_profit_vs_mae_naive.png")):
+        fig, ax = plt.subplots(figsize=(7.5, 4.6), dpi=150)
+        fig.patch.set_facecolor("#fcfcfb")
+        ax.set_facecolor("#fcfcfb")
+        for arm in ARMS:
+            pts = sorted(((x_axis(r, arm, heads.get(r["quality"]), "mae_over_naive"), r[met], r["quality"]) for r in rows if r["arm"] == arm), key=lambda t: t[2])
+            pts = [p for p in pts if np.isfinite(p[0]) and np.isfinite(p[1])]
+            if not pts:
+                continue
+            xs, ys, qs = zip(*pts)
+            ax.plot(xs, ys, color=ARM_COLORS[arm], lw=2, marker="o", ms=6, label=ARM_LABELS[arm], markeredgecolor="#fcfcfb", markeredgewidth=1.5)
+            ax.annotate(ARM_LABELS[arm], (xs[0], ys[0]), textcoords="offset points", xytext=(6, 4), fontsize=8, color="#52514e")
+            for x_, y_, q_ in pts:
+                if abs(q_ - DECISION_Q) < 1e-9:
+                    ax.annotate("q0.70", (x_, y_), textcoords="offset points", xytext=(4, -10), fontsize=7, color="#52514e")
+        ax.set_xlabel("MAE / naive of the arm's own outputs (q1.00 at 0; q0.55 rightmost)", fontsize=9, color="#52514e")
+        ax.set_ylabel(ylab, fontsize=9, color="#52514e")
+        ax.grid(True, color="#e6e5e0", lw=0.8)
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            ax.spines[sp].set_color("#b5b4ad")
+        ax.tick_params(colors="#52514e", labelsize=8)
+        ax.legend(frameon=False, fontsize=8)
+        ax.set_title(f"PZ4 ({rep.get('label')}): {ylab.split(' (')[0]} against the outputs' error", fontsize=10, color="#0b0b0b", loc="left")
+        fig.tight_layout()
+        fig.savefig(out / fname, facecolor=fig.get_facecolor())
+        plt.close(fig)
+        files.append(fname)
+    return files
+
+
 def cmd_report(a):
     recs = [json.loads(p.read_text()) for p in sorted(Path(a.results).glob("W_*.json"))]
     errs = [r for r in recs if "error" in r]
@@ -266,6 +320,7 @@ def cmd_report(a):
            "rule": "PZ_PREREGISTRO_2026_10_30 section 4"}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    rep["plots"] = plots(rep, out)
     (out / "PZ4_REPORT.json").write_text(json.dumps(rep, indent=1, default=float))
     print(json.dumps({"records": len(recs), "errors": len(errs), "decision": rep["decision"]}))
 
